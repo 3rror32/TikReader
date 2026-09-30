@@ -1,0 +1,1 @@
+import{t as e}from"./chunks/transport-BYSu6eDb.js";window.TikReaderOverlay??=new e,window.dispatchEvent(new CustomEvent(`tikreader:runtime-ready`,{detail:window.TikReaderOverlay}));

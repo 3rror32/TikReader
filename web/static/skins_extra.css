@@ -1,0 +1,142 @@
+/* Material treatments built on the same semantic colors and UI type scale. */
+html[data-skin="glass"]:root {
+  --skin-bg:#0b1220; --skin-surface:#19283c; --skin-raised:#263b52;
+  --skin-border:#627b96; --skin-text:#f1f7ff; --skin-muted:#b9cce0;
+  --skin-accent:#a4e7f5; --skin-accent-2:#c2c4ff; --skin-accent-ink:#102331;
+  --skin-danger:#ffb0bd; --skin-warning:#f5d397; --skin-wash:#304a60;
+  --skin-shadow:#03091566; --nav-radius:14px; color-scheme:dark;
+  --font-body:'Segoe UI',Inter,sans-serif; --font-display:'Segoe UI Variable Display','Segoe UI',sans-serif;
+}
+html[data-skin="glass"]:root body {
+  background:radial-gradient(ellipse at 12% 10%,#294658 0,transparent 55%),radial-gradient(ellipse at 90% 85%,#30324d 0,transparent 55%),#0b1220 !important;
+  background-attachment:fixed !important;
+}
+html[data-skin="glass"]:root body::before {background:none}
+html[data-skin="glass"]:root body :is(.config-content,.panel,.feed-wrap,.gifts-column,.participants-bar,.app-sidebar) {
+  border:1px solid #a4d8f03d; border-radius:18px;
+  background:#19283c !important;
+  box-shadow:inset 0 1px 0 #e7f7ff38,0 16px 40px #03091555,0 0 1px #c2eaff66;
+}
+@supports (backdrop-filter:blur(20px)) {
+  html[data-skin="glass"]:root body :is(.config-content,.panel,.feed-wrap,.gifts-column,.participants-bar,.app-sidebar) {
+    background:linear-gradient(135deg,#d8f4ff0f,#c2c4ff04),#14223599 !important;
+    backdrop-filter:blur(20px) saturate(125%);
+    -webkit-backdrop-filter:blur(20px) saturate(125%);
+  }
+}
+html[data-skin="glass"]:root body :is(.setting-card,.overlay-card,.overlay-favorites,.overlay-editor,.voice-summary) {
+  background:linear-gradient(135deg,#e3f6ff0b,#b6bfff03),#1c2d407a !important;
+  border-color:#b6d8ed40 !important; border-radius:16px;
+  box-shadow:inset 0 1px #effaff20,0 8px 24px #02081326;
+}
+html[data-skin="glass"]:root body button:not(:disabled):hover {border-color:#a4e7f5 !important}
+html[data-skin="glass"]:root body :is(button,a,input,select,textarea):focus-visible {outline:2px solid #a4e7f5 !important;outline-offset:3px}
+html[data-skin="glass"]:root body select option {background:#19283c;color:#f1f7ff}
+@media (prefers-reduced-transparency:reduce) {
+  html[data-skin="glass"]:root body :is(.config-content,.panel,.feed-wrap,.gifts-column,.participants-bar,.app-sidebar,.setting-card,.overlay-card,.overlay-favorites,.overlay-editor,.voice-summary) {
+    background:#19283c !important;backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+}
+html[data-skin="aetheria"]:root {
+  --skin-bg:#101425; --skin-surface:#1d243b; --skin-raised:#2b3550;
+  --skin-border:#687b9f; --skin-text:#f2f5ff; --skin-muted:#b8c4df;
+  --skin-accent:#b9b5ff; --skin-accent-2:#9ee7ea; --skin-accent-ink:#191731;
+  --skin-danger:#ffa9bc; --skin-warning:#f6d39b; --skin-wash:#393659;
+  --skin-shadow:#06091866; --nav-radius:12px;
+  --font-body:'Segoe UI',Inter,sans-serif; --font-display:'Segoe UI',Inter,sans-serif;
+}
+html[data-skin="cloudfoam"]:root {
+  --skin-bg:#e8eff8; --skin-surface:#fffdf9; --skin-raised:#dce9f9;
+  --skin-border:#849ab7; --skin-text:#253951; --skin-muted:#51667e;
+  --skin-accent:#315e9b; --skin-accent-2:#715794; --skin-accent-ink:#ffffff;
+  --skin-danger:#ac3452; --skin-warning:#805817; --skin-wash:#d5e4f7;
+  --skin-shadow:#647f9f24; --nav-radius:16px; color-scheme:light;
+  --font-body:'Segoe UI',Inter,sans-serif; --font-display:'Trebuchet MS','Segoe UI',sans-serif;
+}
+html[data-skin="monolith"]:root {
+  --skin-bg:#141414; --skin-surface:#1d1d1d; --skin-raised:#292929;
+  --skin-border:#727272; --skin-text:#f1f1f1; --skin-muted:#b7b7b7;
+  --skin-accent:#dedede; --skin-accent-2:#aaa; --skin-accent-ink:#171717;
+  --skin-danger:#ffb4ab; --skin-warning:#e8cd96; --skin-wash:#383838;
+  --skin-shadow:transparent; --nav-radius:4px;
+  --font-body:'Segoe UI',Inter,sans-serif; --font-display:'Segoe UI',Inter,sans-serif;
+}
+html[data-skin="chromapulse"]:root {
+  --skin-bg:#0c0920; --skin-surface:#17112f; --skin-raised:#251c43;
+  --skin-border:#8c78b9; --skin-text:#faf7ff; --skin-muted:#c7bce1;
+  --skin-accent:#65f3ff; --skin-accent-2:#ff80df; --skin-accent-ink:#071c25;
+  --skin-danger:#ff9ab5; --skin-warning:#ffe089; --skin-wash:#233650;
+  --skin-shadow:#07021688; --nav-radius:6px;
+  --font-body:'Segoe UI',Inter,sans-serif; --font-display:'IBM Plex Mono',Consolas,monospace;
+}
+html:is([data-skin="glass"], [data-skin="aetheria"], [data-skin="cloudfoam"], [data-skin="monolith"], [data-skin="chromapulse"]) {
+  --nav-surface:var(--skin-surface); --nav-raised:var(--skin-raised);
+  --nav-line:var(--skin-border); --nav-ink:var(--skin-text); --nav-muted:var(--skin-muted);
+  --nav-accent:var(--skin-accent); --nav-wash:var(--skin-wash); --nav-danger:var(--skin-danger);
+}
+html:is([data-skin="glass"], [data-skin="aetheria"], [data-skin="cloudfoam"], [data-skin="monolith"], [data-skin="chromapulse"]) .skin-swatches i:nth-child(1) {background:var(--skin-bg)}
+html:is([data-skin="glass"], [data-skin="aetheria"], [data-skin="cloudfoam"], [data-skin="monolith"], [data-skin="chromapulse"]) .skin-swatches i:nth-child(2) {background:var(--skin-accent)}
+html:is([data-skin="glass"], [data-skin="aetheria"], [data-skin="cloudfoam"], [data-skin="monolith"], [data-skin="chromapulse"]) .skin-swatches i:nth-child(3) {background:var(--skin-accent-2)}
+html:is([data-skin="glass"], [data-skin="aetheria"], [data-skin="cloudfoam"], [data-skin="monolith"], [data-skin="chromapulse"]) .skin-swatches i:nth-child(4) {background:var(--skin-text)}
+
+/* Aetheria: glass only on outer surfaces, avoiding stacks of costly blur layers. */
+html[data-skin="aetheria"]:root body::before {
+  background:radial-gradient(ellipse at 15% 15%,#9581f044,transparent 55%),radial-gradient(ellipse at 85% 75%,#63cfd433,transparent 55%);
+}
+html[data-skin="aetheria"]:root body :is(.config-content, .panel, .feed-wrap, .gifts-column, .participants-bar) {
+  border-radius:18px;
+  box-shadow:inset 0 1px #e4edff26,0 12px 36px #05091944;
+}
+@supports (backdrop-filter: blur(16px)) {
+  html[data-skin="aetheria"]:root body :is(.config-content, .panel, .feed-wrap, .gifts-column, .participants-bar) {
+    background:linear-gradient(125deg,#b9b5ff0a,#9ee7ea05),#1d243bdb !important;
+    backdrop-filter:blur(16px) saturate(115%);
+  }
+}
+html[data-skin="aetheria"]:root body .setting-card {
+  border-radius:16px; box-shadow:inset 0 1px #e4edff26,0 6px 20px #06091833;
+}
+
+/* Cloudfoam: raised clay surfaces and inset fields, without changing hit areas. */
+html[data-skin="cloudfoam"]:root body::before {background:radial-gradient(ellipse at 80% 5%,#fffdf9,transparent 65%)}
+html[data-skin="cloudfoam"]:root body :is(.config-content, .panel, .setting-card, .voice-summary, .voice-config-fields, .overlay-editor) {
+  border-radius:24px;
+  box-shadow:8px 10px 24px #7991b22b,inset 2px 2px 4px #ffffff,inset -2px -2px 5px #b8c9dd33;
+}
+html[data-skin="cloudfoam"]:root body :is(button, #skin-apply):not([data-section-nav]):not(:disabled):not([aria-disabled="true"]):not(.active):not([aria-pressed="true"]) {
+  border-radius:16px;
+  box-shadow:3px 5px 9px #728bab38,inset 1px 2px 3px #ffffff80,inset -1px -2px 3px #24395124;
+}
+html[data-skin="cloudfoam"]:root body :is(button, #skin-apply):not([data-section-nav]):active:enabled {
+  box-shadow:inset 2px 3px 5px #24395138;
+}
+html[data-skin="cloudfoam"]:root body :is(input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius:12px; box-shadow:inset 2px 2px 4px #7991b21f;
+}
+html[data-skin="cloudfoam"]:root body :is(label, .stat-value, .session-identity h2) {color:var(--skin-text) !important}
+
+/* Monolith: flat graphite surfaces and quieter headings. */
+html[data-skin="monolith"]:root body::before {display:none}
+html[data-skin="monolith"]:root body :is(.config-content, .panel, .setting-card, .feed-wrap, .gifts-column, .participants-bar, .voice-summary, .voice-config-fields, .overlay-editor, .app-sidebar) {
+  border-radius:4px; box-shadow:none; backdrop-filter:none;
+}
+html[data-skin="monolith"]:root body .settings-stack {gap:24px}
+html[data-skin="monolith"]:root body :is(h1,h2,h3) {text-transform:none; letter-spacing:-.02em}
+html[data-skin="monolith"]:root body :is(button, #skin-apply):not(.active):not([aria-pressed="true"]) {border-radius:4px; box-shadow:none}
+
+/* ChromaPulse: luminous edges, with crisp text and no ambient flashing. */
+html[data-skin="chromapulse"]:root body::before {
+  background:radial-gradient(ellipse at 90% 5%,#da36d01a,transparent 60%),radial-gradient(ellipse at 10% 90%,#26cbd418,transparent 55%);
+}
+html[data-skin="chromapulse"]:root body :is(.config-content, .panel, .feed-wrap, .gifts-column, .participants-bar) {
+  border-radius:10px; box-shadow:inset 0 1px #65f3ff66,0 0 20px #bd42d41a;
+}
+html[data-skin="chromapulse"]:root body .setting-card {border-radius:8px; box-shadow:inset 3px 0 var(--skin-accent-2)}
+html[data-skin="chromapulse"]:root body :is(.settings-heading, .overlay-editor-heading) {border-bottom-color:var(--skin-accent-2)}
+html[data-skin="chromapulse"]:root body :is(button, #skin-apply):hover:enabled {box-shadow:0 0 12px #65f3ff30}
+@media (prefers-reduced-transparency: reduce) {
+  html[data-skin="aetheria"]:root body :is(.config-content, .panel, .feed-wrap, .gifts-column, .participants-bar) {
+    background:var(--skin-surface) !important; backdrop-filter:none;
+  }
+}
+

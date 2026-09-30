@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es-419">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TikReader — Estudio en vivo</title>
+  <script id="saved-preferences" type="application/json">{{ {'values': saved_preferences | default({}), 'keys': preference_keys | default([])} | tojson }}</script>
+  <script src="/static/user_settings.js?v=1"></script>
+  <link rel="icon" type="image/x-icon" href="/static/icons/tikreader.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="theme-color" content="#0a0a0f">
+  <link rel="stylesheet" href="/static/moderator-production.css">
+  <meta name="description" content="Lee comentarios de TikTok Live en tiempo real con una interfaz moderna y atractiva." />
+
+
+  <!-- Keep the initial DOM rearrangement out of the first visible frame. -->
+  <style>html[data-ui-loading] body { opacity: 0 !important; pointer-events: none !important; }</style>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const skins = ['original', 'kawai', 'dark', 'light', 'cute', 'dracula', 'ice', 'one-dark-pro', 'github-dark', 'monokai', 'glass', 'aetheria', 'cloudfoam', 'monolith', 'chromapulse'];
+      try {
+        const saved = localStorage.getItem('tikreader.skin');
+        root.dataset.skin = skins.includes(saved) ? saved : 'original';
+      } catch (_) { root.dataset.skin = 'original'; }
+      root.setAttribute('data-ui-loading', '');
+      document.addEventListener('DOMContentLoaded', () => {
+        try { document.body.classList.toggle('basic-mode', JSON.parse(localStorage.getItem('tikreader.interfaceMode')) !== 'advanced'); }
+        catch (_) { document.body.classList.add('basic-mode'); }
+      }, { once: true });
+      const reveal = () => root.removeAttribute('data-ui-loading');
+      // Recover even if an external script stalls. With JS disabled nothing is hidden.
+      const fallback = setTimeout(reveal, 8000);
+      document.addEventListener('DOMContentLoaded', () => {
+        clearTimeout(fallback);
+        reveal();
+      }, { once: true });
+    })();
+  </script>
+
+  <!-- Socket.IO -->
+  <script src="/static/vendor/socket.io/socket.io.min.js"></script>
+
+  <style>
+    /* ─── RESET & VARIABLES ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:    #0a0a0f;
+      --bg-card:    rgba(255,255,255,0.04);
+      --bg-glass:   rgba(255,255,255,0.07);
+      --border:     rgba(255,255,255,0.1);
+      --pink:       #ff2d55;
+      --pink-glow:  rgba(255,45,85,.35);
+      --teal:       #00f5d4;
+      --purple:     #9b51e0;
+      --gold:       #ffd166;
+      --text-main:  #f0f0f5;
+      --text-muted: #888899;
+      --radius-lg:  18px;
+      --radius-md:  12px;
+      --radius-sm:  8px;
+      --transition: .25s cubic-bezier(.4,0,.2,1);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-deep);
+      color: var(--text-main);
+      font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ─── ANIMATED BACKGROUND ────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 70% 60% at 20% 10%, rgba(155,81,224,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(255,45,85,.15) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 60% 40%, rgba(0,245,212,.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── LAYOUT ─────────────────────────────────────────────── */
+    .app {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      height: 100vh;
+      padding: 18px 20px;
+      gap: 14px;
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    /* ─── HEADER ─────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      border-radius: var(--radius-sm);
+      display: grid; place-items: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px var(--pink-glow);
+    }
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      background: linear-gradient(90deg, #fff 0%, var(--teal) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo .beta-badge {
+      display: inline-block;
+      padding: 3px 6px;
+      border: 1px solid currentColor;
+      border-radius: 5px;
+      color: var(--text-muted);
+      font: 700 10px/1.2 sans-serif;
+      letter-spacing: .06em;
+    }
+
+    .logo span {
+      font-size: .7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    /* Live badge */
+    #live-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255,45,85,.15);
+      border: 1px solid rgba(255,45,85,.4);
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--pink);
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    #live-badge.visible { opacity: 1; }
+
+    #live-badge .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--pink);
+      animation: pulse 1.4s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .5; transform: scale(1.3); }
+    }
+
+    /* ─── CONTROL PANEL ──────────────────────────────────────── */
+    .panel {
+      background: var(--bg-glass);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .input-wrap .at {
+      position: absolute;
+      left: 13px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-weight: 600;
+      pointer-events: none;
+    }
+
+    #username-input {
+      width: 100%;
+      padding: 11px 14px 11px 28px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: .95rem;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    #username-input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(0,245,212,.15);
+    }
+
+    #username-input::placeholder { color: var(--text-muted); }
+
+    /* Buttons */
+    .btn {
+      padding: 11px 22px;
+      border: none; border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: .9rem; font-weight: 600;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn:active { transform: scale(.96); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: #fff;
+      box-shadow: 0 4px 20px var(--pink-glow);
+    }
+
+    .btn-primary:hover { box-shadow: 0 6px 28px var(--pink-glow); transform: translateY(-1px); }
+
+
+    .btn-stop {
+      background: rgba(255,45,85,.12);
+      border: 1px solid rgba(255,45,85,.3);
+      color: var(--pink);
+      display: none;
+    }
+
+    .btn-stop:hover { background: rgba(255,45,85,.2); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ─── STATS BAR ──────────────────────────────────────────── */
+    .stats-bar {
+      display: flex;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      flex: 1; min-width: 90px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stat-icon { font-size: 1.3rem; }
+
+    .stat-info { display: flex; flex-direction: column; }
+
+    .stat-value {
+      font-size: 1.15rem; font-weight: 700;
+      transition: color .3s;
+    }
+
+    .stat-label {
+      font-size: .68rem; font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ─── STATUS BAR ─────────────────────────────────────────── */
+    #status-bar {
+      font-size: .8rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      min-height: 18px;
+      transition: color var(--transition);
+    }
+
+    #status-bar.ok { color: var(--teal); }
+    #status-bar.err { color: var(--pink); }
+
+    .live-columns {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+      gap: 14px;
+      min-height: 0;
+    }
+    .live-columns > * { min-width: 0; min-height: 0; }
+    .gifts-column { display: flex; flex-direction: column; overflow: hidden; }
+    .gift-scroll { flex: 1; min-height: 0; overflow: auto; }
+    #gift-table { font-size: .8rem; }
+    #gift-table th { padding: 10px 6px; color: var(--gold); }
+    #gift-table td { border-top: 1px solid var(--border); overflow-wrap: anywhere; }
+    #gift-empty { padding: 22px 0; color: var(--text-muted); font-size: .85rem; }
+    @media (max-width: 800px) {
+      html, body { height: auto; overflow: auto; }
+      .app { height: auto; min-height: 100vh; }
+      .live-columns { grid-template-columns: minmax(0, 1fr); }
+      .live-columns > .feed-wrap { height: 55vh; min-height: 300px; }
+      .gifts-column { max-height: 400px; }
+      .feed-header { flex-wrap: wrap; gap: 8px; }
+    }
+
+    /* ─── COMMENT FEED ───────────────────────────────────────── */
+    .feed-wrap {
+      background: var(--bg-glass);
+      backdrop-filter: blur(18px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .feed-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .feed-title {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .feed-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .feed-btn {
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      font-size: .75rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .feed-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+    #comment-feed {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      scroll-behavior: smooth;
+    }
+
+    /* ─── COMMENT CARD ───────────────────────────────────────── */
+    .comment-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      animation: slideIn .3s cubic-bezier(.34,1.56,.64,1) both;
+      transition: background var(--transition);
+    }
+
+    .comment-card:hover { background: rgba(255,255,255,.07); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      overflow: hidden;
+    }
+
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .comment-body { flex: 1; min-width: 0; }
+
+    .comment-user {
+      font-size: .8rem; font-weight: 700;
+      color: var(--teal);
+      margin-bottom: 2px;
+    }
+
+    .comment-text {
+      font-size: .92rem;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .comment-meta {
+      font-size: .7rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* ─── EMPTY STATE ────────────────────────────────────────── */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      opacity: .5;
+    }
+
+    #empty-state .icon { font-size: 3rem; }
+    #empty-state p { font-size: .9rem; color: var(--text-muted); text-align: center; }
+
+    /* ─── GIFT TOAST ─────────────────────────────────────────── */
+    #toast-container {
+      position: fixed;
+      top: 20px; right: 20px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: linear-gradient(135deg, rgba(155,81,224,.9), rgba(255,45,85,.9));
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius-md);
+      padding: 10px 18px;
+      font-size: .85rem;
+      font-weight: 600;
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      animation: toastIn .4s cubic-bezier(.34,1.56,.64,1) both,
+                 toastOut .3s ease .5s forwards;
+    }
+
+    @keyframes toastIn  { from { opacity:0; transform: translateX(60px); } to { opacity:1; transform: translateX(0); } }
+    @keyframes toastOut { from { opacity:1; transform: translateX(0); } to { opacity:0; transform: translateX(60px); } }
+
+    /* ─── ERROR PANEL ─────────────────────────────────────────── */
+    #error-panel {
+      display: none;
+      background: rgba(255,45,85,.08);
+      border: 1px solid rgba(255,45,85,.35);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin-top: 10px;
+      animation: slideIn .35s cubic-bezier(.34,1.56,.64,1) both;
+    }
+
+    #error-panel.visible { display: flex; gap: 14px; align-items: flex-start; }
+
+    .err-icon {
+      font-size: 1.6rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .err-body { flex: 1; min-width: 0; }
+
+    .err-title {
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--pink);
+      margin-bottom: 4px;
+    }
+
+    .err-detail {
+      font-size: .82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .err-suggestion {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--teal);
+    }
+
+    .err-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .err-btn {
+      padding: 5px 14px;
+      border-radius: var(--radius-sm);
+      font-size: .78rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+
+    .err-btn-close {
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .err-btn-close:hover { color: var(--text-main); }
+
+    /* ─── RESPONSIVE ─────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .app { padding: 12px; gap: 10px; }
+      .stat-value { font-size: 1rem; }
+    }
+  </style>
+  <link rel="stylesheet" href="/static/studio.css">
+  <link rel="stylesheet" href="/static/shell.css">
+  <link rel="stylesheet" href="/static/live_presence.css?v=5">
+  <link rel="stylesheet" href="/static/cabin.css">
+  <link rel="stylesheet" href="/static/custom_voice.css?v=compact-3">
+  <link rel="stylesheet" href="/static/custom_voice_library.css?v=compact-3">
+  <link rel="stylesheet" href="/static/custom_voice_simple.css?v=homero-quick-select-4">
+    <link rel="stylesheet" href="/static/microphone_captions.css?v=9">
+<script src="/static/translations.js?v=bubble-colors-3"></script><script src="/static/i18n.js?v=1"></script><link rel="stylesheet" href="/static/i18n.css?v=1">
+  <!-- Load every layout stylesheet before the first render; preserve cascade order. -->
+  <link rel="stylesheet" href="/static/notifications.css">
+  <link rel="stylesheet" href="/static/voice_structure.css?v=chat-organized-6">
+  <link rel="stylesheet" href="/static/chat_extras.css">
+  <link rel="stylesheet" href="/static/overlay_gallery.css?v=vertical-frame-1">
+  <link rel="stylesheet" href="/static/live_games.css?v=7">
+  <link rel="stylesheet" href="/static/alerts.css?v=20260924-status-placement">
+  <link rel="stylesheet" href="/static/skins.css?v=20260908-scrollbars">
+  <link rel="stylesheet" href="/static/sidebar.css?v=menu-flat-3">
+  <link rel="stylesheet" href="/static/about.css?v=20260905-theme">
+  <link rel="stylesheet" href="/static/live_columns.css?v=7">
+  <link rel="stylesheet" href="/static/platform_integrations.css?v=1">
+  <link rel="stylesheet" href="/static/control_center.css?v=1">
+  <link rel="stylesheet" href="/static/live_refinement.css?v=stats-plain-context-3">
+  <link rel="stylesheet" href="/static/skin_components.css?v=5">
+<link rel="stylesheet" href="/static/donation_jar.css?v=7"><link rel="stylesheet" href="/static/simulation.css?v=1">
+<link rel="stylesheet" href="/static/ui_foundation.css?v=1"><link rel="stylesheet" href="/static/skins_extra.css?v=glass-2"><link rel="stylesheet" href="/static/overlay_catalog.css?v=overlay-menu-1"><link rel="stylesheet" href="/static/ui_typography.css?v=2"><link rel="stylesheet" href="/static/basic_mode.css?v=donation-restored-2"><script src="/static/overlay_url.js?v=2"></script></head>
+<body class="basic-mode" data-app-version="{{ app_version | default('1.0.0.7', true) }}" data-lan-enabled="{{ 'true' if lan_enabled else 'false' }}" data-lan-view-token="{{ lan_view_token | default('', true) }}">
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon"><img src="/static/icons/tikreader-192.png" width="44" height="44" alt=""></div>
+      <div>
+        <div class="logo-title"><h1>TikReader</h1><small class="beta-badge">BETA</small></div>
+        <span>Cabina de transmisión</span>
+      </div>
+    </div>
+    <div id="live-badge">
+      <div class="dot"></div>
+      <span>EN VIVO</span>
+    </div>
+  </header>
+
+  <!-- CONTROL PANEL -->
+  <div class="panel">
+    <div class="controls">
+      <div class="input-wrap">
+        <span class="at">@</span>
+        <input id="username-input"
+               type="text"
+               placeholder="usuario_tiktok"
+               maxlength="50"
+               autocomplete="off" />
+      </div>
+      <button class="btn btn-primary" id="btn-connect" onclick="startLive()">
+        Conectar transmisión
+      </button>
+      <button class="btn btn-stop" id="btn-stop" onclick="stopLive()">
+        ⏹ Detener
+      </button>
+    </div>
+
+    <details id="platform-connectors" class="platform-connectors" data-basic-advanced>
+      <summary>
+        <span class="platform-summary-copy"><strong>Canales externos</strong><small>Elige el directo; las credenciales se configuran una sola vez</small></span>
+        <span class="platform-summary-brands" aria-hidden="true"><i class="youtube">YT</i><i class="twitch">TW</i></span>
+      </summary>
+      <div class="platform-connector-grid">
+        <article class="platform-connector" data-platform-card="youtube">
+          <header class="platform-connector-heading">
+            <span class="platform-logo youtube">YT</span>
+            <div><strong>YouTube Live</strong><small id="youtube-platform-status">Desconectado</small></div>
+            <div class="platform-actions"><button type="button" data-platform-connect="youtube">Conectar</button><button type="button" data-platform-stop="youtube" hidden>Desconectar</button></div>
+          </header>
+          <div class="platform-fields youtube-fields">
+            <label><span>Video en vivo</span><input id="youtube-video" type="text" maxlength="500" placeholder="URL o ID del video" autocomplete="off"></label>
+          </div>
+          <p class="platform-help"><span>Recibe mensajes, membresías y Super Chats nuevos.</span><button type="button" data-platform-settings="youtube">Configurar YouTube</button></p>
+        </article>
+        <article class="platform-connector" data-platform-card="twitch">
+          <header class="platform-connector-heading">
+            <span class="platform-logo twitch">TW</span>
+            <div><strong>Twitch</strong><small id="twitch-platform-status">Desconectado</small></div>
+            <div class="platform-actions"><button type="button" data-platform-connect="twitch">Conectar</button><button type="button" data-platform-stop="twitch" hidden>Desconectar</button></div>
+          </header>
+          <div class="platform-fields twitch-fields">
+            <label><span>Canal</span><input id="twitch-channel" type="text" maxlength="80" placeholder="nombre_del_canal" autocomplete="off"></label>
+          </div>
+          <p class="platform-help"><span>Recibe el chat y los avisos de suscripción.</span><button type="button" data-platform-settings="twitch">Configurar Twitch</button></p>
+        </article>
+      </div>
+      <p id="platform-privacy-note"><span aria-hidden="true">🔒</span><span><strong>Credenciales fuera del LIVE.</strong> Se administran en Configuración › Canales externos y no se guardan en el historial.</span></p>
+    </details>
+
+    <div class="stats-bar">
+      <div class="stat-card stat-comments-card">
+        <span class="stat-icon">💬</span>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-comments">0</span>
+          <span class="stat-label">Comentarios</span>
+        </div>
+      </div>
+      <div class="stat-card stat-likes-card">
+        <span class="stat-icon">❤️</span>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-likes">0</span>
+          <span class="stat-label">Likes</span>
+        </div>
+      </div>
+      <div class="stat-card stat-gifts-card">
+        <span class="stat-icon">🎁</span>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-gifts">0</span>
+          <span class="stat-label">Regalos</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">👁️</span>
+        <div class="stat-info">
+          <span class="stat-value" id="stat-viewers">0</span>
+          <span class="stat-label">Espectadores</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="status-bar">Ingresa el usuario de una transmisión activa de TikTok.</div>
+
+    <p id="like-status" hidden></p>
+
+    <!-- ERROR PANEL -->
+    <div id="error-panel">
+      <div class="err-icon">⚠️</div>
+      <div class="err-body">
+        <div class="err-title" id="err-title">Error</div>
+        <div class="err-detail" id="err-detail"></div>
+        <div class="err-suggestion" id="err-suggestion"></div>
+        <div class="err-actions">
+          <button class="err-btn err-btn-close" onclick="hideError()">✕ Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="live-columns">
+  <!-- COMMENT FEED -->
+  <div class="feed-wrap">
+    <div class="feed-header">
+      <h2 class="feed-title">Comentarios</h2>
+      <div class="feed-actions">
+        <button class="feed-btn" id="btn-autoscroll" onclick="toggleAutoScroll()" title="Mostrar los comentarios más recientes">↑ Auto</button>
+        <button class="feed-btn" onclick="clearFeed()">🗑 Limpiar</button>
+      </div>
+    </div>
+    <div class="voice-dock live-reading-controls" role="group" aria-label="Controles rápidos de lectura"><button id="voice-toggle" class="auto-reading-toggle" type="button" aria-pressed="false">Activar lectura automática</button><button id="voice-pause" type="button" aria-label="Pausar lectura" aria-pressed="false">Pausar</button><button id="voice-next" type="button" title="Saltar la lectura actual y pasar a la siguiente">Saltar</button></div>
+    <div id="voice-visible" role="status">Voz apagada</div>
+    <div class="chat-tools"><input id="chat-search" placeholder="Buscar usuario o comentario" aria-label="Buscar comentarios">
+      <label><input type="checkbox" id="questions-only"> Solo preguntas</label></div>
+    <div id="pinned-comment" hidden></div>
+    <div id="comment-feed">
+      <div id="empty-state">
+        <div class="icon" aria-hidden="true">TR</div>
+        <p><strong>El chat aparecerá aquí</strong><br/>Conecta una transmisión activa para empezar a leer comentarios.</p>
+      </div>
+    </div>
+  </div>
+  <section class="panel gifts-column" aria-labelledby="gift-heading">
+    <nav class="studio-tabs" aria-label="Paneles del estudio">
+      <button data-tab="gifts" class="active">🎁 Regalos</button><button data-tab="ranking">🏆 Ranking</button>
+      <button data-tab="tools">🎙 Voz y filtros</button><button data-tab="history">🗂 Historial / transmisión</button>
+      <button data-tab="workspace">Estudio</button><button data-tab="diagnostics">Conexión</button>
+    </nav>
+    <div data-pane="gifts" class="studio-pane">
+    <h2 id="gift-heading">Regalos</h2>
+    <div class="live-reading-controls" role="group" aria-label="Lectura de regalos"><button id="gift-auto-toggle" type="button" class="auto-reading-toggle" aria-pressed="true">Desactivar lectura automática</button></div>
+    <p id="gift-empty">Aún no se han recibido regalos en esta conexión.</p>
+    <div class="gift-scroll">
+      <table id="gift-table" hidden style="width:100%;border-collapse:collapse;text-align:left">
+        <thead><tr><th>Usuario</th><th>Regalo</th><th>Cantidad</th><th>Hora</th></tr></thead>
+        <tbody id="gift-rows"></tbody>
+      </table>
+    </div>
+    </div>
+    <div data-pane="ranking" class="studio-pane" hidden><h2>Regaladores de esta sesión</h2><label>Ordenar por <select id="ranking-sort"><option value="count">Unidades</option><option value="diamonds">Diamantes informados</option></select></label><ol id="ranking-list"></ol><p id="ranking-empty">Esperando regalos reales.</p></div>
+    <div data-pane="tools" class="studio-pane" hidden>
+      <h2>Lectura por voz</h2>
+      <label><input id="tts-enabled" type="checkbox"> Leer comentarios nuevos</label>
+      <label><input id="tts-read-name" type="checkbox" checked> Leer el nombre de quien comenta</label>
+      <label><input id="tts-greetings-enabled" type="checkbox"> Saludar automáticamente a personas nuevas</label>
+      <label><input id="tts-gifts-enabled" type="checkbox" checked> Leer regalos nuevos</label>
+      <label><input id="tts-restrict" type="checkbox"> Elegir quién se lee en voz alta</label>
+      <label>Leer solamente <select id="tts-audience"><option value="followers">Seguidores confirmados</option><option value="selected">Usuarios que yo elija</option><option value="manual">Manualmente con el botón Leer</option></select></label>
+      <label>Usuarios permitidos <input id="tts-allowed-users" placeholder="@usuario1, @usuario2"></label>
+      <p>Comentarios y regalos se pueden activar por separado. En modo seguidores se omiten los usuarios cuyo estado TikTok no informa. El chat sigue mostrando a todos. El botón Leer permite elegir un comentario manualmente.</p>
+      <div class="voice-active-card">
+        <span>Voz seleccionada</span><strong id="voice-current-character">Padre animado</strong>
+        <label class="voice-ai-quick" for="voice-ai-quick-select"><span>Lectura por IA</span><select id="voice-ai-quick-select" aria-describedby="voice-ai-quick-help" disabled><option value="">Cargando voces IA…</option></select></label>
+        <small id="voice-ai-quick-help">Homero usa el modelo local y la GPU de esta computadora.</small>
+        <div class="voice-active-actions"><button id="tts-test" type="button">Probar voz</button><button id="open-voice-setup" type="button">Cambiar voz</button></div>
+      </div>
+      <input id="tts-rate" type="hidden" value="1">
+      <button id="tts-pause" type="button" hidden>Pausar voz</button><button id="tts-skip" type="button" hidden>Saltar</button>
+      <p id="tts-state" role="status">Voz apagada · cola: 0</p>
+      <label>Prioridad <select id="tts-priority"><option value="normal">Orden de llegada</option><option value="questions">Preguntas primero</option><option value="users">Usuarios elegidos primero</option><option value="gifts">Regalos primero</option></select></label>
+      <label>Usuarios prioritarios <input id="priority-users" placeholder="usuario1, usuario2"></label>
+      <label>Espera máxima (s) <input id="tts-max-age" type="number" min="5" max="300" value="45"></label>
+      <p>Se omiten lecturas demasiado antiguas. La preferencia de activación se recuerda; al abrir se solicita un clic para reactivar el audio.</p>
+      <h2>Filtros locales</h2>
+      <label>Palabras bloqueadas <input id="blocked-words" placeholder="Separadas por comas"></label>
+      <label><input id="antispam" type="checkbox" checked> Ocultar repetidos del mismo usuario (10 s)</label>
+      <label><input id="no-emoji" type="checkbox" checked> No leer emojis</label>
+      <p>Estos filtros afectan esta pantalla y la voz; no moderan la cuenta de TikTok.</p>
+      <h2>Aviso local de regalos</h2>
+      <p class="alert-local-intro">Muestra un mensaje y reproduce un sonido en esta computadora cuando llega un regalo. Para mostrar alertas en tu transmisión, usa el apartado de diseño de esta misma página.</p>
+      <div class="alert-local-card">
+        <label class="alert-local-toggle"><input id="alerts-enabled" type="checkbox" aria-describedby="alert-local-status"><span><strong>Activar aviso local</strong><small>Se muestra como máximo uno cada 5 segundos.</small></span></label>
+        <div id="alert-local-options">
+          <label>Sonido <select id="alert-tone"><option value="660">Campana</option><option value="440">Suave</option><option value="880">Agudo</option></select></label>
+          <label>Nombre del regalo <input id="alert-gift" placeholder="Todos los regalos"></label>
+          <label>Cantidad mínima <input id="alert-min" type="number" min="1" step="1" value="1"></label>
+        </div>
+        <div class="tool-buttons"><button id="alert-test" type="button">Escuchar prueba</button></div>
+        <p id="alert-local-status" class="alert-local-status" role="status"></p>
+      </div>
+      <p>Atajos fuera de los campos: Alt+P pausa voz · Alt+N salta · Alt+D destaca el primero.</p>
+    </div>
+    <div data-pane="history" class="studio-pane" hidden>
+      <h2>Historial local</h2><button id="history-refresh">Actualizar sesiones</button>
+      <label>Sesión <select id="history-session"></select></label>
+      <div class="tool-buttons"><button id="history-view">Ver</button><a id="export-json" href="#">JSON</a><a id="export-csv" href="#">CSV</a></div>
+      <div id="history-preview"></div>
+      <button id="summary-load">Resumen de la sesión seleccionada</button><div id="session-summary" aria-live="polite"></div>
+      <p>El historial contiene comentarios y perfiles públicos recibidos. Solo se guarda en este equipo.</p>
+    </div>
+    <div data-pane="workspace" class="studio-pane" hidden>
+      <div class="settings-heading"><span>PERSONALIZACIÓN</span><h2>Configura tu cabina</h2><p>Empieza por la apariencia, ajusta el espacio de trabajo y guarda perfiles sólo si necesitas reutilizar una combinación.</p></div>
+      <div class="settings-stack">
+        <section class="setting-card settings-group skin-settings" aria-labelledby="skin-settings-title">
+          <div class="settings-group-title"><span class="settings-order">01</span><div class="skin-settings-copy"><h3 id="skin-settings-title">Apariencia</h3><p>Cambia el carácter visual de toda la cabina. Se conserva en este navegador.</p></div></div>
+          <div class="skin-picker"><label for="skin-select">Skin <select id="skin-select"><option value="original">Original</option><option value="kawai">Kawai</option><option value="dark">Dark</option><option value="light">Light</option><option value="cute">Cute</option><option value="dracula">Dracula</option><option value="ice">Ice</option><option value="one-dark-pro">One Dark Pro</option><option value="github-dark">GitHub Dark</option><option value="monokai">Monokai</option><option value="glass">Glass</option><option value="aetheria">Aetheria · Cristal</option><option value="cloudfoam">Cloudfoam · Suave</option><option value="monolith">Monolith · Minimal</option><option value="chromapulse">ChromaPulse · Neón</option></select></label><button id="skin-apply" type="button">Cambiar skin</button></div>
+          <label class="menu-motion-setting"><input id="menu-motion-toggle" type="checkbox" checked> Movimiento suave del menú</label>
+          <p id="menu-motion-status" class="settings-inline-status" role="status">Transiciones breves y desplazamiento guiado.</p>
+          <div class="skin-swatches" aria-hidden="true"><i></i><i></i><i></i><i></i></div><p id="skin-status" role="status"></p>
+        </section>
+        <section class="setting-card settings-group layout-settings" aria-labelledby="layout-settings-title">
+          <div class="settings-group-title"><span class="settings-order">02</span><div><h3 id="layout-settings-title">Distribución del panel</h3><p>Ajusta cuánto espacio ocupa el chat o activa una vista limpia para presentar.</p></div></div>
+          <label>Ancho del chat <input id="layout-split" type="range" min="40" max="70" value="58"></label>
+          <div class="tool-buttons"><button id="presenter-toggle">Activar modo presentador</button></div>
+        </section>
+        <section class="setting-card settings-group profile-settings" aria-labelledby="profile-settings-title" data-basic-advanced>
+          <div class="settings-group-title"><span class="settings-order">03</span><div><h3 id="profile-settings-title">Perfiles guardados</h3><p>Guarda una combinación completa para entrevistas, juegos u otros tipos de transmisión.</p></div></div>
+          <div class="profile-fields"><label>Perfil <select id="profile-select"><option value="">Selecciona un perfil</option></select></label><label>Nombre <input id="profile-name" maxlength="60" placeholder="Entrevistas, juegos…"></label></div>
+          <div class="tool-buttons profile-actions"><button id="profile-save">Guardar perfil</button><button id="profile-load">Cargar perfil</button><button id="profile-delete">Eliminar perfil</button></div>
+          <p id="workspace-notice" role="status"></p>
+        </section>
+        <section class="setting-card settings-group" aria-labelledby="installation-title">
+          <div class="settings-group-title"><span class="settings-order">04</span><div><h3 id="installation-title">Datos y voces adicionales</h3><p>Conserva tus ajustes en este equipo y agrega voces cuando las necesites.</p></div></div>
+          <div class="tool-buttons"><button id="settings-save-device" type="button">Guardar ajustes en este equipo</button><button id="settings-open-data" type="button">Abrir carpeta de datos</button></div>
+          <p id="settings-save-status" role="status">Los cambios se guardan automáticamente en este equipo.</p>
+          <h4>Voces locales Kokoro · opcionales</h4>
+          <p>354 MB de modelos más el motor y sus dependencias. Reserva 2 GB libres. Después de instalarlas, funcionan sin internet.</p>
+          <p>La instalación básica utiliza las voces disponibles en tu equipo. Los modelos personalizados RVC se administran desde Voz.</p>
+          <button id="settings-install-voices" type="button">Descargar e instalar voces</button>
+          <progress id="settings-voice-progress" max="353746785" value="0" hidden aria-label="Descarga de modelos"></progress>
+          <p id="settings-voice-status" role="status"></p>
+        </section>
+      </div>
+      <h2>Ventanas para programas de streaming</h2><p>Cada panel tiene una URL independiente con fondo transparente. Agrégala como fuente de navegador en tu programa de streaming.</p>
+      <div id="obs-widget-notice" role="status"></div><div id="widget-links"></div><p>Usa Chat en 480 × 800, Contadores en 600 × 260 y Metas en 480 × 280. Separar abre una ventana para revisarla; Copiar URL prepara la dirección para tu programa de streaming.</p>
+    </div>
+    <div data-pane="diagnostics" class="studio-pane" hidden><h2>Estado de la conexión</h2><div id="connection-diagnostics" aria-live="polite"></div><p>Que no lleguen comentarios o regalos puede ser normal. Los avisos de antigüedad no prueban una desconexión. Los likes de la API pueden diferir de la aplicación TikTok.</p></div>
+  </section>
+
+  <section data-section="overlay-gallery" class="overlay-gallery" aria-labelledby="overlay-gallery-title">
+    <header class="overlay-gallery-hero">
+      <div><span>TU ESCENA EN DIRECTO</span><h2 id="overlay-gallery-title">Overlays</h2></div>
+      <div class="overlay-signal" aria-hidden="true"><i></i><b>VISTA PRIVADA</b><span>DATOS DE EJEMPLO</span></div>
+    </header>
+    <div id="overlay-catalog">
+      <section class="overlay-favorites" aria-labelledby="overlay-favorites-title">
+        <div class="overlay-section-heading"><h3 id="overlay-favorites-title" tabindex="-1">Tus favoritos</h3><span id="overlay-favorites-count"></span></div>
+        <div id="overlay-favorites-grid" class="overlay-card-grid"></div>
+      </section>
+      <h3 class="overlay-browse-title">¿Qué quieres mostrar?</h3>
+      <nav id="overlay-categories" class="overlay-categories" aria-label="Categorías de overlays"></nav>
+      <div class="overlay-section-heading overlay-results-heading"><div><h3 id="overlay-results-title" tabindex="-1"></h3><p id="overlay-results-description"></p></div><span id="overlay-results-count"></span></div>
+      <div id="overlay-grid" class="overlay-grid" aria-labelledby="overlay-results-title"></div>
+      <p id="overlay-catalog-status" class="overlay-catalog-status" role="status"></p>
+    </div>
+    <section id="overlay-editor" class="overlay-editor" aria-labelledby="overlay-preview-name" hidden>
+      <button id="overlay-back" class="overlay-back" type="button">← Volver a los overlays</button>
+      <div class="overlay-editor-heading"><div><span>CONFIGURACIÓN EN LÍNEA</span><h3 id="overlay-preview-name">Meta de likes</h3></div><p>Los cambios de la vista previa no llegan al programa de streaming hasta que los guardes.</p></div>
+      <div class="overlay-workbench">
+        <div class="overlay-stage" aria-label="Vista previa del overlay">
+          <div class="overlay-stage-bar"><span><i></i> ESCENA DE PRUEBA</span><b>16:9 · ZONA SEGURA</b></div>
+          <label class="overlay-preview-background">Fondo de vista previa <select id="overlay-preview-background"><option value="transparent">Transparente (vista oscura)</option><option value="dark">Oscuro</option><option value="light">Claro</option></select></label>
+          <div class="overlay-screen"><div class="overlay-safe-area" aria-hidden="true"></div><iframe id="overlay-preview" title="Vista previa con datos de ejemplo" sandbox="allow-scripts allow-same-origin"></iframe></div>
+          <div class="overlay-actions"><a id="overlay-open" target="_blank" rel="noopener">Abrir overlay</a><button id="overlay-copy" type="button">Copiar URL para streaming</button></div>
+          <code id="overlay-selected-url"></code>
+          <p id="overlay-source-resolution" class="overlay-source-resolution"></p>
+        </div>
+        <form id="overlay-style-form" class="overlay-style-form"><div id="overlay-style-controls"></div><div class="overlay-savebar"><button id="overlay-reset" type="button">Restaurar</button><button id="overlay-save" type="submit">Guardar estilo</button></div></form>
+      </div>
+      <p id="overlay-gallery-status" role="status"></p>
+    </section>
+  </section>
+
+  </div>
+
+  <section data-section="platform-integrations" class="platform-integrations-page" aria-labelledby="platform-integrations-title">
+    <div class="settings-heading platform-integrations-heading">
+      <span>CANALES EXTERNOS</span>
+      <h2 id="platform-integrations-title">Configura una vez. Conecta cada LIVE en segundos.</h2>
+      <p>Guarda aquí el acceso a YouTube y Twitch. En la pantalla principal solo tendrás que indicar el video o canal.</p>
+    </div>
+    <aside class="platform-vault-note" aria-label="Protección de credenciales">
+      <span class="platform-vault-icon" aria-hidden="true">▣</span>
+      <div><strong>Protegidas para tu usuario de Windows</strong><p id="platform-storage-note">Las claves no aparecen en el historial, los diagnósticos ni el navegador.</p></div>
+    </aside>
+    <div class="platform-integration-grid">
+      <article class="platform-integration-card youtube" data-platform-config-card="youtube">
+        <header><span class="platform-logo youtube">YT</span><div><small>YOUTUBE DATA API V3</small><h3>YouTube Live</h3></div><span class="platform-config-state" data-platform-config-state="youtube">Comprobando…</span></header>
+        <p>TikReader usa esta clave para leer el chat, las membresías y los Super Chats del video que elijas.</p>
+        <form id="youtube-credentials-form">
+          <label for="youtube-api-key">Clave de API</label>
+          <div class="platform-secret-field"><input id="youtube-api-key" type="password" maxlength="300" placeholder="Pega una clave nueva" autocomplete="off" spellcheck="false"><span aria-hidden="true">•••</span></div>
+          <small>La clave se guarda cifrada. Déjala vacía si solo quieres consultar el estado actual.</small>
+          <div class="platform-config-actions"><button type="submit">Guardar YouTube</button><button type="button" class="platform-remove" data-platform-delete="youtube" hidden>Eliminar credencial</button></div>
+          <p class="platform-form-status" id="youtube-credentials-status" role="status"></p>
+        </form>
+      </article>
+      <article class="platform-integration-card twitch" data-platform-config-card="twitch">
+        <header><span class="platform-logo twitch">TW</span><div><small>ACCESO AL CHAT</small><h3>Twitch</h3></div><span class="platform-config-state" data-platform-config-state="twitch">Comprobando…</span></header>
+        <p>Vincula la cuenta que leerá el chat. El canal de cada transmisión se elige después, desde En vivo.</p>
+        <form id="twitch-credentials-form">
+          <div class="platform-form-grid"><label for="twitch-nickname">Usuario de Twitch<input id="twitch-nickname" type="text" maxlength="80" placeholder="mi_usuario" autocomplete="off" spellcheck="false"></label><label for="twitch-token">Token OAuth con chat:read<div class="platform-secret-field"><input id="twitch-token" type="password" maxlength="500" placeholder="oauth:…" autocomplete="off" spellcheck="false"><span aria-hidden="true">•••</span></div></label></div>
+          <small>Esta versión usa autorización manual. TikReader nunca muestra de nuevo el token guardado.</small>
+          <div class="platform-config-actions"><button type="submit">Guardar Twitch</button><button type="button" class="platform-remove" data-platform-delete="twitch" hidden>Eliminar credencial</button></div>
+          <p class="platform-form-status" id="twitch-credentials-status" role="status"></p>
+        </form>
+      </article>
+    </div>
+    <div class="platform-integrations-footer"><span>Después de guardar</span><p>Vuelve a <strong>En vivo</strong>, abre Canales externos y escribe únicamente el video de YouTube o el canal de Twitch.</p><button id="platform-back-live" type="button">Volver a En vivo</button></div>
+  </section>
+
+  <section data-section="custom-voice" class="voice-setup" aria-labelledby="voice-setup-title">
+    <div class="settings-heading">
+      <span>VOZ Y LECTURA</span>
+      <h2 id="voice-setup-title">Configurar voz</h2>
+      <p>Selecciona un personaje y pruébalo con tu propio texto.</p>
+    </div>
+    <div class="voice-setup-grid">
+      <div class="voice-setup-main">
+        <fieldset class="voice-source-picker">
+          <legend>Origen de la voz</legend>
+          <label class="voice-source-card"><input type="radio" name="custom-voice-source" value="kokoro"><span class="voice-source-icon" aria-hidden="true">VOZ</span><span><b>Voces locales Kokoro</b><small>Voces por idioma · sin conexión · sin efectos</small></span><em>CPU</em></label>
+          <label class="voice-source-card selected"><input type="radio" name="custom-voice-source" value="browser" checked><span class="voice-source-icon" aria-hidden="true">PC</span><span><b>Voces de este equipo</b><small>Lista para usar · no envía comentarios a Internet</small></span><em>Disponible</em></label>
+          <label class="voice-source-card"><input type="radio" name="custom-voice-source" value="local"><span class="voice-source-icon" aria-hidden="true">AI</span><span><b>Voz IA RVC</b><small>Usa el modelo RVC instalado en esta PC</small></span><em>Mayor consumo</em></label>
+        </fieldset>
+        <div id="voice-kokoro-fields" class="voice-config-fields" hidden>
+          <h3>Elige una voz local</h3>
+          <p id="kokoro-status" role="status">Consultando voces instaladas…</p>
+          <div id="kokoro-voices" style="max-height:380px;overflow:auto" aria-label="Voces por idioma"></div>
+          <p>La primera lectura carga el modelo en memoria. Las siguientes reutilizan el mismo motor.</p>
+          <details><summary>Créditos y licencia</summary><p>Kokoro 1.0 · hexgrad · Apache 2.0. Motor kokoro-onnx · thewh1teagle · MIT. Reconocimiento Vosk y modelo pequeño en español · Alpha Cephei · Apache 2.0. <a href="/local-tts/credits" target="_blank" rel="noopener">Ver atribuciones y licencias locales</a>.</p></details>
+        </div>
+        <div id="voice-browser-fields" class="voice-config-fields">
+          <h3 id="voice-character-heading">Elige un personaje</h3>
+          <div role="group" aria-labelledby="voice-character-heading">
+            <div id="voice-character-list" class="voice-character-list"></div>
+            <details id="voice-character-more" class="voice-character-more"><summary>Ver más personajes <span id="voice-character-more-count"></span></summary><div id="voice-character-extra" class="voice-character-list"></div></details>
+          </div>
+          <section class="voice-character-settings" aria-labelledby="voice-character-settings-title">
+          <h4 id="voice-character-settings-title">Personaliza el personaje seleccionado</h4>
+          <label for="voice-character-variation">Interpretación del personaje</label>
+          <select id="voice-character-variation" aria-describedby="voice-character-expression"></select>
+          <p id="voice-character-expression"></p>
+          <details class="voice-character-advanced"><summary>Ajustes avanzados</summary>
+          <p>Los personajes comparten la voz base del equipo y modifican su tono, velocidad y expresión. No crean un timbre nuevo ni un efecto metálico. El resultado depende de la voz instalada.</p>
+          <details class="voice-character-create"><summary>Crear una variación</summary><div class="voice-create-grid"><label>Nombre<input id="voice-character-name" maxlength="32" placeholder="Mi personaje"></label><label>Tono<input id="voice-character-pitch" type="range" min="0.5" max="1.8" step="0.01" value="1"></label><label>Velocidad<input id="voice-character-rate" type="range" min="0.6" max="1.6" step="0.01" value="1"></label></div><button id="voice-character-add" type="button">Agregar a mi biblioteca</button></details>
+          <details class="voice-base-settings"><summary>Elegir la voz instalada del equipo</summary><label for="tts-voice">Voz usada como base</label><select id="tts-voice" aria-label="Voz base del equipo"></select><p id="custom-voice-count">Buscando voces instaladas…</p></details>
+          </details>
+          </section>
+        </div>
+        <div id="voice-local-fields" class="voice-config-fields" hidden>
+          <div class="voice-local-heading"><div><strong>Modelo RVC local</strong><p>Elige el modelo y prepara la voz antes de transmitir.</p></div><span id="voice-local-badge">Comprobando…</span></div>
+          <div class="voice-model-selection"><label for="voice-local-model">Modelo instalado</label><select id="voice-local-model"><option value="">Cargando modelos…</option></select><p id="voice-local-status" role="status">Comprobando los modelos instalados…</p></div>
+          <section class="voice-gpu-settings" aria-labelledby="voice-preparation-title">
+            <h4 id="voice-preparation-title">Preparación de la voz</h4>
+            <label class="voice-resource-consent"><input id="voice-keep-warm" type="checkbox" aria-describedby="voice-keep-warm-help"><span><b>Mantener voz preparada en GPU</b></span></label>
+            <p id="voice-keep-warm-help">Reduce la espera del primer mensaje. Mantiene memoria de la GPU ocupada mientras está preparada. Al cambiar de voz se libera automáticamente.</p>
+            <div class="voice-preload-row"><p id="voice-keep-warm-status" role="status"></p><button id="voice-preload" type="button">Precargar ahora</button></div>
+            <label id="voice-resource-consent" class="voice-resource-consent" hidden><input id="voice-resource-accept" type="checkbox"><span><b>Permitir el uso de GPU para esta voz</b>Comparte recursos con tus juegos y la transmisión.</span></label>
+          </section>
+          <details class="voice-requirements"><summary>Requisitos y rendimiento</summary>
+            <div class="voice-resource-note" id="voice-gpu-requirements" role="note">
+              <strong>Tarjeta NVIDIA compatible con CUDA</strong>
+              <span>Necesitas memoria de video suficiente para el modelo. Esta versión no admite conversión con AMD, gráficos Intel ni solo CPU.</span>
+              <span>Verificado con una GeForce RTX 4070 Ti; no es un requisito mínimo. El rendimiento depende del modelo y de los programas abiertos.</span>
+              <span>Prueba la voz antes de transmitir para comprobar la velocidad de lectura.</span>
+            </div>
+            <div class="voice-resource-note"><strong id="voice-resource-level">Consumo de recursos: alto</strong><span id="voice-resource-copy">La conversión comparte la GPU con tus otras aplicaciones.</span></div>
+          </details>
+          <details><summary>Agregar otro modelo autorizado</summary><label>Nombre<input id="voice-model-name" maxlength="60" placeholder="Mi modelo local"></label><label>Modelo RVC .pth<input id="voice-model-file" type="file" accept=".pth"></label><label>Índice .index (opcional)<input id="voice-index-file" type="file" accept=".index"></label><button id="voice-model-upload" type="button">Agregar modelo</button><p>Usa únicamente modelos de una fuente en la que confíes.</p></details>
+          <div class="voice-model-management"><span>Gestionar el modelo seleccionado</span><button id="voice-model-delete" type="button" disabled>Eliminar modelo…</button></div>
+        </div>
+        <div class="voice-test-box">
+          <label for="custom-voice-sample">Texto de prueba</label><div><input id="custom-voice-sample" maxlength="180" value="Hola, estoy leyendo los comentarios del live."><button id="custom-voice-test" type="button">Escuchar prueba</button></div>
+          <label class="voice-output-volume" for="tts-volume"><span>Volumen de lectura</span><input id="tts-volume" type="range" min="0" max="1" step="0.1" value="0.7"></label>
+          <p id="custom-voice-status" role="status">Selecciona otro personaje y pulsa Escuchar prueba para comparar con este texto.</p>
+        </div>
+        <div id="voice-connector-note" class="voice-connector-note" hidden role="status"><strong>Esta opción necesita un conector.</strong><p>TikReader todavía no pedirá claves ni archivos. Así tus credenciales y muestras de voz no se guardan en el navegador por accidente.</p><button id="voice-back-browser" type="button">Usar una voz del equipo por ahora</button></div>
+
+
+      </div>
+      <aside class="voice-summary" aria-label="Resumen de voz">
+        <span>PERSONAJE ELEGIDO</span><div class="voice-orb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><h3 id="custom-voice-summary">Padre animado</h3><p id="custom-voice-privacy">Los comentarios permanecen en este dispositivo.</p><dl><div><dt>Consumo</dt><dd id="custom-voice-engine">Bajo</dd></div><div><dt>Después</dt><dd id="custom-voice-ready">Pulsa Reactivar voz</dd></div></dl><button id="custom-voice-save" type="button">Usar esta voz</button><button id="custom-voice-cancel" type="button">Volver sin cambios</button>
+      </aside>
+    </div>
+  </section>
+
+  {% include 'simulation.html' %}
+
+  <section data-section="about" class="about-view" aria-label="Acerca de TikReader">
+    <div class="about-grid">
+      <article class="creator-card" aria-labelledby="creator-title">
+        <div class="creator-signal" aria-hidden="true"><i></i><i></i><i></i></div>
+        <img src="/static/3rror32-avatar.png" alt="Avatar ilustrado de 3rror32" width="256" height="256">
+        <div class="creator-copy">
+          <small>CREADO POR</small>
+          <h3 id="creator-title">3rror32</h3>
+          <p>Soy ingeniero en tecnología y educador. Mis días se dividen entre el desarrollo de software y la gestión de infraestructura de sistemas. Fuera del trabajo, encuentro el equilibrio combinando la paciencia del ajedrez, el mundo inmersivo del cine y la energía de los videojuegos.</p>
+          <a class="tiktok-button" href="https://www.tiktok.com/@3error32" target="_blank" rel="noopener noreferrer" aria-label="Seguir a 3error32 en TikTok (abre en una pestaña nueva)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3c.3 2.6 1.8 4.1 4.5 4.3v3.2a9.2 9.2 0 0 1-4.5-1.4v6.2A6.3 6.3 0 1 1 10 9.1v3.3a3.1 3.1 0 1 0 2.2 3V3h3.3Z"/></svg>
+            Sígueme en TikTok
+            <span aria-hidden="true">↗</span>
+          </a>
+          <span class="creator-thanks">Gracias por usar y apoyar esta herramienta.</span>
+        </div>
+      </article>
+
+      <article class="about-system" aria-labelledby="about-system-title">
+        <div class="about-card-heading">
+          <img class="about-card-icon" src="/static/icons/tikreader-192.png" width="44" height="44" alt="TR">
+          <div><small>SISTEMA Y DATOS</small><h3 id="about-system-title">Lo importante, de este lado de la pantalla</h3></div>
+        </div>
+        <dl class="about-facts">
+          <div><dt>Versión</dt><dd>{{ app_version | default('1.0.0.1', true) }} Beta</dd></div>
+          <div><dt>Estado</dt><dd>Versión en pruebas. Algunas funciones pueden cambiar o presentar errores.</dd></div>
+          <div><dt>Funcionamiento</dt><dd>El panel se ejecuta en este equipo y se conecta al LIVE que tú indiques.</dd></div>
+          <div><dt>Historial</dt><dd>Los comentarios y perfiles públicos recibidos se guardan localmente para tus sesiones y análisis.</dd></div>
+          <div><dt>Control</dt><dd>Tú decides cuándo conectar, qué leer en voz alta y cuándo borrar o conservar tus datos.</dd></div>
+        </dl>
+        <p class="about-note"><span aria-hidden="true"></span> Servidor local</p>
+        <p>El diagnóstico compartible incluye versiones y estado de conexión; excluye comentarios, nombres, claves y rutas personales.</p>
+        <div class="tool-buttons"><a href="/diagnostics/export" download>Exportar diagnóstico</a><button id="settings-exit" type="button">Cerrar TikReader</button></div>
+        <p id="settings-exit-status" role="status"></p>
+      </article>
+    </div>
+  </section>
+
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div><div id="gift-alert" hidden role="status"></div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script src="/static/notifications.js"></script>
+<script src="/static/voice_personality.js?v=1"></script>
+<script src="/static/studio.js?v=verified-gifts-1"></script>
+<script src="/static/chat_extras.js"></script>
+<script src="/static/workspace.js?v=20260912-live-links"></script>
+<script src="/static/overlay_animation_defaults.js?v=welcome-message-1"></script>
+<script src="/static/overlay_canvas_controls.js?v=vertical-frame-1"></script>
+<script src="/static/overlay_animation_controls.js?v=20260924-variable-help-3"></script>
+<script src="/static/stream_buddies_controls.js?v=5"></script>
+<script src="/static/seasonal_controls.js?v=bubble-colors-3"></script>
+<script src="/static/emoji_controls.js?v=2"></script>
+<script src="/static/user_info_controls.js?v=2"></script>
+<script src="/static/overlay_gallery.js?v=menu-favorites-2"></script>
+<script src="/static/widget_customizer.js"></script>
+{% include 'production.html' %}
+<script src="/static/effect_queue.js?v=2"></script>
+<script src="/static/interactivity.js?v=20260912-live-links"></script>
+<script src="/static/game_hotkeys.js"></script>
+<script src="/static/points.js"></script>
+<script src="/static/wheel_motion.js?v=1"></script>
+<script src="/static/bank_shapes.js?v=1"></script><script src="/static/piggy_physics.js?v=2"></script><script src="/static/piggy_bank.js?v=15"></script>
+<script src="/static/live_games.js?v=20260912-live-sync"></script>
+<script src="/static/bank_editor.js?v=1"></script>
+<script src="/static/live_integrations.js?v=1"></script>
+<script src="/static/minecraft.js"></script>
+<script type="module" src="/static/build/controlCenter.js"></script>
+<script src="/static/participants.js"></script>
+<script src="/static/alert_renderer.js?v=2"></script>
+<script src="/static/animation_studio.js?v=20260924-variable-help"></script>
+<script src="/static/kokoro_voices.js?v=1"></script>
+<script src="/static/custom_voice.js?v=homero-quick-select-2"></script>
+<script src="/static/voice_gpu.js?v=voice-unload-1"></script>
+<script src="/static/simulation.js?v=1"></script>
+<script src="/static/creator_bridge.js?v=1"></script>
+<script src="/static/microphone_captions.js?v=10"></script>
+<script src="/static/shell.js?v=menu-motion-4"></script>
+<script src="/static/skins.js?v=glass-2"></script>
+<script src="/static/production.js?v=safety-icon-1"></script>
+<script src="/static/advanced.js"></script>
+<script src="/static/improvements.js"></script>
+<script src="/static/voice_layout.js?v=1"></script>
+<script src="/static/operator.js?v=3"></script>
+<script src="/static/live_presence.js?v=safety-header-1"></script>
+<script src="/static/chat_navigation.js"></script>
+<script src="/static/live_experience.js"></script>
+<script src="/static/core_ui.js?v=verified-gifts-1"></script>
+<script src="/static/platform_connectors.js?v=2"></script>
+<script src="/static/sidebar.js?v=menu-flat-3"></script>
+<script src="/static/navigation_help.js?v=overlay-menu-1"></script>
+<script src="/static/live_button_icons.js?v=3"></script>
+</body>
+</html>
+
+
+

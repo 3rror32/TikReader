@@ -1,0 +1,21 @@
+.about-view{--about-cyan:#22e6ed;--about-pink:#ff4675;--about-ink:#0b1520;--about-panel:#111f2d;--about-line:#294055;max-width:1120px!important;margin:0 auto;padding:clamp(12px,2vw,28px) 0 40px;color:#eaf5ff}
+.about-card-heading small,.creator-copy>small{font:600 10px/1.2 var(--font-data);letter-spacing:.18em;color:var(--about-cyan)}
+.about-grid{display:grid;grid-template-columns:minmax(420px,1.1fr) minmax(0,.9fr);gap:18px}
+.about-system,.creator-card{position:relative;overflow:hidden;border:1px solid var(--about-line);border-radius:18px;background:linear-gradient(145deg,#132231,#0d1823);box-shadow:0 22px 55px rgba(0,0,0,.2)}
+.about-system{padding:30px}
+.about-card-heading{display:flex;gap:15px;align-items:flex-start;padding-bottom:24px}
+.about-card-icon{display:block;flex:0 0 44px;width:44px;height:44px;object-fit:cover;padding:0;border:1px solid var(--about-cyan);border-radius:50%;background:#0a0a0f;box-shadow:0 0 0 3px rgba(255,70,117,.12)}
+.about-card-heading h3,.creator-copy h3{font:700 25px/1.1 var(--font-display);margin:5px 0 0;color:#fff}
+.about-facts{margin:0}.about-facts>div{display:grid;grid-template-columns:105px 1fr;gap:18px;padding:18px 0;border-top:1px solid var(--about-line)}
+.about-facts dt{font:600 11px/1.5 var(--font-data);color:#dce9f5;text-transform:uppercase}.about-facts dd{font-size:13px;line-height:1.65;color:#91a7ba;margin:0}
+.about-note{display:flex;align-items:center;gap:9px;font:500 10px/1.5 var(--font-data);color:#8dcbba;margin:22px 0 0}.about-note span{width:7px;height:7px;border-radius:50%;background:#53e0aa;box-shadow:0 0 12px #53e0aa}
+.creator-card{display:grid;grid-template-columns:minmax(180px,.8fr) minmax(230px,1fr);align-items:center;min-height:410px;padding:28px 24px;background:radial-gradient(circle at 10% 80%,rgba(255,70,117,.16),transparent 44%),radial-gradient(circle at 88% 10%,rgba(34,230,237,.14),transparent 42%),#101d2a}
+.creator-card>img{position:relative;z-index:1;display:block;width:min(100%,245px);aspect-ratio:1;height:auto;object-fit:cover;border-radius:50%;border:2px solid rgba(34,230,237,.55);box-shadow:0 0 0 7px rgba(255,70,117,.08),0 18px 30px rgba(0,0,0,.38)}
+.creator-copy{position:relative;z-index:2;padding:36px 30px 36px 8px}.creator-copy h3{font-size:48px;letter-spacing:-.02em;margin:5px 0 12px}.creator-copy p{font-size:13px;line-height:1.7;color:#a6b8c9;margin:0 0 22px}
+.creator-signal{position:absolute;inset:0;pointer-events:none}.creator-signal i{position:absolute;border:1px solid rgba(34,230,237,.13);border-radius:50%;width:290px;height:290px;left:-72px;bottom:-65px}.creator-signal i:nth-child(2){transform:scale(.76);border-color:rgba(255,70,117,.18)}.creator-signal i:nth-child(3){transform:scale(.52)}
+.tiktok-button{display:flex;align-items:center;gap:10px;width:100%;padding:13px 15px;border-radius:9px;background:#f7fbff;color:#08121b!important;text-decoration:none;font-weight:750;font-size:13px;box-shadow:-4px 4px 0 var(--about-cyan),4px -4px 0 var(--about-pink);transition:transform .18s ease,box-shadow .18s ease}
+.tiktok-button svg{width:19px;height:19px;fill:currentColor}.tiktok-button span{margin-left:auto}.tiktok-button:hover{transform:translateY(-2px);box-shadow:-6px 6px 0 var(--about-cyan),6px -6px 0 var(--about-pink)}
+.creator-thanks{display:block;font:500 10px/1.5 var(--font-data);color:#7f94a8;text-align:center;margin-top:16px}
+@media(max-width:850px){.about-grid{grid-template-columns:1fr}.creator-card{grid-template-columns:minmax(150px,.7fr) minmax(220px,1fr)}}
+@media(max-width:560px){.about-view{padding-bottom:24px}.about-system{padding:22px}.about-facts>div{grid-template-columns:1fr;gap:5px}.creator-card{grid-template-columns:1fr;padding:28px 22px}.creator-card>img{width:200px;margin:0 auto}.creator-copy{padding:28px 2px 2px;text-align:center}.creator-copy h3{font-size:42px}}
+@media(prefers-reduced-motion:reduce){.tiktok-button{transition:none}}

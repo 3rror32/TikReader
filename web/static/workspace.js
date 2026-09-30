@@ -1,0 +1,79 @@
+window.Workspace=(()=>{
+  const $=id=>document.getElementById(id);
+  const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch(_){return fallback;}};
+  const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch(_){$('workspace-notice').textContent='No se pudo guardar: almacenamiento del navegador no disponible.';return false;}};
+  let profiles=read('tikreader.profiles',{}), layout=read('tikreader.layout',{split:58,presenter:false}), lastState;
+  if(!profiles||typeof profiles!=='object'||Array.isArray(profiles))profiles={};
+  if(!layout||typeof layout!=='object')layout={split:58,presenter:false};
+  let wantsVoice=read('tikreader.voiceWanted',false)===true;
+  // Restore the user's choice before rendering the toolbar after a reload.
+  $('tts-enabled').checked=wantsVoice;
+  $('tts-enabled').onchange();
+  function voiceStatus(){
+    const enabled=$('tts-enabled').checked, paused=Studio.audioDiagnostics().paused;
+    const character=read('tikreader.voiceCharacter',{name:'Voz normal'});
+    $('voice-visible').textContent=`${window.I18n?.sourceText($('tts-state')) ?? $('tts-state').textContent} · ${character.name||'Voz normal'}`;
+    $('voice-toggle').textContent='Voz automática';
+    $('voice-toggle').setAttribute('aria-label',enabled?'Desactivar lectura automática':'Activar lectura automática');
+    $('voice-toggle').classList.toggle('enabled',enabled);
+    $('voice-toggle').setAttribute('aria-pressed',String(enabled));
+    $('voice-toggle').title=enabled?`Detener la lectura con ${character.name||'la voz seleccionada'} y vaciar la cola`:`Activar comentarios con ${character.name||'la voz seleccionada'}`;
+    $('voice-pause').textContent=paused?'Continuar':'Pausar';
+    $('voice-pause').setAttribute('aria-label',paused?'Continuar lectura':'Pausar lectura');
+    $('voice-pause').setAttribute('aria-pressed',String(paused));
+    $('voice-pause').title=paused?'Continuar la cola de lectura':'Pausar sin perder los comentarios pendientes';
+  }
+  new MutationObserver(voiceStatus).observe($('tts-state'),{childList:true,characterData:true,subtree:true});
+  $('voice-toggle').onclick=()=>{$('tts-enabled').checked=!$('tts-enabled').checked;$('tts-enabled').dispatchEvent(new Event('change'));};
+  $('tts-enabled').addEventListener('change',()=>{wantsVoice=$('tts-enabled').checked;save('tikreader.voiceWanted',wantsVoice);voiceStatus();});
+  $('voice-pause').onclick=()=>$('tts-pause').click();$('voice-next').onclick=()=>$('tts-skip').click();voiceStatus();
+  function applyLayout(){layout.split=Math.max(40,Math.min(70,Number(layout.split)||58));document.documentElement.style.setProperty('--chat-share',layout.split+'%');document.body.classList.toggle('presenter',!!layout.presenter);$('layout-split').value=layout.split;$('presenter-toggle').textContent=layout.presenter?'Salir de modo presentador':'Activar modo presentador';}
+  $('layout-split').oninput=()=>{layout.split=Number($('layout-split').value);applyLayout();save('tikreader.layout',layout);};
+  $('presenter-toggle').onclick=()=>{layout.presenter=!layout.presenter;applyLayout();save('tikreader.layout',layout);};applyLayout();
+  const widthButtons=document.createElement('div');widthButtons.className='tool-buttons';
+  for(const [label,delta] of [['Reducir chat',-5],['Ampliar chat',5]]){const b=document.createElement('button');b.textContent=label;b.onclick=()=>{layout.split+=delta;applyLayout();save('tikreader.layout',layout);};widthButtons.append(b);}
+  $('layout-split').parentElement.after(widthButtons);
+  // Presenter always retains its exit control, including when the settings pane is hidden.
+  const exit=document.createElement('button');exit.id='presenter-exit';exit.textContent='Salir del modo presentador';exit.onclick=()=>{layout.presenter=false;applyLayout();save('tikreader.layout',layout);};document.body.append(exit);
+  const voiceKeys=['tikreader.voiceCharacters','tikreader.voiceCharacter','tikreader.rvcResourceConsent','tikreader.timerDuration','tikreader.timerSound'];
+  function profileList(selected=''){const select=$('profile-select');select.replaceChildren();const empty=document.createElement('option');empty.value='';empty.textContent='Selecciona un perfil';select.append(empty);for(const name of Object.keys(profiles).sort()){const option=document.createElement('option');option.value=name;option.textContent=name;select.append(option);}select.value=selected;}
+  $('profile-save').onclick=async()=>{const name=$('profile-name').value.trim().slice(0,60);if(!name){$('workspace-notice').textContent='Escribe un nombre para el perfil.';return;}if(['__proto__','constructor','prototype'].includes(name))return;
+    let complete;try{const r=await fetch('/operator/profile',{signal:AbortSignal.timeout(5000)});if(!r.ok)throw Error();complete=await r.json();}catch(_){$('workspace-notice').textContent='No se pudo obtener el perfil completo; no se guardó.';return;}
+    profiles[name]={complete,voiceSettings:Object.fromEntries(voiceKeys.map(k=>[k,localStorage.getItem(k)])),shortcuts:read('tikreader.shortcuts',null),interfaceMode:read('tikreader.interfaceMode','basic'),accessibility:read('tikreader.accessibility',{}),settings:Studio.preferences(),layout:{...layout},voice:wantsVoice,alerts:$('alerts-enabled').checked,like_goal:lastState?.like_goal,gift_goal:lastState?.gift_goal};if(save('tikreader.profiles',profiles)){$('workspace-notice').textContent='Perfil guardado.';profileList(name);}};
+  $('profile-load').onclick=async()=>{const p=profiles[$('profile-select').value];if(!p){$('workspace-notice').textContent='Selecciona un perfil.';return;}if(p.complete){try{const r=await fetch('/operator/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p.complete),signal:AbortSignal.timeout(5000)});if(!r.ok)throw Error();window.dispatchEvent(new Event('tikreader:rules-changed'));}catch(_){$('workspace-notice').textContent='Perfil incompatible o archivos ausentes; no se cargó.';return;}}if(p.voiceSettings)for(const k of voiceKeys){const v=p.voiceSettings[k];if(typeof v==='string')localStorage.setItem(k,v);else localStorage.removeItem(k);}window.CustomVoice?.refresh();if(p.shortcuts)save('tikreader.shortcuts',p.shortcuts);if(p.interfaceMode)save('tikreader.interfaceMode',p.interfaceMode);window.dispatchEvent(new Event('tikreader:profile'));if(p.accessibility){save('tikreader.accessibility',p.accessibility);window.dispatchEvent(new Event('tikreader:profile'));}Studio.applyPreferences(p.settings);layout={...p.layout};applyLayout();save('tikreader.layout',layout);wantsVoice=!!p.voice;save('tikreader.voiceWanted',wantsVoice);
+    $('tts-enabled').checked=false;$('tts-enabled').onchange();voiceStatus();$('alerts-enabled').checked=!!p.alerts;$('alerts-enabled').onchange();
+    try{const goals={};if(p.like_goal!=null)goals.like_goal=p.like_goal;if(p.gift_goal!=null)goals.gift_goal=p.gift_goal;if(Object.keys(goals).length){const r=await fetch('/studio/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(goals)});if(!r.ok)throw Error();}$('workspace-notice').textContent='Perfil cargado. Revisa reglas desactivadas y restaura la emisión antes de reactivar voz.';location.reload();}catch(_){$('workspace-notice').textContent='Ajustes locales cargados; no se pudieron restaurar los datos antiguos de metas.';}};
+  $('profile-delete').onclick=()=>{const name=$('profile-select').value;if(!name)return;delete profiles[name];if(save('tikreader.profiles',profiles)){profileList();$('workspace-notice').textContent='Perfil eliminado.';}};profileList();
+  const profileFiles=document.createElement('div');profileFiles.className='tool-buttons profile-file-actions';const exportProfiles=document.createElement('button');exportProfiles.textContent='Exportar perfiles';exportProfiles.onclick=()=>{const blob=new Blob([JSON.stringify({version:1,profiles},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='tikreader-perfiles.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};const importProfiles=document.createElement('input');importProfiles.type='file';importProfiles.accept='.json';importProfiles.setAttribute('aria-label','Importar perfiles');importProfiles.onchange=async()=>{try{const f=importProfiles.files[0];if(!f||f.size>1024*1024)throw Error('Archivo ausente o mayor a 1 MB');const d=JSON.parse(await f.text());if(d.version!==1||!d.profiles||typeof d.profiles!=='object'||Array.isArray(d.profiles)||Object.keys(d.profiles).length>50)throw Error('Archivo de perfiles inválido');for(const [name,value] of Object.entries(d.profiles))if(!name||name.length>60||!value||typeof value!=='object')throw Error('Perfil inválido');profiles={...profiles,...d.profiles};save('tikreader.profiles',profiles);profileList();$('workspace-notice').textContent='Perfiles importados; revísalos antes de cargarlos.';}catch(e){$('workspace-notice').textContent=e.message;}};profileFiles.append(exportProfiles,importProfiles);$('profile-delete').parentElement.after(profileFiles);
+
+  const overlayWindows=[
+    ['/overlay/likes','Likes separados','likes-overlay',760,220],
+    ['/overlay/gifts','Regalos separados','gifts-overlay',680,260],
+    ['/widget/chat','Comentarios','chat',480,800],
+    ['/widget/gifts','Regalos recientes','gifts',480,800],
+    ['/widget/ranking','Ranking','ranking',480,800],
+    ['/widget/stats','Contadores','stats',600,260],
+    ['/widget/goals','Metas','goals',600,280],
+    ['/widget/highlight','Destacado','highlight',600,260],
+    ['/widget/announcement','Respuestas y escenas','announcement',600,260]
+  ];
+  for(const [path,label,key,width,height] of overlayWindows){
+    const row=document.createElement('div');row.className='widget-link';const title=document.createElement('strong');title.textContent=label;
+    const url=window.overlayUrl(path),link=document.createElement('a');link.href=url;link.target='_blank';link.rel='noopener';link.textContent='Abrir';
+    const detach=document.createElement('button');detach.textContent='Separar';detach.setAttribute('aria-label',`Separar ${label}`);detach.onclick=()=>{window.open(url,`tikreader-${key}`,`popup,width=${width},height=${height}`);};
+    const copy=document.createElement('button');copy.textContent='Copiar URL';copy.setAttribute('aria-label',`Copiar URL de ${label}`);copy.onclick=async()=>{const notice=$('obs-widget-notice')||$('workspace-notice');try{await navigator.clipboard.writeText(url);notice.textContent=`URL de ${label} copiada para tu programa de streaming.`;}catch(_){notice.textContent=`Copia esta dirección: ${url}`;}};
+    const code=document.createElement('code');code.textContent=url;row.append(title,link,detach,copy,code);$('widget-links').append(row);
+  }
+  function time(at){return at?new Date(at*1000).toLocaleTimeString((window.I18n?.locale || 'es-419'),{hour12:true}):'Sin datos recibidos';}
+  function state(data){lastState=data;window.LiveExperience?.state(data);window.LivePresence?.diagnostics(data);const box=$('connection-diagnostics');box.replaceChildren();const connected=data.connection?.connected;const title=document.createElement('p');title.className='diagnostic-title';title.textContent=connected?`Conectado a @${data.connection.username}`:data.connection?.connecting?'Conectando…':'Sin conexión al live';box.append(title);
+    for(const [key,label] of [['comment','Comentarios'],['like','Eventos de likes'],['gift','Regalos'],['viewers','Espectadores'],['room','Consulta de sala']]){const at=data.diagnostics?.[key],row=document.createElement('div');row.className='diagnostic-row';const age=at?Math.max(0,Math.floor(Date.now()/1000-at)):null;row.textContent=`${label} · ${time(at)}${age==null?'':` · hace ${age} s`}`;if(key==='room'&&connected&&(!at||age>90)){row.classList.add('warning');row.textContent+=' · esperando actualización';}box.append(row);}
+    const source=document.createElement('p');source.textContent=`Likes: ${data.stats.likes_source==='event'?'eventos en vivo':data.stats.likes_known?'API de sala':'pendiente'} · Reintentos: ${data.connection?.retry_count||0}`;box.append(source);}
+  $('ranking-sort').onchange=()=>{if(lastState){const list=$('ranking-list'),key=$('ranking-sort').value;list.replaceChildren();for(const g of [...lastState.ranking].sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,20)){const li=document.createElement('li');li.textContent=`@${g.user} — ${key==='count'?g.count+' regalos':g.diamonds==null?'Diamantes no informados':g.diamonds+' diamantes'}`;list.append(li);}}};
+  $('summary-load').onclick=async()=>{const session=$('history-session').value;if(!session){$('session-summary').textContent='Selecciona una sesión.';return;}try{const r=await fetch(`/history/${encodeURIComponent(session)}/summary`);if(!r.ok)throw Error();const data=await r.json(),box=$('session-summary');box.replaceChildren();
+    const metrics=document.createElement('p');metrics.textContent=`${data.duration_seconds==null?'':Math.floor(data.duration_seconds/60)+' min '+data.duration_seconds%60+' s · '}${data.comments} comentarios · ${data.gifts} regalos · ${data.participants} participantes en el chat · Pico observado: ${data.peak_viewers??'sin datos'}`;box.append(metrics);
+    const title=document.createElement('h3');title.textContent='Participantes más activos';box.append(title);for(const user of data.active_users){const p=document.createElement('p');p.textContent=`${user.user}: ${user.count} comentarios`;box.append(p);}
+    const samples=data.viewer_samples;if(samples.length){const max=Math.max(1,...samples.map(s=>s.viewers));const chart=document.createElementNS('http://www.w3.org/2000/svg','svg');chart.setAttribute('viewBox','0 0 400 100');chart.setAttribute('role','img');chart.setAttribute('aria-label','Evolución de espectadores observados');const line=document.createElementNS(chart.namespaceURI,'polyline');line.setAttribute('points',samples.map((s,i)=>`${5+i*390/Math.max(1,samples.length-1)},${90-s.viewers/max*80}`).join(' '));line.setAttribute('fill','none');line.setAttribute('stroke','#79d6b7');line.setAttribute('stroke-width','3');chart.append(line);box.append(chart);const caption=document.createElement('p');caption.textContent=`Muestras cada 30 s · ${time(samples[0].at)} a ${time(samples.at(-1).at)} · máximo ${max}. Solo datos observados durante la conexión.`;box.append(caption);}
+  }catch(_){$('session-summary').textContent='No se pudo obtener el resumen.';}};
+  let build=null;async function checkBuild(){try{const r=await fetch('/version',{cache:'no-store'}),d=await r.json();if(build===null)build=d.build;else if(d.build&&d.build!==build){build=d.build;window.Notifications?.show('Actualización disponible. Guarda tus cambios antes de recargar.',{type:'warning',persistent:true,actionLabel:'Recargar',action:()=>location.reload()});}}catch(_){}finally{setTimeout(checkBuild,60000)}}checkBuild();
+  return {state:data=>{state(data);window.Advanced?.likes(data);window.dispatchEvent(new CustomEvent('tikreader:connection',{detail:{session:data.session,connected:!!data.connection?.connected}}));}};
+})();

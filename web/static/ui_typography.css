@@ -1,0 +1,69 @@
+/* Operator UI type scale. Loaded last so legacy component sizes cannot drift.
+   Broadcast documents and iframe previews keep their user-configured sizes. */
+:root {
+  --ui-type-title: 1.75rem;
+  --ui-type-section: 1.5rem;
+  --ui-type-subtitle: 1.125rem;
+  --ui-type-label: 1rem;
+  --ui-type-body: .875rem;
+  --ui-type-caption: .75rem;
+  --ui-space-inline: 8px;
+  --ui-space-action: 12px;
+}
+body { font-size: var(--ui-type-body); line-height: 1.5; }
+/* Size and leading alone are authoritative; each theme retains its typeface. */
+html body h1 { font-size: var(--ui-type-title) !important; line-height: 1.2 !important; }
+html body :is(h2, #voice-setup-title) { font-size: var(--ui-type-section) !important; line-height: 1.3 !important; }
+html body :is(h3, #overlay-preview-name) { font-size: var(--ui-type-subtitle) !important; line-height: 1.35 !important; }
+html body h4 { font-size: var(--ui-type-label) !important; line-height: 1.4 !important; }
+html body :is(p, label, input, select, textarea, summary, th, td, dt, dd) {
+  font-size: var(--ui-type-body) !important;
+  line-height: 1.5 !important;
+}
+html body :is(button, .tool-buttons > a, .overlay-actions > a):not([data-live-icon]):not(.chat-greet):not(.panic-button) {
+  font-size: var(--ui-type-body) !important;
+  line-height: 1.4 !important;
+}
+html body :is(small, legend, .stat-label, .comment-meta, .comment-time, .simulation-hint, .nav-section-label, .eyebrow, .settings-heading > span, .overlay-editor-heading > div > span, .voice-summary > span) {
+  font-size: var(--ui-type-caption) !important;
+  line-height: 1.5 !important;
+}
+/* Live panel headings are the same role as card subheadings, not page titles. */
+html body .live-columns :is(.feed-title, .participants-head h2, #gift-heading) {
+  font-size: var(--ui-type-subtitle) !important;
+  line-height: 1.35 !important;
+}
+/* Chat readability is an explicit preference and must remain adjustable. */
+html body .comment-text { font-size: var(--chat-font, 16px) !important; line-height: 1.5 !important; }
+
+/* Action rows wrap instead of squeezing captions into neighbouring buttons. */
+html body :is(.tool-buttons, .pane-actions, .actions, .overlay-actions, .timer-actions, .key-recorder) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-inline) var(--ui-space-action);
+}
+html body :is(.tool-buttons, .pane-actions, .actions, .overlay-actions, .timer-actions) > :is(button, a) {
+  margin: 0;
+}
+html body :is(.studio-pane, .setting-card, .settings-view, .voice-summary, form, dialog) > :is(p, h2, h3, h4, label, dl) + :is(button, .tool-buttons, .pane-actions) {
+  margin-block-start: var(--ui-space-action);
+}
+html body :is(.studio-pane, .setting-card, .settings-view, .voice-summary, form, dialog) > :is(button, .tool-buttons, .pane-actions) + :is(p, label, h2, h3, h4, dl) {
+  margin-block-start: var(--ui-space-action);
+}
+html body :is(.studio-pane, .setting-card, .settings-view, .voice-summary, form, dialog) > button + button {
+  margin-inline-start: var(--ui-space-inline);
+  margin-block-start: var(--ui-space-inline);
+}
+html body label { gap: var(--ui-space-inline) var(--ui-space-action); }
+html body :is(.settings-heading, .simulation-heading, .overlay-editor-heading, .game-action-head) {
+  gap: var(--ui-space-action); flex-wrap: wrap;
+}
+html body :is(.settings-heading, .simulation-heading, .overlay-editor-heading, .game-action-head) > div { min-width: 0; }
+html body :is(button, summary) { overflow-wrap: anywhere; }
+html body input::file-selector-button { font-size: var(--ui-type-body); line-height: 1.4; }
+@media (max-width: 600px) {
+  html body :is(.tool-buttons, .pane-actions, .actions, .overlay-actions) > :is(button, a) { max-width: 100%; }
+  html body .voice-summary > button { width: 100%; margin-inline: 0; }
+}

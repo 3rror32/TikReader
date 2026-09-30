@@ -1,0 +1,4 @@
+.locale-picker{display:flex;align-items:center;gap:8px;font:500 12px Inter,system-ui,sans-serif;color:var(--text-muted,#a9b5c8);margin-left:auto}
+.locale-picker select{width:auto;max-width:210px;min-height:34px;padding:6px 9px;border:1px solid var(--border,#39465b);border-radius:8px;background:var(--bg-deep,#101925);color:var(--text-main,#f0f0f5);font:inherit}
+.locale-picker select:focus-visible{outline:2px solid var(--teal,#00f5d4);outline-offset:3px}
+@media(max-width:600px){.locale-picker{gap:4px}.locale-picker>span{display:none}.locale-picker select{max-width:185px}}

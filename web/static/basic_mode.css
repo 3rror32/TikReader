@@ -1,0 +1,47 @@
+/* Basic mode keeps the live desk focused and hides advanced controls. */
+:root {
+  --font-body: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-display: Bahnschrift, 'Arial Narrow', 'Segoe UI', sans-serif;
+  --font-data: 'Cascadia Mono', Consolas, monospace;
+}
+
+body.basic-mode [data-basic-advanced] { display: none !important; }
+body.basic-mode .voice-organized .voice-options-grid { display: none; }
+
+html[data-skin] body .app > header #emergency-button.panic-button {
+  display:inline-grid!important;
+  place-items:center!important;
+  flex:0 0 36px!important;
+  width:36px!important;
+  min-width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0!important;
+  border:1px solid color-mix(in srgb,var(--skin-danger) 55%,var(--skin-border))!important;
+  border-radius:8px!important;
+  background:color-mix(in srgb,var(--skin-danger) 8%,transparent)!important;
+  color:var(--skin-danger)!important;
+  box-shadow:none!important;
+}
+html[data-skin] body .app > header #emergency-button.panic-button::before {
+  content:'';
+  width:15px;
+  height:15px;
+  background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 5h4v14H7zm6 0h4v14h-4z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 5h4v14H7zm6 0h4v14h-4z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+html[data-skin] body .app > header #emergency-button.panic-button:hover {
+  border-color:var(--skin-danger)!important;
+  background:color-mix(in srgb,var(--skin-danger) 15%,transparent)!important;
+}
+html[data-skin] body .app > header #emergency-button.panic-button.is-paused {
+  border-color:color-mix(in srgb,var(--skin-accent) 55%,var(--skin-border))!important;
+  background:color-mix(in srgb,var(--skin-accent) 8%,transparent)!important;
+  color:var(--skin-accent)!important;
+}
+html[data-skin] body .app > header #emergency-button.panic-button.is-paused::before {
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E");
+}
+html[data-skin] body .app > header #emergency-button.panic-button.is-busy::before {opacity:.45}

@@ -1,0 +1,9 @@
+{
+  "chibis-0": {
+    "frames": 12,
+    "stride": 0.32,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  }
+}

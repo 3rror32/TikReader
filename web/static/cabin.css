@@ -1,0 +1,79 @@
+/* TikReader cabin — the final visual layer. Signal color always carries meaning. */
+:root{
+  --ink:#091019;--console:#111c29;--console-raised:#172535;--console-deep:#0c1520;
+  --signal:#68e0b5;--signal-soft:#183a31;--live:#ff5263;--live-soft:#3b2028;
+  --telemetry:#8fa7be;--paper:#f3f6f8;--line:#2b3d50;--warning:#f0bd67;
+  --font-display:'Barlow Condensed','Arial Narrow',sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;--font-data:'IBM Plex Mono',Consolas,monospace;
+  --radius-lg:14px;--radius-md:9px;--radius-sm:6px;
+}
+html,body{background:var(--ink);font-family:var(--font-body);color:var(--paper)}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;opacity:.025;background-image:linear-gradient(#fff 1px,transparent 1px);background-size:100% 4px;z-index:200}
+button,input,select,textarea{font-family:var(--font-body)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--signal)!important;outline-offset:3px!important}
+
+/* Sidebar: grouped by the operator's real workflow. */
+.app-sidebar{width:216px;padding:22px 14px 16px;background:#0c151f;border-color:#223242;gap:7px}
+.app{margin-left:216px;width:calc(100% - 216px);padding:16px 20px;gap:12px}
+.sidebar-brand{font-family:var(--font-display);font-size:29px;letter-spacing:.2px;text-transform:uppercase}
+.app-sidebar>small{font-family:var(--font-data);font-size:8px;color:#7890a6;margin:0 5px 12px}
+.app-sidebar nav{gap:2px}
+.nav-section-label{display:block;margin:15px 10px 5px;font:600 9px/1 var(--font-data);letter-spacing:1.5px;color:#667d92}
+.app-sidebar button{border-radius:6px;padding:8px 10px;font-size:12px}
+.app-sidebar button.active{background:var(--signal-soft);color:#bdfbe3;border-color:#376f5e;box-shadow:inset 3px 0 var(--signal)}
+.app-sidebar .nav-group details{margin-left:8px;border-left:1px solid #293a49;padding-left:7px}
+.broadcast-safety{margin-top:auto;padding-top:13px;border-top:1px solid #293746}
+.broadcast-safety strong{font:600 8px/1 var(--font-data);letter-spacing:1.2px;color:#a17e83}
+.app-sidebar .panic-button{margin-top:8px;background:var(--live-soft);border-color:#73404a;color:#ffc0c7}
+.app-sidebar #emergency-button.is-paused{border-color:#3f765f;color:#b7ead4;background:#11231e}
+
+/* Header stays quiet; the session is the actual hero. */
+header{min-height:44px;border-bottom:1px solid #1e2c3a;padding:0 0 10px}
+.logo-icon{width:34px;height:34px;border-radius:8px!important;background:#132b25!important}.logo-icon img{width:34px;height:34px}
+.logo h1{font:700 22px/1 var(--font-display);letter-spacing:.3px;text-transform:uppercase}
+.logo span{font:500 8px/1 var(--font-data);letter-spacing:1.1px;color:#7f95aa}
+#section-title{font:500 10px/1 var(--font-data);letter-spacing:1.2px;text-transform:uppercase;color:#8298ad}
+
+/* The signature signal path: TikTok → reading → streaming → output. */
+.session-panel{background:var(--console)!important;border-color:#304457!important;border-radius:var(--radius-lg)!important;padding:15px 18px!important}
+.session-panel::after{content:'TIKTOK  ━━━  LECTURA  ━━━  STREAMING  ━━━  SALIDA';display:block;margin-top:11px;padding:9px 12px;border-top:1px solid #2d4051;color:#70879c;font:500 9px/1 var(--font-data);letter-spacing:1px;word-spacing:4px;white-space:nowrap;overflow:hidden}
+body[data-live-state=live] .session-panel::after{color:var(--signal);text-shadow:0 0 14px #68e0b555}
+body[data-live-state=connecting] .session-panel::after,body[data-live-state=reconnecting] .session-panel::after{color:var(--warning)}
+.session-hero{padding:0 0 11px;gap:14px}.session-avatar{width:50px;height:50px;border-radius:10px;background:#182b3c;border-color:#3c5369;font:700 20px/1 var(--font-display)}
+.session-eyebrow{font-family:var(--font-data);font-size:8px;letter-spacing:1.6px}.session-identity h2{font:700 clamp(27px,2.5vw,40px)/.95 var(--font-display);letter-spacing:.1px;text-transform:uppercase}
+#session-channel{font-size:13px;margin-top:6px}.session-clock>span,.stat-value{font-family:var(--font-data);font-variant-numeric:tabular-nums}.session-clock>span{font-size:24px}.session-clock small{font:400 8px/1.4 var(--font-data);text-transform:uppercase;letter-spacing:.5px}
+.session-activity{padding:9px 0}.activity-dot{border-radius:2px;transform:rotate(45deg)}
+.session-panel .controls{gap:8px}.input-wrap{min-width:260px}.session-panel #username-input{height:42px;border-radius:7px;background:var(--console-deep);border-color:#314558;padding-left:31px}
+.session-panel .btn{min-height:42px;border-radius:7px;padding:10px 18px}.btn-primary{background:var(--signal);color:#09251d;box-shadow:none;font-weight:700}.btn-primary:hover{background:#8eebcb;box-shadow:none;transform:none}
+.btn-stop{background:var(--live-soft);border-color:#72414a;color:#ff9ca7}
+.session-panel .stats-bar{grid-template-columns:1.35fr repeat(3,1fr);gap:0;margin:10px 0 0;border:1px solid #293c4e;border-radius:8px;overflow:hidden}
+.session-panel .stat-card{border:0;border-right:1px solid #293c4e;border-radius:0!important;background:transparent;padding:10px 14px}.session-panel .stat-card:last-child{border-right:0}
+.session-panel .stat-audience{background:#122333}.session-panel .stat-icon{font-size:14px;filter:grayscale(1);opacity:.65}.session-panel .stat-value{font-size:20px!important}.session-panel .stat-audience .stat-value{font-size:25px!important}.session-panel .stat-label{font:500 8px/1 var(--font-data);letter-spacing:.8px}
+body[data-live-state=live] .session-panel{background:#10241f!important;border-color:#39745f!important;box-shadow:inset 3px 0 var(--signal)!important}
+
+/* Participants become a compact signal strip until they contain useful data. */
+.participants-bar{background:transparent;border:0;border-bottom:1px solid #263645;border-radius:0;padding:7px 2px;margin:0;min-height:46px;grid-template-columns:minmax(155px,auto) minmax(0,1fr)}
+.participants-bar.is-empty{display:flex;align-items:center;gap:15px;min-height:34px;padding:3px 2px}
+.participants-bar.is-empty .participants-tabs,.participants-bar.is-empty>small{display:none}.participants-bar.is-empty .participants-list{min-height:0}.participants-bar.is-empty .participants-list p{margin:0}
+.participants-head strong{font:700 15px/1 var(--font-display);text-transform:uppercase;letter-spacing:.3px}.participants-head span{font-family:var(--font-data)}
+.participant-chip{border-radius:7px;background:#101d29}
+
+/* Chat is the working canvas; tools read as controls rather than cards. */
+.live-columns{grid-template-columns:minmax(0,1.65fr) minmax(310px,.72fr);gap:12px}.feed-wrap,.gifts-column{background:var(--console)!important;border-color:#293c4e!important;border-radius:var(--radius-lg)!important}
+.feed-wrap{box-shadow:inset 0 2px #24384a}.feed-header{min-height:50px;padding:12px 16px}.feed-title{font:700 17px/1 var(--font-display);text-transform:uppercase;color:#dfe9f2}.feed-title>span{color:var(--live);font-size:10px;margin-right:5px}
+.feed-btn{border-radius:5px;font-size:11px}.chat-tools{padding:9px 14px;background:#0e1924}.chat-tools input:not([type=checkbox]){height:36px;background:#09131d;border-radius:6px}.voice-dock{padding:8px 14px;background:#101d27;border-color:#273a49}.voice-dock-label{font-family:var(--font-data)}
+#comment-feed{padding:10px 12px}.comment-card{border:0;border-bottom:1px solid #263746;border-radius:0;background:transparent;margin:0;padding:12px 6px}.comment-card:hover{background:#142231;border-color:#334a5e}.comment-user{color:#8de5c5}.comment-text{font-size:.96rem}
+#empty-state{opacity:1;gap:10px;color:#8ba0b4}#empty-state .icon{display:grid;place-items:center;width:54px;height:54px;border:1px solid #365064;border-radius:50%;font:700 18px/1 var(--font-display);color:#84a0b9}#empty-state p{color:#8298ac;line-height:1.65}#empty-state p strong{color:#c8d5df;font-weight:600}
+.gifts-column{padding:14px}.studio-pane h2{font:700 18px/1 var(--font-display);text-transform:uppercase;letter-spacing:.3px}.studio-tabs button{border-radius:5px}
+#gift-empty,#ranking-empty{border:0;border-top:1px solid #2b3e50;border-radius:0;padding:28px 8px;text-align:left}
+
+/* Errors instruct; alerts signal. */
+.alert-local-intro{max-width:68ch;margin-bottom:14px!important}.alert-local-card{max-width:680px;padding:18px;border:1px solid var(--border);border-radius:14px;background:color-mix(in srgb,var(--surface) 88%,transparent)}.alert-local-toggle{display:flex!important;align-items:flex-start!important;justify-content:flex-start!important;gap:12px}.alert-local-toggle input{flex:0 0 auto;margin-top:3px}.alert-local-toggle span{display:grid;gap:3px}.alert-local-toggle small,.alert-local-status{color:var(--text-muted)}#alert-local-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}#alert-local-options label{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:6px}#alert-local-options :disabled{opacity:.5;cursor:not-allowed}.alert-local-status{min-height:1.4em;margin:10px 0 0!important}@media(max-width:760px){#alert-local-options{grid-template-columns:1fr}}
+#error-panel{background:#321d24;border-color:#79434d;border-radius:8px}.err-title{color:#ff9da7;font-family:var(--font-display);font-size:18px;text-transform:uppercase}.err-detail{color:#e3bdc2}.err-suggestion{color:#f0c979}
+.session-warning{background:#321d24;border-color:#79434d;color:#ffd0d5}
+.live-notification{border-radius:7px;background:#132a25;border-color:#4a836e}.live-session-summary{border-radius:10px}
+
+@media(max-width:1100px){.app{padding:12px}.live-columns{grid-template-columns:minmax(0,1.35fr) minmax(285px,.75fr)}.session-panel::after{word-spacing:1px}}
+@media(max-width:900px){.app{margin:0;width:100%;padding:12px}.app-sidebar{width:230px}.live-columns{grid-template-columns:1fr}.participants-bar.is-empty{display:flex}.session-panel::after{font-size:8px}.gifts-column{height:auto;min-height:480px}}
+@media(max-width:650px){body::after{display:none}.app{padding:8px;gap:9px}header{min-height:40px}.session-panel{padding:12px!important}.session-panel::after{content:'TIKTOK ━ LECTURA ━ STREAMING ━ SALIDA';overflow:auto}.session-panel .stats-bar{grid-template-columns:repeat(2,1fr);border:0;gap:1px;background:#293c4e}.session-panel .stat-card{background:var(--console-deep);border:0}.session-panel .controls{width:100%}.input-wrap{min-width:0}.session-panel #btn-connect{width:100%}.participants-bar.is-empty{display:none}.feed-header{align-items:flex-start}.feed-actions{justify-content:flex-end}.chat-tools{align-items:stretch}.chat-tools input:not([type=checkbox]){flex-basis:100%}.voice-dock button{min-height:40px}.live-columns>.feed-wrap{height:68vh;min-height:430px}.gifts-column{min-height:520px}.logo span,#section-title{display:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

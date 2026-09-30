@@ -1,0 +1,6 @@
+:root{color-scheme:normal}
+/* The preview backdrop belongs to the editor, never to the broadcast page. */
+html,body{background:transparent!important;background-image:none!important}
+#effect-stage,.effect-scene,#buddies,#emoji-stage,#user-info,canvas#season{
+ background-color:transparent!important;background-image:none!important;
+}

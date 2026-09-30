@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@source "../../web/templates/overlay.html";
+@source "../entries/broadcast.ts";
+
+:root {
+  color-scheme: dark;
+  font-family: "Arial Narrow", "Roboto Condensed", "Segoe UI", sans-serif;
+  --ink: #f7fbff;
+  --muted: #a9b8c7;
+  --panel: rgb(8 15 25 / 88%);
+  --edge: rgb(178 220 255 / 20%);
+  --signal: #25f4ee;
+  --gift: #ffd166;
+}
+
+html, body { @apply m-0 min-h-full overflow-hidden bg-transparent; }
+body { color: var(--ink); }
+[hidden] { display: none !important; }
+
+.broadcast-shell {
+  @apply grid w-full max-w-[680px] content-start gap-2.5 p-6;
+  perspective: 900px;
+}
+
+.broadcast-card {
+  @apply relative overflow-hidden rounded-xl border px-4 py-3;
+  border-color: var(--edge);
+  background: linear-gradient(108deg, var(--panel), rgb(10 22 35 / 74%));
+  box-shadow: 0 12px 38px rgb(0 0 0 / 22%);
+  backdrop-filter: blur(10px);
+  contain: layout paint;
+  animation: card-in 360ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.broadcast-card::before {
+  content: "";
+  @apply absolute inset-y-0 left-0 w-1;
+  background: var(--signal);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--signal) 75%, transparent);
+}
+
+.status-card { @apply flex items-center gap-2.5 py-2.5 text-sm font-bold uppercase tracking-[.14em]; }
+.status-dot { @apply block size-2 rounded-full; background: var(--signal); box-shadow: 0 0 12px var(--signal); }
+.status-card[data-online="false"] { color: var(--muted); }
+.status-card[data-online="false"] .status-dot { background: #718091; box-shadow: none; }
+
+.announcement { @apply text-lg font-extrabold tracking-wide; }
+.highlight { @apply text-[1.38rem] font-bold leading-tight; --signal: var(--gift); }
+.gift { @apply flex items-center justify-between gap-4 text-lg font-bold; --signal: #ff7aaa; }
+.gift-count { @apply shrink-0 rounded-md px-2 py-1 text-sm font-black; color: #190b14; background: #ff9dbe; }
+
+.goals { @apply grid grid-cols-2 gap-2.5; }
+.goal { @apply relative rounded-xl border px-4 py-3; border-color: var(--edge); background: var(--panel); }
+.goal-head { @apply mb-2 flex items-baseline justify-between gap-3 text-xs font-bold uppercase tracking-[.12em]; color: var(--muted); }
+.goal-value { @apply text-sm tabular-nums; color: var(--ink); }
+.goal-track { @apply h-1.5 overflow-hidden rounded-full bg-white/10; }
+.goal-fill { @apply block h-full origin-left rounded-full; background: linear-gradient(90deg, var(--signal), #b8fff8); transform: scaleX(0); transition: transform 500ms cubic-bezier(.2,.8,.2,1); }
+
+.comments { @apply grid gap-2; }
+.comment { @apply grid gap-1; }
+.comment-user { @apply text-sm font-extrabold tracking-wide; color: var(--signal); }
+.comment-text { @apply text-[1.08rem] leading-snug; overflow-wrap: anywhere; }
+
+/* Dedicated OBS sources: one job and one visual hierarchy per source. */
+body[data-overlay="likes"] .broadcast-shell { @apply max-w-[760px] p-3; }
+body[data-overlay="likes"] :is(.status-card, #announcement, #highlight, #gift, #comments, #gifts-goal) { display: none !important; }
+body[data-overlay="likes"] #goals { @apply block; }
+body[data-overlay="likes"] #likes-goal {
+  @apply px-7 py-5;
+  border-color: color-mix(in srgb, var(--signal) 46%, transparent);
+  background: linear-gradient(105deg, rgb(7 18 28 / 92%), rgb(8 34 40 / 78%));
+  box-shadow: 0 16px 42px rgb(0 0 0 / 25%), inset 0 0 28px rgb(37 244 238 / 4%);
+}
+body[data-overlay="likes"] #likes-goal::after {
+  content: "♥";
+  @apply absolute right-6 top-1/2 -translate-y-1/2 text-5xl font-black;
+  color: rgb(37 244 238 / 10%);
+}
+body[data-overlay="likes"] .goal-head { @apply mb-3 text-sm; }
+body[data-overlay="likes"] .goal-value { @apply pr-14 text-2xl font-black tracking-tight; }
+body[data-overlay="likes"] .goal-track { @apply h-2.5; }
+body[data-overlay="likes"] #likes-fill { box-shadow: 0 0 18px rgb(37 244 238 / 55%); }
+
+body[data-overlay="gifts"] .broadcast-shell { @apply max-w-[680px] p-3; }
+body[data-overlay="gifts"] :is(.status-card, #announcement, #highlight, #goals, #comments) { display: none !important; }
+body[data-overlay="gifts"] #gift {
+  @apply min-h-28 px-7 py-7 text-2xl;
+  --signal: #ff7aaa;
+  border-color: rgb(255 122 170 / 46%);
+  background:
+    radial-gradient(circle at 88% 20%, rgb(255 122 170 / 16%), transparent 34%),
+    linear-gradient(112deg, rgb(24 10 22 / 94%), rgb(39 13 31 / 84%));
+  box-shadow: 0 18px 48px rgb(0 0 0 / 30%);
+}
+body[data-overlay="gifts"] #gift::after {
+  content: "REGALO EN VIVO";
+  @apply absolute bottom-3 left-7 text-[10px] font-black tracking-[.2em];
+  color: rgb(255 190 213 / 68%);
+}
+body[data-overlay="gifts"] #gift-text { @apply pb-4 font-black leading-tight; }
+body[data-overlay="gifts"] #gift-count { @apply rounded-lg px-3 py-2 text-xl; }
+
+@keyframes card-in {
+  from { opacity: 0; transform: translate3d(-14px, 6px, 0) rotateY(2deg); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) rotateY(0); }
+}
+
+@media (max-width: 520px) {
+  .broadcast-shell { @apply p-3; }
+  .goals { @apply grid-cols-1; }
+  body[data-overlay="likes"] #likes-goal, body[data-overlay="gifts"] #gift { @apply px-5; }
+  body[data-overlay="gifts"] #gift { @apply text-xl; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

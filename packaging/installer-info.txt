@@ -1,0 +1,15 @@
+TikReader Beta
+
+Incluye Python y las dependencias necesarias. No necesitas instalar ni configurar Python.
+
+Los subtítulos del micrófono incluyen el motor Vosk y su modelo local de español. Funcionan sin enviar tu voz a un servicio externo.
+
+TikReader se abre en su propia ventana e incluye su motor visual. No necesitas Chrome, Edge ni Firefox para controlarlo. Las direcciones web locales se conservan para las fuentes de navegador de OBS.
+
+La instalación básica utiliza las voces del equipo. Puedes descargar las voces Kokoro desde Configuración > Datos y voces adicionales (354 MB de modelos, más el motor; reserva 2 GB libres).
+
+Tus datos se guardan en tu carpeta de usuario, separados del programa. Las actualizaciones y la desinstalación conservan esos datos.
+
+Si vienes de una copia anterior, conserva esa carpeta y utiliza sus funciones de respaldo y recuperación. No borres la copia anterior hasta verificar tus datos.
+
+Versión en pruebas. Algunas funciones pueden cambiar o presentar errores.

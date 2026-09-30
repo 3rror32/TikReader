@@ -1,0 +1,34 @@
+[
+  {
+    "name": "motion",
+    "version": "12.23.24",
+    "file": "web/static/vendor/motion/motion.js",
+    "source": "https://cdn.jsdelivr.net/npm/motion@12.23.24/dist/motion.js",
+    "sha256": "631dbfc6984d0078a6edbc9885a87d5d941ad9d7534740237c9679140c0dfdc5",
+    "license": "web/static/vendor/motion/LICENSE"
+  },
+  {
+    "name": "pixi.js",
+    "version": "8.14.3",
+    "file": "web/static/vendor/pixi.js/pixi.min.js",
+    "source": "https://cdn.jsdelivr.net/npm/pixi.js@8.14.3/dist/pixi.min.js",
+    "sha256": "41c3f3571152b29ee6725ac7240af724cc622d189641d39b03868a24d2483d05",
+    "license": "web/static/vendor/pixi.js/LICENSE"
+  },
+  {
+    "name": "matter-js",
+    "version": "0.20.0",
+    "file": "web/static/vendor/matter-js/matter.min.js",
+    "source": "https://cdn.jsdelivr.net/npm/matter-js@0.20.0/build/matter.min.js",
+    "sha256": "72d30be0f579eb02ce1e0b6f9d359a4f392e6837e5a26ba8be5dbee7f88e24ae",
+    "license": "web/static/vendor/matter-js/LICENSE"
+  },
+  {
+    "name": "lottie-web",
+    "version": "5.13.0",
+    "file": "web/static/vendor/lottie-web/lottie_light.min.js",
+    "source": "https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js",
+    "sha256": "9588432bec30c8ef8200bac4a67d8aaad881047bc2a6c9fa624d90ec96402410",
+    "license": "web/static/vendor/lottie-web/LICENSE"
+  }
+]

@@ -1,0 +1,93 @@
+html,body,#effect-stage{width:100%;height:100%;margin:0;overflow:hidden;background:transparent}
+.effect-scene{position:absolute;inset:0;overflow:hidden;contain:layout paint style;pointer-events:none;font-family:"Trebuchet MS",Arial,sans-serif;color:#fff;--accent:#ff5488;--pale:#ffd4e1}
+.effect-coins{--accent:#ffd36a;--pale:#fff0bb}.effect-welcome{--accent:#62e9d5;--pale:#d1fff4}.effect-celebration{--accent:#b59aff;--pale:#ece1ff}
+.effect-particle{position:absolute;z-index:1;left:var(--x);top:100%;width:var(--size);height:var(--size);color:var(--color);animation:effect-rise var(--time) linear var(--delay) infinite both;will-change:transform,opacity}
+.effect-particle svg{display:block;width:100%;height:100%;overflow:visible}
+.effect-spark{filter:drop-shadow(0 0 5px var(--color))}
+.effect-coins .effect-particle:not(.effect-spark){border:2px solid #fff0ad;border-radius:50%;padding:4px;box-sizing:border-box;color:#a7640b;background:linear-gradient(135deg,#fff4bb 5%,#ffd05a 40%,#d58a17 75%,#fff0a0);box-shadow:inset 0 0 0 2px #c48420,2px 3px 0 #965b0c,0 0 12px #ffbb3333}
+.effect-coins .effect-particle{left:50%;top:80%;animation-name:effect-fountain}
+.effect-celebration .effect-particle{top:-15%;animation-name:effect-fall}
+.effect-confetti{width:calc(var(--size)*.3);height:calc(var(--size)*.65);border-radius:2px;background:var(--color)}
+.effect-caption{position:absolute;z-index:2;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;width:max-content;max-width:88%;font-size:clamp(18px,5.2vw,var(--size));font-weight:900;text-shadow:0 2px 2px #0009,0 4px 18px #000b;animation:effect-entrance .65s cubic-bezier(.2,1.5,.5,1) both}
+.effect-caption>span{display:block;color:var(--pale);line-height:1.12;letter-spacing:-.035em;overflow-wrap:anywhere}
+.effect-caption small{display:block;margin:12px 0 8px;font:700 .27em/1.4 Arial,sans-serif;letter-spacing:.23em;color:var(--accent)}
+.effect-emblem{position:relative;width:clamp(50px,16vw,150px);height:clamp(50px,16vw,150px);margin:0 auto 8px;color:var(--accent);filter:drop-shadow(0 0 18px color-mix(in srgb,var(--accent),transparent 55%));animation:effect-float 2.4s ease-in-out infinite}
+.effect-emblem>svg{width:100%;height:100%;filter:drop-shadow(0 5px 0 color-mix(in srgb,var(--accent),#000 40%))}
+.effect-emblem:before,.effect-emblem:after{content:"";position:absolute;inset:-12%;border:1px solid color-mix(in srgb,var(--accent),transparent 50%);border-radius:50%;transform:rotate(-25deg) scaleY(.7)}
+.effect-emblem:after{inset:-22%;transform:rotate(35deg) scaleY(.7);opacity:.5}
+.effect-coins .effect-emblem{padding:12px;box-sizing:border-box;border:4px solid #ffe8a0;border-radius:50%;color:#b47112;background:linear-gradient(135deg,#fff6bd,#ffc843 45%,#d89523);box-shadow:inset 0 0 0 3px #b97b21,0 6px 0 #9a600e}
+.effect-detail{display:table;margin:12px auto 0;padding:6px 16px;border:1px solid #ffd36a88;border-radius:20px;background:#5d350ad9;color:#ffe9a5;font-size:.4em;letter-spacing:.06em}
+.effect-emblem img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;outline:3px solid #62e9d5}
+.effect-emblem.has-avatar>svg{visibility:hidden}
+.effect-media{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+@keyframes effect-rise{0%{transform:translate3d(0,5vh,0) rotate(-15deg) scale(.7);opacity:0}10%{opacity:.95}85%{opacity:.85}100%{transform:translate3d(var(--drift),-120vh,0) rotate(var(--spin)) scale(1.1);opacity:0}}
+@keyframes effect-fountain{0%{transform:translate3d(0,18vh,0) rotate(0) scale(.5);opacity:0}12%{opacity:1}48%{transform:translate3d(calc(var(--dx)*.5),-65vh,0) rotate(180deg) scale(1);opacity:1}90%{opacity:1}100%{transform:translate3d(var(--dx),35vh,0) rotate(var(--spin));opacity:0}}
+@keyframes effect-fall{0%{transform:translate3d(0,-10vh,0) rotate(0);opacity:0}12%{opacity:1}85%{opacity:1}100%{transform:translate3d(var(--drift),125vh,0) rotate(var(--spin));opacity:0}}
+@keyframes effect-float{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-6px) rotate(5deg)}}
+@keyframes effect-entrance{from{opacity:0;transform:translate(-50%,-42%) scale(.7)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+.effect-scene[data-motion="reduced"] .effect-particle{animation:none;left:var(--x);top:var(--y);opacity:.8;transform:rotate(var(--spin));will-change:auto}
+.effect-scene[data-motion="reduced"] .effect-particle:nth-of-type(n+25){display:none}
+.effect-scene[data-motion="reduced"] .effect-caption,.effect-scene[data-motion="reduced"] .effect-emblem{animation:none}
+@media(prefers-reduced-motion:reduce){.effect-scene[data-motion="system"] .effect-particle{animation:none;left:var(--x);top:var(--y);opacity:.8;transform:rotate(var(--spin));will-change:auto}.effect-scene[data-motion="system"] .effect-particle:nth-of-type(n+25){display:none}.effect-scene[data-motion="system"] .effect-caption,.effect-scene[data-motion="system"] .effect-emblem{animation:none}}
+
+/* A single illustrated arcade mechanism anchored to the bottom center. */
+.gift-cannon.arcade-launcher{position:absolute;z-index:4;bottom:14px;left:50%;width:260px;height:180px;transform:translateX(-50%);pointer-events:none}
+.arcade-sack,.arcade-gear,.arcade-needle{position:absolute}
+.arcade-launcher img{width:100%;height:100%;object-fit:contain}
+.arcade-sack{width:82px;height:82px;left:54px;bottom:0;z-index:2;transform:rotate(90deg)}
+.arcade-gear{width:96px;height:96px;left:132px;bottom:4px;z-index:1;transform-origin:center}
+.arcade-needle{width:160px;height:160px;left:100px;top:-8px;z-index:3;transform-origin:50% 85%;will-change:transform}
+.arcade-loaded,.arcade-supply{position:absolute;width:42px;height:42px;z-index:5;display:grid;place-items:center}
+.arcade-loaded{left:159px;top:107px}
+.arcade-supply{left:106px;top:118px}
+.arcade-loaded span,.arcade-supply span{font:10px Arial;color:#fff}
+@media(max-width:350px),(max-height:220px){.gift-cannon.arcade-launcher{transform:translateX(-50%) scale(.72);transform-origin:50% 100%}}
+.cannon-ball{position:absolute;left:0;top:0;z-index:6;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 28% 20%,#fff9,#b3a3d329 45%,#fff1 70%,#bda9ef88);box-shadow:inset 0 0 0 1px #ddd0ff88,inset -3px -5px 8px #19112588,0 3px 5px #0004;will-change:transform;overflow:hidden}
+.cannon-ball span{font-size:10px;line-height:1;font-family:Arial,sans-serif}
+.cannon-ball img{position:absolute;inset:8%;width:84%;height:84%;object-fit:contain}
+.cannon-ball:after{content:'';position:absolute;left:15%;top:10%;width:32%;height:16%;border-radius:50%;background:#fff8;transform:rotate(-30deg)}
+.cannon-caption{position:absolute;top:5%;left:50%;transform:translateX(-50%);max-width:90%;padding:8px 15px;border-radius:20px;background:#272031cc;color:#f2eaff;font:600 clamp(12px,2vw,20px) Arial,sans-serif;text-align:center}
+@keyframes cannon-recoil{50%{transform:rotate(-35deg) translateY(8px)}100%{transform:rotate(-35deg) translateY(0)}}
+
+.cannon-queue-controls{position:fixed;top:4px;max-width:calc(100% - 32px);flex-wrap:wrap;left:8px;z-index:20;display:flex;gap:6px;align-items:center;background:#132131e8;color:#ecf5fa;border-radius:8px;padding:5px 8px;font:11px Arial}
+.cannon-queue-controls button{background:#24394d;border:1px solid #53697b;color:#fff;border-radius:5px;padding:4px 6px;cursor:pointer}
+
+.cannon-preview .cannon-caption{top:13%}
+
+/* Transitions wrap every element, including particles, media and arcade pieces. */
+.effect-scene{animation:overlay-scene-enter .5s ease-out both}
+.effect-scene.effect-leaving{animation:overlay-scene-exit .5s ease-in both}
+@keyframes overlay-scene-enter{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes overlay-scene-exit{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-8px) scale(.98)}}
+.effect-scene[data-motion="reduced"]{animation-name:overlay-fade-in}
+.effect-scene.effect-leaving[data-motion="reduced"]{animation-name:overlay-fade-out}
+@keyframes overlay-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes overlay-fade-out{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.effect-scene[data-motion="system"]{animation-name:overlay-fade-in}.effect-scene.effect-leaving[data-motion="system"]{animation-name:overlay-fade-out}}
+
+.effect-cannon.cannon-preview-rest .cannon-caption{animation:overlay-fade-out .5s ease-in both}
+/* Likes float gently; new likes extend this scene instead of restarting it. */
+.effect-hearts .effect-particle{filter:none;animation-name:heart-drift;animation-duration:calc(var(--time)*1.45)}
+.effect-hearts .effect-spark{filter:none}
+@keyframes heart-drift{
+  0%{transform:translate3d(0,5vh,0) rotate(-8deg) scale(.8);opacity:0}
+  15%{opacity:.9}
+  25%{transform:translate3d(calc(var(--drift)*.22 + 1vw),-26vh,0) rotate(5deg) scale(.85)}
+  50%{transform:translate3d(calc(var(--drift)*.5 - 1vw),-57vh,0) rotate(-5deg) scale(.9)}
+  75%{transform:translate3d(calc(var(--drift)*.78 + 1vw),-88vh,0) rotate(5deg) scale(.95);opacity:.85}
+  100%{transform:translate3d(var(--drift),-120vh,0) rotate(-8deg) scale(1);opacity:0}
+}
+.effect-energy-ring{display:grid;place-items:center}
+.energy-wrap{display:grid;justify-items:center;gap:24px;max-width:90%}
+.energy-orb{position:relative;width:clamp(80px,calc(var(--size)*2.5),340px);aspect-ratio:1;isolation:isolate}
+.energy-portrait{position:absolute;inset:10%;border-radius:50%;overflow:hidden;background:#161d35;display:grid;place-items:center;color:#eef6ff;font:700 calc(var(--size)*.8)/1 system-ui;box-shadow:inset 0 0 22px #647cff55}
+.energy-portrait img{position:absolute;width:100%;height:100%;object-fit:cover}
+.energy-arc{position:absolute;inset:3%;border-radius:47% 53% 49% 51%;border:2px solid transparent;border-top-color:var(--ring-0);border-right-color:var(--ring-2);border-bottom-color:var(--ring-1);animation:energy-orbit var(--ring-speed) linear infinite;box-shadow:0 0 calc(24px * var(--ring-glow)) var(--ring-0),inset 0 0 calc(16px * var(--ring-glow)) var(--ring-1)}
+.energy-arc-1{inset:0 5%;animation-direction:reverse;animation-duration:calc(var(--ring-speed)*.7);border-top-color:#ecfaff;border-right-color:var(--ring-1);transform:rotate(70deg)}
+.energy-arc-2{inset:5% 0;animation-delay:-2s;animation-duration:calc(var(--ring-speed)*1.3);border-left-color:var(--ring-2);border-bottom-color:transparent}
+.energy-arc-3{inset:1%;border-width:5px;filter:blur(7px);opacity:var(--ring-glow);animation-direction:reverse}
+.energy-name{max-width:100%;overflow-wrap:anywhere;color:#f3f8ff;text-align:center;font:600 clamp(14px,calc(var(--size)*.3),32px)/1.2 system-ui;text-shadow:0 2px 5px #000,0 0 14px var(--ring-0)}
+@keyframes energy-orbit{to{transform:rotate(360deg)}}
+.effect-energy-ring[data-motion="reduced"] .energy-arc{animation:none}
+@media(prefers-reduced-motion:reduce){.effect-energy-ring[data-motion="system"] .energy-arc{animation:none}}

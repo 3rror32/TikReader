@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es-419">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TikReader · {{ {'likes':'Likes','gifts':'Regalos'}.get(overlay_mode, 'Ventana de transmisión') }}</title>
+  <script src="/static/translations.js?v=1"></script>
+  <script src="/static/i18n.js?v=1"></script>
+  <link rel="stylesheet" href="/static/i18n.css?v=1">
+  <link rel="stylesheet" href="/static/build/broadcast.css">
+</head>
+<body data-overlay="{{ overlay_mode }}">
+  <main class="broadcast-shell">
+    <div id="status" class="broadcast-card status-card" data-online="false">
+      <i class="status-dot" aria-hidden="true"></i><span id="status-text">Conectando con TikReader…</span>
+    </div>
+    <div id="announcement" class="broadcast-card announcement" hidden></div>
+    <div id="highlight" class="broadcast-card highlight" hidden></div>
+    <div id="gift" class="broadcast-card gift" hidden><span id="gift-text"></span><b id="gift-count" class="gift-count"></b></div>
+    <section id="goals" class="goals" aria-label="Metas del live">
+      <div id="likes-goal" class="goal"><div class="goal-head"><span id="likes-label">Likes</span><b id="likes-value" class="goal-value">0 / 100</b></div><div class="goal-track"><i id="likes-fill" class="goal-fill"></i></div></div>
+      <div id="gifts-goal" class="goal"><div class="goal-head"><span id="gifts-label">Regalos</span><b id="gifts-value" class="goal-value">0 / 10</b></div><div class="goal-track"><i id="gifts-fill" class="goal-fill"></i></div></div>
+    </section>
+    <section id="comments" class="comments" aria-live="polite"></section>
+  </main>
+  <script type="module" src="/static/build/broadcast.js?v=20260924-brand"></script>
+</body>
+</html>

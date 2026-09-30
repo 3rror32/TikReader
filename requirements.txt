@@ -1,0 +1,8 @@
+Flask==3.1.3
+Flask-SocketIO==5.6.1
+TikTokLive==7.0.0
+simple-websocket>=1.1,<2
+websockets>=15,<18
+vosk==0.3.45
+PySide6-Essentials==6.11.2
+PySide6-Addons==6.11.2

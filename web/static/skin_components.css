@@ -1,0 +1,136 @@
+/* Final color layer. Layout and overlay preview artwork belong to their components.
+   Keep new controls on these tokens; never encode their state with inline colors. */
+html[data-skin="original"] {
+  --skin-bg:#091019; --skin-surface:#111c29; --skin-raised:#172535;
+  --skin-border:#34465a; --skin-text:#f3f6f8; --skin-muted:#a4b6c8;
+  --skin-accent:#68e0b5; --skin-accent-2:#a78bfa; --skin-accent-ink:#09251d;
+  --skin-danger:#ff9ca7; --skin-warning:#f0bd67; --skin-wash:#183a31;
+  --skin-shadow:#0005; color-scheme:dark;
+}
+
+/* Typography roles are shared by navigation, forms and dynamically added views. */
+html[data-skin="kawai"], html[data-skin="cute"] {
+  --font-body:'Trebuchet MS','Inter',sans-serif;
+  --font-display:'Trebuchet MS','Inter',sans-serif;
+}
+html[data-skin="dark"] {
+  --font-body:'IBM Plex Mono',Consolas,monospace;
+  --font-display:'IBM Plex Mono',Consolas,monospace;
+}
+html[data-skin="light"] {
+  --font-body:'Segoe UI','Inter',sans-serif;
+  --font-display:Georgia,'Times New Roman',serif;
+}
+html[data-skin] body {font-family:var(--font-body)}
+html[data-skin] body :is(button, input, select, textarea) {font-family:var(--font-body)}
+html[data-skin] body :is(.sidebar-brand, h1, h2) {font-family:var(--font-display)}
+
+/* A shared rule also covers controls inserted after page load. The ID in :is
+   gives this final layer precedence over legacy component ID rules. */
+html[data-skin] body :is(button, #skin-apply, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], .tool-buttons>a, .overlay-actions>a, .skip-link) {
+  --control-bg:var(--skin-raised);
+  --control-ink:var(--skin-text);
+  --control-line:var(--skin-border);
+  background:var(--control-bg)!important;
+  color:var(--control-ink)!important;
+  border-color:var(--control-line)!important;
+  text-shadow:none;
+}
+html[data-skin] body :is(.btn-primary, .primary-action, .timer-actions .primary, #skin-apply, #custom-voice-save, #custom-voice-test, #overlay-save, #overlay-copy, .skip-link) {
+  --control-bg:var(--skin-accent);
+  --control-ink:var(--skin-accent-ink);
+  --control-line:var(--skin-accent);
+}
+html[data-skin] body :is(button, #skin-apply):where(.active, .selected, .enabled, [data-selected="true"], [aria-pressed="true"], [aria-selected="true"]) {
+  --control-bg:var(--skin-wash);
+  --control-ink:var(--skin-text);
+  --control-line:var(--skin-accent);
+  box-shadow:inset 3px 0 var(--skin-accent)!important;
+}
+html[data-skin] body :is(.btn-stop, .panic-button, .danger-lite, #voice-model-delete, #profile-delete) {
+  --control-bg:color-mix(in srgb,var(--skin-danger) 15%,var(--skin-surface));
+  --control-ink:var(--skin-danger);
+  --control-line:var(--skin-danger);
+}
+html[data-skin] body #emergency-button.is-paused {
+  --control-bg:var(--skin-wash); --control-ink:var(--skin-accent); --control-line:var(--skin-accent);
+}
+html[data-skin] body :is(button.recording, #skin-apply.recording) {
+  --control-bg:color-mix(in srgb,var(--skin-warning) 15%,var(--skin-surface));
+  --control-ink:var(--skin-warning); --control-line:var(--skin-warning);
+}
+html[data-skin] body :is(button, #skin-apply, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], .tool-buttons>a, .overlay-actions>a, .skip-link):hover:not(:disabled):not([aria-disabled="true"]) {
+  background:color-mix(in srgb,var(--control-bg) 88%,var(--control-ink))!important;
+  border-color:var(--skin-accent)!important;
+}
+html[data-skin] body :is(button, #skin-apply, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], .tool-buttons>a, .overlay-actions>a):active:not(:disabled):not([aria-disabled="true"]) {
+  background:color-mix(in srgb,var(--control-bg) 78%,var(--control-ink))!important;
+}
+html[data-skin] body :is(button, #skin-apply, [role="button"], input, select, textarea):is(:disabled, [aria-disabled="true"]) {
+  opacity:.5!important; cursor:not-allowed!important; filter:none!important;
+  transform:none!important; animation:none!important; box-shadow:none!important;
+}
+/* Navigation destinations stay quiet until selected; retain keyboard focus. */
+html[data-skin] body :is(.app-sidebar, #app-sidebar) [data-section-nav]:not(.active) {
+  --control-bg:transparent;
+  --control-ink:var(--nav-muted);
+  --control-line:transparent;
+  background:transparent!important;
+  color:var(--nav-muted)!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+}
+html[data-skin] body :is(.app-sidebar, #app-sidebar) [data-section-nav]:not(.active):hover {
+  background:color-mix(in srgb,var(--nav-ink) 7%,transparent)!important;
+  color:var(--nav-ink)!important;
+  border-color:transparent!important;
+}
+html[data-skin] body :is(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline:2px solid var(--skin-accent)!important; outline-offset:3px!important;
+}
+html[data-skin] body :is(input[type="checkbox"], input[type="radio"], input[type="range"], progress, meter) {accent-color:var(--skin-accent)!important}
+html[data-skin] body :is(input, textarea)::placeholder {color:var(--skin-muted)!important;opacity:1}
+html[data-skin] body input::file-selector-button {background:var(--skin-raised);color:var(--skin-text);border:1px solid var(--skin-border);border-radius:6px;padding:6px 10px}
+html[data-skin] body input::file-selector-button:hover {background:var(--skin-wash)}
+html[data-skin] body :is(button, [role="button"], .tiktok-button) :is(b, strong, small, span:not(.sidebar-icon)) {color:inherit}
+
+/* Session messages share the active palette, including when inserted dynamically. */
+html[data-skin] .live-session-summary {
+  background:var(--skin-surface);
+  color:var(--skin-text);
+  border-color:var(--skin-border);
+  box-shadow:0 12px 40px var(--skin-shadow);
+}
+
+/* Keep notification specificity below its success, warning and error variants. */
+html[data-skin]:not([data-skin="original"]) .app-notification {
+  background:var(--skin-surface)!important;color:var(--skin-text)!important;border-color:var(--skin-border)!important;
+}
+
+/* These are editor surfaces, not the independently styled broadcast previews. */
+html[data-skin]:not([data-skin="original"]) :is(.voice-setup, .overlay-gallery, .about-view) {
+  color:var(--skin-text);
+  --deck:var(--skin-surface); --deck-2:var(--skin-raised); --deck-line:var(--skin-border); --deck-signal:var(--skin-accent);
+  --about-cyan:var(--skin-accent); --about-pink:var(--skin-accent-2); --about-ink:var(--skin-bg); --about-panel:var(--skin-surface); --about-line:var(--skin-border);
+}
+html[data-skin]:not([data-skin="original"]) :is(.voice-route, .voice-config-fields, .voice-test-box, .voice-summary, .voice-source-card, .voice-active-card, .voice-resource-note, .voice-connector-note, .overlay-editor, .overlay-stage, .overlay-style-form, .overlay-signal, .about-system, .creator-card, .info-tooltip, .queue-row, .comment-actions details[open], #preflight-results p, #pair-key) {
+  background:var(--skin-surface)!important;color:var(--skin-text)!important;border-color:var(--skin-border)!important;
+}
+html[data-skin]:not([data-skin="original"]) :is(.voice-setup, .overlay-gallery, .about-view) :is(p, small, dt, dd, label, summary, h2, h3, h4, .creator-thanks, .overlay-stage-bar, .overlay-card-heading i) {color:var(--skin-text)}
+html[data-skin]:not([data-skin="original"]) :is(.voice-setup, .overlay-gallery, .about-view) :is(p, small, dt, .creator-thanks, .overlay-stage-bar, .overlay-card-heading i) {color:var(--skin-muted)}
+html[data-skin]:not([data-skin="original"]) :is(.voice-source-icon, .voice-character>i, .voice-route-core, .overlay-control-grid label, .overlay-stage code, .overlay-categories button b) {background:var(--skin-raised);color:var(--skin-text);border-color:var(--skin-border)}
+html[data-skin]:not([data-skin="original"]) :is(.voice-source-card.selected, .voice-active-card, .voice-route-core, .game-rule-sentence, .app-notification.success) {background:var(--skin-wash)!important;color:var(--skin-text)!important;border-color:var(--skin-accent)!important}
+html[data-skin]:not([data-skin="original"]) :is(.voice-orb i, .voice-steps .active span) {background:var(--skin-accent);color:var(--skin-accent-ink)}
+html[data-skin]:not([data-skin="original"]) :is(.app-notification.error, .voice-resource-note.high, #error-panel, .session-warning) {background:color-mix(in srgb,var(--skin-danger) 12%,var(--skin-surface))!important;color:var(--skin-danger)!important;border-color:var(--skin-danger)!important}
+html[data-skin]:not([data-skin="original"]) :is(.voice-resource-note.high strong, .voice-resource-note.high span, .voice-resource-consent b) {color:var(--skin-danger)!important}
+html[data-skin]:not([data-skin="original"]) :is(.app-notification.warning, .voice-connector-note, .voice-local-heading span:not(.ready)) {background:color-mix(in srgb,var(--skin-warning) 12%,var(--skin-surface))!important;color:var(--skin-warning)!important;border-color:var(--skin-warning)!important}
+html[data-skin]:not([data-skin="original"]) :is(.voice-local-heading span.ready, .alert-preview-label, .diagnostic-title, #voice-keep-warm-status) {color:var(--skin-accent)!important}
+html[data-skin]:not([data-skin="original"]) :is(.comment-time, .stat-label, #voice-visible, #data-freshness, .nav-section-label, .session-clock small) {color:var(--skin-muted)!important}
+html[data-skin]:not([data-skin="original"]) :is(.comment-text, .feed-title, .game-step>h3, .game-target) {color:var(--skin-text)!important}
+html[data-skin]:not([data-skin="original"]) :is(th, td, .voice-config-fields details, .voice-character-create, .voice-base-settings, .voice-summary dl div, .overlay-control-group, .overlay-editor-heading, .alert-studio-list article) {border-color:var(--skin-border)}
+html[data-skin]:not([data-skin="original"]) .live-tool {--tool-line:var(--skin-border);--tool-card:var(--skin-surface);--tool-accent:var(--skin-accent);color:var(--skin-text)}
+html[data-skin]:not([data-skin="original"]) :is(.tool-card, .timer-face, .overlay-link-card) {background:var(--skin-surface);color:var(--skin-text);border-color:var(--skin-border)}
+html[data-skin]:not([data-skin="original"]) :is(.live-tool-hero p, .wheel-history, .overlay-link-card code) {color:var(--skin-muted)}
+html[data-skin]:not([data-skin="original"]) :is(.timer-clock, .timer-state, .live-tool-status, .config-note, .live-tool-hero span) {color:var(--skin-accent)}
+
+html[data-skin] body input::file-selector-button {font-family:var(--font-body)}

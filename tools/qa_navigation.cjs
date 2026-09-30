@@ -1,0 +1,66 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {chromium}=require('playwright');const root=path.resolve(__dirname,'..');
+function html(name){return fs.readFileSync(path.join(root,'web/templates',name),'utf8').replace(/{% include '([^']+)' %}/g,(_,f)=>html(f)).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*>/gi,t=>{const m=t.match(/href="\/static\/([^"?]+\.css)/);return m?`<style>${fs.readFileSync(path.join(root,'web/static',m[1]),'utf8')}</style>`:'';});}
+(async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{const page=await browser.newPage({viewport:{width:1440,height:1000}});await page.emulateMedia({reducedMotion:'reduce'});await page.route('**/*',r=>r.request().isNavigationRequest()?r.fulfill({contentType:'text/html',body:html('index.html')}):r.abort());
+async function boot(){await page.goto('http://menu.test');for(const f of ['shell.js','sidebar.js','navigation_help.js'])await page.addScriptTag({path:path.join(root,'web/static',f)});await page.evaluate(()=>document.documentElement.dataset.skin='original');}
+async function choose(value){if(await page.locator('#interface-mode-toggle').getAttribute('data-mode')!==value)await page.locator('#interface-mode-toggle').click();}
+await boot();
+const iconPaths=await page.locator('.app-sidebar [data-section-nav] svg path, .nav-advanced-section > summary svg path').evaluateAll(paths=>paths.map(p=>p.getAttribute('d')));
+assert.equal(iconPaths.length,43,'37 destinations and six categories have icons');
+assert.equal(new Set(iconPaths).size,43,'Every menu icon is distinct');
+assert(iconPaths.every(d=>d&&d.startsWith('M')||d&&d.startsWith('m')));
+const basic=['live','voice','overlay-gallery','questions','history','workspace','about'];
+const visible=()=>page.locator('.app-sidebar [data-section-nav]').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).map(n=>n.dataset.sectionNav));
+assert.deepEqual(await visible(),basic);assert.equal(await page.locator('#interface-mode-toggle').getAttribute('data-mode'),'basic');
+await choose('advanced');const all=await page.locator('.app-sidebar [data-section-nav]').evaluateAll(nodes=>nodes.map(n=>n.dataset.sectionNav));assert(all.includes('simulation')&&all.includes('creator-scenes')&&all.includes('obs-direct'));assert.equal(new Set(all).size,all.length);
+await boot();assert.equal(await page.locator('#interface-mode-toggle').getAttribute('data-mode'),'advanced');await page.evaluate(()=>Shell.show('simulation'));await choose('basic');assert.equal(await page.locator('.app-sidebar [aria-current=page]').getAttribute('data-section-nav'),'live');assert.deepEqual(await visible(),basic);
+await page.evaluate(()=>{localStorage.setItem('tikreader.interfaceMode','"advanced"');dispatchEvent(new Event('tikreader:profile'));});assert.equal(await page.locator('#interface-mode-toggle').getAttribute('data-mode'),'advanced');
+await choose('basic');await page.screenshot({path:path.join(root,'docs/screenshots/qa-menu-basic.png')});await choose('advanced');await page.screenshot({path:path.join(root,'docs/screenshots/qa-menu-advanced.png')});
+// A single click changes the mode; advanced sections always start collapsed.
+await choose('basic');const basicPath=await page.locator('#interface-mode-toggle path').getAttribute('d');
+await page.locator('#interface-mode-toggle').click();assert.equal(await page.locator('#interface-mode-toggle').getAttribute('aria-pressed'),'true');
+assert.notEqual(await page.locator('#interface-mode-toggle path').getAttribute('d'),basicPath);
+assert.equal(await page.locator('#interface-mode-options').count(),0);
+assert.equal(await page.locator('.nav-advanced-section').count(),6);
+assert.equal(await page.locator('.nav-advanced-section[open]').count(),0);
+assert.equal(await page.locator('.sidebar-personal > .nav-section-label').last().textContent(),'TU ESPACIO');
+assert.deepEqual(await page.locator('.nav-advanced-section > summary > span').allTextContents(),['Chat','Escena','Audio y video','Juegos','Automatizaciones','Pruebas']);
+assert.equal(await page.locator('.nav-advanced-section details').count(),0,'No nested menus');
+assert.equal(all.length,37,'Every existing destination remains available');
+const labels=await page.locator('.app-sidebar [data-section-nav]').allTextContents();assert.equal(new Set(labels).size,labels.length,'No repeated destination labels');
+await page.evaluate(()=>Shell.show('filters'));assert.equal(await page.locator('#section-title').textContent(),'Filtros de comentarios');
+await page.evaluate(()=>Shell.show('creator-profiles'));assert.equal(await page.locator('#section-title').textContent(),'Perfiles del creador');
+await page.evaluate(()=>Shell.show('live'));
+await page.locator('.nav-advanced-section > summary').first().click();assert.equal(await page.locator('.nav-advanced-section[open]').count(),1);
+await choose('basic');await choose('advanced');assert.equal(await page.locator('.nav-advanced-section[open]').count(),0);
+await page.locator('#interface-mode-toggle').focus();await page.keyboard.press('Space');assert.equal(await page.locator('#interface-mode-toggle').getAttribute('data-mode'),'basic');await page.keyboard.press('Enter');assert.equal(await page.locator('#interface-mode-toggle').getAttribute('data-mode'),'advanced');
+await page.locator('.nav-advanced-section > summary').nth(1).click();await page.screenshot({path:path.join(root,'docs/screenshots/qa-menu-advanced.png')});
+// Exclusive groups, visible location, anchored personal links and accessible help.
+await page.locator('.nav-advanced-section > summary').nth(0).click();
+assert.equal(await page.locator('.nav-advanced-section[open]').count(),1);
+await page.locator('.nav-advanced-section > summary').nth(1).click();
+assert.equal(await page.locator('.nav-advanced-section[open]').count(),1);
+assert.equal(await page.locator('.nav-advanced-section').nth(0).getAttribute('open'),null);
+await page.locator('[data-section-nav="production"]').click();
+await page.waitForFunction(()=>document.querySelector('.nav-advanced-section.has-current-page'));
+assert.equal(await page.locator('#section-title').textContent(),'Emisión y privacidad');
+await page.locator('.nav-advanced-section > summary').nth(1).click();
+assert.equal(await page.locator('.nav-advanced-section.has-current-page').count(),1);
+assert((await page.locator('.nav-advanced-section.has-current-page > summary').getAttribute('aria-label')).includes('Emisión y privacidad'));
+const before=await page.locator('.sidebar-personal').boundingBox();
+await page.locator('.app-sidebar nav').evaluate(n=>n.scrollTop=n.scrollHeight);
+const after=await page.locator('.sidebar-personal').boundingBox();assert.equal(before.y,after.y);
+await page.locator('[data-section-nav="workspace"]').focus();
+assert.equal(await page.locator('#navigation-help').isVisible(),true);
+assert((await page.locator('#navigation-help').textContent()).includes('apariencia'));
+assert.equal(await page.locator('[data-section-nav="workspace"]').getAttribute('aria-describedby'),'navigation-help');
+await page.keyboard.press('Escape');assert.equal(await page.locator('#navigation-help').isVisible(),false);
+await page.locator('[data-section-nav="history"]').hover();assert.equal(await page.locator('#navigation-help').isVisible(),true);
+await page.locator('[data-section-nav="workspace"]').click();assert.equal(await page.locator('[data-section-nav="workspace"]').getAttribute('aria-current'),'page');
+await page.locator('.app-sidebar nav').evaluate(n=>n.scrollTop=0);
+await page.screenshot({path:path.join(root,'docs/screenshots/qa-navigation-polished.png')});
+await page.setViewportSize({width:390,height:844});await page.locator('#interface-mode-toggle').click();assert.equal(await page.locator('#interface-mode-toggle').getAttribute('data-mode'),'basic');
+await page.locator('#menu-toggle').click();assert.equal(await page.locator('#app-sidebar').evaluate(e=>e.inert),false);await page.locator('#app-sidebar [data-section-nav=live]').focus();await page.keyboard.press('Tab');assert(await page.evaluate(()=>document.activeElement.closest('#app-sidebar')!==null));await page.keyboard.press('Escape');await page.keyboard.press('Escape');assert.equal(await page.locator('#app-sidebar').evaluate(e=>e.inert),true);
+await page.evaluate(()=>localStorage.setItem('tikreader.interfaceMode','invalid'));await boot();assert.equal(await page.locator('#interface-mode-toggle').getAttribute('data-mode'),'basic');
+console.log(`7 basic destinations; ${all.length} total unique destinations; persistence, profiles, safe return, invalid storage and mobile keyboard OK`);
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

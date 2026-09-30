@@ -1,0 +1,6 @@
+/* Keep the public overlay at the ratio encoded in its copied URL.
+   The surrounding browser viewport remains transparent when its ratio differs. */
+html[data-canvas-format]{display:grid!important;place-items:center;width:100%;height:100%;min-width:0;min-height:0;margin:0;overflow:hidden;background:transparent!important}
+html[data-canvas-format] body{position:relative!important;inset:auto!important;box-sizing:border-box;margin:0!important;overflow:hidden!important;background:transparent!important}
+html[data-canvas-format="vertical"] body{width:min(100vw,56.25vh)!important;height:min(100vh,177.7778vw)!important}
+html[data-canvas-format="horizontal"] body{width:min(100vw,177.7778vh)!important;height:min(100vh,56.25vw)!important}
