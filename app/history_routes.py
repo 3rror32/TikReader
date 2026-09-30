@@ -43,6 +43,29 @@ def register_history_routes(app, runtime):
             target = make_archive_backup()
         return send_file(target, as_attachment=True, download_name=target.name)
 
+    @app.route("/history/automatic-backups", methods=["GET", "POST"])
+    def automatic_backups():
+        manager = getattr(runtime, "automatic_backups", None)
+        if manager is None:
+            return jsonify(error="Respaldos automáticos no disponibles"), 503
+        if request.method == "POST":
+            try:
+                manager.configure(request.get_json(silent=True))
+            except ValueError as exc:
+                return jsonify(error=str(exc)), 400
+        return jsonify(manager.snapshot())
+
+    @app.post("/history/automatic-backups/run")
+    def run_automatic_backup():
+        manager = getattr(runtime, "automatic_backups", None)
+        if manager is None:
+            return jsonify(error="Respaldos automáticos no disponibles"), 503
+        try:
+            target = manager.create(manual=True)
+        except (OSError, ValueError) as exc:
+            return jsonify(error=str(exc)), 409
+        return jsonify(ok=True, file=target.name, **manager.snapshot())
+
     @app.delete("/history/<session>")
     def delete_history(session):
         data = request.get_json(silent=True) or {}

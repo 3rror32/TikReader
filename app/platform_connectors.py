@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import json
 import re
+import base64
+import secrets
 import threading
 from dataclasses import dataclass
 from time import time
@@ -264,10 +266,131 @@ class TwitchConnector:
             self.socket = None
 
 
+class KickConnector:
+    """Official Kick API connector. Chat arrives through Kick-signed webhooks."""
+
+    platform = "kick"
+    API = "https://api.kick.com/public/v1"
+    OAUTH = "https://id.kick.com/oauth/token"
+
+    def __init__(self, config: dict, callbacks: ConnectorCallbacks, stop: threading.Event):
+        self.channel = _text(config.get("channel"), 80).lstrip("@/").casefold()
+        self.client_id = _text(config.get("client_id"), 300)
+        self.client_secret = _text(config.get("client_secret"), 500)
+        self.webhook_secret = _text(config.get("webhook_secret"), 200)
+        self.callbacks = callbacks
+        self.stop = stop
+        self.token = ""
+        self.public_key = None
+        self.seen = set()
+        if not re.fullmatch(r"[a-z0-9_-]{2,80}", self.channel):
+            raise ConnectorError("KICK_CHANNEL", "Canal de Kick inválido", "Ingresa el slug del canal, sin URL.")
+        if len(self.client_id) < 8 or len(self.client_secret) < 16 or len(self.webhook_secret) < 20:
+            raise ConnectorError("KICK_AUTH", "Falta configurar Kick", "Guarda el Client ID y Client Secret de tu aplicación de Kick.")
+
+    def _json(self, url, method="GET", payload=None, bearer=None):
+        headers = {"Accept": "application/json"}
+        data = None
+        if payload is not None:
+            data = urlencode(payload).encode() if url == self.OAUTH else json.dumps(payload).encode()
+            headers["Content-Type"] = "application/x-www-form-urlencoded" if url == self.OAUTH else "application/json"
+        if bearer:
+            headers["Authorization"] = "Bearer " + bearer
+        try:
+            with urlopen(Request(url, data=data, method=method, headers=headers), timeout=15) as response:
+                return json.load(response)
+        except HTTPError as exc:
+            detail = "Kick rechazó la solicitud. Revisa la aplicación, sus permisos y la URL pública del webhook."
+            try:
+                body = json.loads(exc.read().decode("utf-8", "replace"))
+                detail = _text(body.get("message") or body.get("error"), 300) or detail
+            except (ValueError, AttributeError):
+                pass
+            raise ConnectorError("KICK_API", "No se pudo conectar Kick", detail) from exc
+        except (URLError, TimeoutError, OSError) as exc:
+            raise ConnectorError("KICK_NETWORK", "Kick no responde", "Comprueba Internet e inténtalo nuevamente.") from exc
+
+    def run(self):
+        auth = self._json(self.OAUTH, "POST", {"grant_type": "client_credentials",
+                          "client_id": self.client_id, "client_secret": self.client_secret})
+        self.token = _text(auth.get("access_token"), 2000)
+        if not self.token:
+            raise ConnectorError("KICK_AUTH", "Kick no entregó acceso", "Revisa el Client ID y Client Secret.")
+        channel_data = self._json(self.API + "/channels?" + urlencode({"slug": self.channel}), bearer=self.token)
+        channels = channel_data.get("data") or []
+        channel = channels[0] if channels else {}
+        broadcaster_id = channel.get("broadcaster_user_id") or channel.get("user_id")
+        if not broadcaster_id:
+            raise ConnectorError("KICK_CHANNEL", "Canal de Kick no encontrado", "Revisa el slug del canal.")
+        events = [{"name": name, "version": 1} for name in
+                  ("chat.message.sent", "channel.subscription.new", "channel.subscription.gifts", "kicks.gifted")]
+        self._json(self.API + "/events/subscriptions", "POST",
+                   {"broadcaster_user_id": int(broadcaster_id), "events": events}, self.token)
+        self.callbacks.connected({"platform": self.platform, "channel": self.channel})
+        while not self.stop.wait(1):
+            pass
+
+    def _key(self):
+        if self.public_key is not None:
+            return self.public_key
+        try:
+            from cryptography.hazmat.primitives.serialization import load_pem_public_key
+        except ImportError as exc:
+            raise ConnectorError("KICK_LIBRARY", "Falta el verificador de Kick", "Reinstala las dependencias de TikReader.") from exc
+        response = self._json(self.API + "/public-key", bearer=self.token)
+        value = response.get("data")
+        if isinstance(value, dict):
+            value = value.get("public_key") or value.get("key")
+        self.public_key = load_pem_public_key(str(value or "").encode())
+        return self.public_key
+
+    def receive(self, headers, body: bytes):
+        message_id = _text(headers.get("Kick-Event-Message-Id"), 200)
+        timestamp = _text(headers.get("Kick-Event-Message-Timestamp"), 100)
+        signature = _text(headers.get("Kick-Event-Signature"), 2000)
+        event = _text(headers.get("Kick-Event-Type"), 100)
+        if not message_id or not timestamp or not signature or not event:
+            raise ValueError("Encabezados de Kick incompletos")
+        try:
+            from cryptography.exceptions import InvalidSignature
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.asymmetric import padding
+        except ImportError as exc:
+            raise ConnectorError("KICK_LIBRARY", "Falta el verificador de Kick", "Reinstala las dependencias de TikReader.") from exc
+        try:
+            self._key().verify(base64.b64decode(signature), message_id.encode() + b"." + timestamp.encode() + b"." + body,
+                               padding.PKCS1v15(), hashes.SHA256())
+        except (ValueError, InvalidSignature) as exc:
+            raise ValueError("Firma de Kick inválida") from exc
+        if message_id in self.seen:
+            return
+        self.seen.add(message_id)
+        if len(self.seen) > 5000:
+            self.seen = {message_id}
+        payload = json.loads(body)
+        sender = payload.get("sender") or payload.get("gifter") or {}
+        record = {"id": payload.get("message_id") or message_id,
+                  "user_id": sender.get("user_id") or sender.get("username"),
+                  "user": sender.get("username") or "Espectador",
+                  "avatar_url": sender.get("profile_picture"),
+                  "comment": payload.get("content") or "", "occurred_at": payload.get("created_at") or time(),
+                  "badges": [badge.get("type") for badge in (sender.get("identity") or {}).get("badges", []) if badge.get("type")]}
+        if event == "chat.message.sent":
+            self.callbacks.comment(record)
+        elif event == "kicks.gifted":
+            gift = payload.get("gift") or {}
+            record.update(gift=gift.get("name") or "KICKs", count=1, diamonds=int(gift.get("amount") or 0),
+                          comment=gift.get("message") or "")
+            self.callbacks.support(record)
+        elif event.startswith("channel.subscription"):
+            record.update(event="subscribe", comment="Nueva suscripción en Kick")
+            self.callbacks.comment(record)
+
+
 class PlatformManager:
     """Own one background connector per external platform."""
 
-    CONNECTORS = {"youtube": YouTubeConnector, "twitch": TwitchConnector}
+    CONNECTORS = {"youtube": YouTubeConnector, "twitch": TwitchConnector, "kick": KickConnector}
 
     def __init__(self, runtime):
         self.runtime = runtime
@@ -291,7 +414,7 @@ class PlatformManager:
         platform = str(platform or "").casefold()
         connector_type = self.CONNECTORS.get(platform)
         if connector_type is None:
-            return {"code": "PLATFORM_UNKNOWN", "title": "Plataforma no compatible", "detail": "Elige YouTube o Twitch."}
+            return {"code": "PLATFORM_UNKNOWN", "title": "Plataforma no compatible", "detail": "Elige YouTube, Twitch o Kick."}
         if not isinstance(config, dict):
             return {"code": "PLATFORM_CONFIG", "title": "Configuración inválida", "detail": "Completa los datos de conexión."}
         stored = getattr(self.runtime, "platform_credentials", None)
@@ -311,7 +434,7 @@ class PlatformManager:
         try:
             connector = connector_type(config, callbacks, stop)
             preparation_error = self.runtime.prepare_external_session(
-                platform, connector.channel if platform == "twitch" else connector.video_id)
+                platform, getattr(connector, "channel", getattr(connector, "video_id", "")))
             if preparation_error:
                 return preparation_error
         except ConnectorError as exc:
@@ -372,3 +495,15 @@ class PlatformManager:
     def stop_all(self):
         for platform in tuple(self.CONNECTORS):
             self.stop(platform)
+
+    def receive_kick(self, secret, headers, body):
+        with self.lock:
+            worker = self.workers.get("kick")
+            connector = worker.get("connector") if worker else None
+        if not connector or not secrets.compare_digest(str(secret), connector.webhook_secret):
+            return {"error": "Webhook de Kick no disponible"}, 404
+        try:
+            connector.receive(headers, body)
+        except (ConnectorError, ValueError, json.JSONDecodeError) as exc:
+            return {"error": str(exc)}, 401
+        return {"ok": True}, 202

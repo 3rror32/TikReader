@@ -42,6 +42,7 @@
         voicesWereReady = state.ready;
         button.disabled = busy || state.ready || !state.available;
         button.textContent = state.ready ? 'Voces instaladas' : busy ? 'Instalando…' : 'Descargar e instalar voces';
+        $('settings-cancel-voices').hidden = !busy;
         $('settings-voice-status').textContent = state.detail || (state.ready ? 'Kokoro está listo para usar.' :
           state.available ? 'Descarga opcional. Apache 2.0 · motor MIT.' : 'La descarga guiada estará disponible en la versión instalada.');
         $('settings-voice-progress').hidden = !busy;
@@ -58,6 +59,12 @@
       $('settings-install-voices').disabled = true;
       try { await api('/system/voices/install', {confirm: true}); await voices(); }
       catch (error) { $('settings-voice-status').textContent = error.message; $('settings-install-voices').disabled = false; }
+    };
+    $('settings-cancel-voices').onclick = async () => {
+      $('settings-cancel-voices').disabled = true;
+      try { await api('/system/voices/cancel', {confirm: true}); await voices(); }
+      catch (error) { $('settings-voice-status').textContent = error.message; }
+      finally { $('settings-cancel-voices').disabled = false; }
     };
     $('settings-exit').onclick = async () => {
       if (!confirm('¿Cerrar TikReader y detener la conexión y las voces?')) return;

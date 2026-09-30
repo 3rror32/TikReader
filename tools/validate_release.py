@@ -48,7 +48,7 @@ def main():
         with (ROOT / 'release' / 'validation-server.log').open('w', encoding='utf-8') as log:
             process = start(log)
             report['checks'].append('Inicio con Python incluido y sin Python del sistema en PATH')
-            assert api('/version')['app_version'] == '1.0.0.7'
+            assert api('/version')['app_version'] == '1.0.0.8'
             assert api('/microphone-captions/engine')['available']
             report['checks'].append('Motor Vosk y modelo español incluidos')
             assert not api('/local-tts')['ready']

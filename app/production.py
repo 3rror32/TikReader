@@ -8,6 +8,7 @@ import re
 import unicodedata
 from collections import OrderedDict
 from flask import jsonify, request, render_template
+from app_paths import data_dir
 
 
 def redact(text):
@@ -34,9 +35,38 @@ class Production:
         self.token_expires = 0
         self.remote_queue = []
         self.seen = set()
-        secret = str(app.config.get('SECRET_KEY', '')).encode('utf-8')
-        self.view_token = hmac.new(secret, b'tikreader-lan-view-v1', hashlib.sha256).hexdigest()[:32]
+        self.view_token_path = data_dir() / '.lan-view-token'
+        self.view_token = self._load_view_token(app.config.get('SECRET_KEY', ''))
+        self.remote_readers = OrderedDict()
+        self.remote_requests = {}
         self.register(app)
+
+    def _load_view_token(self, fallback):
+        try:
+            token = self.view_token_path.read_text(encoding='ascii').strip()
+        except (OSError, UnicodeError):
+            token = ''
+        if len(token) < 32:
+            token = secrets.token_urlsafe(32)
+            try:
+                self.view_token_path.parent.mkdir(parents=True, exist_ok=True)
+                self.view_token_path.write_text(token, encoding='ascii')
+                self.view_token_path.chmod(0o600)
+            except OSError:
+                secret = str(fallback).encode('utf-8')
+                token = hmac.new(secret, b'tikreader-lan-view-v2', hashlib.sha256).hexdigest()[:43]
+        return token
+
+    def rotate_view_token(self):
+        token = secrets.token_urlsafe(32)
+        self.view_token_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.view_token_path.with_suffix('.tmp')
+        temporary.write_text(token, encoding='ascii')
+        temporary.replace(self.view_token_path)
+        self.view_token = token
+        self.remote_readers.clear()
+        self.remote_requests.clear()
+        return token
 
     def local(self):
         return request.remote_addr in (None, '127.0.0.1', '::1')
@@ -49,7 +79,23 @@ class Production:
         config = getattr(self.r, 'runtime_config_value', None)
         return {'enabled': bool(config and config.lan_enabled), 'token': self.view_token,
                 'port': getattr(config, 'port', 5000),
+                'fingerprint': hashlib.sha256(self.view_token.encode()).hexdigest()[:8],
+                'readers': list(self.remote_readers.values()),
                 'scope': 'Clave de solo lectura para overlays y datos visibles de la transmisión.'}
+
+    def allow_remote_read(self):
+        address = str(request.remote_addr or 'desconocido')[:64]
+        now = time.time()
+        recent = [stamp for stamp in self.remote_requests.get(address, []) if now - stamp < 60]
+        if len(recent) >= 300:
+            return False
+        recent.append(now)
+        self.remote_requests[address] = recent
+        masked = address if ':' not in address else address.split(':')[0] + ':…'
+        self.remote_readers[address] = {'address': masked, 'last_seen': int(now)}
+        while len(self.remote_readers) > 20:
+            self.remote_readers.popitem(last=False)
+        return True
 
     def reset_session(self):
         if self.session != self.r.feed_session:
@@ -118,10 +164,12 @@ class Production:
     def register(self, app):
         @app.before_request
         def access_control():
-            always_public = request.path.startswith(('/static/', '/remote/')) or request.path == '/moderator'
+            always_public = request.path.startswith(('/static/', '/remote/', '/webhooks/kick/')) or request.path == '/moderator'
             protected_view = request.path.startswith(('/widget/', '/broadcast/', '/overlay/')) or request.path in ('/overlay', '/status')
             if not self.local() and protected_view and not self.valid_view_access():
                 return jsonify(error='Esta vista de la transmisión necesita una clave de lectura.'), 401
+            if not self.local() and protected_view and not self.allow_remote_read():
+                return jsonify(error='Demasiadas solicitudes desde este dispositivo.'), 429
             if not self.local() and not always_public and not protected_view:
                 return jsonify(error='Control disponible solo en este equipo. Usa el panel de moderador.'), 403
             if request.method not in ('GET', 'HEAD', 'OPTIONS'):

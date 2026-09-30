@@ -35,6 +35,18 @@ class PlatformConnectorTests(unittest.TestCase):
         self.assertEqual(platform_connectors.youtube_video_id(f"https://youtube.com/live/{video}"), video)
         self.assertEqual(platform_connectors.youtube_video_id("https://example.com/watch?v=" + video), "")
 
+    def test_kick_is_a_supported_opt_in_connector(self):
+        manager = platform_connectors.PlatformManager(Mock())
+        self.assertIn("kick", manager.CONNECTORS)
+        self.assertEqual(manager.snapshot()["platforms"][2]["platform"], "kick")
+        callbacks = platform_connectors.ConnectorCallbacks(Mock(), Mock(), Mock())
+        connector = platform_connectors.KickConnector({
+            "channel": "canal-seguro", "client_id": "client-id-123",
+            "client_secret": "s" * 24, "webhook_secret": "w" * 24,
+        }, callbacks, threading.Event())
+        with self.assertRaisesRegex(ValueError, "Encabezados"):
+            connector.receive({}, b"{}")
+
     def test_twitch_privmsg_keeps_identity_badges_and_text(self):
         line = ("@badges=moderator/1,subscriber/3;display-name=Carlos;id=message-1;"
                 "tmi-sent-ts=1700000000000;user-id=42 :carlos!carlos@carlos.tmi.twitch.tv "

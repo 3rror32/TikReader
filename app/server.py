@@ -32,6 +32,7 @@ from urllib.parse import urlsplit
 from importlib.metadata import version as package_version
 from flask import Flask, send_from_directory
 from history_store import HistoryStore
+from automatic_backups import AutomaticBackups
 from user_badges import user_badges
 from like_ranking import LikeRanking
 like_ranking = LikeRanking()
@@ -42,8 +43,6 @@ from app_config import load_or_create_secret, runtime_config
 from app_paths import data_dir
 from observability import RuntimeMetrics, configure_logging
 from runtime_state import RuntimeState
-from system_routes import register_system_routes
-from core_routes import register_core_routes
 
 # ── TikTokLive imports ──────────────────────────────────────────────────────
 TIKTOKLIVE_AVAILABLE = False
@@ -85,6 +84,7 @@ socketio = SocketIO(app, async_mode="threading")
 logger = configure_logging(data_dir() / "logs", runtime_config_value.log_level)
 runtime_metrics = RuntimeMetrics()
 archive = None
+automatic_backups = AutomaticBackups(sys.modules[__name__])
 daily_diagnostics = None
 studio_state = {"highlight": None, "like_goal": 100, "gift_goal": 10}
 gifter_totals = {}
@@ -1247,66 +1247,40 @@ def handle_stop_platform(data):
     external_platform_stopped()
 
 
-from production import Production
-production = Production(app, sys.modules[__name__])
-from microphone_captions import MicrophoneCaptions
-microphone_captions = MicrophoneCaptions(app, sys.modules[__name__])
-from points_system import PointsSystem
-points = PointsSystem(app, sys.modules[__name__])
-from live_counters import LiveCounters
-live_counters = LiveCounters(app, sys.modules[__name__])
-from minecraft_connector import MinecraftConnector
-minecraft = MinecraftConnector(app, sys.modules[__name__])
-from interactivity import Interactivity
-interactive = Interactivity(app, sys.modules[__name__])
-from obs_direct import OBSDirect
-obs_direct = OBSDirect(app, sys.modules[__name__])
-from chatbot import Chatbot
-chatbot = Chatbot(app, sys.modules[__name__])
-from game_hotkeys import GameHotkeys
-game_hotkeys = GameHotkeys(app, sys.modules[__name__])
-from animation_studio import AnimationStudio
-animation_studio = AnimationStudio(app, sys.modules[__name__])
-from overlay_animations import OverlayAnimations
-overlay_animations = OverlayAnimations(app, sys.modules[__name__])
-from user_info_overlay import UserInfoOverlay
-user_info_overlay = UserInfoOverlay(app, sys.modules[__name__])
-from emoji_overlay import EmojiOverlay
-emoji_overlay = EmojiOverlay(app, sys.modules[__name__])
-from seasonal_overlay import SeasonalOverlay
-seasonal = SeasonalOverlay(app, sys.modules[__name__])
-from stream_buddies import StreamBuddies
-stream_buddies = StreamBuddies(app, sys.modules[__name__])
-from spotify_integration import Spotify
-spotify = Spotify(app, sys.modules[__name__])
-from operator_tools import OperatorTools
-operator_tools = OperatorTools(app, sys.modules[__name__])
-from live_tools import LiveTools
-live_tools = LiveTools(app, sys.modules[__name__])
-from reliability import Reliability
-reliability = Reliability(app, sys.modules[__name__])
-from voice_models import VoiceModels
-voice_models = VoiceModels(app, Path(__file__).parent.parent)
-from local_tts import LocalTTS
-local_tts = LocalTTS(app, Path(__file__).parent.parent)
-from voice_downloads import VoiceDownloads
-voice_downloads = VoiceDownloads(app, sys.modules[__name__])
-from release_support import register_release_routes
-register_release_routes(app, sys.modules[__name__])
-from simulation import Simulation
-simulation = Simulation(app, sys.modules[__name__])
-from creator_suite import CreatorSuite
-creator_suite = CreatorSuite(app, sys.modules[__name__])
-from platform_connectors import PlatformManager
-platform_manager = PlatformManager(sys.modules[__name__])
-register_system_routes(app, sys.modules[__name__], runtime_config_value, runtime_metrics)
-register_core_routes(app, sys.modules[__name__], Path(__file__).parent.parent)
+from runtime_bootstrap import register_runtime_services
+_services = register_runtime_services(app, sys.modules[__name__], PROJECT_ROOT, runtime_config_value, runtime_metrics)
+production = _services.production
+microphone_captions = _services.microphone_captions
+points = _services.points
+live_counters = _services.live_counters
+minecraft = _services.minecraft
+interactive = _services.interactive
+obs_direct = _services.obs_direct
+chatbot = _services.chatbot
+game_hotkeys = _services.game_hotkeys
+animation_studio = _services.animation_studio
+overlay_animations = _services.overlay_animations
+user_info_overlay = _services.user_info_overlay
+emoji_overlay = _services.emoji_overlay
+seasonal = _services.seasonal
+stream_buddies = _services.stream_buddies
+spotify = _services.spotify
+operator_tools = _services.operator_tools
+live_tools = _services.live_tools
+reliability = _services.reliability
+voice_models = _services.voice_models
+local_tts = _services.local_tts
+voice_downloads = _services.voice_downloads
+simulation = _services.simulation
+creator_suite = _services.creator_suite
+platform_manager = _services.platform_manager
 
 if __name__ == "__main__":
     from daily_diagnostics import DailyDiagnostics
     daily_diagnostics = DailyDiagnostics(data_dir() / 'logs')
     threading.Thread(target=monitor_daily_diagnostics, daemon=True, name='daily-diagnostics').start()
     archive = HistoryStore(data_dir() / "history.sqlite3")
+    automatic_backups.start()
     for cached_gift in archive.settings().get('gift_catalog_cache',[]):
         if isinstance(cached_gift,dict) and cached_gift.get('id') and cached_gift.get('name'):
             gift_catalog[str(cached_gift['id'])]=cached_gift
@@ -1368,6 +1342,7 @@ if __name__ == "__main__":
                      debug=False, allow_unsafe_werkzeug=True, log_output=False)
     finally:
         platform_manager.stop_all()
+        automatic_backups.close()
         local_tts.close()
         voice_models.unload()
         _instance_guard.close()

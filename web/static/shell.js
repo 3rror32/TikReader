@@ -17,7 +17,12 @@ window.Shell=(()=>{
  const nav=document.createElement('nav');sidebar.append(nav);
  const config=document.createElement('main');config.className='config-content';config.hidden=true;app.append(config);
  const views=new Map();
- function add(key,node){node.hidden=true;node.classList.add('settings-view');config.append(node);views.set(key,node);}
+ function add(key,node){node.hidden=true;node.classList.add('settings-view');config.append(node);views.set(key,node);return node;}
+ function registerView(key,node){
+  if(!key||!node)return null;
+  const previous=views.get(key);if(previous&&previous!==node)previous.remove();
+  return add(key,node);
+ }
  const panes={};for(const pane of document.querySelectorAll('[data-pane]'))panes[pane.dataset.pane]=pane;
  document.querySelector('.studio-tabs').remove();
  // Split existing groups rather than duplicating controls or their event handlers.
@@ -321,5 +326,6 @@ window.Shell=(()=>{
  }
  const originalShow=show;
  show=function(key){if(key.startsWith('creator-')){window.CreatorBridge?.open(key==='creator-suite'?'scenes':key.slice(8));originalShow('creator-suite');heading.textContent=destinationLabels.get(key)||'Estudio del creador';for(const b of sidebar.querySelectorAll('[data-section-nav]'))if(b.dataset.sectionNav===key){b.classList.add('active');b.setAttribute('aria-current','page');requestAnimationFrame(()=>{b.scrollIntoView({block:'nearest',inline:'nearest',behavior:menuMotionAllowed()?'smooth':'auto'});window.dispatchEvent(new CustomEvent('tikreader:navigation-change',{detail:{key,label:heading.textContent}}));});}return;}originalShow(key);};
- show('live');if(location.hash.slice(1))show(location.hash.slice(1));return {show};
+ show('live');if(location.hash.slice(1))show(location.hash.slice(1));
+ const api={show,registerView};window.dispatchEvent(new CustomEvent('tikreader:shell-ready',{detail:api}));return api;
 })();

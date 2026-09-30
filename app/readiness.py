@@ -9,7 +9,7 @@ import time
 from app_paths import data_dir, kokoro_assets, microphone_speech_model
 
 
-OVERLAY_BUILD = ("runtime.js", "broadcast.js", "broadcast.css", "studio.js", "controlCenter.js")
+OVERLAY_BUILD = ("runtime.js", "broadcast.js", "broadcast.css", "studio.js", "controlCenter.js", "platformConnectors.js")
 
 
 def _check(identifier, title, status, detail, action="", required=True):

@@ -19,6 +19,10 @@ MODELS = {
 RELEASE = 'https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/'
 
 
+class InstallationCancelled(RuntimeError):
+    """The user stopped an optional voice installation."""
+
+
 def file_hash(path):
     with Path(path).open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
@@ -45,6 +49,7 @@ class VoiceDownloads:
         self.lock = threading.Lock()
         self.state = {'status': 'idle', 'detail': '', 'downloaded': 0,
                       'model_bytes': sum(item[0] for item in MODELS.values())}
+        self.cancel_event = threading.Event()
         self.component_cache = (0.0, {})
         self.register(app)
 
@@ -53,6 +58,7 @@ class VoiceDownloads:
 
     def snapshot(self):
         return {**self.state, 'ready': self.r.local_tts.ready(),
+                'can_cancel': self.busy(),
                 'available': installed(), 'required_free_bytes': 2 * 1024**3,
                 'engine': 'Kokoro 1.0', 'license': 'Apache-2.0 · motor MIT',
                 'download_note': '354 MB de modelos más el motor y sus dependencias. Reserva 2 GB libres.'}
@@ -148,12 +154,26 @@ class VoiceDownloads:
             logs.mkdir(exist_ok=True)
             self.state['detail'] = 'Descargando el motor de voz y sus dependencias…'
             with (logs / 'voice-install.log').open('w', encoding='utf-8') as output:
-                subprocess.run([str(python), '-m', 'pip', '--isolated', 'install', '--disable-pip-version-check',
-                                '--only-binary=:all:', '--index-url', 'https://pypi.org/simple',
-                                '--target', str(packages), '--upgrade',
-                                '-r', str(ROOT / 'docs' / 'requirements-kokoro.lock.txt')],
-                               stdout=output, stderr=subprocess.STDOUT, check=True, timeout=1200,
-                               creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                process = subprocess.Popen([str(python), '-m', 'pip', '--isolated', 'install', '--disable-pip-version-check',
+                                            '--only-binary=:all:', '--index-url', 'https://pypi.org/simple',
+                                            '--target', str(packages), '--upgrade',
+                                            '-r', str(ROOT / 'docs' / 'requirements-kokoro.lock.txt')],
+                                           stdout=output, stderr=subprocess.STDOUT,
+                                           creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                started = time.monotonic()
+                while process.poll() is None:
+                    if self.cancel_event.wait(.25):
+                        process.terminate()
+                        try:
+                            process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                        raise InstallationCancelled()
+                    if time.monotonic() - started > 1200:
+                        process.kill()
+                        raise ValueError('La instalación del motor excedió el tiempo permitido.')
+                if process.returncode:
+                    raise subprocess.CalledProcessError(process.returncode, process.args)
             assets.mkdir(parents=True, exist_ok=True)
             for name, (size, expected) in MODELS.items():
                 path = assets / name
@@ -161,21 +181,7 @@ class VoiceDownloads:
                     self.state['downloaded'] += size
                     continue
                 self.state['detail'] = 'Descargando ' + name
-                temporary = path.with_suffix(path.suffix + '.part')
-                try:
-                    with urllib.request.urlopen(RELEASE + name, timeout=90) as response, temporary.open('wb') as output:
-                        received = 0
-                        while chunk := response.read(1024 * 1024):
-                            received += len(chunk)
-                            if received > size:
-                                raise ValueError('La descarga excede el tamaño esperado.')
-                            output.write(chunk)
-                            self.state['downloaded'] += len(chunk)
-                    if received != size or file_hash(temporary) != expected:
-                        raise ValueError('La descarga no superó la verificación. Puedes reintentar.')
-                    temporary.replace(path)
-                finally:
-                    temporary.unlink(missing_ok=True)
+                self._download_model(path, size, expected)
             shutil.copy2(ROOT / 'docs' / 'KOKORO_MODEL_LICENSE.txt', assets / 'MODEL_LICENSE')
             (assets / 'sources.json').write_text(json.dumps({name: {'url': RELEASE + name, 'sha256': entry[1]}
                 for name, entry in MODELS.items()}), encoding='utf-8')
@@ -184,9 +190,49 @@ class VoiceDownloads:
             self.r.local_tts.close()
             self.component_cache = (0.0, {})
             self.state.update(status='complete', detail='Voces instaladas y verificadas. Ya puedes elegirlas en Voz.')
+        except InstallationCancelled:
+            self.state.update(status='cancelled', detail='Descarga detenida. El avance se conservará para continuar después.')
         except Exception as exc:
             self.state.update(status='failed', detail=str(exc) if isinstance(exc, ValueError) else
                 'No se completó la instalación. Comprueba internet y el espacio disponible; puedes reintentar.')
+
+    def _download_model(self, path, size, expected):
+        """Download a verified model, preserving a safe partial file for a later retry."""
+        temporary = path.with_suffix(path.suffix + '.part')
+        offset = temporary.stat().st_size if temporary.is_file() else 0
+        if offset > size:
+            temporary.unlink(missing_ok=True)
+            offset = 0
+        headers = {'Range': f'bytes={offset}-'} if offset else {}
+        response = urllib.request.urlopen(urllib.request.Request(RELEASE + path.name, headers=headers), timeout=90)
+        status = getattr(response, 'status', response.getcode())
+        if offset and status != 206:
+            response.close()
+            temporary.unlink(missing_ok=True)
+            offset = 0
+            response = urllib.request.urlopen(urllib.request.Request(RELEASE + path.name), timeout=90)
+        self.state['downloaded'] += offset
+        try:
+            with response, temporary.open('ab' if offset else 'wb') as output:
+                received = offset
+                while chunk := response.read(1024 * 1024):
+                    if self.cancel_event.is_set():
+                        raise InstallationCancelled()
+                    received += len(chunk)
+                    if received > size:
+                        raise ValueError('La descarga excede el tamaño esperado.')
+                    output.write(chunk)
+                    self.state['downloaded'] += len(chunk)
+            if received != size or file_hash(temporary) != expected:
+                temporary.unlink(missing_ok=True)
+                raise ValueError('La descarga no superó la verificación. Puedes reintentar.')
+            temporary.replace(path)
+        except InstallationCancelled:
+            raise
+        except Exception:
+            if temporary.is_file() and temporary.stat().st_size >= size:
+                temporary.unlink(missing_ok=True)
+            raise
 
     def register(self, app):
         @app.get('/system/voices')
@@ -206,8 +252,19 @@ class VoiceDownloads:
                     return jsonify(error='Ya hay una descarga en curso.'), 409
                 if self.r.local_tts.ready():
                     return jsonify(self.snapshot())
+                self.cancel_event.clear()
                 self.state.update(status='installing', detail='Preparando descarga…', downloaded=0)
                 threading.Thread(target=self.install, daemon=True).start()
+            return jsonify(self.snapshot()), 202
+
+        @app.post('/system/voices/cancel')
+        def voice_download_cancel():
+            if not self.r.production.local() or request.get_json(silent=True) != {'confirm': True}:
+                return jsonify(error='Confirma que deseas detener la descarga.'), 400
+            if not self.busy():
+                return jsonify(error='No hay una descarga en curso.'), 409
+            self.cancel_event.set()
+            self.state['detail'] = 'Deteniendo la descarga de forma segura…'
             return jsonify(self.snapshot()), 202
 
         @app.get('/system/components')

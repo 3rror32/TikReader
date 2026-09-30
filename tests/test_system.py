@@ -71,6 +71,17 @@ class SystemRouteTests(unittest.TestCase):
         self.assertEqual(server.app.test_client().get(
             '/system/readiness', environ_overrides={'REMOTE_ADDR': '10.0.0.2'}).status_code, 403)
 
+    def test_control_center_is_aggregated_and_backup_mode_starts_off(self):
+        import server
+        with tempfile.TemporaryDirectory() as folder, patch.object(server, 'archive', HistoryStore(Path(folder) / 'history.sqlite3')):
+            server.automatic_backups.load()
+            response = server.app.test_client().get('/system/control-center')
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertTrue({'readiness', 'components', 'backups', 'lan', 'operations', 'update'}.issubset(payload))
+        self.assertFalse(payload['backups']['enabled'])
+        self.assertTrue(payload['backups']['starts_disabled'])
+
     def test_remote_overlay_requires_read_only_lan_key(self):
         import server
         client = server.app.test_client()
@@ -81,6 +92,9 @@ class SystemRouteTests(unittest.TestCase):
         self.assertIn('tikreader_lan_view=', response.headers.get('Set-Cookie', ''))
         access = client.get('/system/lan-access').get_json()
         self.assertEqual(access['token'], server.production.view_token)
+        old_token = server.production.view_token
+        rotated = client.post('/system/lan-access/rotate', json={'confirm': True}).get_json()
+        self.assertNotEqual(rotated['token'], old_token)
         self.assertEqual(client.get('/system/lan-access', environ_overrides=remote).status_code, 403)
 
 

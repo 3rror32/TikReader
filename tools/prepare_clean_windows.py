@@ -8,7 +8,7 @@ package = release / 'sandbox-package'
 results = release / 'sandbox-results'
 package.mkdir(exist_ok=True)
 results.mkdir(exist_ok=True)
-shutil.copy2(release / 'TikReader-1.0.0.7-Beta-Setup.exe', package)
+shutil.copy2(release / 'TikReader-1.0.0.8-Beta-Setup.exe', package)
 shutil.copy2(root / 'packaging' / 'validate_clean_windows.ps1', package / 'validate.ps1')
 (release / 'Probar TikReader en Windows limpio.wsb').write_text(fr'''<Configuration>
   <Networking>Enable</Networking>
