@@ -1,0 +1,26 @@
+
+/* Original glass piggy bank shared by the operator and broadcast preview. */
+.overlay-piggy-bank,.piggy-bank{width:min(130%,720px)!important;height:auto!important;aspect-ratio:1697/927!important;bottom:5%!important}
+.overlay-piggy-bank .piggy-glass,.piggy-bank .piggy-glass{transform:none!important;opacity:0!important;mix-blend-mode:normal!important;z-index:6!important;filter:drop-shadow(0 8px 10px #0004)!important}
+.overlay-piggy-bank .piggy-slot,.piggy-bank .piggy-slot{left:var(--bank-slot-x,44%)!important;top:var(--bank-slot-y,16%)!important;width:10%!important;background:none!important;box-shadow:none!important}
+.overlay-piggy-bank .piggy-fill,.piggy-bank .piggy-fill{left:var(--bank-left,26%)!important;right:var(--bank-right,28%)!important;bottom:var(--bank-bottom,18%)!important;height:var(--bank-height,64%)!important;border-radius:48%!important;overflow:visible!important;box-shadow:none!important;z-index:4!important}
+.overlay-drop-token.gift-token,.drop-token.gift-token,.piggy-fill .gift-token{background:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;color:inherit!important;font-size:calc(var(--drop-size)*.8);line-height:1;filter:drop-shadow(0 2px 2px #0003)!important}
+.gift-token:before,.gift-token:after{display:none!important}.gift-token img{position:absolute;width:100%;height:100%;object-fit:contain}.gift-token span{font-family:"Segoe UI Emoji",sans-serif}.piggy-bank:after{display:none!important}
+.points-overlay{background:transparent!important;border:0!important}
+
+.jar-example-donor{position:absolute;bottom:1%;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:24px;background:#26222de6;color:#fff;font:600 14px Arial,sans-serif;white-space:nowrap}
+
+body[data-widget="point-drop"]{background:transparent!important}
+
+.overlay-piggy-bank .piggy-glass.is-ready,.piggy-bank .piggy-glass.is-ready{opacity:1!important}
+
+.gift-image-pending{font:10px/1.1 Arial,sans-serif;color:#fff;text-align:center;overflow:hidden;max-width:100%}.piggy-fill .gift-token{will-change:transform}
+
+body[data-widget=point-drop],body[data-widget=point-drop] #widget{height:100vh;min-height:0;overflow:hidden}body[data-widget=point-drop] .points-overlay{height:100%;min-height:0}
+@media(max-width:600px){.points-overlay>strong{left:16px;right:16px;top:16px;font-size:var(--widget-title);overflow-wrap:anywhere}.points-overlay-score{left:16px;right:auto;top:52px;font-size:calc(var(--widget-size)*1.3)}}
+
+.overlay-piggy-bank.bank-variant,.piggy-bank.bank-variant{width:min(94%,58vh,520px)!important;aspect-ratio:1!important}
+/* Keep the bank view free of titles, counters and sample captions. */
+.points-overlay > strong,.points-overlay-score,.jar-example-donor,
+.drop-arena > span:not(.drop-token),.drop-arena > .drop-score,
+body[data-widget="point-drop"] #connection{display:none!important}

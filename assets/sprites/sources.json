@@ -1,0 +1,62 @@
+[
+  {
+    "id": "cat",
+    "theme": "mascotas",
+    "subject": "an orange tabby cat",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-e2562408-aade-435a-99c1-c4cacd5a4627.png"
+  },
+  {
+    "id": "dog",
+    "theme": "mascotas",
+    "subject": "a cheerful corgi dog",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-e2f4d569-33e5-448b-84e1-f14aa83d5606.png"
+  },
+  {
+    "id": "rex",
+    "theme": "dinosaurios",
+    "subject": "a small green tyrannosaurus dinosaur",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-b172f50d-18e2-4aac-bc1a-75b1e6d30264.png"
+  },
+  {
+    "id": "triceratops",
+    "theme": "dinosaurios",
+    "subject": "a turquoise triceratops dinosaur",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-ac1f1f82-ca23-41e4-9b33-c76719de06c0.png"
+  },
+  {
+    "id": "goblin",
+    "theme": "goblins",
+    "subject": "a friendly green goblin wearing a plum vest",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-fd1c9ab4-67b4-444e-860b-723b6c0d6383.png"
+  },
+  {
+    "id": "cyborg",
+    "theme": "cyborgs",
+    "subject": "a silver and cyan small cyborg",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-f2335cd8-af09-4b72-997d-dc39f1b7b28f.png"
+  },
+  {
+    "id": "elf",
+    "theme": "elfos",
+    "subject": "a forest elf with long ears and a green tunic",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-e65a8dcd-e3ba-4546-88ba-a7ecb8718faf.png"
+  },
+  {
+    "id": "slime",
+    "theme": "monstruos",
+    "subject": "a violet jelly monster with tiny horns",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-a461d7ab-b81e-494d-8ab2-033011b38d2c.png"
+  },
+  {
+    "id": "chibi",
+    "theme": "chibis",
+    "subject": "a chibi adventurer with brown hair and an orange jacket",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-7fd98757-4c79-4718-9a1f-a4fb89203974.png"
+  },
+  {
+    "id": "dragon",
+    "theme": "fantasia",
+    "subject": "a tiny red dragon with folded wings",
+    "source": "C:\\Users\\Carlos\\.codex\\generated_images\\01a0756a-1148-7233-a5b6-64ca1aede19c\\exec-fbc3e6ef-e34e-4cf6-99f9-0b5dd18c9c0d.png"
+  }
+]

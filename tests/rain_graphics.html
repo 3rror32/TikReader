@@ -1,0 +1,19 @@
+<!doctype html><meta charset="utf-8"><style>body{background:#23303a;color:white;font:16px system-ui}canvas{border:1px solid #637}</style><canvas id="test" width="960" height="540"></canvas><pre id="results">Testing…</pre><script src="/static/vendor/raindrop-fx/raindrop-fx.js?v=6"></script><script src="/static/rain_fallback.js"></script><script src="/static/rain_atmosphere.js?v=8"></script><script>
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d');let s={density:70,speed:30,wind:15,size:12,thickness:1,opacity:100,glass_count:100,glass_speed:25};
+RainAtmosphere.reset(960,540,s);
+let frames=0,done=false;const lines=[];
+function check(ok,label){lines.push((ok?'PASS ':'FAIL ')+label);if(!ok)throw Error(label);}
+function pixels(){return ctx.getImageData(0,0,960,540).data;}
+function draw(dt){ctx.clearRect(0,0,960,540);RainAtmosphere.draw(ctx,960,540,s,dt);}
+function loop(){draw(1/60);frames++;
+if(document.body.dataset.rainRenderer==='webgl2'&&frames>30&&!done){done=true;try{
+let d=pixels(),clear=0,visible=0;for(let i=3;i<d.length;i+=4){if(!d[i])clear++;if(d[i]>20)visible++;}
+check(clear>d.length/4*.5,'Transparent background');check(visible>200,'Visible water pixels');
+draw(0);const a=pixels();draw(0);const b=pixels();let maxAlpha=0,maxRGB=0;for(let i=0;i<a.length;i+=4){maxAlpha=Math.max(maxAlpha,Math.abs(a[i+3]-b[i+3]));for(let j=0;j<3;j++)maxRGB=Math.max(maxRGB,Math.abs(a[i+j]*a[i+3]/255-b[i+j]*b[i+3]/255));}lines.push('Difference alpha '+maxAlpha+' premultiplied RGB '+maxRGB);check(maxAlpha<=1&&maxRGB<=1,'Reduced motion freezes visible pixels');
+s={...s,glass_count:0,density:0};RainAtmosphere.reset(960,540,s);draw(0);check(pixels().every(v=>v===0),'Zero glass count clears all water');
+s={...s,glass_count:180,density:180,glass_speed:120,speed:120};RainAtmosphere.reset(960,540,s);for(let i=0;i<120;i++)draw(.05);check(pixels().some(v=>v>0),'Maximum density and speed render');
+RainAtmosphere.reset(480,270,s);ctx.clearRect(0,0,960,540);RainAtmosphere.draw(ctx,480,270,s,.016);check(true,'Resize');
+s={...s,glass_count:100,density:70,glass_speed:25,speed:30};RainAtmosphere.reset(960,540,s);
+}catch(e){lines.push(e.stack)}document.querySelector('pre').textContent=lines.join('\n');}
+requestAnimationFrame(loop)}loop();
+</script>

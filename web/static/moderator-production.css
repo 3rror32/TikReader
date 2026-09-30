@@ -1,0 +1,14 @@
+.moderator-grid { align-items: start; }
+.setup-steps { padding-left: 22px; color: #b8c6d5; line-height: 1.8; }
+.copy-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; margin: 6px 0 14px; }
+.copy-row code { display: block; padding: 11px; background: #0b141e; border-radius: 7px; user-select: all; }
+.copy-row button { margin: 0; }
+.security-note { border-left: 3px solid #d29c55; padding-left: 10px; }
+.button-link { display: inline-block; color: #a7ebcc; margin-top: 8px; }
+#pair-status { color: #e3c089; }
+#pair-key { padding: 0; background: transparent; }
+
+@media (max-width: 760px) {
+  .copy-row { grid-template-columns: 1fr; }
+  .copy-row button { justify-self: start; }
+}

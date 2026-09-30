@@ -1,0 +1,46 @@
+<section class="studio-pane simulation-view" data-section="simulation" aria-labelledby="simulation-title">
+  <div class="simulation-heading"><div><small>PRUEBA TU CONFIGURACIÓN DEL LIVE</small><h2 id="simulation-title">Modo simulación</h2></div><button id="simulation-toggle" type="button">Activar simulación</button></div>
+  <p>Envía comentarios y regalos de prueba. Tus reglas ejecutarán las acciones reales en el juego, los sonidos, la voz y los overlays que tengas activados.</p>
+  <p id="simulation-status" role="status">Consultando el estado…</p>
+  <div class="simulation-layout">
+    <div class="simulation-console">
+      <div class="simulation-chat-heading"><h3>Chat simulado</h3><span id="simulation-progress">Sin envíos pendientes</span></div>
+      <div id="simulation-chat" class="simulation-chat" role="log" aria-label="Eventos enviados"><p>Activa la simulación para enviar tu primer evento.</p></div>
+      <form id="simulation-form">
+        <fieldset id="simulation-fields" disabled>
+          <div class="simulation-fields">
+            <label>Usuario<input id="simulation-user" value="simulador" maxlength="24" required></label>
+            <label>Enviar<select id="simulation-kind"><option value="comment">Comentario</option><option value="gift">Regalo</option></select></label>
+          </div>
+          <label id="simulation-comment-label">Comentario<textarea id="simulation-text" rows="2" maxlength="400" placeholder="Escribe el comentario que activa tu regla…"></textarea></label>
+          <div id="simulation-gift-fields" hidden>
+            <label>Regalo<input id="simulation-gift" list="simulation-gifts" value="Rose" maxlength="100"><datalist id="simulation-gifts"></datalist></label>
+            <p class="simulation-hint">Usa el nombre guardado en tus reglas. Puedes escribirlo aunque no tengas catálogo.</p>
+            <label>Tipo de envío<select id="simulation-mode"><option value="streak">Una racha que crece hasta N regalos</option><option value="separate">N envíos separados de un regalo</option></select></label>
+            <div class="simulation-fields">
+              <label>Cantidad N<input id="simulation-count" type="number" min="1" max="9999" step="1" value="10"></label>
+              <label>Intervalo entre regalos (s)<input id="simulation-interval" type="number" min="0.1" max="60" step="0.1" value="0.5"></label>
+            </div>
+            <label>Diamantes por regalo sin catálogo<input id="simulation-diamonds" type="number" min="0" max="100000" step="1" value="1"></label>
+            <p id="simulation-rachainfo" class="simulation-hint">La racha pasa por 1, 2, 3… hasta N y termina sin contar dos veces el último regalo.</p>
+          </div>
+          <label>Espera antes del envío (s)<input id="simulation-delay" type="number" min="0" max="60" step="1" value="5"></label>
+          <p class="simulation-hint">Usa la espera para volver al juego si tu perfil requiere la ventana al frente. Máximo una hora por secuencia.</p>
+          <button id="simulation-send" type="submit">Enviar comentario</button>
+        </fieldset>
+      </form>
+    </div>
+    <aside class="simulation-context">
+      <h3>Destino de las acciones</h3><div id="simulation-profile">Cargando perfil de juegos…</div>
+      <div class="simulation-shortcuts"><button id="simulation-games-on" type="button">Activar todos los juegos</button><button id="simulation-games-off" type="button">Desactivar todos los juegos</button></div>
+      <p>Para enviar Enter, guarda una acción con ENTER y el mismo regalo que enviarás aquí. Activa los juegos y vuelve a la ventana del juego durante la espera de 5 segundos. «Prueba local» solo funciona con Probar en Juegos.</p>
+      <div class="simulation-shortcuts"><button type="button" data-simulation-open="game-hotkeys">Abrir perfil de juegos</button><button type="button" data-simulation-open="interactive">Ver reglas del LIVE</button><button type="button" data-simulation-open="voice">Configurar voz</button><button type="button" data-simulation-open="overlay-gallery">Abrir overlays</button></div>
+      <p>Las hotkeys conservan la ventana, autorización y modo de envío del perfil. Los intervalos y límites se respetan durante toda esta sesión.</p>
+      <button id="simulation-audio" type="button">Usar audio en esta pestaña</button>
+      <button id="simulation-stop" class="simulation-stop" type="button" disabled>Detener acciones</button>
+      <button id="simulation-resume" type="button" hidden>Reanudar en escena Charla</button>
+      <p class="simulation-hint">Detener cancela los envíos pendientes y pausa la emisión. No deshace acciones que el juego o programa ya recibió.</p>
+    </aside>
+  </div>
+  <details class="simulation-diagnostics" open><summary>Recorrido de reglas y acciones</summary><p>«Hotkey pulsada» confirma el envío; observa el juego para comprobar su respuesta. Los overlays se ven en sus ventanas habituales.</p><div id="simulation-log">Todavía no hay acciones registradas.</div></details>
+</section>

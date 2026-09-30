@@ -1,0 +1,13 @@
+https://github.com/SardineFish/raindrop-fx
+Commit: bae4081bc15815bb094ea040a976dca083bbc3a5
+License: MIT
+
+TikReader modifications in raindrop-fx.js:
+- Request an alpha WebGL2 context; clear output to transparent and skip background draw.
+- Replace final water shading with translucent highlights and shadows.
+- Grow the instance buffer to fit the initial seeded droplets.
+The simulation and droplet normal-map rendering remain Raindrop FX.
+Wrapper owns the animation clock and uses actual elapsed time.
+- Preserve correct alpha with separate RGB/alpha blending; amplify the water normal map for glass highlights.
+
+original.js: unmodified upstream bundle, SHA256 cbe3df720636639d5bec28855bac5cc5395f0593f6b731c9fad98ab1de68100b.

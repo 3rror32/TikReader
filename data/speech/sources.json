@@ -1,0 +1,7 @@
+{
+  "vosk-model-small-es-0.42": {
+    "source": "https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip",
+    "license": "Apache-2.0",
+    "purpose": "Reconocimiento local de subtítulos en español"
+  }
+}

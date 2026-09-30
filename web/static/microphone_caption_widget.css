@@ -1,0 +1,119 @@
+:root {
+  --caption-color: #ffffff;
+  --caption-background: #101925;
+  --caption-size: 48px;
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
+body { font-family: "Segoe UI", Arial, sans-serif; }
+
+.microphone-caption-stage {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  padding: clamp(28px, 5vw, 80px);
+  pointer-events: none;
+}
+.microphone-caption-stage[data-position="top"] { align-items: flex-start; }
+.microphone-caption-stage[data-position="center"] { align-items: center; }
+.microphone-caption-stage[data-position="bottom"] { align-items: flex-end; }
+.microphone-caption-stage[data-font="system"] { font-family: "Segoe UI", Arial, sans-serif; }
+.microphone-caption-stage[data-font="impact"] { font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif; }
+.microphone-caption-stage[data-font="rounded"] { font-family: "Arial Rounded MT Bold", "Trebuchet MS", sans-serif; }
+.microphone-caption-stage[data-font="mono"] { font-family: Consolas, "Courier New", monospace; }
+.microphone-caption-stage[data-font="serif"] { font-family: Georgia, "Times New Roman", serif; }
+.microphone-caption-stage[data-font="handwritten"] { font-family: "Segoe Print", "Comic Sans MS", cursive; }
+.microphone-caption-stage[data-font="condensed"] { font-family: "Arial Narrow", "Roboto Condensed", sans-serif; font-stretch: condensed; }
+.microphone-caption-stage[data-font="futuristic"] { font-family: Bahnschrift, "Trebuchet MS", sans-serif; letter-spacing: .07em; text-transform: uppercase; }
+
+.microphone-caption-text {
+  width: fit-content;
+  max-width: min(100%, 1500px);
+  margin: 0 auto;
+  padding: .28em .78em;
+  border-radius: .16em;
+  color: var(--caption-color);
+  background: var(--caption-background);
+  box-shadow: 0 .16em .5em rgba(0, 0, 0, .36);
+  font-size: var(--caption-size);
+  font-weight: 850;
+  line-height: 1.2;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  opacity: 0;
+  transform-origin: center bottom;
+  transition: opacity 140ms ease;
+}
+.microphone-caption-text.is-visible { opacity: 1; }
+.microphone-caption-text.is-interim { opacity: .78; }
+.microphone-caption-text.without-background { background: transparent; box-shadow: none; }
+.microphone-caption-word { display: inline-block; white-space: nowrap; }
+
+.microphone-caption-text[data-shadow="none"] { text-shadow: none; }
+.microphone-caption-text[data-shadow="soft"] { text-shadow: 0 .055em .13em rgba(0,0,0,.78); }
+.microphone-caption-text[data-shadow="strong"] { text-shadow: 0 .075em 0 rgba(0,0,0,.95), 0 .14em .25em #000; }
+.microphone-caption-text[data-shadow="glow"] { text-shadow: 0 0 .12em var(--caption-color), 0 0 .34em var(--caption-color); }
+
+.microphone-caption-text[data-style="outline"] {
+  -webkit-text-stroke: max(1px, .055em) #05080d;
+  paint-order: stroke fill;
+}
+.microphone-caption-text[data-style="neon"] {
+  background: color-mix(in srgb, var(--caption-background) 72%, transparent);
+  border: .025em solid color-mix(in srgb, var(--caption-color) 58%, transparent);
+  text-shadow: 0 0 .1em var(--caption-color), 0 0 .28em var(--caption-color), 0 0 .5em var(--caption-color);
+}
+.microphone-caption-text[data-style="label"] {
+  width: fit-content;
+  max-width: min(100%, 1500px);
+  padding-inline: .78em;
+  border-left: .12em solid #42e8cf;
+  border-radius: .04em .18em .18em .04em;
+}
+.microphone-caption-text.without-background[data-style="neon"] { border-color: transparent; }
+
+.microphone-caption-word.is-new { animation-delay: var(--word-delay, 0ms) !important; }
+.microphone-caption-stage[data-animation="fade"] .microphone-caption-word.is-new { animation: microphone-caption-fade .42s ease-out both; }
+.microphone-caption-stage[data-animation="slide"] .microphone-caption-word.is-new { animation: microphone-caption-slide .52s cubic-bezier(.2,.8,.2,1) both; }
+.microphone-caption-stage[data-animation="drop"] .microphone-caption-word.is-new { animation: microphone-caption-drop .52s cubic-bezier(.2,.8,.2,1) both; }
+.microphone-caption-stage[data-animation="left"] .microphone-caption-word.is-new { animation: microphone-caption-left .52s cubic-bezier(.16,.84,.32,1) both; }
+.microphone-caption-stage[data-animation="right"] .microphone-caption-word.is-new { animation: microphone-caption-right .52s cubic-bezier(.16,.84,.32,1) both; }
+.microphone-caption-stage[data-animation="pop"] .microphone-caption-word.is-new { animation: microphone-caption-pop .5s cubic-bezier(.18,.89,.32,1.35) both; }
+.microphone-caption-stage[data-animation="bounce"] .microphone-caption-word.is-new { animation: microphone-caption-bounce .65s ease-out both; }
+.microphone-caption-stage[data-animation="flip"] .microphone-caption-word.is-new { animation: microphone-caption-flip .58s cubic-bezier(.2,.75,.2,1) both; backface-visibility: hidden; }
+.microphone-caption-stage[data-animation="blur"] .microphone-caption-word.is-new { animation: microphone-caption-blur .58s ease-out both; }
+.microphone-caption-stage[data-animation="swing"] .microphone-caption-word.is-new { animation: microphone-caption-swing .68s ease-out both; transform-origin: top center; }
+.microphone-caption-stage[data-animation="typewriter"] .microphone-caption-word.is-new { animation: microphone-caption-typeword .46s steps(var(--word-length), end) both; }
+
+@keyframes microphone-caption-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes microphone-caption-slide { from { opacity: 0; transform: translateY(1.1em); } to { opacity: 1; transform: translateY(0); } }
+@keyframes microphone-caption-drop { from { opacity: 0; transform: translateY(-1.1em); } to { opacity: 1; transform: translateY(0); } }
+@keyframes microphone-caption-left { from { opacity: 0; transform: translateX(-2em); } to { opacity: 1; transform: translateX(0); } }
+@keyframes microphone-caption-right { from { opacity: 0; transform: translateX(2em); } to { opacity: 1; transform: translateX(0); } }
+@keyframes microphone-caption-pop { from { opacity: 0; transform: scale(.45); } to { opacity: 1; transform: scale(1); } }
+@keyframes microphone-caption-bounce { 0% { opacity: 0; transform: translateY(-1.5em); } 55% { opacity: 1; transform: translateY(.25em); } 75% { transform: translateY(-.14em); } 100% { transform: translateY(0); } }
+@keyframes microphone-caption-flip { from { opacity: 0; transform: perspective(900px) rotateX(-90deg); } to { opacity: 1; transform: perspective(900px) rotateX(0); } }
+@keyframes microphone-caption-blur { from { opacity: 0; filter: blur(.4em); transform: scale(1.08); } to { opacity: 1; filter: blur(0); transform: scale(1); } }
+@keyframes microphone-caption-swing { 0% { opacity: 0; transform: rotate(12deg); } 35% { opacity: 1; transform: rotate(-8deg); } 60% { transform: rotate(5deg); } 80% { transform: rotate(-2deg); } 100% { transform: rotate(0); } }
+@keyframes microphone-caption-typeword { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .microphone-caption-text { transition: none; }
+  .microphone-caption-stage[data-animation="fade"] .microphone-caption-word.is-new { animation: microphone-caption-fade .42s ease-out both !important; }
+  .microphone-caption-stage[data-animation="slide"] .microphone-caption-word.is-new { animation: microphone-caption-slide .52s cubic-bezier(.2,.8,.2,1) both !important; }
+  .microphone-caption-stage[data-animation="drop"] .microphone-caption-word.is-new { animation: microphone-caption-drop .52s cubic-bezier(.2,.8,.2,1) both !important; }
+  .microphone-caption-stage[data-animation="left"] .microphone-caption-word.is-new { animation: microphone-caption-left .52s cubic-bezier(.16,.84,.32,1) both !important; }
+  .microphone-caption-stage[data-animation="right"] .microphone-caption-word.is-new { animation: microphone-caption-right .52s cubic-bezier(.16,.84,.32,1) both !important; }
+  .microphone-caption-stage[data-animation="pop"] .microphone-caption-word.is-new { animation: microphone-caption-pop .5s cubic-bezier(.18,.89,.32,1.35) both !important; }
+  .microphone-caption-stage[data-animation="bounce"] .microphone-caption-word.is-new { animation: microphone-caption-bounce .65s ease-out both !important; }
+  .microphone-caption-stage[data-animation="swing"] .microphone-caption-word.is-new { animation: microphone-caption-swing .65s ease-out both !important; }
+  .microphone-caption-stage[data-animation="flip"] .microphone-caption-word.is-new { animation: microphone-caption-flip .58s cubic-bezier(.2,.75,.2,1) both !important; }
+  .microphone-caption-stage[data-animation="blur"] .microphone-caption-word.is-new { animation: microphone-caption-blur .58s ease-out both !important; }
+  .microphone-caption-stage[data-animation="typewriter"] .microphone-caption-word.is-new { animation: microphone-caption-typeword .46s steps(var(--word-length), end) both !important; }
+  .microphone-caption-word.is-new {
+    animation-delay: var(--word-delay, 0ms) !important;
+    animation-iteration-count: 1 !important;
+  }
+}

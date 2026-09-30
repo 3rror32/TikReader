@@ -1,0 +1,42 @@
+[
+  {
+    "theme": "fantasia",
+    "source": "assets/sprites/source-atlases/fantasia.png",
+    "prompt": "10 distinct pixel-art dragons, 4 successive walking poses in each row, 4 columns x 10 rows. Transparent background."
+  },
+  {
+    "theme": "mascotas",
+    "source": "assets/sprites/source-atlases/mascotas.png",
+    "prompt": "Production game animation sprite atlas, exactly FOUR columns and TEN rows, equal cells, one character per row with FOUR different successive walking poses facing RIGHT. Characters by row: cat, corgi dog, rabbit, fox, raccoon, ferret, hedgehog, red panda, hamster, husky. All ten must have different silhouettes and accessories, not recolors. Consistent charming 16-bit pixel art, crisp hard pixel clusters, dark outlines, compact proportions, reads clearly at 80px. Four poses: left leg forward, passing, right leg forward, passing, same identity and baseline across row. Every character completely inside its cell with 10% padding, no parts touching edges. Canvas aspect ratio 2:5. REAL transparent alpha background, no drawn checkerboard, no floor, no text or labels. One integrated sprite atlas."
+  },
+  {
+    "theme": "dinosaurios",
+    "source": "assets/sprites/source-atlases/dinosaurios.png",
+    "prompt": "Production game animation sprite atlas, exactly FOUR columns and TEN rows, equal cells, one character per row with FOUR different successive walking poses facing RIGHT. Characters by row: T rex, triceratops, stegosaurus, long-neck brontosaurus, velociraptor, ankylosaurus, parasaurolophus, spinosaurus, pachycephalosaurus, dilophosaurus. All ten must have different silhouettes and accessories, not recolors. Consistent charming 16-bit pixel art, crisp hard pixel clusters, dark outlines, compact proportions, reads clearly at 80px. Four poses: left leg forward, passing, right leg forward, passing, same identity and baseline across row. Every character completely inside its cell with 10% padding, no parts touching edges. Canvas aspect ratio 2:5. REAL transparent alpha background, no drawn checkerboard, no floor, no text or labels. One integrated sprite atlas."
+  },
+  {
+    "theme": "cyborgs",
+    "source": "assets/sprites/source-atlases/cyborgs.png",
+    "prompt": "Production game animation sprite atlas, exactly FOUR columns and TEN rows, equal cells, one character per row with FOUR different successive walking poses facing RIGHT. Characters by row: round astronaut robot, tall antenna robot, bulky industrial robot, slender medic robot, retro square television robot, beetle armor robot, one-eyed tripod robot, cat-eared robot, riveted steam robot, tiny dome-headed robot. All ten must have different silhouettes and accessories, not recolors. Consistent charming 16-bit pixel art, crisp hard pixel clusters, dark outlines, compact proportions, reads clearly at 80px. Four poses: left leg forward, passing, right leg forward, passing, same identity and baseline across row. Every character completely inside its cell with 10% padding, no parts touching edges. Canvas aspect ratio 2:5. REAL transparent alpha background, no drawn checkerboard, no floor, no text or labels. One integrated sprite atlas."
+  },
+  {
+    "theme": "goblins",
+    "source": "assets/sprites/source-atlases/goblins.png",
+    "prompt": "Production game animation sprite atlas, exactly FOUR columns and TEN rows, equal cells, one character per row with FOUR different successive walking poses facing RIGHT. Characters by row: goblin miner, goblin cook, goblin shaman, goblin scout, goblin knight, goblin bard, goblin mushroom farmer, goblin alchemist, goblin pirate, goblin librarian. All ten must have different silhouettes and accessories, not recolors. Consistent charming 16-bit pixel art, crisp hard pixel clusters, dark outlines, compact proportions, reads clearly at 80px. Four poses: left leg forward, passing, right leg forward, passing, same identity and baseline across row. Every character completely inside its cell with 10% padding, no parts touching edges. Canvas aspect ratio 2:5. REAL transparent alpha background, no drawn checkerboard, no floor, no text or labels. One integrated sprite atlas."
+  },
+  {
+    "theme": "elfos",
+    "source": "assets/sprites/source-atlases/elfos.png",
+    "prompt": "Production game animation sprite atlas, exactly FOUR columns and TEN rows, equal cells, one character per row with FOUR different successive walking poses facing RIGHT. Characters by row: elf ranger, elf moon mage, elf blacksmith, elf healer, elf bard, elf royal guard, elf druid, elf sailor, elf rogue, elf astronomer. All ten must have different silhouettes and accessories, not recolors. Consistent charming 16-bit pixel art, crisp hard pixel clusters, dark outlines, compact proportions, reads clearly at 80px. Four poses: left leg forward, passing, right leg forward, passing, same identity and baseline across row. Every character completely inside its cell with 10% padding, no parts touching edges. Canvas aspect ratio 2:5. REAL transparent alpha background, no drawn checkerboard, no floor, no text or labels. One integrated sprite atlas."
+  },
+  {
+    "theme": "monstruos",
+    "source": "assets/sprites/source-atlases/monstruos.png",
+    "prompt": "Production game animation sprite atlas, exactly FOUR columns and TEN rows, equal cells, one character per row with FOUR different successive walking poses facing RIGHT. Characters by row: slime with feet, mushroom creature, one-eyed furry creature, tiny yeti, walking flame imp, crystal golem, round bat creature with feet, leafy sprout creature, smiling stone golem, small ghost with feet. All ten must have different silhouettes and accessories, not recolors. Consistent charming 16-bit pixel art, crisp hard pixel clusters, dark outlines, compact proportions, reads clearly at 80px. Four poses: left leg forward, passing, right leg forward, passing, same identity and baseline across row. Every character completely inside its cell with 10% padding, no parts touching edges. Canvas aspect ratio 2:5. REAL transparent alpha background, no drawn checkerboard, no floor, no text or labels. One integrated sprite atlas."
+  },
+  {
+    "theme": "chibis",
+    "source": "assets/sprites/source-atlases/chibis.png",
+    "prompt": "Production game animation sprite atlas, exactly FOUR columns and TEN rows, equal cells, one character per row with FOUR different successive walking poses facing RIGHT. Characters by row: chibi knight, chibi wizard, chibi baker, chibi explorer, chibi pirate, chibi astronaut, chibi farmer, chibi archer, chibi mechanic, chibi musician. All ten must have different silhouettes and accessories, not recolors. Consistent charming 16-bit pixel art, crisp hard pixel clusters, dark outlines, compact proportions, reads clearly at 80px. Four poses: left leg forward, passing, right leg forward, passing, same identity and baseline across row. Every character completely inside its cell with 10% padding, no parts touching edges. Canvas aspect ratio 2:5. REAL transparent alpha background, no drawn checkerboard, no floor, no text or labels. One integrated sprite atlas."
+  }
+]

@@ -1,0 +1,27 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["app", "tools"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+branch = true
+omit = ["tests/*", "tools/*"]
+source = ["app"]
+data_file = "runtime/.coverage"
+
+[tool.coverage.report]
+fail_under = 55
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+exclude = [".venv", "data", "runtime", "assets", "release"]
+cache-dir = "runtime/ruff-cache"
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+# El código histórico usa handlers compactos y un bootstrap deliberado antes de
+# imports. Se mantienen fuera del lint para que Ruff señale defectos, no formato.
+ignore = ["E401", "E402", "E501", "E701", "E702", "E703", "E741"]

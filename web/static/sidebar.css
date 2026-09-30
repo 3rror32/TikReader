@@ -1,0 +1,157 @@
+/* Palette shared with the five application themes. */
+:root{--nav-surface:var(--skin-surface,#0c151f);--nav-raised:var(--skin-raised,#152331);--nav-ink:var(--skin-text,#e4edf5);--nav-muted:var(--skin-muted,#a4b6c8);--nav-line:var(--skin-border,#2b3e4d);--nav-accent:var(--skin-accent,#86dfbe);--nav-danger:var(--skin-danger,#ef8e9e);--nav-radius:8px;--nav-wash:var(--skin-wash,#203b32)}
+html[data-skin="kawai"]{--nav-radius:18px;--nav-surface:linear-gradient(180deg,#3b294b,#2b2038)}
+html[data-skin="dark"]{--nav-radius:2px;--nav-surface:#090c13}
+html[data-skin="light"]{--nav-radius:8px;--nav-surface:#f7fbfd}
+html[data-skin="cute"]{--nav-radius:14px;--nav-surface:linear-gradient(180deg,#4b333e,#352630)}
+/* Share the sidebar scrollbar across the page, panels and dialogs, on both axes. */
+html,body,body *{scrollbar-width:thin;scrollbar-color:var(--nav-line) transparent}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--nav-line);border-radius:3px}
+::-webkit-scrollbar-corner{background:transparent}
+.sidebar-icon{width:20px;height:20px;flex:0 0 20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.app-sidebar [data-section-nav]{display:flex;align-items:center;gap:10px;width:100%;min-height:38px}
+.sidebar-label{min-width:0;text-align:left;line-height:1.4}
+.tikreader-brand-icon{display:block;flex:none;width:36px;height:36px;object-fit:cover;border-radius:10px;background:#0a0a0f}
+#menu-toggle{display:inline-flex;align-items:center;justify-content:center;flex:0 0 40px;width:40px;height:40px;padding:9px;border:1px solid var(--nav-line);border-radius:var(--nav-radius);background:var(--nav-raised);color:var(--nav-accent);cursor:pointer}
+#menu-toggle:hover{background:var(--nav-wash);color:var(--nav-ink)}
+.sidebar-backdrop{position:fixed;inset:0;z-index:29;background:#0009}
+.sidebar-backdrop[hidden]{display:none}
+@media(min-width:901px){
+ html body.sidebar-collapsed .app-sidebar,html[data-skin] body.sidebar-collapsed .app-sidebar{width:68px;padding:16px 8px;gap:8px;border-radius:0}
+ html body.sidebar-collapsed .app,html[data-skin] body.sidebar-collapsed .app{margin-left:68px;width:calc(100% - 68px)}
+ .sidebar-collapsed .sidebar-brand{justify-content:center;margin-bottom:8px}
+ .sidebar-collapsed .sidebar-brand span,.sidebar-collapsed .sidebar-brand::after,.sidebar-collapsed .app-sidebar>small,.sidebar-collapsed .sidebar-label,.sidebar-collapsed .nav-section-label{display:none!important}
+ .sidebar-collapsed .app-sidebar [data-section-nav]{justify-content:center;padding:10px 8px;min-height:42px}
+ .sidebar-collapsed .app-sidebar .nav-group details{margin:0;padding:0;border:0}
+ .sidebar-collapsed .app-sidebar .nav-group summary{display:flex;justify-content:center;padding:10px 8px;min-height:42px}
+ .sidebar-collapsed .app-sidebar .nav-group summary::after{display:none}
+ .sidebar-collapsed .app-sidebar .nav-group details button{color:var(--nav-muted)}
+ .sidebar-collapsed .app-sidebar .nav-group details button.active{color:var(--nav-ink)}
+ .sidebar-collapsed .app-sidebar .nav-group{border-bottom:1px solid var(--nav-line);padding-bottom:5px;margin-bottom:5px}
+ .sidebar-collapsed .skip-link{left:80px}
+}
+@media(max-width:900px){
+ .menu-open #menu-toggle{left:auto;right:14px;top:14px}
+ .app-sidebar{max-width:calc(100vw - 68px)}
+}
+@media(prefers-reduced-motion:reduce){.app-sidebar{transition:none!important}}
+
+/* One width controls the navigation and the workspace, including themed layouts. */
+body{--sidebar-width:252px}
+body:not(.basic-mode){--sidebar-width:312px}
+body.basic-mode [data-advanced-only]{display:none!important}
+.sidebar-personal{flex:0 0 auto;max-height:35dvh;overflow-y:auto;overscroll-behavior:contain;border-top:1px solid var(--nav-line);padding:8px 0 0}
+.sidebar-personal > .nav-section-label{display:block;margin:4px 12px 8px!important}
+.sidebar-personal .nav-group{margin:0}
+html body .app-sidebar .sidebar-personal [data-section-nav]{min-height:38px;padding-block:8px}
+.sidebar-personal .nav-group details{margin:0;padding:0;border:0}
+html body .app-sidebar .sidebar-personal .nav-group summary{min-height:42px;padding:9px 12px;font-size:13px;font-weight:600}
+.sidebar-personal .nav-submenu{margin:2px 0 4px 20px;padding-left:10px;border-left:1px solid var(--nav-line)}
+.sidebar-about{flex:none;padding:8px 0 0;border-top:1px solid var(--nav-line)}
+html body .app-sidebar .sidebar-about [data-section-nav]{min-height:34px;padding:7px 10px;color:var(--nav-muted);font-size:11px}
+.sidebar-about .sidebar-icon{width:17px;height:17px;flex-basis:17px}
+.navigation-help{position:fixed;z-index:10000;max-width:min(280px,calc(100vw - 24px));padding:12px 14px;border:1px solid var(--skin-border,#34465a);border-radius:10px;background:var(--skin-surface,#111c29);color:var(--skin-text,#f3f6f8);box-shadow:0 8px 24px var(--skin-shadow,#0005);font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.navigation-help[hidden]{display:none!important}
+.app-sidebar .nav-advanced-section{border:0;padding:0;margin:2px 0;flex:none}
+html body .app-sidebar .nav-advanced-section > summary{display:flex;align-items:center;gap:10px;list-style:none;padding:12px 8px;min-height:44px;border:0;border-bottom:1px solid transparent;border-radius:0;color:var(--nav-ink);cursor:pointer;font-weight:600}
+.nav-advanced-section > summary::-webkit-details-marker{display:none}
+.nav-advanced-section > summary::after{content:'›';margin-left:auto;font-size:20px;transition:transform .15s}
+.nav-advanced-section[open] > summary::after{transform:rotate(90deg)}
+.nav-advanced-section > summary svg{width:22px;height:22px;flex:none;color:var(--nav-accent)}
+html body .app-sidebar .nav-advanced-section > summary:hover{background:transparent;border-bottom-color:var(--nav-line);color:var(--nav-accent)}
+html body.sidebar-collapsed .app-sidebar .nav-advanced-section > summary{display:flex!important;justify-content:center;padding:10px 4px}
+.sidebar-collapsed .nav-advanced-section > summary > span,.sidebar-collapsed .nav-advanced-section > summary::after{display:none}
+html body .app-sidebar .nav-advanced-section > .nav-group{padding:0 0 0 18px;margin:2px 0 2px 18px;border-left:1px solid var(--nav-line)}
+html body .app-sidebar .nav-advanced-section > .nav-group [data-section-nav]{padding:9px 10px;min-height:40px}
+.app-sidebar .nav-advanced-section > .nav-group .sidebar-icon{display:block;width:18px;height:18px;flex:none}
+html body .app-sidebar .nav-advanced-section:has(.active) > summary{background:transparent;color:var(--nav-accent);border-bottom-color:color-mix(in srgb,var(--nav-accent) 65%,transparent)}
+html body.sidebar-collapsed .app-sidebar .nav-advanced-section > .nav-group{padding:0;margin:2px 0;border:0}
+.sidebar-collapsed .app-sidebar .nav-advanced-section > .nav-group .sidebar-icon{display:block}
+.app > header .interface-mode{position:relative;order:-1;flex:0 0 40px;z-index:60}
+html body #interface-mode-toggle{display:grid;place-items:center;list-style:none;width:40px;height:40px;padding:9px;border:1px solid var(--skin-border);border-radius:8px;background:var(--skin-raised);color:var(--skin-text);cursor:pointer}
+#interface-mode-toggle::-webkit-details-marker{display:none}
+#interface-mode-toggle::marker{content:''}
+html body #interface-mode-toggle[data-mode=advanced]{color:var(--skin-accent);border-color:var(--skin-accent)}
+#interface-mode-toggle svg{width:22px;height:22px}
+.interface-mode-status{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(pointer:coarse){html body #interface-mode-toggle{width:44px;height:44px}.app > header .interface-mode{flex-basis:44px}}
+:is(html,html[data-skin]) body .app-sidebar{width:var(--sidebar-width);padding:20px 14px 14px;gap:9px;overflow:hidden;background:var(--nav-surface);border:0;border-right:1px solid var(--nav-line);border-radius:0;color:var(--nav-ink)}
+:is(html,html[data-skin]) body .sidebar-brand{color:var(--nav-ink);flex:none;font-size:25px;gap:10px;padding:0 4px;letter-spacing:-.5px;min-height:40px}
+:is(html,html[data-skin]) body .app-sidebar>small{color:var(--nav-muted);margin:0 4px 8px;font-size:9px;line-height:1.6;letter-spacing:1.3px}
+.app-sidebar nav{min-height:0;flex:1 1 0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--nav-line) transparent;padding:0 4px 8px 0;gap:4px}
+.app-sidebar .nav-section-label{color:var(--nav-muted);margin:20px 12px 8px;font-size:10px;letter-spacing:1.5px;line-height:1.4}
+.app-sidebar .nav-section-label:first-child{margin-top:5px}
+.app-sidebar .nav-group{padding:2px 0;border:0;flex:none}
+:is(html,html[data-skin]) body .app-sidebar [data-section-nav]{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:11px 12px;border:0;border-bottom:1px solid transparent;border-radius:0!important;background:transparent;color:var(--nav-muted);font-size:13px;line-height:1.45;box-shadow:none;font-family:inherit;text-align:left}
+.sidebar-label{white-space:normal;overflow-wrap:break-word}
+:is(html,html[data-skin]) body .app-sidebar [data-section-nav]:hover{background:transparent;color:var(--nav-ink);border-bottom-color:var(--nav-line)}
+:is(html,html[data-skin]) body .app-sidebar [data-section-nav].active{background:transparent;color:var(--nav-accent);border-bottom-color:var(--nav-accent);box-shadow:none;font-weight:650}
+.app-sidebar [data-section-nav].active .sidebar-icon{color:var(--nav-accent)}
+.app-sidebar .nav-group details{margin:4px 0 6px;padding:0;border:0}
+.app-sidebar .nav-group summary{display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;cursor:pointer;color:var(--nav-muted);padding:10px 12px;font-size:12px;line-height:1.4;border:0;border-bottom:1px solid transparent;border-radius:0}
+.app-sidebar .nav-group summary::-webkit-details-marker{display:none}
+.app-sidebar .nav-group summary::after{content:'';width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin:0 4px 4px;flex:none}
+.app-sidebar .nav-group details[open]>summary::after{transform:rotate(225deg);margin-top:4px}
+.app-sidebar .nav-group summary:hover{color:var(--nav-ink);background:transparent;border-bottom-color:var(--nav-line)}
+:is(html,html[data-skin]) body .app-sidebar details [data-section-nav]{min-height:42px;padding:9px 10px;font-size:12.5px;font-weight:400;gap:10px}
+.app-sidebar details .sidebar-icon{width:18px;height:18px;flex-basis:18px}
+.app-sidebar button[hidden]{display:none!important}
+@media(min-width:901px){
+ :is(html,html[data-skin]) body .app{margin-left:var(--sidebar-width);width:calc(100% - var(--sidebar-width))}
+ body.sidebar-collapsed{--sidebar-width:76px}
+ :is(html,html[data-skin]) body.sidebar-collapsed .app-sidebar{width:var(--sidebar-width);padding:16px 9px 12px;gap:8px}
+ :is(html,html[data-skin]) body.sidebar-collapsed .app{margin-left:var(--sidebar-width);width:calc(100% - var(--sidebar-width))}
+ .sidebar-collapsed .app-sidebar nav{padding-right:3px}
+ :is(html,html[data-skin]) body.sidebar-collapsed .app-sidebar [data-section-nav]{justify-content:center;padding:10px 8px;min-height:44px}
+ .sidebar-collapsed .app-sidebar .nav-group details{margin:3px 0 0;padding:0;border:0}
+ .sidebar-collapsed .skip-link{left:88px}
+}
+@media(max-width:900px){
+ :is(html,html[data-skin]) body .app-sidebar{width:min(var(--sidebar-width),calc(100vw - 64px));max-width:calc(100vw - 64px)}
+}
+
+/* Navigation choreography: the on-air rail is fixed; tools scroll below it. */
+.app-sidebar :is(button,summary,.sidebar-icon){transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.sidebar-critical{flex:none;display:grid;gap:2px;padding:2px 3px 9px;border-bottom:1px solid var(--nav-line)}
+.sidebar-critical>.nav-section-label{display:block;margin:3px 9px 5px!important}
+.sidebar-critical .nav-group{padding:0}
+.app-sidebar nav{scroll-behavior:smooth}
+
+/* One quiet underline identifies the route; no card, fill or pulsing marker. */
+.app-sidebar .nav-advanced-section.has-current-page>summary{background:transparent;color:var(--nav-accent);border-bottom-color:var(--nav-accent);box-shadow:none}
+
+/* Animated disclosure contents; JavaScript supplies the measured height. */
+.sidebar-disclosure-content,.nav-submenu{overflow:clip}
+html body .app-sidebar .nav-advanced-section>.sidebar-disclosure-content>.nav-group{padding:0 0 0 18px;margin:2px 0 2px 18px;border-left:1px solid var(--nav-line)}
+html body .app-sidebar .nav-advanced-section>.sidebar-disclosure-content>.nav-group [data-section-nav]{padding:9px 10px;min-height:40px}
+.app-sidebar .nav-advanced-section>.sidebar-disclosure-content>.nav-group .sidebar-icon{display:block;width:18px;height:18px;flex:none}
+html body.sidebar-collapsed .app-sidebar .nav-advanced-section>.sidebar-disclosure-content>.nav-group{padding:0;margin:2px 0;border:0}
+.sidebar-collapsed .app-sidebar .nav-advanced-section>.sidebar-disclosure-content>.nav-group .sidebar-icon{display:block}
+
+.sidebar-tooltip{position:fixed;z-index:10020;max-width:260px;padding:8px 10px;border:1px solid var(--nav-line);border-radius:7px;background:var(--nav-raised);color:var(--nav-ink);box-shadow:0 10px 26px #0008;font-size:12px;line-height:1.35;pointer-events:none}
+.sidebar-tooltip[hidden]{display:none}
+.menu-motion-setting{display:flex!important;flex-direction:row!important;align-items:center;gap:9px;margin-top:12px;color:var(--skin-text)!important}
+.menu-motion-setting input{width:18px;height:18px;margin:0}
+.settings-inline-status{margin:5px 0 0;color:var(--skin-muted);font-size:12px}
+
+@media(min-width:901px){
+ .sidebar-collapsed .sidebar-critical>.nav-section-label{display:none!important}
+ .sidebar-collapsed .sidebar-critical{padding-inline:0}
+}
+@media(max-width:900px){
+ .sidebar-critical{padding-top:5px}
+}
+@media(prefers-reduced-motion:reduce){
+ .app-sidebar nav{scroll-behavior:auto}
+ .app-sidebar *{animation:none!important;transition-duration:.001ms!important}
+}
+body.menu-motion-reduced .app-sidebar nav{scroll-behavior:auto}
+body.menu-motion-reduced .app-sidebar *,body.menu-motion-reduced .settings-view,body.menu-motion-reduced .live-columns{animation:none!important;transition-duration:.001ms!important}
+
+/* The final theme layer styles ordinary buttons as filled controls. Navigation
+   is intentionally exempt: it remains a flat list in every skin. */
+html[data-skin] body #app-sidebar [data-section-nav]{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+html[data-skin] body #app-sidebar [data-section-nav]:hover{background:transparent!important;border-bottom-color:var(--nav-line)!important;color:var(--nav-ink)!important}
+html[data-skin] body #app-sidebar [data-section-nav].active{background:transparent!important;border-bottom-color:var(--nav-accent)!important;color:var(--nav-accent)!important;box-shadow:none!important}

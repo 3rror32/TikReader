@@ -1,0 +1,45 @@
+{
+  "results": [
+    {
+      "theme": "chibis",
+      "characters": 10,
+      "minObservedPoses": 12
+    },
+    {
+      "theme": "cyborgs",
+      "characters": 10,
+      "minObservedPoses": 11
+    },
+    {
+      "theme": "dinosaurios",
+      "characters": 10,
+      "minObservedPoses": 12
+    },
+    {
+      "theme": "elfos",
+      "characters": 10,
+      "minObservedPoses": 9
+    },
+    {
+      "theme": "fantasia",
+      "characters": 10,
+      "minObservedPoses": 15
+    },
+    {
+      "theme": "goblins",
+      "characters": 10,
+      "minObservedPoses": 11
+    },
+    {
+      "theme": "mascotas",
+      "characters": 10,
+      "minObservedPoses": 14
+    },
+    {
+      "theme": "monstruos",
+      "characters": 10,
+      "minObservedPoses": 9
+    }
+  ],
+  "errors": []
+}

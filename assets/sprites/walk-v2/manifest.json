@@ -1,0 +1,722 @@
+{
+  "chibis-0": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      40,
+      72
+    ]
+  },
+  "chibis-1": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      40,
+      66
+    ]
+  },
+  "chibis-2": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      43,
+      76
+    ]
+  },
+  "chibis-3": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      43,
+      77
+    ]
+  },
+  "chibis-4": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      41,
+      74
+    ]
+  },
+  "chibis-5": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      49,
+      78
+    ]
+  },
+  "chibis-6": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      35,
+      64
+    ]
+  },
+  "chibis-7": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      49,
+      78
+    ]
+  },
+  "chibis-8": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      37,
+      68
+    ]
+  },
+  "chibis-9": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      46,
+      75
+    ]
+  },
+  "cyborgs-0": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      46,
+      79
+    ]
+  },
+  "cyborgs-1": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      50,
+      77
+    ]
+  },
+  "cyborgs-2": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      30,
+      77
+    ]
+  },
+  "cyborgs-3": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      50,
+      78
+    ]
+  },
+  "cyborgs-4": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      46,
+      74
+    ]
+  },
+  "cyborgs-5": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      39,
+      76
+    ]
+  },
+  "cyborgs-6": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      46,
+      74
+    ]
+  },
+  "cyborgs-7": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      54,
+      86
+    ]
+  },
+  "cyborgs-8": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      48,
+      82
+    ]
+  },
+  "cyborgs-9": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      34,
+      61
+    ]
+  },
+  "dinosaurios-0": {
+    "frames": 8,
+    "stride": 0.20781249999999998,
+    "hip": 101,
+    "feet": [
+      46,
+      84
+    ]
+  },
+  "dinosaurios-1": {
+    "frames": 8,
+    "stride": 0.18593749999999998,
+    "hip": 103,
+    "feet": [
+      40,
+      73
+    ]
+  },
+  "dinosaurios-2": {
+    "frames": 8,
+    "stride": 0.196875,
+    "hip": 102,
+    "feet": [
+      63,
+      85
+    ]
+  },
+  "dinosaurios-3": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 94,
+    "feet": [
+      55,
+      74
+    ]
+  },
+  "dinosaurios-4": {
+    "frames": 8,
+    "stride": 0.18593749999999998,
+    "hip": 103,
+    "feet": [
+      43,
+      89
+    ]
+  },
+  "dinosaurios-5": {
+    "frames": 8,
+    "stride": 0.1640625,
+    "hip": 105,
+    "feet": [
+      77,
+      102
+    ]
+  },
+  "dinosaurios-6": {
+    "frames": 8,
+    "stride": 0.25156249999999997,
+    "hip": 97,
+    "feet": [
+      47,
+      75
+    ]
+  },
+  "dinosaurios-7": {
+    "frames": 8,
+    "stride": 0.24062499999999998,
+    "hip": 98,
+    "feet": [
+      45,
+      77
+    ]
+  },
+  "dinosaurios-8": {
+    "frames": 8,
+    "stride": 0.21875,
+    "hip": 100,
+    "feet": [
+      45,
+      73
+    ]
+  },
+  "dinosaurios-9": {
+    "frames": 8,
+    "stride": 0.20781249999999998,
+    "hip": 101,
+    "feet": [
+      45,
+      83
+    ]
+  },
+  "elfos-0": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      48,
+      89
+    ]
+  },
+  "elfos-1": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      48,
+      68
+    ]
+  },
+  "elfos-2": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      46,
+      86
+    ]
+  },
+  "elfos-3": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      43,
+      82
+    ]
+  },
+  "elfos-4": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      52,
+      86
+    ]
+  },
+  "elfos-5": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      49,
+      88
+    ]
+  },
+  "elfos-6": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      43,
+      80
+    ]
+  },
+  "elfos-7": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      48,
+      87
+    ]
+  },
+  "elfos-8": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      54,
+      93
+    ]
+  },
+  "elfos-9": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      41,
+      80
+    ]
+  },
+  "fantasia-0": {
+    "frames": 8,
+    "stride": 0.21875,
+    "hip": 100,
+    "feet": [
+      42,
+      79
+    ]
+  },
+  "fantasia-1": {
+    "frames": 8,
+    "stride": 0.21875,
+    "hip": 100,
+    "feet": [
+      51,
+      84
+    ]
+  },
+  "fantasia-2": {
+    "frames": 8,
+    "stride": 0.2296875,
+    "hip": 99,
+    "feet": [
+      49,
+      79
+    ]
+  },
+  "fantasia-3": {
+    "frames": 8,
+    "stride": 0.18593749999999998,
+    "hip": 103,
+    "feet": [
+      44,
+      78
+    ]
+  },
+  "fantasia-4": {
+    "frames": 8,
+    "stride": 0.21875,
+    "hip": 100,
+    "feet": [
+      44,
+      79
+    ]
+  },
+  "fantasia-5": {
+    "frames": 8,
+    "stride": 0.21875,
+    "hip": 100,
+    "feet": [
+      52,
+      87
+    ]
+  },
+  "fantasia-6": {
+    "frames": 8,
+    "stride": 0.20781249999999998,
+    "hip": 101,
+    "feet": [
+      47,
+      77
+    ]
+  },
+  "fantasia-7": {
+    "frames": 8,
+    "stride": 0.2296875,
+    "hip": 99,
+    "feet": [
+      45,
+      79
+    ]
+  },
+  "fantasia-8": {
+    "frames": 8,
+    "stride": 0.21875,
+    "hip": 100,
+    "feet": [
+      46,
+      80
+    ]
+  },
+  "fantasia-9": {
+    "frames": 8,
+    "stride": 0.21875,
+    "hip": 100,
+    "feet": [
+      46,
+      81
+    ]
+  },
+  "goblins-0": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      53,
+      91
+    ]
+  },
+  "goblins-1": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 90,
+    "feet": [
+      36,
+      65
+    ]
+  },
+  "goblins-2": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      31,
+      69
+    ]
+  },
+  "goblins-3": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      41,
+      82
+    ]
+  },
+  "goblins-4": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      38,
+      71
+    ]
+  },
+  "goblins-5": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      42,
+      79
+    ]
+  },
+  "goblins-6": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      50,
+      85
+    ]
+  },
+  "goblins-7": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      42,
+      77
+    ]
+  },
+  "goblins-8": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      40,
+      75
+    ]
+  },
+  "goblins-9": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      44,
+      79
+    ]
+  },
+  "mascotas-0": {
+    "frames": 8,
+    "stride": 0.2296875,
+    "hip": 99,
+    "feet": [
+      32,
+      58
+    ]
+  },
+  "mascotas-1": {
+    "frames": 8,
+    "stride": 0.24062499999999998,
+    "hip": 98,
+    "feet": [
+      18,
+      40
+    ]
+  },
+  "mascotas-2": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 94,
+    "feet": [
+      36,
+      84
+    ]
+  },
+  "mascotas-3": {
+    "frames": 8,
+    "stride": 0.2296875,
+    "hip": 99,
+    "feet": [
+      48,
+      69
+    ]
+  },
+  "mascotas-4": {
+    "frames": 8,
+    "stride": 0.25156249999999997,
+    "hip": 97,
+    "feet": [
+      58,
+      93
+    ]
+  },
+  "mascotas-5": {
+    "frames": 8,
+    "stride": 0.21875,
+    "hip": 100,
+    "feet": [
+      65,
+      93
+    ]
+  },
+  "mascotas-6": {
+    "frames": 8,
+    "stride": 0.2734375,
+    "hip": 95,
+    "feet": [
+      36,
+      82
+    ]
+  },
+  "mascotas-7": {
+    "frames": 8,
+    "stride": 0.26249999999999996,
+    "hip": 96,
+    "feet": [
+      42,
+      88
+    ]
+  },
+  "mascotas-8": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 94,
+    "feet": [
+      34,
+      84
+    ]
+  },
+  "mascotas-9": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 93,
+    "feet": [
+      30,
+      94
+    ]
+  },
+  "monstruos-0": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      23,
+      92
+    ]
+  },
+  "monstruos-1": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      43,
+      80
+    ]
+  },
+  "monstruos-2": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      37,
+      85
+    ]
+  },
+  "monstruos-3": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      42,
+      70
+    ]
+  },
+  "monstruos-4": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      46,
+      76
+    ]
+  },
+  "monstruos-5": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      45,
+      75
+    ]
+  },
+  "monstruos-6": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 91,
+    "feet": [
+      51,
+      91
+    ]
+  },
+  "monstruos-7": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      50,
+      82
+    ]
+  },
+  "monstruos-8": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 86,
+    "feet": [
+      41,
+      82
+    ]
+  },
+  "monstruos-9": {
+    "frames": 8,
+    "stride": 0.28125,
+    "hip": 87,
+    "feet": [
+      43,
+      89
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+*{box-sizing:border-box}body{background:#0c1119;color:#edf3fa;font:16px system-ui;margin:0}main{max-width:760px;margin:auto;padding:24px}header,.comment-top,.feed-heading,.actions{display:flex;align-items:center;justify-content:space-between;gap:12px}header{align-items:flex-start;margin-bottom:24px}h1{margin:4px 0 8px}h2{font-size:1.05rem}.eyebrow{color:#86dfbe;font-size:.72rem;letter-spacing:.18em}header p,.feed-heading span{color:#93a7bc;font-size:.85rem}form{padding:22px;border:1px solid #293747;border-radius:14px;background:#131c28}label{display:block;color:#b9c7d6}input,button{padding:12px;border-radius:8px;border:1px solid #364a60;background:#182738;color:inherit}input{display:block;width:100%;margin:8px 0 14px}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}article{padding:16px;border:1px solid #293747;border-radius:12px;margin:12px 0;background:#131c28;overflow-wrap:anywhere}article p{line-height:1.5}.actions{justify-content:flex-start}.actions button:first-child{border-color:#40705d;color:#a9ebcf}strong{color:#86dfbe}small{color:#e3c089;background:#2b251b;padding:4px 7px;border-radius:999px}#status{color:#e3c089;min-height:24px}.feed-heading{margin-top:20px}@media(max-width:520px){main{padding:16px}header{display:block}header>button{margin-top:10px}.actions button{flex:1}}
+/* Moderator actions remain readable with long names and on narrow screens. */
+header > div, .comment-top > strong { min-width:0; overflow-wrap:anywhere; }
+.comment-top, .feed-heading, .actions { flex-wrap:wrap; }
+.actions button { min-height:44px; }
+#login > button { min-width:120px; background:#68e0b5; color:#09251d; border-color:#68e0b5; font-weight:650; }
+#status { padding:12px 14px; border:1px solid #364a60; border-radius:10px; background:#131c28; line-height:1.5; }
+#comments:empty { display:none; }
+@media(max-width:520px) {
+  h1 { font-size:1.65rem; line-height:1.2; }
+  .feed-heading { align-items:flex-start; gap:4px; }
+  .feed-heading h2 { margin-bottom:0; }
+  #login { padding:18px; }
+  #login > button { width:100%; }
+}
