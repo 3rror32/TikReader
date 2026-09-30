@@ -581,11 +581,12 @@
   <link rel="stylesheet" href="/static/live_columns.css?v=7">
   <link rel="stylesheet" href="/static/platform_integrations.css?v=1">
   <link rel="stylesheet" href="/static/control_center.css?v=1">
+  <link rel="stylesheet" href="/static/control_center_refinement.css?v=1">
   <link rel="stylesheet" href="/static/live_refinement.css?v=stats-plain-context-3">
   <link rel="stylesheet" href="/static/skin_components.css?v=5">
 <link rel="stylesheet" href="/static/donation_jar.css?v=7"><link rel="stylesheet" href="/static/simulation.css?v=1">
 <link rel="stylesheet" href="/static/ui_foundation.css?v=1"><link rel="stylesheet" href="/static/skins_extra.css?v=glass-2"><link rel="stylesheet" href="/static/overlay_catalog.css?v=overlay-menu-1"><link rel="stylesheet" href="/static/ui_typography.css?v=2"><link rel="stylesheet" href="/static/basic_mode.css?v=donation-restored-2"><script src="/static/overlay_url.js?v=2"></script></head>
-<body class="basic-mode" data-app-version="{{ app_version | default('1.0.0.7', true) }}" data-lan-enabled="{{ 'true' if lan_enabled else 'false' }}" data-lan-view-token="{{ lan_view_token | default('', true) }}">
+<body class="basic-mode" data-app-version="{{ app_version | default('1.0.0.8', true) }}" data-lan-enabled="{{ 'true' if lan_enabled else 'false' }}" data-lan-view-token="{{ lan_view_token | default('', true) }}">
 
 <div class="app">
 
@@ -626,7 +627,7 @@
     <details id="platform-connectors" class="platform-connectors" data-basic-advanced>
       <summary>
         <span class="platform-summary-copy"><strong>Canales externos</strong><small>Elige el directo; las credenciales se configuran una sola vez</small></span>
-        <span class="platform-summary-brands" aria-hidden="true"><i class="youtube">YT</i><i class="twitch">TW</i></span>
+        <span class="platform-summary-brands" aria-hidden="true"><i class="youtube">YT</i><i class="twitch">TW</i><i class="kick">K</i></span>
       </summary>
       <div class="platform-connector-grid">
         <article class="platform-connector" data-platform-card="youtube">
@@ -650,6 +651,17 @@
             <label><span>Canal</span><input id="twitch-channel" type="text" maxlength="80" placeholder="nombre_del_canal" autocomplete="off"></label>
           </div>
           <p class="platform-help"><span>Recibe el chat y los avisos de suscripción.</span><button type="button" data-platform-settings="twitch">Configurar Twitch</button></p>
+        </article>
+        <article class="platform-connector" data-platform-card="kick">
+          <header class="platform-connector-heading">
+            <span class="platform-logo kick">K</span>
+            <div><strong>Kick</strong><small id="kick-platform-status">Desconectado</small></div>
+            <div class="platform-actions"><button type="button" data-platform-connect="kick">Conectar</button><button type="button" data-platform-stop="kick" hidden>Desconectar</button></div>
+          </header>
+          <div class="platform-fields kick-fields">
+            <label><span>Canal</span><input id="kick-channel" type="text" maxlength="80" placeholder="nombre-del-canal" autocomplete="off"></label>
+          </div>
+          <p class="platform-help"><span>Recibe chat, suscripciones y KICKs mediante webhooks oficiales.</span><button type="button" data-platform-settings="kick">Configurar Kick</button></p>
         </article>
       </div>
       <p id="platform-privacy-note"><span aria-hidden="true">🔒</span><span><strong>Credenciales fuera del LIVE.</strong> Se administran en Configuración › Canales externos y no se guardan en el historial.</span></p>
@@ -822,7 +834,7 @@
           <h4>Voces locales Kokoro · opcionales</h4>
           <p>354 MB de modelos más el motor y sus dependencias. Reserva 2 GB libres. Después de instalarlas, funcionan sin internet.</p>
           <p>La instalación básica utiliza las voces disponibles en tu equipo. Los modelos personalizados RVC se administran desde Voz.</p>
-          <button id="settings-install-voices" type="button">Descargar e instalar voces</button>
+          <div class="tool-buttons"><button id="settings-install-voices" type="button">Descargar e instalar voces</button><button id="settings-cancel-voices" type="button" hidden>Detener descarga</button></div>
           <progress id="settings-voice-progress" max="353746785" value="0" hidden aria-label="Descarga de modelos"></progress>
           <p id="settings-voice-status" role="status"></p>
         </section>
@@ -873,7 +885,7 @@
     <div class="settings-heading platform-integrations-heading">
       <span>CANALES EXTERNOS</span>
       <h2 id="platform-integrations-title">Configura una vez. Conecta cada LIVE en segundos.</h2>
-      <p>Guarda aquí el acceso a YouTube y Twitch. En la pantalla principal solo tendrás que indicar el video o canal.</p>
+      <p>Guarda aquí el acceso a YouTube, Twitch y Kick. En la pantalla principal solo tendrás que indicar el video o canal.</p>
     </div>
     <aside class="platform-vault-note" aria-label="Protección de credenciales">
       <span class="platform-vault-icon" aria-hidden="true">▣</span>
@@ -901,8 +913,19 @@
           <p class="platform-form-status" id="twitch-credentials-status" role="status"></p>
         </form>
       </article>
+      <article class="platform-integration-card kick" data-platform-config-card="kick">
+        <header><span class="platform-logo kick">K</span><div><small>KICK PUBLIC API</small><h3>Kick</h3></div><span class="platform-config-state" data-platform-config-state="kick">Comprobando…</span></header>
+        <p>Usa una aplicación de Kick y su webhook oficial. TikReader verifica la firma de cada evento antes de aceptar mensajes.</p>
+        <form id="kick-credentials-form">
+          <div class="platform-form-grid"><label for="kick-client-id">Client ID<input id="kick-client-id" type="text" maxlength="300" autocomplete="off" spellcheck="false"></label><label for="kick-client-secret">Client Secret<div class="platform-secret-field"><input id="kick-client-secret" type="password" maxlength="500" placeholder="Pega un secreto nuevo" autocomplete="off" spellcheck="false"><span aria-hidden="true">•••</span></div></label></div>
+          <small>Kick requiere una URL HTTPS pública. Guarda estas credenciales y copia la ruta mostrada para completar la URL del webhook en tu aplicación de Kick.</small>
+          <code id="kick-webhook-path">Guarda Kick para generar la ruta segura del webhook.</code>
+          <div class="platform-config-actions"><button type="submit">Guardar Kick</button><button type="button" id="kick-copy-webhook" hidden>Copiar ruta</button><button type="button" class="platform-remove" data-platform-delete="kick" hidden>Eliminar credencial</button></div>
+          <p class="platform-form-status" id="kick-credentials-status" role="status"></p>
+        </form>
+      </article>
     </div>
-    <div class="platform-integrations-footer"><span>Después de guardar</span><p>Vuelve a <strong>En vivo</strong>, abre Canales externos y escribe únicamente el video de YouTube o el canal de Twitch.</p><button id="platform-back-live" type="button">Volver a En vivo</button></div>
+    <div class="platform-integrations-footer"><span>Después de guardar</span><p>Vuelve a <strong>En vivo</strong>, abre Canales externos y escribe el video de YouTube o el canal de Twitch o Kick.</p><button id="platform-back-live" type="button">Volver a En vivo</button></div>
   </section>
 
   <section data-section="custom-voice" class="voice-setup" aria-labelledby="voice-setup-title">
@@ -1073,7 +1096,7 @@
 <script src="/static/chat_navigation.js"></script>
 <script src="/static/live_experience.js"></script>
 <script src="/static/core_ui.js?v=verified-gifts-1"></script>
-<script src="/static/platform_connectors.js?v=2"></script>
+<script type="module" src="/static/build/platformConnectors.js"></script>
 <script src="/static/sidebar.js?v=menu-flat-3"></script>
 <script src="/static/navigation_help.js?v=overlay-menu-1"></script>
 <script src="/static/live_button_icons.js?v=3"></script>

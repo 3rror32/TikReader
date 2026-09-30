@@ -74,7 +74,8 @@ def _windows_unprotect(value: bytes) -> bytes:
 class PlatformCredentialStore:
     """Store only connector credentials, never session-specific channel data."""
 
-    ALLOWED = {"youtube": {"api_key"}, "twitch": {"nickname", "token"}}
+    ALLOWED = {"youtube": {"api_key"}, "twitch": {"nickname", "token"},
+               "kick": {"client_id", "client_secret", "webhook_secret"}}
 
     def __init__(self, path: Path | None = None, protect=None, unprotect=None):
         self.path = Path(path or data_dir() / "platform-credentials.bin")
@@ -146,14 +147,18 @@ class PlatformCredentialStore:
     def public_status(self, platform: str) -> dict:
         platform = str(platform or "").casefold()
         values = self.get(platform)
-        configured = bool(values.get("api_key")) if platform == "youtube" else bool(values.get("nickname") and values.get("token"))
+        configured = (bool(values.get("api_key")) if platform == "youtube" else
+                      bool(values.get("nickname") and values.get("token")) if platform == "twitch" else
+                      bool(values.get("client_id") and values.get("client_secret") and values.get("webhook_secret")))
         result = {"platform": platform, "configured": configured}
         if platform == "twitch" and values.get("nickname"):
             result["nickname"] = values["nickname"]
+        if platform == "kick" and values.get("webhook_secret"):
+            result["webhook_path"] = "/webhooks/kick/" + values["webhook_secret"]
         return result
 
     def snapshot(self) -> dict:
         return {
-            "platforms": [self.public_status(platform) for platform in ("youtube", "twitch")],
+            "platforms": [self.public_status(platform) for platform in ("youtube", "twitch", "kick")],
             "storage": "windows-user" if self.persistent else "memory",
         }

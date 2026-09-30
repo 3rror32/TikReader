@@ -26,17 +26,23 @@ type ComponentRow = {
   action: string;
 };
 type Components = { components: ComponentRow[]; free_bytes: number; busy: boolean; scope: string };
-type Production = { emergency: boolean };
-type Interactive = { external: boolean };
+type Operations = {
+  production: { emergency: boolean };
+  streamerbot: { external: boolean };
+  hotkeys: { authorized: boolean; paused: boolean };
+  spotify: { connected: boolean };
+  catalog: { count: number };
+  connection: { connected: boolean; platforms: { platform: string; state: string }[] };
+};
+type LanAccess = { enabled: boolean; token: string; port: number; scope: string; fingerprint: string; readers: { address: string; last_seen: number }[] };
+type Backups = { enabled: boolean; interval_hours: number; keep: number; last_at: number; last_file: string; last_error: string; next_at: number; starts_disabled: boolean };
+type UpdateSafety = { version: string; installed: boolean; rollback_backups: number; method: string };
 type Hotkeys = { authorized: boolean; paused: boolean };
-type Spotify = { connected: boolean };
-type Catalog = { gifts: unknown[] };
-type Studio = { connection: { connected: boolean } };
-type LanAccess = { enabled: boolean; token: string; port: number; scope: string };
+type ControlSnapshot = { readiness: Readiness; components: Components; backups: Backups; lan: LanAccess; operations: Operations; update: UpdateSafety };
 
 declare global {
   interface Window {
-    Shell?: { show: (section: string) => void };
+    Shell?: { show: (section: string) => void; registerView?: (section: string, pane: HTMLElement) => HTMLElement | null };
     I18n?: { locale?: string; confirm?: (message: string) => boolean };
   }
 }
@@ -82,6 +88,7 @@ signal.setAttribute("aria-live", "polite");
 const readinessGrid = node("div", undefined, "readiness-grid control-readiness-grid");
 const operations = node("div", undefined, "readiness-grid control-operations-grid");
 const components = node("div", undefined, "component-grid");
+const continuity = node("div", undefined, "continuity-grid");
 const notices = node("div", undefined, "control-notices");
 notices.setAttribute("aria-live", "polite");
 const statusText = node("p", "Preparando revisión…", "control-room-status");
@@ -130,15 +137,16 @@ function renderReadiness(payload: Readiness): void {
   statusText.textContent = payload.ready ? "Los requisitos principales están listos." : "Hay bloqueos que conviene resolver antes del directo.";
 }
 
-function renderOperations(values: [Production, Interactive, Hotkeys, Spotify, Catalog, Studio]): void {
-  const [production, interactive, hotkeys, spotify, catalog, studio] = values;
+function renderOperations(value: Operations): void {
+  const { production, streamerbot, hotkeys, spotify, catalog, connection } = value;
+  const external = connection.platforms.filter(item => item.state === "connected").map(item => item.platform).join(", ");
   const rows: [string, string, string, string][] = [
-    ["Transmisión", studio.connection.connected ? "LIVE conectado" : "Sin LIVE; el diseño local sigue disponible.", "Abrir transmisión", "live"],
-    ["Catálogo de regalos", catalog.gifts.length ? `${catalog.gifts.length} regalos disponibles` : "Se completa al conectar un LIVE.", "Configurar regalos", "game-hotkeys"],
+    ["Transmisión", connection.connected || external ? `LIVE activo${external ? ` · ${external}` : ""}` : "Sin LIVE; el diseño local sigue disponible.", "Abrir transmisión", "live"],
+    ["Catálogo de regalos", catalog.count ? `${catalog.count} regalos disponibles` : "Se completa al conectar un LIVE.", "Configurar regalos", "game-hotkeys"],
     ["Control del juego", hotkeys.authorized ? (hotkeys.paused ? "Teclas pausadas" : "Teclas autorizadas") : "Teclas desactivadas.", "Configurar juego", "game-hotkeys"],
     ["Emisión", production.emergency ? "Emisión silenciada; alertas y teclas bloqueadas." : "Emisión disponible.", "Escenas y privacidad", "production"],
     ["Spotify", spotify.connected ? "Spotify autorizado." : "Sin conectar; es opcional.", "Configurar Spotify", "spotify"],
-    ["Streamer.bot", interactive.external ? "Conector autorizado." : "Conector desactivado; es opcional.", "Configurar conector", "streamerbot"]
+    ["Streamer.bot", streamerbot.external ? "Conector autorizado." : "Conector desactivado; es opcional.", "Configurar conector", "streamerbot"]
   ];
   operations.replaceChildren(...rows.map(([title, detail, label, target]) => {
     const card = node("article", undefined, "setting-card operation-card");
@@ -162,10 +170,16 @@ function renderComponents(payload: Components): void {
     const meta = component.installed ? `${formatBytes(component.bytes)} · ${component.bundled ? "incluido" : "instalado"}` : "No instalado";
     card.append(node("span", meta, "component-size"), node("h3", component.name), node("p", component.description));
     const actions = node("div", undefined, "component-actions");
-    if (component.action === "install-kokoro") actions.append(button("Instalar", async () => {
+    if (component.action === "install-kokoro" && !payload.busy) actions.append(button("Instalar", async () => {
       await request("/system/voices/install", "POST", { confirm: true });
       notify("Instalación de Kokoro iniciada. TikReader mostrará su progreso en Voz.");
+      await refresh();
     }));
+    if (component.id === "kokoro" && payload.busy) actions.append(button("Detener descarga", async () => {
+      await request("/system/voices/cancel", "POST", { confirm: true });
+      notify("Deteniendo la descarga; el avance se conservará para continuar después.");
+      await refresh();
+    }, "component-remove"));
     if (component.action === "manage-models") actions.append(button("Administrar modelos", () => window.Shell?.show("custom-voice")));
     if (component.removable) actions.append(button("Liberar espacio", () => removeComponent(component), "component-remove"));
     if (actions.childElementCount) card.append(actions);
@@ -175,8 +189,7 @@ function renderComponents(payload: Components): void {
   components.append(free);
 }
 
-async function renderLan(): Promise<void> {
-  const access = await request<LanAccess>("/system/lan-access");
+function renderLan(access: LanAccess): void {
   const existing = pane.querySelector(".lan-access-card");
   existing?.remove();
   if (!access.enabled) return;
@@ -187,8 +200,39 @@ async function renderLan(): Promise<void> {
     button("Copiar ejemplo protegido", async () => {
       await navigator.clipboard.writeText(example);
       notify("URL protegida copiada.");
+    }), button("Renovar clave", async () => {
+      const accepted = window.I18n?.confirm
+        ? window.I18n.confirm("¿Renovar la clave? Las URLs remotas actuales dejarán de funcionar.")
+        : window.confirm("¿Renovar la clave? Las URLs remotas actuales dejarán de funcionar.");
+      if (!accepted) return;
+      await request("/system/lan-access/rotate", "POST", { confirm: true });
+      notify("Clave renovada. Vuelve a copiar las URLs remotas.");
+      await refresh();
     }));
   components.before(card);
+}
+
+function renderContinuity(backups: Backups, update: UpdateSafety): void {
+  const backupCard = node("article", undefined, "setting-card continuity-card");
+  const toggleLabel = node("label", undefined, "backup-toggle");
+  const toggle = node("input") as HTMLInputElement; toggle.type = "checkbox"; toggle.checked = backups.enabled;
+  toggleLabel.append(toggle, document.createTextNode(" Activar respaldos automáticos"));
+  const frequency = node("select") as HTMLSelectElement;
+  for (const [value, label] of [["6", "Cada 6 horas"], ["12", "Cada 12 horas"], ["24", "Cada día"], ["72", "Cada 3 días"], ["168", "Cada semana"]] as const) {
+    const option = node("option", label) as HTMLOptionElement; option.value = value; frequency.append(option);
+  }
+  frequency.value = String(backups.interval_hours);
+  const keep = node("select") as HTMLSelectElement;
+  for (const value of [3, 7, 14, 30]) { const option = node("option", `Conservar ${value}`) as HTMLOptionElement; option.value = String(value); keep.append(option); }
+  keep.value = String(backups.keep);
+  const detail = backups.last_at ? `Último: ${new Date(backups.last_at * 1000).toLocaleString()}${backups.last_error ? ` · ${backups.last_error}` : ""}` : "Todavía no se ha creado un respaldo automático.";
+  backupCard.append(node("h3", "Respaldos automáticos"), node("p", "Desactivados inicialmente. Al activarlos, el primer respaldo se programa para la frecuencia elegida."), toggleLabel, frequency, keep,
+    button("Guardar opción", async () => { await request("/history/automatic-backups", "POST", { enabled: toggle.checked, interval_hours: Number(frequency.value), keep: Number(keep.value) }); notify(toggle.checked ? "Respaldos automáticos activados." : "Respaldos automáticos desactivados."); await refresh(); }),
+    button("Crear respaldo ahora", async () => { await request("/history/automatic-backups/run", "POST", {}); notify("Respaldo manual creado."); await refresh(); }), node("small", detail));
+  const updateCard = node("article", undefined, "setting-card continuity-card");
+  updateCard.append(node("h3", "Actualizaciones seguras"), node("p", `Versión ${update.version} · ${update.installed ? "usa el instalador verificado" : "acepta paquetes verificados"}.`),
+    node("small", `${update.rollback_backups} respaldos de código disponibles para recuperación.`));
+  continuity.replaceChildren(backupCard, updateCard);
 }
 
 let refreshing = false;
@@ -197,16 +241,12 @@ async function refresh(): Promise<void> {
   refreshing = true;
   refreshButton.disabled = true;
   try {
-    const [ready, componentData, production, interactive, hotkeys, spotify, catalog, studio] = await Promise.all([
-      request<Readiness>("/system/readiness"), request<Components>("/system/components"),
-      request<Production>("/production/state"), request<Interactive>("/interactivity"),
-      request<Hotkeys>("/game-hotkeys"), request<Spotify>("/spotify/state"),
-      request<Catalog>("/gift-catalog"), request<Studio>("/studio/state")
-    ]);
-    renderReadiness(ready);
-    renderComponents(componentData);
-    renderOperations([production, interactive, hotkeys, spotify, catalog, studio]);
-    await renderLan();
+    const snapshot = await request<ControlSnapshot>("/system/control-center");
+    renderReadiness(snapshot.readiness);
+    renderComponents(snapshot.components);
+    renderOperations(snapshot.operations);
+    renderLan(snapshot.lan);
+    renderContinuity(snapshot.backups, snapshot.update);
   } catch (error) {
     statusText.textContent = error instanceof Error ? error.message : String(error);
   } finally {
@@ -234,9 +274,15 @@ pane.append(heading, signal, statusText,
   sectionTitle("01 · PREPARACIÓN", "Ruta de señal", "Requisitos del servicio, almacenamiento, historial y emisión."), readinessGrid,
   sectionTitle("02 · OPERACIÓN", "Herramientas conectadas", "Accesos rápidos; abrir esta pantalla no conecta servicios."), operations, controls,
   sectionTitle("03 · ESPACIO", "Componentes locales", "Instala solo lo que uses y recupera espacio sin tocar tu historial."), components,
-  sectionTitle("04 · ACTIVIDAD", "Notificaciones recientes", "Mensajes operativos de esta sesión del panel."),
+  sectionTitle("04 · CONTINUIDAD", "Respaldos y actualizaciones", "Estas opciones permanecen bajo tu control."), continuity,
+  sectionTitle("05 · ACTIVIDAD", "Notificaciones recientes", "Mensajes operativos de esta sesión del panel."),
   button("Vaciar notificaciones", () => { noticeHistory = []; notices.replaceChildren(); }), notices);
-document.querySelector(".app")?.append(pane);
+pane.hidden = true;
+const mount = (): void => {
+  if (window.Shell?.registerView) window.Shell.registerView("control-center", pane);
+  else document.querySelector(".config-content")?.append(pane);
+};
+mount();
 
 new MutationObserver(records => {
   for (const record of records) {
@@ -245,5 +291,11 @@ new MutationObserver(records => {
   }
 }).observe(document.body, { childList: true, characterData: true, subtree: true });
 
-void refresh();
-window.setInterval(() => { if (!pane.hidden && !document.hidden) void refresh(); }, 15000);
+let loaded = false;
+window.addEventListener("tikreader:navigation-change", event => {
+  const detail = (event as CustomEvent<{ key?: string }>).detail;
+  if (detail?.key !== "control-center") return;
+  loaded = true;
+  void refresh();
+});
+window.setInterval(() => { if (loaded && !pane.hidden && !document.hidden) void refresh(); }, 30000);

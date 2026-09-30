@@ -1,6 +1,7 @@
 .platform-integrations-page {
   --youtube: #ec174c;
   --twitch: #9067e8;
+  --kick: #53fc18;
   max-width: 1120px;
 }
 .platform-integrations-heading { max-width: 760px; }
@@ -29,7 +30,7 @@
 }
 .platform-vault-note strong { color: var(--skin-text, #dfe9f2); font-size: 13px; }
 .platform-vault-note p { margin: 3px 0 0; color: var(--skin-muted, #9cafc0); font-size: 12px; }
-.platform-integration-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.platform-integration-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .platform-integration-card {
   --platform-brand: var(--skin-accent, #86dfbe);
   position: relative;
@@ -49,6 +50,7 @@
 }
 .platform-integration-card.youtube { --platform-brand: var(--youtube); }
 .platform-integration-card.twitch { --platform-brand: var(--twitch); }
+.platform-integration-card.kick { --platform-brand: var(--kick); }
 .platform-integration-card > header { display: flex; align-items: center; gap: 11px; min-height: 42px; }
 .platform-integration-card > header > div { min-width: 0; }
 .platform-integration-card header small { display: block; margin-bottom: 2px; color: var(--skin-muted, #9cafc0); font: 600 9px/1.2 var(--font-data, monospace); letter-spacing: .1em; }
@@ -103,7 +105,8 @@
 
 /* The live desk asks only for session-specific information. */
 .platform-connectors .youtube-fields,
-.platform-connectors .twitch-fields { grid-template-columns: 1fr; }
+.platform-connectors .twitch-fields,
+.platform-connectors .kick-fields { grid-template-columns: 1fr; }
 .platform-connectors .platform-help { display: flex; align-items: center; gap: 12px; min-height: 28px; }
 .platform-connectors .platform-help > span { min-width: 0; }
 .platform-connectors [data-platform-settings] { margin-left: auto; padding: 3px 0; border: 0; background: transparent; color: var(--skin-accent, #86dfbe); font-size: 10px; white-space: nowrap; }

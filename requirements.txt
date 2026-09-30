@@ -6,3 +6,4 @@ websockets>=15,<18
 vosk==0.3.45
 PySide6-Essentials==6.11.2
 PySide6-Addons==6.11.2
+cryptography>=44,<47

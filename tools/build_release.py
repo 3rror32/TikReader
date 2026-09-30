@@ -14,7 +14,7 @@ CACHE = OUT / 'cache'
 PAYLOAD = OUT / 'TikReader'
 PY_VERSION = '3.13.15'
 PY_SHA256 = 'd1f04d990aee1253d8569e8e5104e30fa9f5fa830899f14843448872d936a2cf'
-OVERLAY_BUILD = ('runtime.js', 'broadcast.js', 'broadcast.css', 'studio.js', 'controlCenter.js')
+OVERLAY_BUILD = ('runtime.js', 'broadcast.js', 'broadcast.css', 'studio.js', 'controlCenter.js', 'platformConnectors.js')
 SPEECH_MODEL = 'vosk-model-small-es-0.42'
 
 

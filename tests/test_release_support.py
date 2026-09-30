@@ -22,8 +22,11 @@ class ReleaseTests(unittest.TestCase):
             store = PlatformCredentialStore(target, protect=protect, unprotect=unprotect)
             store.save('youtube', {'api_key': 'youtube-private-key'})
             store.save('twitch', {'nickname': 'carlos', 'token': 'oauth:twitch-private-token'})
+            store.save('kick', {'client_id': 'kick-client', 'client_secret': 'kick-private-secret',
+                                'webhook_secret': 'webhook-private-secret'})
             self.assertNotIn(b'youtube-private-key', target.read_bytes())
             self.assertNotIn(b'twitch-private-token', target.read_bytes())
+            self.assertNotIn(b'kick-private-secret', target.read_bytes())
             reopened = PlatformCredentialStore(target, protect=protect, unprotect=unprotect)
             self.assertEqual(reopened.get('youtube')['api_key'], 'youtube-private-key')
             self.assertEqual(reopened.get('twitch')['nickname'], 'carlos')
@@ -102,9 +105,13 @@ class ReleaseTests(unittest.TestCase):
                 response = client.post('/system/platform-credentials', json={
                     'platform': 'twitch', 'credentials': {'nickname': 'Carlos', 'token': 'oauth:' + 'b' * 24}})
                 self.assertEqual(response.status_code, 200)
+                response = client.post('/system/platform-credentials', json={
+                    'platform': 'kick', 'credentials': {'client_id': 'kick-client-123', 'client_secret': 's' * 24}})
+                self.assertEqual(response.status_code, 200)
                 status = client.get('/system/platform-credentials').json
-                self.assertEqual([item['configured'] for item in status['platforms']], [True, True])
+                self.assertEqual([item['configured'] for item in status['platforms']], [True, True, True])
                 self.assertNotIn('oauth:', str(status))
+                self.assertNotIn('s' * 24, str(status))
                 self.assertEqual(store.get('twitch')['nickname'], 'carlos')
                 response = client.delete('/system/platform-credentials', json={'platform': 'youtube'})
                 self.assertEqual(response.status_code, 200)

@@ -1,5 +1,12 @@
 name: Calidad
 
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -26,3 +33,11 @@ jobs:
         run: npm ci
       - name: Validar programa, interfaz e instalador
         run: python tools/check_changes.py
+      - name: Conservar reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-calidad-${{ github.run_number }}
+          path: .coverage
+          if-no-files-found: ignore
+          retention-days: 14

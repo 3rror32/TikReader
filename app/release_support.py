@@ -3,6 +3,7 @@ import os
 import platform
 import threading
 import time
+import secrets
 from collections import deque
 from flask import jsonify, request
 from app_config import APP_VERSION
@@ -63,11 +64,45 @@ def register_release_routes(app, runtime):
             return jsonify(error='Solo disponible desde este equipo.'), 403
         return jsonify(inspect_readiness(runtime))
 
+    @app.get('/system/control-center')
+    def control_center():
+        if not runtime.production.local():
+            return jsonify(error='Solo disponible desde este equipo.'), 403
+        manager = getattr(runtime, 'platform_manager', None)
+        platforms = manager.snapshot()['platforms'] if manager else []
+        return jsonify(
+            readiness=inspect_readiness(runtime),
+            components=runtime.voice_downloads.components(),
+            backups=runtime.automatic_backups.snapshot(),
+            lan=runtime.production.lan_access(),
+            operations={
+                'production': {'emergency': bool(runtime.production.settings['emergency'])},
+                'streamerbot': {'external': bool(runtime.interactive.external)},
+                'hotkeys': {'authorized': bool(runtime.game_hotkeys.authorized), 'paused': bool(runtime.game_hotkeys.paused)},
+                'spotify': {'connected': bool(runtime.spotify.tokens)},
+                'catalog': {'count': len(runtime.gift_catalog)},
+                'connection': {'connected': bool(runtime.state['connected']), 'platforms': platforms},
+            },
+            update={
+                'version': APP_VERSION,
+                'installed': installed(),
+                'rollback_backups': len(list((data_dir() / 'code-backups').glob('*.zip'))),
+                'method': 'installer' if installed() else 'verified-package',
+            },
+        )
+
     @app.get('/system/lan-access')
     def lan_access():
         if not runtime.production.local():
             return jsonify(error='Solo disponible desde este equipo.'), 403
         return jsonify(runtime.production.lan_access())
+
+    @app.post('/system/lan-access/rotate')
+    def rotate_lan_access():
+        if not runtime.production.local() or request.get_json(silent=True) != {'confirm': True}:
+            return jsonify(error='Confirma la renovación de la clave de red.'), 400
+        runtime.production.rotate_view_token()
+        return jsonify(ok=True, **runtime.production.lan_access())
 
     @app.route('/system/preferences', methods=['GET', 'POST'])
     def preferences():
@@ -125,6 +160,14 @@ def register_release_routes(app, runtime):
                 if not 2 <= len(nickname) <= 80 or not 10 <= len(token) <= 500:
                     return jsonify(error='Ingresa el usuario y un token OAuth válido de Twitch.'), 400
                 config = {'nickname': nickname, 'token': token}
+            elif platform == 'kick':
+                client_id = str(config.get('client_id') or '').strip()
+                client_secret = str(config.get('client_secret') or '').strip()
+                if not 8 <= len(client_id) <= 300 or not 16 <= len(client_secret) <= 500:
+                    return jsonify(error='Ingresa el Client ID y Client Secret de tu aplicación de Kick.'), 400
+                previous = store.get('kick')
+                config = {'client_id': client_id, 'client_secret': client_secret,
+                          'webhook_secret': previous.get('webhook_secret') or secrets.token_urlsafe(24)}
             else:
                 return jsonify(error='Plataforma inválida.'), 400
             saved = store.save(platform, config)
@@ -133,6 +176,13 @@ def register_release_routes(app, runtime):
             return jsonify(error=str(exc)), 500
         except ValueError as exc:
             return jsonify(error=str(exc)), 400
+
+    @app.post('/webhooks/kick/<secret>')
+    def kick_webhook(secret):
+        manager = getattr(runtime, 'platform_manager', None)
+        if manager is None:
+            return jsonify(error='Conector no disponible'), 503
+        return manager.receive_kick(secret, request.headers, request.get_data(cache=True))
 
     @app.post('/system/open-data')
     def open_data():

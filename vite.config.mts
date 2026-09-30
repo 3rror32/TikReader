@@ -18,7 +18,8 @@ export default defineConfig({
         runtime: resolve(root, "frontend/entries/runtime.ts"),
         broadcast: resolve(root, "frontend/entries/broadcast.ts"),
         studio: resolve(root, "frontend/entries/studio.ts"),
-        controlCenter: resolve(root, "frontend/entries/control-center.ts")
+        controlCenter: resolve(root, "frontend/entries/control-center.ts"),
+        platformConnectors: resolve(root, "frontend/entries/platform-connectors.ts")
       },
       output: {
         entryFileNames: "[name].js",

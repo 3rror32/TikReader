@@ -27,7 +27,7 @@ def load_internal_env():
 load_internal_env()
 
 # MAJOR.MINOR.PATCH.BUILD. El cuarto componente identifica cada compilación.
-APP_VERSION = "1.0.0.7"
+APP_VERSION = "1.0.0.8"
 
 
 def _boolean(name: str, default: bool = False) -> bool:

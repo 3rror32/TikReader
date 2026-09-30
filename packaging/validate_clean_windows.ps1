@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $package = 'C:\TikReaderPackage'
 $results = 'C:\TikReaderResults'
-$installer = Join-Path $package 'TikReader-1.0.0.7-Beta-Setup.exe'
+$installer = Join-Path $package 'TikReader-1.0.0.8-Beta-Setup.exe'
 $program = Join-Path $env:LOCALAPPDATA 'Programs\TikReader'
 $userData = Join-Path $env:LOCALAPPDATA 'TikReader'
 $checks = [System.Collections.Generic.List[string]]::new()

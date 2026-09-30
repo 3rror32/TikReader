@@ -1,4 +1,4 @@
-#define AppVersion "1.0.0.7"
+#define AppVersion "1.0.0.8"
 [Setup]
 AppId={{1C075AC1-8E70-4990-A7BC-C4A597BE3972}
 AppName=TikReader Beta

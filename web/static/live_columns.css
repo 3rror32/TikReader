@@ -342,9 +342,10 @@ html body .live-columns .live-reading-controls [data-live-icon] { gap: 0; }
 }
 .platform-summary-brands .youtube { background: #ec174c; }
 .platform-summary-brands .twitch { background: #7f50df; }
+.platform-summary-brands .kick { background: #53fc18; color: #071007; }
 .platform-connector-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   padding: 0 10px 10px;
   border-top: 1px solid var(--desk-divider, var(--border));
@@ -373,6 +374,7 @@ html body .live-columns .live-reading-controls [data-live-icon] { gap: 0; }
 }
 .platform-connector[data-platform-card="youtube"] { --platform-brand: #ec174c; }
 .platform-connector[data-platform-card="twitch"] { --platform-brand: #9067e8; }
+.platform-connector[data-platform-card="kick"] { --platform-brand: #53fc18; }
 .platform-connector.is-connected { border-color: color-mix(in srgb, var(--skin-accent, #86dfbe) 55%, var(--skin-border)); }
 .platform-connector-heading { display: flex; align-items: center; gap: 10px; margin: 0; padding: 0; background: transparent; }
 .platform-connector-heading > div:not(.platform-actions) { display: grid; gap: 1px; min-width: 0; }
@@ -381,12 +383,14 @@ html body .live-columns .live-reading-controls [data-live-icon] { gap: 0; }
 .platform-logo { display: grid; place-items: center; width: 34px; height: 28px; flex: 0 0 auto; border-radius: 8px; color: white; font-size: 10px; font-weight: 900; }
 .platform-logo.youtube { background: #ec174c; }
 .platform-logo.twitch { background: #7f50df; }
+.platform-logo.kick { background: #53fc18; color: #071007; }
 .platform-actions { display: flex; gap: 6px; margin-left: auto; }
 .platform-actions button { min-height: 34px; padding: 6px 12px; font-size: 11px; }
 .platform-actions button:first-child { background: var(--skin-accent, #86dfbe); border-color: var(--skin-accent, #86dfbe); color: var(--skin-accent-ink, #081412); font-weight: 750; }
 .platform-fields { display: grid; gap: 10px; align-items: end; }
 .youtube-fields { grid-template-columns: minmax(180px, 1.35fr) minmax(180px, 1fr); }
 .twitch-fields { grid-template-columns: minmax(110px, .8fr) minmax(125px, .9fr) minmax(190px, 1.35fr); }
+.kick-fields { grid-template-columns: 1fr; }
 .platform-fields label { display: grid; gap: 5px; min-width: 0; color: var(--skin-muted, #9cafc0); font-size: 11px; font-weight: 650; }
 .platform-fields label > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .platform-fields input {
@@ -420,7 +424,7 @@ html body .live-columns .live-reading-controls [data-live-icon] { gap: 0; }
 @media (max-width: 700px) {
   .platform-summary-copy small { display: none; }
   .platform-connectors > summary { min-height: 52px; }
-  .youtube-fields, .twitch-fields { grid-template-columns: 1fr; }
+  .youtube-fields, .twitch-fields, .kick-fields { grid-template-columns: 1fr; }
   .platform-connector-heading { flex-wrap: wrap; }
   .platform-actions { margin-left: auto; }
   #platform-privacy-note { align-items: flex-start; }
