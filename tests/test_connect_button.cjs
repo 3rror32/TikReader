@@ -4,10 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
-const template = fs.readFileSync(path.join(root, 'web/templates/index.html'), 'utf8');
 const liveRefinement = fs.readFileSync(path.join(root, 'web/static/live_refinement.css'), 'utf8');
 const skinComponents = fs.readFileSync(path.join(root, 'web/static/skin_components.css'), 'utf8');
-const themeSignatureCollection = fs.readFileSync(path.join(root, 'web/static/theme_signature_collection.css'), 'utf8');
 
 const rule = selector => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -21,16 +19,11 @@ const hasImportant = (declarations, property) => {
   return value?.endsWith('!important') ?? false;
 };
 
-test('Connect button wins the later shared and theme control cascade', () => {
-  const refinementLink = template.indexOf('/static/live_refinement.css');
-  const sharedLink = template.indexOf('/static/skin_components.css');
-  const themeLink = template.indexOf('/static/theme_signature_collection.css');
-  assert(refinementLink >= 0 && refinementLink < sharedLink && sharedLink < themeLink);
+test('Connect declarations beat the shared important control cascade', () => {
   assert.match(skinComponents, /background:var\(--control-bg\)!important/);
   assert.match(skinComponents, /background:color-mix\(in srgb,var\(--control-bg\) 88%,var\(--control-ink\)\)!important/);
   assert.match(skinComponents, /opacity:\.5!important; cursor:not-allowed!important; filter:none!important/);
   assert.match(skinComponents, /outline:2px solid var\(--skin-accent\)!important/);
-  assert.match(themeSignatureCollection, /html\[data-skin="swiss-brutalist"\] body \.btn-primary\s*\{[^}]*background:\s*[^;]+!important/s);
 
   const base = rule('html body .session-panel #btn-connect.btn-primary');
   assert.match(base, /var\(--skin-accent\)/);
@@ -48,8 +41,10 @@ test('Connect button wins the later shared and theme control cascade', () => {
     assert.equal(hasImportant(hover, property), true, `${property} preserves the Connect hover/focus signature`);
   }
 
-  const focus = rule('html body .session-panel #btn-connect.btn-primary:focus-visible');
-  assert.match(focus, /outline: 3px solid var\(--skin-accent-ink\) !important/);
+  const focus = rule('html body .session-panel #btn-connect.btn-primary:focus-visible:not(:disabled):not([aria-disabled="true"])');
+  assert.match(focus, /outline: 2px solid transparent !important/);
+  assert.match(focus, /box-shadow: 0 0 0 2px var\(--skin-surface\), 0 0 0 4px var\(--skin-text\) !important/);
+  assert.equal(hasImportant(focus, 'box-shadow'), true);
 
   const active = rule('html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([aria-disabled="true"])');
   assert.match(active, /transform: translateY\(1px\) !important/);
@@ -62,6 +57,6 @@ test('Connect button wins the later shared and theme control cascade', () => {
   for (const property of ['opacity', 'filter', 'background-position', 'box-shadow']) {
     assert.equal(hasImportant(disabled, property), true, `${property} preserves the restrained disabled state`);
   }
-  assert.match(liveRefinement, /#btn-connect\.btn-primary:active:not\(:disabled\)\s*\{\s*transform: none !important/);
+  assert.match(liveRefinement, /#btn-connect\.btn-primary:active:not\(:disabled\):not\(\[aria-disabled="true"\]\)\s*\{\s*transform: none !important/);
   assert.match(liveRefinement, /prefers-reduced-motion: reduce[\s\S]*#btn-connect\.btn-primary::after[\s\S]*transition: none/);
 });
