@@ -50,6 +50,12 @@ The top Connect action is the most-used control but currently reads as a generic
   - Resolution: the correction raises specificity with the existing Connect ID and `.btn-primary` class, then applies `!important` only to the theme-sensitive surface, focus, active, and disabled declarations; shared geometry remains unchanged.
   - Verification evidence: `node --test tests/test_connect_button.cjs tests/test_form_controls.cjs` — 5 passed, 0 failed; updated regression asserts stylesheet order and later shared/theme important rules; scoped `git diff --check` — passed.
   - Commit boundary: original commit `feat(ui): give connect action a broadcast ignition style` contains the core behavior; a separate correction commit records the cascade fix, assertions, and this task update. The pre-existing visual-refresh test and unrelated CSS navigation/responsive changes remain outside both commits.
+- [x] T2 — Make focus contrast, reduced-motion precedence, and regression dependencies reliable.
+  - Why T1 verification exposed follow-up defects: the focus outline used `--skin-accent-ink`, which does not contrast with several session-panel surfaces; reduced-motion's active selector omitted the `aria-disabled` qualifier; the test depended on uncommitted template and theme-signature files.
+  - Resolution: use a dual focus ring from `--skin-surface` and `--skin-text`, match the full active selector in the reduced-motion rule, and keep the regression test limited to committed `skin_components.css` and `live_refinement.css` plus standard Node modules.
+  - Focus evidence: committed theme tokens yield at least 7.22:1 contrast for `--skin-text` against `--skin-surface` across the existing themes (lowest is one-dark-pro); the outer ring is therefore evaluated against the adjacent panel surface rather than the button fill.
+  - Verification evidence: `node --test tests/test_connect_button.cjs tests/test_form_controls.cjs` — 5 passed, 0 failed; scoped `git diff --check` — passed.
+  - Commit evidence: separate Conventional Commit `fix(ui): make connect focus and motion fallback robust` includes the T2 source, regression coverage, and this record update.
 
 ## Next step
-No implementation work remains; the commit hash is included in the completion handoff. Preserve the original untracked visual-refresh test and unrelated CSS changes.
+No implementation work remains; the T2 commit hash is included in the completion handoff. Preserve the original untracked visual-refresh test and unrelated CSS changes.
