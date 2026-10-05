@@ -129,20 +129,21 @@ html body .session-panel .controls #username-input {
 .session-panel #username-input::placeholder { color: var(--skin-muted, #9cafc0); opacity: .85; }
 /* The enclosing control supplies the visible focus ring for this input. */
 html body .session-panel .controls #username-input:focus-visible { outline: none !important; }
-html body .session-panel #btn-connect {
+html body .session-panel #btn-connect.btn-primary {
   align-items: center; justify-content: center; gap: 12px;
   min-height: 46px; padding: 12px 18px; border-radius: 10px;
   position: relative; isolation: isolate;
   border: 1px solid color-mix(in srgb, var(--skin-accent-ink) 24%, transparent);
+  border-color: color-mix(in srgb, var(--skin-accent-ink) 24%, transparent) !important;
   background: linear-gradient(112deg,
     var(--skin-accent) 18%,
     color-mix(in srgb, var(--skin-accent) 88%, var(--skin-accent-ink)) 48%,
-    var(--skin-accent) 78%);
-  background-size: 220% 100%; background-position: 12% 50%;
-  color: var(--skin-accent-ink);
+    var(--skin-accent) 78%) !important;
+  background-size: 220% 100% !important; background-position: 12% 50% !important;
+  color: var(--skin-accent-ink) !important;
   font-size: 13px; font-weight: 750; letter-spacing: .1px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--skin-accent-ink) 12%, transparent),
-    0 3px 10px color-mix(in srgb, var(--skin-accent) 24%, transparent);
+    0 3px 10px color-mix(in srgb, var(--skin-accent) 24%, transparent) !important;
   transition: background-position .24s ease, box-shadow .18s ease, transform .14s ease;
 }
 html body:not([data-live-state="live"]) .session-panel #btn-connect { display: inline-flex; }
@@ -151,31 +152,41 @@ html body:not([data-live-state="live"]) .session-panel #btn-connect { display: i
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14m-6-6 6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
   transition: transform .18s ease;
 }
-html body .session-panel #btn-connect:is(:hover, :focus-visible):not(:disabled) {
-  background-position: 88% 50%;
+html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]) {
+  background: linear-gradient(112deg,
+    var(--skin-accent) 18%,
+    color-mix(in srgb, var(--skin-accent) 88%, var(--skin-accent-ink)) 48%,
+    var(--skin-accent) 78%) !important;
+  background-size: 220% 100% !important; background-position: 88% 50% !important;
+  border-color: var(--skin-accent) !important;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--skin-accent-ink) 16%, transparent),
-    0 5px 15px color-mix(in srgb, var(--skin-accent) 34%, transparent);
+    0 5px 15px color-mix(in srgb, var(--skin-accent) 34%, transparent) !important;
 }
-html body .session-panel #btn-connect:is(:hover, :focus-visible):not(:disabled)::after { transform: translateX(3px); }
-html body .session-panel #btn-connect:focus-visible {
-  outline: 3px solid var(--skin-accent-ink); outline-offset: 3px;
+html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])::after { transform: translateX(3px); }
+html body .session-panel #btn-connect.btn-primary:focus-visible {
+  outline: 3px solid var(--skin-accent-ink) !important; outline-offset: 3px;
 }
-html body .session-panel #btn-connect:active:not(:disabled) {
-  transform: translateY(1px); background-position: 50% 50%;
-  box-shadow: inset 0 2px 5px color-mix(in srgb, var(--skin-accent-ink) 18%, transparent);
+html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([aria-disabled="true"]) {
+  background: linear-gradient(112deg,
+    color-mix(in srgb, var(--skin-accent) 90%, var(--skin-accent-ink)) 18%,
+    color-mix(in srgb, var(--skin-accent) 80%, var(--skin-accent-ink)) 48%,
+    color-mix(in srgb, var(--skin-accent) 90%, var(--skin-accent-ink)) 78%) !important;
+  background-size: 220% 100% !important; background-position: 50% 50% !important;
+  transform: translateY(1px) !important;
+  box-shadow: inset 0 2px 5px color-mix(in srgb, var(--skin-accent-ink) 18%, transparent) !important;
 }
-html body .session-panel #btn-connect:disabled {
-  opacity: .58; filter: saturate(.45); cursor: not-allowed;
-  background-position: 12% 50%; box-shadow: none;
+html body .session-panel #btn-connect.btn-primary:disabled {
+  opacity: .58 !important; filter: saturate(.45) !important; cursor: not-allowed;
+  background-position: 12% 50% !important; box-shadow: none !important;
 }
 @media (max-width: 700px) {
   html body .session-panel #btn-connect { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  html body .session-panel #btn-connect,
-  html body .session-panel #btn-connect::after,
+  html body .session-panel #btn-connect.btn-primary,
+  html body .session-panel #btn-connect.btn-primary::after,
   html body:not([data-live-state="live"]) .session-panel .controls { transition: none; }
-  html body .session-panel #btn-connect:active:not(:disabled) { transform: none; }
+  html body .session-panel #btn-connect.btn-primary:active:not(:disabled) { transform: none !important; }
 }
 
 /* Compact connection desk; the conversation is the primary surface. */
