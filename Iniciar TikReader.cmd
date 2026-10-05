@@ -21,7 +21,9 @@ if not exist "%LAUNCHER%" (
 
 if exist ".venv\Scripts\python.exe" (
   echo Usando entorno virtual .venv...
-  ".venv\Scripts\python.exe" "%LAUNCHER%" 2>> "%LOGFILE%"
+  rem START /WAIT /B mantiene el cierre dentro de la aplicacion y evita que
+  rem cmd.exe pregunte si debe terminar este archivo por lotes.
+  start "" /wait /b ".venv\Scripts\python.exe" "%LAUNCHER%" 2>> "%LOGFILE%"
   set "EXITCODE=!errorlevel!"
   if not "!EXITCODE!"=="0" (
     echo.
@@ -44,10 +46,10 @@ if errorlevel 1 (
     exit /b 1
   )
   echo Usando "python" del sistema ^(sin entorno virtual^)...
-  python "%LAUNCHER%" 2>> "%LOGFILE%"
+  start "" /wait /b python "%LAUNCHER%" 2>> "%LOGFILE%"
 ) else (
   echo Usando "py -3" del sistema ^(sin entorno virtual^)...
-  py -3 "%LAUNCHER%" 2>> "%LOGFILE%"
+  start "" /wait /b py -3 "%LAUNCHER%" 2>> "%LOGFILE%"
 )
 
 set "EXITCODE=!errorlevel!"
