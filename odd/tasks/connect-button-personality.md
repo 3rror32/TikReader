@@ -45,9 +45,11 @@ The top Connect action is the most-used control but currently reads as a generic
 ## Progress
 - [x] T1 — Implement the Connect visual contract and focused regression assertions in the working tree.
   - Route: delegated.
-  - Status: implementation, focused verification, and one work-unit commit complete; dedicated coverage isolates this change from the pre-existing untracked visual-refresh test.
-  - Verification evidence: `node --test tests/test_connect_button.cjs tests/test_form_controls.cjs` — 5 passed, 0 failed; scoped `git diff --check` — passed.
-  - Commit boundary: commit `feat(ui): give connect action a broadcast ignition style` includes this task document, the dedicated test, and only the Connect-button CSS hunk. The pre-existing visual-refresh test and unrelated CSS navigation/responsive changes remain outside the commit.
+  - Status: reopened and resolved after independent verification found later important shared/theme control rules suppressing the Connect signature.
+  - Finding: `skin_components.css` loads after the refinement styles and its important base, hover, focus, disabled, and theme button rules could replace the intended Connect surface and interaction states.
+  - Resolution: the correction raises specificity with the existing Connect ID and `.btn-primary` class, then applies `!important` only to the theme-sensitive surface, focus, active, and disabled declarations; shared geometry remains unchanged.
+  - Verification evidence: `node --test tests/test_connect_button.cjs tests/test_form_controls.cjs` — 5 passed, 0 failed; updated regression asserts stylesheet order and later shared/theme important rules; scoped `git diff --check` — passed.
+  - Commit boundary: original commit `feat(ui): give connect action a broadcast ignition style` contains the core behavior; a separate correction commit records the cascade fix, assertions, and this task update. The pre-existing visual-refresh test and unrelated CSS navigation/responsive changes remain outside both commits.
 
 ## Next step
 No implementation work remains; the commit hash is included in the completion handoff. Preserve the original untracked visual-refresh test and unrelated CSS changes.
