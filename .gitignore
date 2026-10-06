@@ -9,9 +9,12 @@ htmlcov/
 /data/.flask-secret
 /data/.lan-view-token
 /data/alert_media/
-/data/logs/
-/data/backups/
-/data/code-backups/
+/data/logs/*
+!/data/logs/.gitkeep
+/data/backups/*
+!/data/backups/.gitkeep
+/data/code-backups/*
+!/data/code-backups/.gitkeep
 /data/diagnostics/
 /data/qt-webengine/
 /data/rvc/
@@ -29,3 +32,10 @@ assets/kokoro/
 /release/
 .env
 node_modules/
+
+# Local workflow state and accumulated archive material.
+/.atl/
+/.codegraph/
+/odd/
+/archivado/*
+!/archivado/.gitkeep
