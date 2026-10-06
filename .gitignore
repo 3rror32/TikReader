@@ -31,6 +31,8 @@ assets/voice_models/
 assets/kokoro/
 /release/
 .env
+/.env.*
+!/.env.example
 node_modules/
 
 # Local-only installer construction tooling.
