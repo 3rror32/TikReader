@@ -39,3 +39,6 @@ node_modules/
 /odd/
 /archivado/*
 !/archivado/.gitkeep
+
+/data/custom_banks/*
+!/data/custom_banks/.gitkeep
