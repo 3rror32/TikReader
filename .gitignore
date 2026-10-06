@@ -33,6 +33,13 @@ assets/kokoro/
 .env
 node_modules/
 
+# Local-only installer construction tooling.
+/Crear instalador.cmd
+/packaging/
+/tools/build_release.py
+/tools/lock_release_dependencies.py
+/tools/prepare_clean_windows.py
+
 # Local workflow state and accumulated archive material.
 /.atl/
 /.codegraph/
