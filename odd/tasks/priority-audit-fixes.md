@@ -60,7 +60,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
     - Arrow/Home/End keyboard navigation works without breaking existing clicks.
     - Focused frontend tests pass.
   - Checks: relevant Node tests; JavaScript syntax; TypeScript no-emit check; `git diff --check`.
-  - Evidence: QA now loads `web/templates/widget.html` and asserts the shipped `/static/build/studio.js` was requested; the standalone legacy effects page is retained only as a clearly labeled compatibility fixture. Studio panes now expose linked tab/tab-panel semantics, selected/focus state, click activation, and Arrow/Home/End handling. The focused Node regressions, JavaScript syntax checks, TypeScript no-emit check (`npm run check:overlays`), and `git diff --check` passed. Browser QA was attempted but cannot start because Playwright is missing (`Cannot find module 'playwright'`). Work-unit commit SHA will be recorded in the next task-document update; PAF-2 authored line count: 150 including task-document changes and excluding pre-existing alert hunks.
+  - Evidence: QA now loads `web/templates/widget.html` and asserts the shipped `/static/build/studio.js` was requested; the standalone legacy effects page is retained only as a clearly labeled compatibility fixture. Studio panes now expose linked tab/tab-panel semantics, selected/focus state, click activation, and Arrow/Home/End handling. The focused Node regressions, JavaScript syntax checks, TypeScript no-emit check (`npm run check:overlays`), and `git diff --check` passed. Browser QA was attempted but cannot start because Playwright is missing (`Cannot find module 'playwright'`). Work-unit commit: `0c6e5fa`; PAF-2 authored line count: 156 including task-document changes and excluding pre-existing alert hunks.
 
 - [ ] **PAF-3 — Repair quality automation and diagnostics**
   - Route: delegated direct.
@@ -88,5 +88,5 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 
 - Current task: PAF-3.
 - Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright).
-- Running authored-line count: 349 (PAF-1 work unit 195 + PAF-1 metadata update 4 + PAF-2 150; excludes pre-existing unrelated hunks).
+- Running authored-line count: 359 (PAF-1 195 + PAF-1 metadata update 4 + PAF-2 156 + PAF-2 metadata update 4; excludes pre-existing unrelated hunks).
 - Next step: align coverage/watch inputs and improve background-service exception logging.
