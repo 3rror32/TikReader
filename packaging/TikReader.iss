@@ -34,12 +34,12 @@ Source: "..\release\TikReader\*"; DestDir: "{app}"; Excludes: "__pycache__,*.pyc
 Source: ".env.example"; DestDir: "{localappdata}\TikReader"; DestName: ".env"; Flags: onlyifdoesntexist uninsneveruninstall
 
 [Icons]
-Name: "{group}\TikReader"; Filename: "{app}\python\pythonw.exe"; Parameters: """{app}\desktop_launch.pyw"""; WorkingDir: "{app}"; IconFilename: "{app}\assets\icons\tikreader.ico"
-Name: "{autodesktop}\TikReader"; Filename: "{app}\python\pythonw.exe"; Parameters: """{app}\desktop_launch.pyw"""; WorkingDir: "{app}"; IconFilename: "{app}\assets\icons\tikreader.ico"; Tasks: desktopicon
+Name: "{group}\TikReader"; Filename: "{app}\TikReader.exe"; WorkingDir: "{app}"; IconFilename: "{app}\assets\icons\tikreader.ico"
+Name: "{autodesktop}\TikReader"; Filename: "{app}\TikReader.exe"; WorkingDir: "{app}"; IconFilename: "{app}\assets\icons\tikreader.ico"; Tasks: desktopicon
 Name: "{group}\Desinstalar TikReader"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\python\pythonw.exe"; Parameters: """{app}\desktop_launch.pyw"""; Description: "Abrir TikReader"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\TikReader.exe"; Description: "Abrir TikReader"; Flags: nowait postinstall skipifsilent
 
 [Code]
 var

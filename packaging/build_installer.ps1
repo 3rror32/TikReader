@@ -46,9 +46,19 @@ try {
         throw 'Las versiones no coinciden. Usa el mismo numero en app\app_config.py y packaging\TikReader.iss.'
     }
     if ($version -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw 'La version debe tener cuatro numeros, por ejemplo 1.0.0.3.' }
+    $versionInfo = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'TikReaderVersion.txt') -Raw
+    if ($versionInfo -notmatch "StringStruct\('FileVersion',\s*'$([regex]::Escape($version))'\)" -or
+        $versionInfo -notmatch "StringStruct\('ProductVersion',\s*'$([regex]::Escape($version))'\)") {
+        throw 'La version del recurso de TikReader.exe no coincide con la version de la aplicacion.'
+    }
     if ($CheckOnly) {
         Write-Host "Comprobaciones correctas. Version: $version. No se genero ni modifico el instalador." -ForegroundColor Green
     } else {
+        Invoke-Checked $pythonPath ($pythonArguments + @('-m', 'PyInstaller', '--version')) 'Comprobando PyInstaller'
+        $pythonBuildVersion = (& $pythonPath @pythonArguments --version 2>&1) -join ' '
+        if ($pythonBuildVersion -notmatch '^Python 3\.13\.') {
+            throw 'PyInstaller debe ejecutarse con Python 3.13 para coincidir con las dependencias binarias incluidas.'
+        }
         $compilerPath = Join-Path $releasePath 'inno\ISCC.exe'
         if (-not (Test-Path -LiteralPath $compilerPath)) {
             Invoke-Checked 'powershell.exe' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'install_builder.ps1')) 'Preparando Inno Setup'
@@ -70,6 +80,14 @@ try {
         }
         Write-Host "Preparacion anterior conservada en: $backupPath"
         Invoke-Checked $pythonPath ($pythonArguments + @((Join-Path $projectRoot 'tools\build_release.py'))) 'Preparando archivos y dependencias (requiere internet)'
+        $launcherDist = Join-Path $releasePath 'launcher-dist'
+        $launcherWork = Join-Path $releasePath 'launcher-work'
+        Invoke-Checked $pythonPath ($pythonArguments + @('-m', 'PyInstaller', '--clean', '--noconfirm',
+            '--distpath', $launcherDist, '--workpath', $launcherWork,
+            (Join-Path $PSScriptRoot 'TikReader.spec'))) 'Generando TikReader.exe'
+        $builtLauncher = Join-Path $launcherDist 'TikReader\TikReader.exe'
+        if (-not (Test-Path -LiteralPath $builtLauncher)) { throw 'PyInstaller termino pero no se encontro TikReader.exe.' }
+        Copy-Item -LiteralPath $builtLauncher -Destination (Join-Path $releasePath 'TikReader\TikReader.exe') -Force
         Invoke-Checked $compilerPath @((Join-Path $PSScriptRoot 'TikReader.iss')) 'Generando instalador'
         $installerPath = Join-Path $releasePath "TikReader-$version-Beta-Setup.exe"
         if (-not (Test-Path -LiteralPath $installerPath)) { throw 'El compilador termino pero no se encontro el instalador.' }
