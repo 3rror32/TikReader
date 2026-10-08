@@ -16,6 +16,12 @@ function Invoke-Checked {
     }
 }
 
+function Copy-LauncherDistribution {
+    param([string]$SourcePath, [string]$DestinationPath)
+    New-Item -ItemType Directory -Force -Path $DestinationPath | Out-Null
+    Get-ChildItem -LiteralPath $SourcePath -Force | Copy-Item -Destination $DestinationPath -Recurse -Force
+}
+
 Push-Location $projectRoot
 try {
     if (-not $CheckOnly) {
@@ -85,9 +91,11 @@ try {
         Invoke-Checked $pythonPath ($pythonArguments + @('-m', 'PyInstaller', '--clean', '--noconfirm',
             '--distpath', $launcherDist, '--workpath', $launcherWork,
             (Join-Path $PSScriptRoot 'TikReader.spec'))) 'Generando TikReader.exe'
-        $builtLauncher = Join-Path $launcherDist 'TikReader\TikReader.exe'
+        $builtDistribution = Join-Path $launcherDist 'TikReader'
+        $launcherPayload = Join-Path $releasePath 'TikReader'
+        $builtLauncher = Join-Path $builtDistribution 'TikReader.exe'
         if (-not (Test-Path -LiteralPath $builtLauncher)) { throw 'PyInstaller termino pero no se encontro TikReader.exe.' }
-        Copy-Item -LiteralPath $builtLauncher -Destination (Join-Path $releasePath 'TikReader\TikReader.exe') -Force
+        Copy-LauncherDistribution -SourcePath $builtDistribution -DestinationPath $launcherPayload
         Invoke-Checked $compilerPath @((Join-Path $PSScriptRoot 'TikReader.iss')) 'Generando instalador'
         $installerPath = Join-Path $releasePath "TikReader-$version-Beta-Setup.exe"
         if (-not (Test-Path -LiteralPath $installerPath)) { throw 'El compilador termino pero no se encontro el instalador.' }

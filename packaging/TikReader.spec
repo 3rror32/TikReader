@@ -2,7 +2,7 @@
 # assembled first so the launcher can use its embedded Python environment.
 from pathlib import Path
 
-ROOT = Path(SPECPATH).resolve().parent.parent
+ROOT = Path(SPECPATH).resolve().parent
 PAYLOAD = ROOT / 'release' / 'TikReader'
 ICON = ROOT / 'assets' / 'icons' / 'tikreader.ico'
 VERSION = ROOT / 'packaging' / 'TikReaderVersion.txt'
