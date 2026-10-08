@@ -24,8 +24,9 @@ The installer currently launches the embedded `pythonw.exe` with `desktop_launch
 
 ## Delivery
 
-- Strategy: `ask-on-risk`.
-- Forecast: under 200 authored changed lines, excluding generated artifacts.
+- Strategy: `ask-on-risk`; selected chain strategy: `stacked-to-main` (existing choice for future independent PR slices).
+- Next work-unit/slice boundary: WTI-2's source-workflow launcher; do not create a PR or push as part of this task.
+- Forecast: approximately 627 authored changed lines, excluding generated artifacts; the existing `stacked-to-main` choice applies above the review slice budget.
 - Branch: `codex/priority-audit-fixes` (existing non-default working branch).
 
 ## Tasks
@@ -47,11 +48,33 @@ The installer currently launches the embedded `pythonw.exe` with `desktop_launch
   - Commits: `d44bc66` — `fix(packaging): brand Windows launcher executable`; `b8ef007` — `fix(packaging): resolve launcher distribution paths`; documentation evidence commits `5dad3d8` and `4ab855a`. Only authorized paths were committed; unrelated staged changes remain untouched.
   - RDD assessment: disabled/unmanaged (clone-local mode reported off; no native review started).
 
+- [x] **WTI-2 — Brand the live-source launcher process**
+  - Route: delegated direct.
+  - Trigger: the active source workflow requires coordinated changes to the starter, a dedicated source launcher executable, build freshness handling, and regression coverage.
+  - Reason reopened: user runtime evidence showed `Iniciar TikReader.cmd` still launches system `python.exe app\launcher.py`; WTI-1 only corrected the packaged installer path.
+  - Acceptance criteria:
+    - `Iniciar TikReader.cmd` launches a branded `TikReader.exe` UI process instead of Python.
+    - The branded launcher loads the live workspace source and uses the selected virtual-environment or system Python only for backend children and dependencies.
+    - Missing or stale generated launchers are rebuilt or fail visibly; the starter never silently falls back to a Python UI process.
+    - Generated launcher artifacts remain ignored under `runtime/`.
+    - Focused regression tests and a Windows process-identity smoke test pass.
+  - Checks:
+    - RED observed for source-launcher and freshness contracts before implementation.
+    - Focused source-launcher contract tests: latest 11/11 passed through the bundled Python runtime; command: direct `runpy` invocation of `tests/test_source_launcher.py`.
+    - PyInstaller source-launcher build with the active Python environment.
+    - Runtime observation of `TikReader.exe` as the UI process.
+  - Evidence: Initial RED was 0/4 before WTI-2 implementation. The semantic spec test reproduced the root path defect; local-tool contracts were RED before path resolution was added. A Windows subprocess probe later reproduced CMD environment discovery failure because a WindowsApps `py` alias could not execute, and `site.getsitepackages()[0]` was not the actual packages directory. The corrected starter probe resolves Python 3.14.7 at `C:\Users\Carlos\AppData\Local\Python\pythoncore-3.14-64\python.exe` and its existing `Lib\site-packages`; the focused suite passed 8/8. Parent observed the pure-Python bootstrap remain alive for 12 seconds with Python server and QtWebEngine children, while the bundled-Qt `TikReader.exe` exited cleanly before eight seconds. The thin source spec excluded Qt and the bootstrap logged fatal tracebacks, but normal starter smoke then showed missing dynamic stdlib `webbrowser`. A broad `sys.stdlib_module_names` hidden-import fix made the UI process stay alive without spawning the backend or writing application data; parent found `_internal/PySide6` and matplotlib dependencies had been transitively collected, recreating a mixed runtime. New subprocess-shim contracts observed RED at 8/11 before implementation. A follow-up check also caught RED when the executable entrypoint ignored the child exit code; `SystemExit(main())` now propagates it. The final design uses `TikReader.exe` only as a branded parent shim that validates the source root/backend Python, launches `[backend_python, app/launcher.py]` in the workspace root with inherited environment, waits, and returns the child exit code. The spec uses static analysis only, empty hidden imports, no backend site-packages path, and continues excluding app modules. After implementation, focused tests passed 11/11; Python compile and spec parse passed; scoped `git diff --check` passed. The normal starter rebuilt the shim in about 12 seconds and produced the verified tree `TikReader.exe` -> live launcher Python -> server Python plus QtWebEngine. `/health` reported TikReader with archive integrity `ok` about 7.3 seconds after start, SocketIO connected, the tree remained alive for 12 seconds after readiness, no fresh shim error was written, and the generated runtime contained no PySide6, shiboken6, or matplotlib. The executable retained TikReader metadata, version 1.0.0.8, GUI subsystem, and seven icon resources. Earlier restricted-smoke failures were traced to Winsock 10013 loopback denial and reproduced against the direct baseline; the final approved unrestricted smoke passed.
+  - Work-unit/slice boundary: this WTI-2 commit follows the WTI-1 boundary; future independent PR slices use the existing `stacked-to-main` choice. No PR or push was created.
+  - Authored changed lines: 627 (587 insertions plus 40 deletions; generated files excluded).
+  - Commit: pending work-unit commit; identity will be recorded in a documentation evidence update.
+  - RDD assessment: `disabled/unmanaged` (clone-local mode remains off; no native review started).
+
 ## Progress
 
 - Exploration completed: root cause verified in `packaging/TikReader.iss`; Qt window branding is already present in `app/desktop_window.py`.
 - WTI-1 is complete. The PyInstaller definition, frozen launcher bootstrap, installer shortcuts/post-install action, full onedir payload copy, focused contracts, successful Windows build, executable metadata, icon, and runtime process identity were verified. Pre-existing unrelated staged changes remain untouched.
+- WTI-2 is complete. The minimal branded parent owns the live Python launcher/backend process tree, the exact normal starter reached application health and SocketIO readiness, and the generated shim excludes Qt/backend packages while retaining TikReader metadata and icon resources.
 
 ## Next Step
 
-Rebuild and distribute the installer through the project's normal release process when the user chooses to publish this change.
+Create the WTI-2 work-unit commit and record its identity; no PR or push is requested.
