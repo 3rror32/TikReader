@@ -161,3 +161,110 @@ html[data-skin="light"] .app-sidebar button.active{color:#164d49}
 html[data-skin="light"] .feed-title,html[data-skin="light"] .comment-text,html[data-skin="light"] .session-identity h2{color:#17313b!important}
 html[data-skin="light"] .session-panel::after{color:#58707a}
 html[data-skin="light"] #donation-button{background:#fff5ec;color:#784a25;border-color:#c78c58;box-shadow:inset 3px 0 #d39b69}
+
+/* TikReader principal signature theme */
+html:root[data-skin="original"] {
+  --skin-bg: #03070d;
+  --skin-surface: #08111b;
+  --skin-raised: #0d1a27;
+  --skin-border: #203345;
+  --skin-text: #edf7ff;
+  --skin-muted: #7890a4;
+  --skin-accent: #06e4ff;
+  --skin-accent-2: #ff1493;
+  --skin-accent-ink: #03070d;
+  --skin-danger: #ff6f91;
+  --skin-warning: #ffd166;
+  --skin-wash: #102535;
+  --skin-shadow: #0009;
+  --bg-deep: #03070d;
+  --bg-card: #08111b;
+  --bg-glass: #0d1a27;
+  --border: #203345;
+  --text-main: #edf7ff;
+  --text-muted: #7890a4;
+  --teal: #06e4ff;
+  --pink: #ff1493;
+  --purple: #b983ff;
+  --gold: #ffd166;
+  --ink: #03070d;
+  --console: #08111b;
+  --console-raised: #0d1a27;
+  --console-deep: #03070d;
+  --signal: #06e4ff;
+  --signal-soft: #0b2934;
+  --live: #ff1493;
+  --live-soft: #321326;
+  --telemetry: #7890a4;
+  --paper: #edf7ff;
+  --line: #203345;
+  --warning: #ffd166;
+  color-scheme: dark;
+}
+
+html:root[data-skin="original"] body {
+  color: #edf7ff;
+  background: #03070d;
+}
+
+html:root[data-skin="original"] body::before {
+  opacity: 1;
+  mask-image: none;
+  background:
+    radial-gradient(ellipse at 5% 0%, #06e4ff18, transparent 38%),
+    radial-gradient(ellipse at 100% 100%, #ff149316, transparent 42%);
+}
+
+html:root[data-skin="original"] body .app-sidebar {
+  color: #edf7ff;
+  background: linear-gradient(155deg, #061521 0%, #050d16 62%, #090b14 100%);
+  border-right: 1px solid #1b3344;
+  box-shadow: 12px 0 32px #0008;
+}
+
+html:root[data-skin="original"] body .sidebar-brand {
+  min-height: 48px;
+  padding: 5px 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(#061521, #061521) padding-box,
+    linear-gradient(105deg, #06e4ff 0%, #247c9b 44%, #ff1493 100%) border-box;
+  color: #edf7ff;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -.055em;
+  text-shadow: 0 0 18px #06e4ff30;
+}
+
+html:root[data-skin="original"] body :is(.panel, .feed-wrap, .gifts-column, .participants-bar, .config-content, .setting-card) {
+  color: #edf7ff;
+  background: #08111b;
+  border-color: #203345;
+  box-shadow: 0 10px 28px #0005;
+}
+
+html:root[data-skin="original"] body :is(.app-sidebar button, button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #06e4ff !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 4px #06e4ff24;
+}
+
+@media (max-width: 700px) {
+  html:root[data-skin="original"] body .sidebar-brand {
+    min-height: 42px;
+    padding: 4px 6px 8px;
+    font-size: clamp(21px, 6vw, 25px);
+  }
+
+  html:root[data-skin="original"] body::before {
+    background:
+      radial-gradient(ellipse at 0% 0%, #06e4ff12, transparent 34%),
+      radial-gradient(ellipse at 100% 100%, #ff149310, transparent 38%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:root[data-skin="original"] {
+    scroll-behavior: auto;
+  }
+}
