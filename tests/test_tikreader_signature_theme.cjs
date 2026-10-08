@@ -76,7 +76,8 @@ test('original controls carry restrained cyan and magenta hierarchy without chan
 test('the original cabin perimeter echoes the splash as a masked, responsive, non-interactive frame', () => {
   assert.match(signature, /html:root\[data-skin="original"\]::after/);
   assert.match(perimeterRule, /position:\s*fixed/);
-  assert.match(perimeterRule, /inset:\s*clamp\(8px,\s*1\.3vw,\s*18px\)/);
+  assert.match(perimeterRule, /inset:\s*4px/);
+  assert.doesNotMatch(perimeterRule, /inset:\s*[^;]*(?:vw|vh|clamp\()/i);
   assert.match(perimeterRule, /pointer-events:\s*none/);
   assert.match(perimeterRule, /padding:\s*1px/);
   assert.match(perimeterRule, /mask:\s*linear-gradient/);
@@ -87,7 +88,8 @@ test('the original cabin perimeter echoes the splash as a masked, responsive, no
   assert.match(perimeterRule, /linear-gradient\(to bottom right,\s*#06e4ff[\s\S]*#ff1493/i);
   assert.match(perimeterLine, /#26313e[\s\S]*#3e2b3a/i);
   assert.doesNotMatch(perimeterLine, /transparent/i);
-  assert.match(smallFrameRule, /inset:\s*6px/);
+  assert.doesNotMatch(smallFrameRule, /inset\s*:/i, 'narrow layouts must inherit the same safe-edge inset');
+  assert.match(smallFrameRule, /border-radius:\s*12px/);
   assert.doesNotMatch(perimeterRule, /animation|@keyframes/i);
 });
 

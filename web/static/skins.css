@@ -218,7 +218,7 @@ html:root[data-skin="original"] body::before {
 html:root[data-skin="original"]::after {
   content: "";
   position: fixed;
-  inset: clamp(8px, 1.3vw, 18px);
+  inset: 4px;
   z-index: 10010;
   padding: 1px;
   border-radius: 16px;
@@ -303,7 +303,6 @@ html:root[data-skin="original"] body :is(.app-sidebar button, button, a, input, 
   }
 
   html:root[data-skin="original"]::after {
-    inset: 6px;
     border-radius: 12px;
   }
 
