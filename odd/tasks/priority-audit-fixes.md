@@ -38,10 +38,10 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 - Feature branch: `codex/priority-audit-fixes`.
 - Initial reviewed boundary: `dd285d12e44e0a58497da48cae09c2a502e0f12c`.
 - Future PR slices (planning only; do not create or push):
-  1. PAF-1 backend state/rate limiting, target `main`, independent; estimated 195 authored lines including initial feature documentation.
-  2. PAF-2 overlay QA and accessible navigation, target `main`, independent; estimated 156 authored lines including its task-document update and excluding unrelated alert hunks.
-  3. PAF-3 CI/watch configuration and background diagnostics, target `main`, independent; observed code diff 47 authored lines, plus its task-document evidence update (expected under 100 total).
-  4. PAF-4 frontend regression repairs and final verification record, target `main`, independent; budget 100 authored lines, to be replaced with observed count at closure.
+  1. PAF-1 backend state/rate limiting, target `main`, independent; observed task and metadata commits total 199 authored lines including initial feature documentation.
+  2. PAF-2 overlay QA and accessible navigation, target `main`, independent; observed task and metadata commits total 160 authored lines excluding unrelated alert hunks.
+  3. PAF-3 CI/watch configuration and background diagnostics, target `main`, independent; observed work-unit and SHA-metadata commits total 78 authored lines.
+  4. PAF-4 frontend regression repairs and final verification record, target `main`, independent; work-unit commit total 42 authored lines; final SHA-metadata update pending.
 - Slice order: PAF-1 → PAF-2 → PAF-3 → PAF-4 for review convenience only; each slice targets `main` and has no prerequisite slice dependency.
 - Dependency diagram: `main ← [PAF-1]`; `main ← [PAF-2]`; `main ← [PAF-3] 📍 current`; `main ← [PAF-4]`. No slice depends on another.
 
@@ -89,11 +89,11 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
     - Node suite, static JavaScript syntax checks, and TypeScript checking pass.
     - Python suite and Ruff pass, or precise environment blockers are recorded.
   - Checks: full applicable verification commands and final status/diff review.
-  - Evidence: RED observed: the initial focused run failed the brittle connection-label assertion and whitespace-sensitive overlay-order assertion; the sliced games harness raised `ReferenceError: bankStateRevision is not defined`. After those repairs, the full CJS suite exposed PAF-2's new navigation helper assuming every test root had `querySelector`; a narrow guard restored compatibility without changing real document navigation. GREEN observed: the three focused suites passed 38/38, then focused RVC + priority tests passed 13/13, and full `node --test --test-timeout=30000 tests/test_*.cjs` passed 267/267. All 88 `web/static/*.js` files passed `node --check`; `npm run check:overlays` / TypeScript no-emit passed. Python unittest ran 44 tests but all 44 failed import/collection because bundled Python lacks Flask (`ModuleNotFoundError: No module named 'flask'`); no project `.venv` was present. Ruff was unavailable (`No module named ruff`). PAF-2 browser QA remains unavailable because Playwright is not installed. Task-owned `git diff --check` passed; staged-only changes preserve unrelated pre-existing hunks. Commit and exact authored-line count pending.
+  - Evidence: RED observed: the initial focused run failed the brittle connection-label assertion and whitespace-sensitive overlay-order assertion; the sliced games harness raised `ReferenceError: bankStateRevision is not defined`. After those repairs, the full CJS suite exposed PAF-2's new navigation helper assuming every test root had `querySelector`; a narrow guard restored compatibility without changing real document navigation. GREEN observed: the three focused suites passed 38/38, then focused RVC + priority tests passed 13/13, and full `node --test --test-timeout=30000 tests/test_*.cjs` passed 267/267. All 88 `web/static/*.js` files passed `node --check`; `npm run check:overlays` / TypeScript no-emit passed. Python unittest ran 44 tests but all 44 failed import/collection because bundled Python lacks Flask (`ModuleNotFoundError: No module named 'flask'`); no project `.venv` was present. Ruff was unavailable (`No module named ruff`). PAF-2 browser QA remains unavailable because Playwright is not installed. Task-owned `git diff --check` passed; staged-only changes preserve unrelated pre-existing hunks. Work-unit commit: `c7ed5fc`; authored line count: 42 including task-document changes.
 
 ## Progress
 
 - Current task: PAF-4 work unit is ready for commit; selected strategy remains `stacked-to-main`, and no PRs were created or pushed.
 - Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright); PAF-3 (coverage/watch configuration and local traceback logging); PAF-4 (frontend test repairs and final applicable verification).
-- Running authored-line count before PAF-4 metadata: 425 after PAF-3; PAF-4 code/test diff currently adds 24 and deletes 2 authored lines, plus task-document changes pending exact count; excludes unrelated pre-existing hunks.
-- Next step: record the PAF-4 commit SHA and exact line count; feature tasks are otherwise complete. No PRs/pushes requested or performed.
+- Running authored-line count after PAF-4 work unit: 479 (PAF-1 199 + PAF-2 160 + PAF-3 78 + PAF-4 42; excludes unrelated pre-existing hunks).
+- Next step: record the PAF-4 commit SHA metadata and final count; feature tasks are otherwise complete. No PRs/pushes requested or performed.
