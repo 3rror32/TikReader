@@ -7,6 +7,27 @@ from flask import Response, jsonify, request
 from donor_ranking import donor_ranking
 
 
+def build_studio_state(runtime):
+    """Build the shared studio and broadcast state payload from a runtime."""
+    return {
+        **runtime.studio_state,
+        'session': runtime.feed_session,
+        'stats': runtime.stats_payload(),
+        'gift_totals': runtime.live_counters.snapshot()[1],
+        'overlay_goals': runtime.live_counters.goals,
+        'pending_questions': sum(not question['answered'] for question in runtime.production.questions.values()),
+        'completed_summary': runtime.session_metrics.get('summary') if runtime.session_metrics and runtime.session_metrics['session'] == runtime.feed_session else None,
+        'diagnostics': dict(runtime.diagnostics),
+        'connection': {key: runtime.state[key] for key in ('connected', 'connecting', 'username', 'retry_count')},
+        'like_ranking': runtime.like_ranking.snapshot(runtime.feed_session),
+        'donor_ranking': donor_ranking(runtime.gifter_diamonds, runtime.participants, runtime.gift_history.values()),
+        'ranking': [
+            {'user': user, 'count': count, 'diamonds': runtime.gifter_diamonds.get(user)}
+            for user, count in sorted(runtime.gifter_totals.items(), key=lambda row: row[1], reverse=True)
+        ],
+    }
+
+
 def register_studio_routes(app, runtime):
     @app.route("/studio/state", methods=["GET", "POST"])
     def studio_api():
@@ -36,23 +57,7 @@ def register_studio_routes(app, runtime):
                             runtime.production.answer_question(item.get("comment", ""), True)
                             break
         with runtime.feed_lock:
-            return jsonify(
-                **runtime.studio_state,
-                session=runtime.feed_session,
-                stats=runtime.stats_payload(),
-                gift_totals=runtime.live_counters.snapshot()[1],
-                overlay_goals=runtime.live_counters.goals,
-                pending_questions=sum(not question["answered"] for question in runtime.production.questions.values()),
-                completed_summary=runtime.session_metrics.get("summary") if runtime.session_metrics and runtime.session_metrics["session"] == runtime.feed_session else None,
-                diagnostics=dict(runtime.diagnostics),
-                connection={key: runtime.state[key] for key in ("connected", "connecting", "username", "retry_count")},
-                like_ranking=runtime.like_ranking.snapshot(runtime.feed_session),
-                donor_ranking=donor_ranking(runtime.gifter_diamonds, runtime.participants, runtime.gift_history.values()),
-                ranking=[
-                    {"user": user, "count": count, "diamonds": runtime.gifter_diamonds.get(user)}
-                    for user, count in sorted(runtime.gifter_totals.items(), key=lambda row: row[1], reverse=True)
-                ],
-            )
+            return jsonify(build_studio_state(runtime))
 
     @app.get("/diagnostics/export")
     def export_diagnostics():

@@ -9,6 +9,9 @@ import unicodedata
 from collections import OrderedDict
 from flask import jsonify, request, render_template
 from app_paths import data_dir
+from studio_routes import build_studio_state
+
+MAX_REMOTE_REQUEST_IPS = 1000
 
 
 def redact(text):
@@ -86,6 +89,14 @@ class Production:
     def allow_remote_read(self):
         address = str(request.remote_addr or 'desconocido')[:64]
         now = time.time()
+        for known_address, stamps in list(self.remote_requests.items()):
+            recent_stamps = [stamp for stamp in stamps if now - stamp < 60]
+            if recent_stamps:
+                self.remote_requests[known_address] = recent_stamps
+            else:
+                del self.remote_requests[known_address]
+        if address not in self.remote_requests and len(self.remote_requests) >= MAX_REMOTE_REQUEST_IPS:
+            del self.remote_requests[next(iter(self.remote_requests))]
         recent = [stamp for stamp in self.remote_requests.get(address, []) if now - stamp < 60]
         if len(recent) >= 300:
             return False
@@ -312,7 +323,7 @@ class Production:
         @app.route('/broadcast/state')
         def broadcast_state():
             with self.r.feed_lock:
-                data = self.r.studio_api().get_json()
+                data = build_studio_state(self.r)
                 data['production'] = self.snapshot()
                 if self.settings['emergency'] or self.settings['scene'] != 'talk':
                     data['highlight'] = None; data['ranking'] = []; data['donor_ranking'] = []; data['like_ranking'] = []
