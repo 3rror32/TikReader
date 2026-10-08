@@ -24,9 +24,30 @@ def test_source_starter_uses_branded_executable_without_python_ui_fallback():
     assert "source_backend_site_packages" in normalized
     assert ".venv\\scripts\\python.exe" in normalized
     assert "tools\\build_source_launcher.py" in normalized
-    assert 'start "" /wait /b "%source_launcher%"' in normalized
+    assert "start-process" in normalized
+    assert "-passthru" in normalized
+    assert "$process.path" in normalized
+    assert "source-launcher-logs" in normalized
+    assert "runtime\\launcher.log" not in normalized
+    assert not re.search(r"start[^\r\n]*source_launcher[^\r\n]*/wait", normalized)
     assert not re.search(r"start[^\r\n]*python(?:\.exe)?[^\r\n]*launcher\.py", normalized)
     assert not re.search(r"start[^\r\n]*py\s+-3[^\r\n]*launcher\.py", normalized)
+
+
+def test_source_starter_keeps_startup_errors_visible_without_waiting_for_gui():
+    starter = (ROOT / "Iniciar TikReader.cmd").read_text(encoding="utf-8")
+    normalized = starter.lower()
+    launch_line = next(
+        line for line in normalized.splitlines()
+        if "start-process" in line and "source_launcher" in line
+    )
+
+    assert "-passthru" in launch_line
+    assert "$process.path" in launch_line
+    launch_tail = normalized[normalized.index(launch_line):]
+    assert "if errorlevel 1" in launch_tail
+    assert "pause" in launch_tail
+    assert "source-launcher-error.log" in (ROOT / "packaging" / "source_launch.pyw").read_text(encoding="utf-8").lower()
 
 
 def test_starter_probe_resolves_real_backend_and_lib_site_packages():
@@ -54,6 +75,65 @@ def test_starter_probe_resolves_real_backend_and_lib_site_packages():
     assert site_packages.is_dir()
     assert site_packages.name.lower() == "site-packages"
     assert site_packages.parent.name.lower() == "lib"
+
+
+def test_overlapping_starter_probes_resolve_backend_without_leftover_files():
+    assert os.name == "nt", "Concurrent production starter probes are Windows-specific."
+    starter = ROOT / "Iniciar TikReader.cmd"
+    runtime = ROOT / "runtime"
+    probe_pattern = "source-launch-probe-*"
+    before = {path.name for path in runtime.glob(probe_pattern)}
+    logs_root = runtime / "source-launcher-logs"
+    before_logs = {path.name for path in logs_root.glob("run-*")} if logs_root.is_dir() else set()
+    command = f'cmd.exe /d /c call "{starter.name}" --probe-environment'
+    processes = []
+    try:
+        for _ in range(2):
+            processes.append(subprocess.Popen(
+                command,
+                executable=os.environ.get("COMSPEC", "cmd.exe"),
+                cwd=ROOT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            ))
+
+        results = [process.communicate(timeout=30) for process in processes]
+        for process, (stdout, stderr) in zip(processes, results):
+            assert process.returncode == 0, stdout + stderr
+            values = {}
+            for line in stdout.splitlines():
+                if line.startswith("SOURCE_BACKEND_PYTHON="):
+                    values["backend"] = line.partition("=")[2].strip()
+                elif line.startswith("SOURCE_BACKEND_SITE_PACKAGES="):
+                    values["site_packages"] = line.partition("=")[2].strip()
+            assert Path(values["backend"]).is_file()
+            site_packages = Path(values["site_packages"])
+            assert site_packages.is_dir()
+            assert site_packages.name.lower() == "site-packages"
+            assert site_packages.parent.name.lower() == "lib"
+    finally:
+        for process in processes:
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
+
+    after = {path.name for path in runtime.glob(probe_pattern)}
+    assert after == before, f"Probe artifacts remained: {after - before}"
+    after_logs = {path.name for path in logs_root.glob("run-*")}
+    new_logs = after_logs - before_logs
+    assert len(new_logs) == 2, f"Expected two retained invocation logs, found {new_logs}"
+    assert all((logs_root / name / "launcher.log").is_file() for name in new_logs)
+    starter_text = starter.read_text(encoding="utf-8").lower()
+    assert "runtime\\launcher.log" not in starter_text
+    launch_command = next(line for line in starter_text.splitlines() if "start-process" in line)
+    assert "2>>" not in launch_command and ">>" not in launch_command
+    for fixed_name in (
+        "source-backend-path.tmp",
+        "source-python-candidates.tmp",
+        "source-site-packages.tmp",
+    ):
+        assert fixed_name not in starter_text
 
 
 def test_source_spec_bundles_ui_runtime_but_excludes_live_app_modules():
@@ -103,7 +183,7 @@ def test_source_bootstrap_runs_live_backend_as_child_and_returns_exit_code():
         expected_environment["TIKREADER_SOURCE_BACKEND_PYTHON"] = str(backend)
         expected_environment["TIKREADER_TEST_INHERITED"] = "preserved"
         process = Mock()
-        process.wait.return_value = 23
+        process.wait.return_value = 0
 
         with patch.dict(os.environ, expected_environment, clear=True), patch.object(
             namespace["subprocess"], "Popen", return_value=process
@@ -116,20 +196,68 @@ def test_source_bootstrap_runs_live_backend_as_child_and_returns_exit_code():
         assert command == [str(backend.resolve()), str(launcher.resolve())]
         assert options["cwd"] == source_root.resolve()
         assert options["env"]["TIKREADER_TEST_INHERITED"] == "preserved"
+        assert options["creationflags"] == namespace["_child_creation_flags"]()
         process.wait.assert_called_once_with()
-        assert exit_code == 23
+        assert exit_code == 0
 
         process.reset_mock()
         process.wait.return_value = 37
+        message_box = Mock()
+        fake_windll = SimpleNamespace(user32=SimpleNamespace(MessageBoxW=message_box))
         with patch.dict(os.environ, expected_environment, clear=True), patch.object(
             namespace["subprocess"], "Popen", return_value=process
-        ):
+        ), patch.object(namespace["ctypes"], "windll", fake_windll, create=True):
+            # The executable wrapper must propagate the backend result even
+            # while separately reporting its nonzero completion.
             try:
                 runpy.run_path(str(source), run_name="__main__")
             except SystemExit as exc:
                 assert exc.code == 37
             else:
                 raise AssertionError("The branded parent must propagate the backend exit code")
+        log_path = source_root / "runtime" / "source-launcher-error.log"
+        assert "37" in log_path.read_text(encoding="utf-8")
+        message_box.assert_called_once()
+
+
+def test_source_bootstrap_uses_platform_correct_no_console_flag():
+    namespace = runpy.run_path(str(ROOT / "packaging" / "source_launch.pyw"))
+    no_console = 0x08000000
+    with patch.object(namespace["subprocess"], "CREATE_NO_WINDOW", no_console, create=True):
+        assert namespace["_child_creation_flags"]("nt") == no_console
+        assert namespace["_child_creation_flags"]("posix") == 0
+
+
+def test_nonzero_backend_exit_is_logged_and_reported_to_gui():
+    source = ROOT / "packaging" / "source_launch.pyw"
+    namespace = runpy.run_path(str(source))
+    work_parent = ROOT / "runtime" / "source-launcher-work"
+    work_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=work_parent) as temporary:
+        source_root = Path(temporary)
+        launcher = source_root / "app" / "launcher.py"
+        launcher.parent.mkdir()
+        launcher.write_text("# failure fixture\n", encoding="utf-8")
+        backend = source_root / "python.exe"
+        backend.write_bytes(b"fake backend")
+        child = Mock()
+        child.wait.return_value = 17
+        message_box = Mock()
+        fake_windll = SimpleNamespace(user32=SimpleNamespace(MessageBoxW=message_box))
+        env = {
+            "TIKREADER_SOURCE_ROOT": str(source_root),
+            "TIKREADER_SOURCE_BACKEND_PYTHON": str(backend),
+        }
+        with patch.dict(os.environ, env, clear=True), patch.object(
+            namespace["subprocess"], "Popen", return_value=child
+        ), patch.object(namespace["ctypes"], "windll", fake_windll, create=True):
+            exit_code = namespace["main"]()
+
+        log_path = source_root / "runtime" / "source-launcher-error.log"
+        assert exit_code == 17
+        assert log_path.is_file()
+        assert "17" in log_path.read_text(encoding="utf-8")
+        message_box.assert_called_once()
 
 
 def test_source_spec_resolves_repo_root_from_packaging_spec_directory():
@@ -259,3 +387,103 @@ def test_build_helper_fails_visibly_without_backend_or_local_pyinstaller():
             assert "no python ui fallback" in str(exc).lower()
         else:
             raise AssertionError("Missing PyInstaller sources must stop launcher builds visibly")
+
+
+def test_build_helper_preserves_active_target_when_atomic_promotion_is_locked():
+    helper = runpy.run_path(str(ROOT / "tools" / "build_source_launcher.py"))
+    work_parent = ROOT / "runtime" / "source-launcher-work"
+    work_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=work_parent) as temporary:
+        root = Path(temporary)
+        target = root / "TikReader"
+        staged = root / "staged" / "TikReader"
+        (target / "_internal").mkdir(parents=True)
+        (target / "TikReader.exe").write_bytes(b"active executable")
+        (target / "_internal" / "libffi-8.dll").write_bytes(b"locked dll bytes")
+        (target / ".source-launcher.sha256").write_bytes(b"old fingerprint")
+        staged.mkdir(parents=True)
+        (staged / "TikReader.exe").write_bytes(b"new executable")
+        before = {path.relative_to(target): path.read_bytes() for path in target.rglob("*") if path.is_file()}
+        real_replace = helper["os"].replace
+
+        def reject_active_target(source, destination):
+            if Path(source) == target:
+                raise PermissionError("target is in use")
+            return real_replace(source, destination)
+
+        with patch.object(helper["os"], "replace", side_effect=reject_active_target):
+            try:
+                helper["_promote_staged_directory"](staged, target)
+            except RuntimeError as exc:
+                assert "close tikreader" in str(exc).lower()
+            else:
+                raise AssertionError("An active target must block promotion")
+
+        after = {path.relative_to(target): path.read_bytes() for path in target.rglob("*") if path.is_file()}
+        assert after == before
+        assert (staged / "TikReader.exe").read_bytes() == b"new executable"
+
+
+def test_build_helper_promotes_complete_staged_output():
+    helper = runpy.run_path(str(ROOT / "tools" / "build_source_launcher.py"))
+    work_parent = ROOT / "runtime" / "source-launcher-work"
+    work_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=work_parent) as temporary:
+        root = Path(temporary)
+        target = root / "TikReader"
+        staged = root / "staged" / "TikReader"
+        (target / "_internal").mkdir(parents=True)
+        (target / "TikReader.exe").write_bytes(b"old executable")
+        (target / "_internal" / "runtime.dll").write_bytes(b"old runtime")
+        staged.mkdir(parents=True)
+        (staged / "TikReader.exe").write_bytes(b"new executable")
+        (staged / "_internal").mkdir()
+        (staged / "_internal" / "runtime.dll").write_bytes(b"new runtime")
+        (staged / ".source-launcher.sha256").write_text("new fingerprint", encoding="ascii")
+
+        helper["_promote_staged_directory"](staged, target)
+
+        assert (target / "TikReader.exe").read_bytes() == b"new executable"
+        assert (target / "_internal" / "runtime.dll").read_bytes() == b"new runtime"
+        assert (target / ".source-launcher.sha256").read_text(encoding="ascii") == "new fingerprint"
+        assert not staged.exists()
+        assert not list(root.glob(".TikReader-backup-*"))
+
+
+def test_build_helper_retries_transient_rollback_failure_without_losing_target():
+    helper = runpy.run_path(str(ROOT / "tools" / "build_source_launcher.py"))
+    work_parent = ROOT / "runtime" / "source-launcher-work"
+    work_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=work_parent) as temporary:
+        root = Path(temporary)
+        target = root / "TikReader"
+        staged = root / "staged" / "TikReader"
+        target.mkdir(parents=True)
+        (target / "TikReader.exe").write_bytes(b"original executable")
+        (target / "_internal.dll").write_bytes(b"original runtime")
+        staged.mkdir(parents=True)
+        (staged / "TikReader.exe").write_bytes(b"candidate executable")
+        real_replace = helper["os"].replace
+        calls = 0
+
+        def fail_candidate_and_one_rollback(source, destination):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise OSError("temporary promotion failure")
+            if calls == 3:
+                raise OSError("temporary rollback failure")
+            return real_replace(source, destination)
+
+        with patch.object(helper["os"], "replace", side_effect=fail_candidate_and_one_rollback):
+            try:
+                helper["_promote_staged_directory"](staged, target)
+            except RuntimeError as exc:
+                assert "restored" in str(exc).lower()
+            else:
+                raise AssertionError("A failed promotion must report after restoring the previous target")
+
+        assert calls == 4
+        assert (target / "TikReader.exe").read_bytes() == b"original executable"
+        assert (target / "_internal.dll").read_bytes() == b"original runtime"
+        assert not list(root.glob(".TikReader-backup-*"))

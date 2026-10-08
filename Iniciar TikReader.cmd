@@ -5,11 +5,18 @@ title TikReader Beta
 
 set "RUNTIME_DIR=%~dp0runtime"
 set "SOURCE_LAUNCHER=%RUNTIME_DIR%\source-launcher\TikReader\TikReader.exe"
-set "BACKEND_PATH_FILE=%RUNTIME_DIR%\source-backend-path.tmp"
-set "BACKEND_CANDIDATES_FILE=%RUNTIME_DIR%\source-python-candidates.tmp"
-set "SITE_PACKAGES_PATH_FILE=%RUNTIME_DIR%\source-site-packages.tmp"
-set "LOGFILE=%RUNTIME_DIR%\launcher.log"
 if not exist "%RUNTIME_DIR%" mkdir "%RUNTIME_DIR%"
+set "STARTER_LOG_ROOT=%RUNTIME_DIR%\source-launcher-logs"
+if not exist "%STARTER_LOG_ROOT%" mkdir "%STARTER_LOG_ROOT%" >nul 2>nul
+if not exist "%STARTER_LOG_ROOT%\" goto StarterLogRootFailure
+set "STARTER_LOG_DIR="
+for /f "delims=" %%I in ('powershell.exe -NoProfile -NonInteractive -Command "[IO.Path]::GetRandomFileName()"') do set "STARTER_LOG_DIR=%STARTER_LOG_ROOT%\run-%%I"
+if not defined STARTER_LOG_DIR goto StarterLogDirFailure
+mkdir "!STARTER_LOG_DIR!" >nul 2>nul
+if errorlevel 1 goto StarterLogDirFailure
+set "LOGFILE=!STARTER_LOG_DIR!\launcher.log"
+set "TIKREADER_STARTER_LOG=!LOGFILE!"
+> "!LOGFILE!" echo [%date% %time%] TikReader source starter invocation
 
 if not exist "app\launcher.py" (
   echo ERROR: No se encontro app\launcher.py en el espacio de trabajo.
@@ -18,13 +25,27 @@ if not exist "app\launcher.py" (
   exit /b 1
 )
 
+set "PROBE_DIR="
+set "PROBE_ATTEMPTS=0"
+:CreateProbeDir
+set /a PROBE_ATTEMPTS+=1
+if !PROBE_ATTEMPTS! gtr 10 goto ProbeDirFailure
+set "PROBE_DIR=%RUNTIME_DIR%\source-launch-probe-%RANDOM%-%RANDOM%-%RANDOM%"
+if exist "!PROBE_DIR!" goto CreateProbeDir
+mkdir "!PROBE_DIR!" >nul 2>nul
+if errorlevel 1 goto CreateProbeDir
+set "BACKEND_PATH_FILE=!PROBE_DIR!\backend-path.tmp"
+set "BACKEND_CANDIDATES_FILE=!PROBE_DIR!\python-candidates.tmp"
+set "SITE_PACKAGES_PATH_FILE=!PROBE_DIR!\site-packages.tmp"
+set "PROBE_ERROR_FILE=!PROBE_DIR!\probe-errors.tmp"
+
 if exist ".venv\Scripts\python.exe" (
   set "TIKREADER_SOURCE_BACKEND_PYTHON=%CD%\.venv\Scripts\python.exe"
   echo Usando el entorno virtual .venv...
 ) else (
   where py >nul 2>nul
   if not errorlevel 1 (
-    py -3 -c "import sys; print(sys.executable)" > "%BACKEND_PATH_FILE%" 2>> "%LOGFILE%"
+    py -3 -c "import sys; print(sys.executable)" > "%BACKEND_PATH_FILE%" 2>> "%PROBE_ERROR_FILE%"
     if not errorlevel 1 set /p "TIKREADER_SOURCE_BACKEND_PYTHON=" < "%BACKEND_PATH_FILE%"
   )
   if not defined TIKREADER_SOURCE_BACKEND_PYTHON (
@@ -32,15 +53,15 @@ if exist ".venv\Scripts\python.exe" (
     if not errorlevel 1 (
       for /f "usebackq delims=" %%I in ("%BACKEND_CANDIDATES_FILE%") do (
         if not defined TIKREADER_SOURCE_BACKEND_PYTHON (
-          "%%I" -c "import sys; print(sys.executable)" > "%BACKEND_PATH_FILE%" 2>> "%LOGFILE%"
+          "%%I" -c "import sys; print(sys.executable)" > "%BACKEND_PATH_FILE%" 2>> "%PROBE_ERROR_FILE%"
           if not errorlevel 1 set /p "TIKREADER_SOURCE_BACKEND_PYTHON=" < "%BACKEND_PATH_FILE%"
         )
       )
     )
   )
-  if exist "%BACKEND_PATH_FILE%" del /q "%BACKEND_PATH_FILE%" >nul 2>nul
-  if exist "%BACKEND_CANDIDATES_FILE%" del /q "%BACKEND_CANDIDATES_FILE%" >nul 2>nul
   if not defined TIKREADER_SOURCE_BACKEND_PYTHON (
+    if exist "!PROBE_ERROR_FILE!" type "!PROBE_ERROR_FILE!"
+    call :CleanupProbeFiles
     echo ERROR: No se encontro Python para el backend. Crea .venv o instala Python.
     echo TikReader no se iniciara con un proceso de interfaz Python sin marca.
     pause
@@ -49,15 +70,16 @@ if exist ".venv\Scripts\python.exe" (
   echo Usando Python del sistema para el backend...
 )
 
-"!TIKREADER_SOURCE_BACKEND_PYTHON!" -c "import os, site; print(next((path for path in site.getsitepackages() if os.path.basename(os.path.normpath(path)).casefold() == 'site-packages' and os.path.isdir(path)), ''))" > "%SITE_PACKAGES_PATH_FILE%" 2>> "%LOGFILE%"
+"!TIKREADER_SOURCE_BACKEND_PYTHON!" -c "import os, site; print(next((path for path in site.getsitepackages() if os.path.basename(os.path.normpath(path)).casefold() == 'site-packages' and os.path.isdir(path)), ''))" > "%SITE_PACKAGES_PATH_FILE%" 2>> "%PROBE_ERROR_FILE%"
 if errorlevel 1 (
-  if exist "%SITE_PACKAGES_PATH_FILE%" del /q "%SITE_PACKAGES_PATH_FILE%" >nul 2>nul
+  if exist "!PROBE_ERROR_FILE!" type "!PROBE_ERROR_FILE!"
+  call :CleanupProbeFiles
   echo ERROR: No se pudo consultar el interprete seleccionado.
   pause
   exit /b 1
 )
 set /p "TIKREADER_SOURCE_BACKEND_SITE_PACKAGES=" < "%SITE_PACKAGES_PATH_FILE%"
-if exist "%SITE_PACKAGES_PATH_FILE%" del /q "%SITE_PACKAGES_PATH_FILE%" >nul 2>nul
+call :CleanupProbeFiles
 if not defined TIKREADER_SOURCE_BACKEND_SITE_PACKAGES (
   echo ERROR: No se pudieron localizar los paquetes del interprete seleccionado.
   pause
@@ -72,12 +94,13 @@ if /i "%~1"=="--probe-environment" (
   exit /b 0
 )
 
-echo [%date% %time%] Verificando el lanzador de origen >> "%LOGFILE%"
+echo [%date% %time%] Verificando el lanzador de origen >> "!LOGFILE!"
 
-"!TIKREADER_SOURCE_BACKEND_PYTHON!" "tools\build_source_launcher.py"
+"!TIKREADER_SOURCE_BACKEND_PYTHON!" "tools\build_source_launcher.py" >> "!LOGFILE!" 2>&1
 if errorlevel 1 (
+  type "!LOGFILE!"
   echo ERROR: No se pudo preparar el lanzador de TikReader.
-  echo Revisa el mensaje anterior y el registro: %LOGFILE%
+  echo Revisa el registro: !LOGFILE!
   pause
   exit /b 1
 )
@@ -87,13 +110,36 @@ if not exist "%SOURCE_LAUNCHER%" (
   exit /b 1
 )
 
-echo [%date% %time%] Iniciando TikReader.exe >> "%LOGFILE%"
-start "" /wait /b "%SOURCE_LAUNCHER%" 2>> "%LOGFILE%"
-set "EXITCODE=!errorlevel!"
-if not "!EXITCODE!"=="0" (
+echo [%date% %time%] Iniciando TikReader.exe >> "!LOGFILE!"
+set "TIKREADER_SOURCE_LAUNCHER=%SOURCE_LAUNCHER%"
+powershell.exe -NoProfile -NonInteractive -Command "$ErrorActionPreference='Stop'; try { $exe=[IO.Path]::GetFullPath($env:TIKREADER_SOURCE_LAUNCHER); $process=Start-Process -FilePath $exe -WorkingDirectory $env:TIKREADER_SOURCE_ROOT -PassThru -ErrorAction Stop; if ([IO.Path]::GetFullPath($process.Path) -ne $exe) { throw ('Unexpected process image: ' + $process.Path) }; Add-Content -LiteralPath $env:TIKREADER_STARTER_LOG -Value ('Started TikReader.exe PID ' + $process.Id); exit 0 } catch { $message='Could not start TikReader.exe: ' + $_.Exception.Message; try { Add-Content -LiteralPath $env:TIKREADER_STARTER_LOG -Value $message } catch {}; Write-Error $message; exit 1 }"
+if errorlevel 1 (
+  set "EXITCODE=!errorlevel!"
   echo.
-  echo ERROR: La aplicacion termino con codigo !EXITCODE!.
-  echo Revisa el registro: %LOGFILE%
+  echo ERROR: No se pudo iniciar TikReader.exe. Codigo !EXITCODE!.
+  type "!LOGFILE!"
+  echo Revisa el registro: !LOGFILE!
   pause
+  exit /b !EXITCODE!
 )
-exit /b !EXITCODE!
+exit /b 0
+
+:ProbeDirFailure
+echo ERROR: No se pudo crear una carpeta temporal unica para consultar Python.
+pause
+exit /b 1
+
+:CleanupProbeFiles
+if defined PROBE_DIR if exist "!PROBE_DIR!" rmdir /s /q "!PROBE_DIR!" >nul 2>nul
+set "PROBE_DIR="
+exit /b 0
+
+:StarterLogRootFailure
+echo ERROR: No se pudo crear el directorio de registros de TikReader.
+pause
+exit /b 1
+
+:StarterLogDirFailure
+echo ERROR: No se pudo crear un registro unico para esta ejecucion de TikReader.
+pause
+exit /b 1

@@ -18,6 +18,12 @@ def _required_path(name: str, *, directory: bool) -> Path:
     return path
 
 
+def _child_creation_flags(platform_name: str | None = None) -> int:
+    if (platform_name or os.name) == "nt":
+        return getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    return 0
+
+
 def main() -> int:
     source_root = _required_path("TIKREADER_SOURCE_ROOT", directory=True)
     backend_python = _required_path("TIKREADER_SOURCE_BACKEND_PYTHON", directory=False)
@@ -29,8 +35,14 @@ def main() -> int:
         [str(backend_python), str(launcher_file)],
         cwd=source_root,
         env=os.environ.copy(),
+        creationflags=_child_creation_flags(),
     )
     return_code = process.wait()
+    if return_code != 0:
+        _handle_startup_failure(
+            RuntimeError(f"Backend process exited with code {return_code}."),
+            f"Backend process exited with code {return_code}.\n",
+        )
     return return_code
 
 

@@ -25,7 +25,7 @@ The installer currently launches the embedded `pythonw.exe` with `desktop_launch
 ## Delivery
 
 - Strategy: `ask-on-risk`; selected chain strategy: `stacked-to-main` (existing choice for future independent PR slices).
-- Next work-unit/slice boundary: WTI-2's source-workflow launcher; do not create a PR or push as part of this task.
+- Next work-unit/slice boundary: WTI-3's source-workflow console behavior; do not create a PR or push as part of this task.
 - Forecast: approximately 627 authored changed lines, excluding generated artifacts; the existing `stacked-to-main` choice applies above the review slice budget.
 - Branch: `codex/priority-audit-fixes` (existing non-default working branch).
 
@@ -69,12 +69,31 @@ The installer currently launches the embedded `pythonw.exe` with `desktop_launch
   - Commit: `6ab6d3e` — `fix(launcher): brand source process tree`; documentation evidence is recorded in a follow-up commit.
   - RDD assessment: `disabled/unmanaged` (clone-local mode remains off; no native review started).
 
+- [x] **WTI-3 — Keep source-launch startup console-free and failures visible**
+  - Objective: ensure the normal source starter releases its batch console promptly while the branded parent runs the backend without a console window and still reports/persists backend failures.
+  - Route: delegated direct.
+  - Trigger: the behavior crosses the Windows starter, frozen parent process options, startup error handling, and focused tests.
+  - Acceptance criteria:
+    - Normal `Iniciar TikReader.cmd` startup returns after launching the GUI without waiting for its lifetime; probe/build failures remain visible and `--probe-environment` is unchanged.
+    - The branded shim starts selected backend Python with `subprocess.CREATE_NO_WINDOW` on Windows and `0` elsewhere.
+    - Nonzero backend completion is surfaced through a GUI error and persistent `runtime/source-launcher-error.log` entry.
+    - The `TikReader.exe` process-tree root remains branded, with no additional permanent launcher file.
+  - Checks:
+    - Observe RED for non-waiting CMD, platform flags, and failure reporting/persistence contracts before implementation.
+    - Focused source-launcher tests: latest 18/18 passed through the bundled Python runtime; command: direct `runpy` invocation of `tests/test_source_launcher.py`.
+    - Compile/parse Python files and spec; run scoped `git diff --check`.
+    - Parent performs runtime smoke and commits; no build, stage, or commit in this work unit.
+  - Evidence: New contracts observed RED at 9/14 before implementation, covering `/wait`, missing Windows creation flags, and absent child-failure reporting. The starter now exits promptly after a verified `Start-Process -PassThru` launch; the shim passes `CREATE_NO_WINDOW` on Windows and zero elsewhere, and nonzero child completion is logged and shown through the GUI. Parent runtime verification then exposed fixed shared discovery files causing concurrent CMD probes to report sharing violations and falsely claim Python was unavailable. Each invocation now atomically creates a randomized private runtime directory for discovery output and stderr, with cleanup on handled success/failure paths. A later independent check found the builder deleted the active onedir before building, allowing locked DLL failures to leave partial output. The helper now builds into a unique same-filesystem staging tree, serializes promotion, moves the old complete tree only after staging succeeds, and rolls back with bounded retries/fallback rename. Windows may rename an active canonical directory while retaining a byte-identical backup until the old process releases its file locks; no partial deletion occurred. The final shared-handle defect was the fixed starter log inherited by the GUI; logs are now collision-resistant per-invocation files and remain independently readable. Promotion and starter regressions observed RED before implementation. The final focused suite passed 18/18; Python compilation and scoped `git diff --check` passed. Exact normal-starter verification rebuilt/promoted the canonical launcher in 9.12 seconds, then CMD and PowerShell exited zero promptly after launching TikReader.exe. The branded tree reached health in 6.42 seconds, connected SocketIO, and stayed alive 12 seconds afterward. No owned `ConsoleWindowClass`, lingering CMD/PowerShell, or fresh shim error was observed; headless conhost processes had no visible windows. The unique starter log recorded the correct PID and remained readable while the GUI ran, and a concurrent real environment probe exited zero with empty stderr. Controlled nonzero-child verification persisted the error, displayed the GUI failure dialog, and exited nonzero without a visible console.
+  - Work-unit/slice boundary: independent correction after WTI-2; future PR slices retain the existing `stacked-to-main` strategy.
+  - Commit: pending work-unit commit; identity will be recorded in a documentation evidence update.
+
 ## Progress
 
 - Exploration completed: root cause verified in `packaging/TikReader.iss`; Qt window branding is already present in `app/desktop_window.py`.
 - WTI-1 is complete. The PyInstaller definition, frozen launcher bootstrap, installer shortcuts/post-install action, full onedir payload copy, focused contracts, successful Windows build, executable metadata, icon, and runtime process identity were verified. Pre-existing unrelated staged changes remain untouched.
 - WTI-2 is complete. The minimal branded parent owns the live Python launcher/backend process tree, the exact normal starter reached application health and SocketIO readiness, and the generated shim excludes Qt/backend packages while retaining TikReader metadata and icon resources.
+- WTI-3 is complete. The starter and its PowerShell helper exit promptly, backend Python has no visible console, concurrent probes/logs no longer collide, active launcher refresh is staged safely, and both success and failure paths were verified.
 
 ## Next Step
 
-No implementation work remains for this feature; no PR or push was requested.
+Create the WTI-3 work-unit commit and record its identity; no PR or push is requested.
