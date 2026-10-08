@@ -49,7 +49,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
     - Inactive remote-request IP keys are evicted and total state is bounded.
     - Focused route and IP-churn regression tests pass, or runner unavailability is recorded.
   - Checks: focused Python tests; structural CodeGraph/readback; `git diff --check`.
-  - Evidence: Added `build_studio_state` and used it from both routes; capped IP state at 1,000 entries and pruned expired per-IP timestamps before enforcing the unchanged 300/minute limit. Added route parity, churn, and threshold regressions. `py_compile` and `git diff --check` passed. Focused unittest collection was attempted with the bundled Python but is unavailable because Flask is missing (`ModuleNotFoundError: No module named 'flask'`). Implementation commit SHA will be recorded in the next task-document update; no unrelated paths staged.
+  - Evidence: Added `build_studio_state` and used it from both routes; capped IP state at 1,000 entries and pruned expired per-IP timestamps before enforcing the unchanged 300/minute limit. Added route parity, churn, and threshold regressions. `py_compile` and `git diff --check` passed. Focused unittest collection was attempted with the bundled Python but is unavailable because Flask is missing (`ModuleNotFoundError: No module named 'flask'`). Work-unit commit: `3ebb80c`; authored line count: 195 (includes the new task document); no unrelated paths staged.
 
 - [ ] **PAF-2 — Align overlay QA and accessible studio navigation**
   - Route: delegated direct.
@@ -88,5 +88,5 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 
 - Current task: PAF-2.
 - Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask).
-- Running authored-line count: 91 before this task-document update; final count to be reconciled from the work-unit diff.
+- Running authored-line count: 195 (PAF-1 work-unit commit).
 - Next step: align overlay QA with the Vite runtime and implement accessible studio pane navigation.
