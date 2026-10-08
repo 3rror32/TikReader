@@ -30,7 +30,7 @@ The installer currently launches the embedded `pythonw.exe` with `desktop_launch
 
 ## Tasks
 
-- [ ] **WTI-1 — Ship a branded Windows launcher executable**
+- [x] **WTI-1 — Ship a branded Windows launcher executable**
   - Route: delegated direct.
   - Trigger: the implementation requires coordinated non-trivial changes across the packaging definition, build script, installer configuration, and tests.
   - Acceptance criteria:
@@ -42,16 +42,16 @@ The installer currently launches the embedded `pythonw.exe` with `desktop_launch
     - RED observed for the new packaging regression before implementation.
     - `python -m pytest tests/test_windows_packaging.py -q`
     - Structural inspection of the PyInstaller and Inno Setup configuration.
-  - Evidence: the pre-change packaging contract failed because no PyInstaller spec existed; after implementation all four original focused contract checks passed when invoked directly. A follow-up semantic path test observed RED because the spec resolved ROOT to the parent of the repository, and an onedir-copy test observed RED because the copy function was absent. After correction, all six packaging contract checks passed when invoked directly. The PowerShell build script parsed cleanly and `git diff --check` passed. `python -m pytest tests/test_windows_packaging.py -q` could not run because the configured Python launcher was inaccessible and the available bundled Python has no pytest module. PyInstaller is not installed in the available Python environment, so no executable or FileVersionInfo values were produced; no dependencies were installed. Implementation, tests, and the newly tracked feature document in commit `d44bc66` total 226 authored changed lines (221 insertions plus 5 deletions).
-  - Runtime harness: unavailable; PyInstaller is not installed, so the branded executable could not be built or launched.
-  - Commit: `d44bc66` — `fix(packaging): brand Windows launcher executable`. Only the seven authorized paths were committed; unrelated staged changes remain untouched.
+  - Evidence: the pre-change packaging contract failed because no PyInstaller spec existed. A follow-up semantic path test observed RED because the spec resolved ROOT outside the repository, and an onedir-copy test observed RED because the copy function was absent. After correction, all six packaging contract checks passed through the available Python runtime. PyInstaller 6.20.0 then built the launcher successfully with Python 3.13.15. Windows reported `ProductName=TikReader`, `FileDescription=TikReader`, `OriginalFilename=TikReader.exe`, and version `1.0.0.8`; the extracted executable icon matched the TikReader `TR` icon. The PowerShell build script parsed cleanly and `git diff --check` passed. `pytest` remained unavailable, so the six plain assertion tests were invoked directly. The complete candidate totals 295 authored changed lines (290 insertions plus 5 deletions).
+  - Runtime harness: a temporary assembled payload launched the generated executable offscreen. After eight seconds the process remained active as `TikReader.exe` from the generated path, with no Python child process observed; the exact verification process was then stopped.
+  - Commits: `d44bc66` — `fix(packaging): brand Windows launcher executable`; `b8ef007` — `fix(packaging): resolve launcher distribution paths`; documentation evidence commits `5dad3d8` and `4ab855a`. Only authorized paths were committed; unrelated staged changes remain untouched.
   - RDD assessment: disabled/unmanaged (clone-local mode reported off; no native review started).
 
 ## Progress
 
 - Exploration completed: root cause verified in `packaging/TikReader.iss`; Qt window branding is already present in `app/desktop_window.py`.
-- WTI-1 implementation is present in the PyInstaller definition, frozen launcher bootstrap, installer shortcuts/post-install action, and focused packaging contract tests. The follow-up correction fixes spec-root resolution and copies the full PyInstaller onedir distribution, including `_internal`, into the payload. Acceptance remains open until the Windows build runs and its executable metadata and runtime behavior can be observed. The authorized files are committed; pre-existing unrelated staged changes remain untouched.
+- WTI-1 is complete. The PyInstaller definition, frozen launcher bootstrap, installer shortcuts/post-install action, full onedir payload copy, focused contracts, successful Windows build, executable metadata, icon, and runtime process identity were verified. Pre-existing unrelated staged changes remain untouched.
 
 ## Next Step
 
-Run the packaging tests and PyInstaller build on a Python 3.13 build environment with PyInstaller available, inspect the resulting executable's version metadata and runtime behavior, then close WTI-1 and record verification evidence.
+Rebuild and distribute the installer through the project's normal release process when the user chooses to publish this change.
