@@ -3,9 +3,13 @@ window.TikReaderTranslations = (() => {
   const rows = `
 Control en directo|Live controls|Contrôle en direct
 Apariencia del overlay|Overlay appearance|Apparence de l’overlay
-Movimiento suave del menú|Smooth menu motion|Mouvement fluide du menu
-Transiciones breves y desplazamiento guiado.|Brief transitions and guided scrolling.|Transitions brèves et défilement guidé.
-Movimiento del menú desactivado.|Menu motion disabled.|Mouvement du menu désactivé.
+Movimiento de la interfaz|Interface motion|Mouvement de l’interface
+Reducido|Reduced|Réduit
+Sutil|Subtle|Subtil
+Expresivo|Expressive|Expressif
+Transiciones breves y reacciones suaves.|Brief transitions and gentle reactions.|Transitions brèves et réactions douces.
+Movimiento reducido en toda la interfaz.|Reduced motion throughout the interface.|Mouvement réduit dans toute l’interface.
+Movimiento más visible, sin animación decorativa constante.|More visible motion, without constant decorative animation.|Mouvement plus visible, sans animation décorative constante.
 Windows solicita movimiento reducido; TikReader lo respetará.|Windows requests reduced motion; TikReader will respect it.|Windows demande des mouvements réduits ; TikReader respectera ce réglage.
 ACCESOS RÁPIDOS|QUICK ACCESS|ACCÈS RAPIDES
 Recientes|Recent|Récents
@@ -18,7 +22,61 @@ Avisos en esta computadora|Alerts on this computer|Notifications sur cet ordinat
 Diseño de alertas para la transmisión|Stream alert design|Conception des alertes du direct
 Activación de alertas para la transmisión|Stream alert activation|Activation des alertes du direct
 Configurar alertas|Configure alerts|Configurer les alertes
+Elige dónde quieres recibir las alertas: en tu transmisión o en esta computadora.|Choose where to receive alerts: on your stream or on this computer.|Choisissez où recevoir les alertes : dans votre direct ou sur cet ordinateur.
+Diseña, prueba y activa los avisos de tu LIVE.|Design, test, and enable your LIVE alerts.|Concevez, testez et activez les alertes de votre LIVE.
+Preparación de la transmisión|Stream readiness|Préparation du direct
+ESTADO DEL LIVE|LIVE STATUS|ÉTAT DU LIVE
+Listo para emitir|Ready to go live|Prêt à diffuser
+Falta conectar la fuente|Connect the source|Connectez la source
+Activa una alerta|Enable an alert|Activez une alerte
+Emisión pausada|Broadcast paused|Diffusion en pause
+Conexión LIVE|LIVE connection|Connexion LIVE
+Fuente de alertas|Alert source|Source d’alertes
+Alertas preparadas|Alerts ready|Alertes prêtes
+Comprobando…|Checking…|Vérification…
+Abierta|Open|Ouverte
+No detectada|Not detected|Non détectée
+Silenciadas|Muted|Désactivées
+Ninguna activa|None enabled|Aucune active
+LIVE conectado|LIVE connected|LIVE connecté
+LIVE sin conectar|LIVE disconnected|LIVE déconnecté
+Fuente abierta y recibiendo|Source open and receiving|Source ouverte et active
+Abre la fuente en tu programa de streaming|Open the source in your streaming software|Ouvrez la source dans votre logiciel de diffusion
+Ninguna alerta activa|No active alerts|Aucune alerte active
+Activar todas para este LIVE|Enable all for this LIVE|Tout activer pour ce LIVE
+Activar todas|Enable all|Tout activer
+Desactivar todas|Disable all|Tout désactiver
+Enviar prueba a la transmisión|Send test to stream|Envoyer un test au direct
+Probar en la transmisión|Test on stream|Tester sur le direct
+Prueba enviada a la fuente de transmisión.|Test sent to the stream source.|Test envoyé à la source du direct.
+Enviando prueba a la fuente de alertas…|Sending test to the alert source…|Envoi du test à la source d’alertes…
+OK · La prueba llegó a la fuente de alertas.|OK · The test reached the alert source.|OK · Le test est arrivé à la source d’alertes.
+Se activa cuando|Triggers when|Déclenchement
+Llega un regalo|A gift arrives|Un cadeau arrive
+Llegan likes|Likes arrive|Des J’aime arrivent
+Alguien sigue la cuenta|Someone follows the account|Quelqu’un suit le compte
+Alguien comparte el LIVE|Someone shares the LIVE|Quelqu’un partage le LIVE
+Alguien se suscribe|Someone subscribes|Quelqu’un s’abonne
+Regalo específico|Specific gift|Cadeau spécifique
+Valor mínimo en diamantes|Minimum diamond value|Valeur minimale en diamants
+Sonido personalizado|Custom sound|Son personnalisé
+Archivo de sonido MP3 o WAV|MP3 or WAV sound file|Fichier audio MP3 ou WAV
+Reproducir el audio del video|Play video audio|Lire l’audio de la vidéo
+Multimedia y sonido (opcional)|Media and sound (optional)|Médias et son (facultatif)
+Subir imagen, video o sonido (máximo 20 MB)|Upload image, video, or sound (20 MB maximum)|Importer une image, une vidéo ou un son (20 Mo maximum)
+Eliminar imagen o video|Delete image or video|Supprimer l’image ou la vidéo
+Eliminar sonido|Delete sound|Supprimer le son
+Variables disponibles: {usuario}, {evento}, {regalo}, {cantidad} y {diamantes}.|Available variables: {usuario}, {evento}, {regalo}, {cantidad}, and {diamantes}.|Variables disponibles : {usuario}, {evento}, {regalo}, {cantidad} et {diamantes}.
+Actualizar regalos|Refresh gifts|Actualiser les cadeaux
+Aún no hay alertas. Crea la primera para comenzar.|There are no alerts yet. Create your first one to get started.|Il n’y a pas encore d’alertes. Créez la première pour commencer.
+Inactiva|Inactive|Inactive
+Se guardará desactivada.|It will be saved disabled.|Elle sera enregistrée désactivée.
+Conectar con tu programa de streaming|Connect to your streaming software|Connecter à votre logiciel de diffusion
+Usa la URL como fuente de navegador vertical (1080 × 1920).|Use the URL as a vertical browser source (1080 × 1920).|Utilisez l’URL comme source de navigateur verticale (1080 × 1920).
 Muestra un mensaje y reproduce un sonido en esta computadora cuando llega un regalo. Para mostrar alertas en tu transmisión, usa el apartado de diseño de esta misma página.|Shows a message and plays a sound on this computer when a gift arrives. To show alerts on your stream, use the design section on this page.|Affiche un message et joue un son sur cet ordinateur à la réception d’un cadeau. Pour afficher des alertes en direct, utilisez la section de conception de cette page.
+Recibe aquí un aviso cuando llegue un regalo.|Get an alert here when a gift arrives.|Recevez ici une alerte à l’arrivée d’un cadeau.
+Aviso activo.|Alert enabled.|Alerte activée.
+Aviso desactivado.|Alert disabled.|Alerte désactivée.
 Requisito de hardware para voces RVC|Hardware requirement for RVC voices|Configuration matérielle requise pour les voix RVC
 Esta función requiere una tarjeta gráfica NVIDIA compatible con CUDA y memoria de video suficiente para el modelo. Esta versión no admite conversión con AMD, gráficos Intel ni solo CPU.|This feature requires a CUDA-compatible NVIDIA graphics card with enough video memory for the model. This version does not support conversion with AMD, Intel graphics, or CPU alone.|Cette fonction nécessite une carte graphique NVIDIA compatible CUDA avec suffisamment de mémoire vidéo pour le modèle. Cette version ne prend pas en charge la conversion avec AMD, les graphiques Intel ou le processeur seul.
 Probado con NVIDIA GeForce RTX 4070 Ti. Es una referencia de equipo verificado, no un requisito mínimo; el rendimiento depende de la GPU, del modelo y de otros programas abiertos.|Tested with NVIDIA GeForce RTX 4070 Ti. This is a verified hardware reference, not a minimum requirement; performance depends on the GPU, model, and other running programs.|Testé avec NVIDIA GeForce RTX 4070 Ti. Il s’agit d’une référence matérielle vérifiée, pas d’une configuration minimale ; les performances dépendent du GPU, du modèle et des autres programmes ouverts.
@@ -139,9 +197,37 @@ CONTROL DE TIEMPO|TIME CONTROL|CONTRÔLE DU TEMPS
 Temporizador del directo|Live timer|Minuteur du direct
 Controla la cuenta atrás desde una sola pantalla. Los cambios también aparecen en el overlay interactivo.|Control the countdown from one screen. Changes also appear in the interactive overlay.|Contrôlez le compte à rebours depuis un seul écran. Les modifications apparaissent aussi dans l’overlay interactif.
 Opciones del temporizador|Timer options|Options du minuteur
+Control del temporizador|Timer control|Contrôle du minuteur
+Los cambios de tiempo se publican al instante; el diseño se aplica cuando guardas el estilo.|Time changes are published instantly; the design is applied when you save the style.|Les changements de temps sont publiés immédiatement ; le design s’applique lorsque vous enregistrez le style.
+Controla el tiempo, elige un diseño y guarda aquí todo lo que verá tu audiencia.|Control the time, choose a design, and save everything your audience will see here.|Contrôlez le temps, choisissez un design et enregistrez ici tout ce que votre public verra.
+El reloj superior es la única vista previa: contrólalo y personalízalo en el mismo lugar.|The upper clock is the only preview: control and customize it in the same place.|L’horloge supérieure est l’unique aperçu : contrôlez-la et personnalisez-la au même endroit.
+El reloj superior muestra el resultado. Guarda para publicarlo en tu overlay.|The upper clock shows the result. Save to publish it to your overlay.|L’horloge supérieure affiche le résultat. Enregistrez pour le publier dans votre overlay.
+Cambios sin guardar · el reloj superior es tu vista previa.|Unsaved changes · the upper clock is your preview.|Modifications non enregistrées · l’horloge supérieure est votre aperçu.
+Diseño aplicado al reloj superior. Guarda para enviarlo al programa de streaming.|Design applied to the upper clock. Save to send it to the streaming software.|Design appliqué à l’horloge supérieure. Enregistrez pour l’envoyer au logiciel de diffusion.
+Diseños del temporizador|Timer designs|Designs du minuteur
+Fuente para transmitir|Streaming source|Source de diffusion
+Color y tipografía|Color and typography|Couleur et typographie
+Fondo y encuadre|Background and framing|Arrière-plan et cadrage
+Fuente de los números|Number font|Police des chiffres
+Tamaño de los números|Number size|Taille des chiffres
+Tamaño del texto superior|Top label size|Taille du texte supérieur
+Texto superior|Top label|Texte supérieur
+Formato del reloj|Clock format|Format de l’horloge
+Automático|Automatic|Automatique
+Horas · minutos · segundos|Hours · minutes · seconds|Heures · minutes · secondes
+Minutos · segundos|Minutes · seconds|Minutes · secondes
+Movimiento al cambiar|Motion on change|Mouvement au changement
+Sin movimiento|No motion|Sans mouvement
+Pulso suave|Soft pulse|Impulsion douce
+Voltear cifras|Flip digits|Retourner les chiffres
+Velocidad del movimiento|Motion speed|Vitesse du mouvement
+Aviso visual en los últimos segundos|Visual warning in the final seconds|Alerte visuelle dans les dernières secondes
+Brillo de los números|Number glow|Lueur des chiffres
+Mostrar texto superior|Show top label|Afficher le texte supérieur
+Mostrar estado|Show status|Afficher l’état
 Configurar duración|Set duration|Configurer la durée
 Ver atajos|View shortcuts|Voir les raccourcis
-Abrir galería de overlays|Open overlay gallery|Ouvrir la galerie d’overlays
+Abrir herramientas de overlays|Open overlay tools|Ouvrir les outils d’overlays
 TIEMPO RESTANTE|TIME REMAINING|TEMPS RESTANT
 Duración inicial en segundos|Initial duration in seconds|Durée initiale en secondes
 Avisar con sonido al llegar a cero|Play a sound at zero|Émettre un son à zéro
@@ -809,6 +895,43 @@ Empieza por la apariencia, ajusta el espacio de trabajo y guarda perfiles sólo 
 Apariencia|Appearance|Apparence
 Cambia el carácter visual de toda la cabina. Se conserva en este navegador.|Change the look of the entire studio. Saved in this browser.|Changez l’apparence de tout le studio. Le choix est conservé dans ce navigateur.
 Cambiar skin|Change skin|Changer de thème
+Tema|Theme|Thème
+Aplicar tema|Apply theme|Appliquer le thème
+Cabinas recomendadas|Recommended studios|Studios recommandés
+Temas con personalidad|Signature themes|Thèmes de caractère
+Consola Broadcast|Broadcast Console|Console de diffusion
+Creator Pop|Creator Pop|Creator Pop
+Guion de Estudio|Studio Rundown|Conducteur de studio
+Terminal Retro · CRT|Retro Terminal · CRT|Terminal rétro · CRT
+Neumorfismo Cyberpunk|Cyberpunk Neumorphism|Néomorphisme cyberpunk
+Brutalismo Suizo|Swiss Brutalism|Brutalisme suisse
+Scrapbook Táctil|Tactile Scrapbook|Scrapbook tactile
+Más temas|More themes|Plus de thèmes
+Cabina · Oscura|Studio · Dark|Studio · Sombre
+Luz de estudio|Studio light|Lumière de studio
+Creativo|Creative|Créatif
+Entrada|Input|Entrée
+Ruta de señal|Signal path|Chemin du signal
+En espera|Waiting|En attente
+Recibiendo|Receiving|Réception
+Procesando|Processing|Traitement
+Preparado|Ready|Prêt
+Conectando|Connecting|Connexion
+Reconectando|Reconnecting|Reconnexion
+Sin conexión|Offline|Hors connexion
+Sin señal|No signal|Aucun signal
+Lista|Ready|Prête
+Apagada|Off|Désactivée
+Disponibles|Available|Disponibles
+Overlays|Overlays|Overlays
+Más|More|Plus
+Tu chat aparecerá aquí|Your chat will appear here|Votre chat apparaîtra ici
+Conecta un LIVE para ver y escuchar la conversación.|Connect a LIVE to see and hear the conversation.|Connectez un LIVE pour voir et écouter la conversation.
+Conectar un LIVE|Connect a LIVE|Connecter un LIVE
+Conexión lista|Connection ready|Connexion prête
+Los próximos comentarios se mostrarán en cuanto lleguen.|New comments will appear as soon as they arrive.|Les nouveaux commentaires apparaîtront dès leur arrivée.
+Los regalos aparecerán aquí con su remitente y cantidad cuando comience la actividad.|Gifts will appear here with their sender and amount when activity begins.|Les cadeaux apparaîtront ici avec leur expéditeur et leur quantité dès le début de l’activité.
+El ranking se formará automáticamente con los regalos de esta sesión.|The ranking will be built automatically from this session's gifts.|Le classement sera créé automatiquement à partir des cadeaux de cette session.
 Distribución del panel|Panel layout|Disposition du panneau
 Ajusta cuánto espacio ocupa el chat o activa una vista limpia para presentar.|Adjust the chat width or enable a clean presenter view.|Ajustez la largeur du chat ou activez une vue épurée pour la présentation.
 Ancho del chat|Chat width|Largeur du chat
@@ -935,6 +1058,68 @@ Tú decides cuándo conectar, qué leer en voz alta y cuándo borrar o conservar
 Servidor local · acceso restringido a este equipo por defecto|Local server · access restricted to this computer by default|Serveur local · accès limité à cet ordinateur par défaut
 Menú principal|Main menu|Menu principal
 Menú|Menu|Menu
+Preparar|Prepare|Préparer
+Subtítulos|Captions|Sous-titres
+Creadas|Created|Créées
+Filtros|Filters|Filtres
+Fuentes|Sources|Sources
+Escenas|Scenes|Scènes
+Emisión|Broadcast|Diffusion
+Multimedia|Media|Multimédia
+Personaje|Character|Personnage
+Atajos|Shortcuts|Raccourcis
+Puntos|Points|Points
+Reglas|Rules|Règles
+Diagnóstico|Diagnostics|Diagnostic
+Revisión|Check|Vérification
+Eventos|Events|Événements
+DIRECTO|LIVE|DIRECT
+Chat|Chat|Chat
+Producción|Production|Production
+Audio y multimedia|Audio and media|Audio et multimédia
+Interactividad|Interactivity|Interactivité
+Herramientas avanzadas|Advanced tools|Outils avancés
+TU ESPACIO|YOUR SPACE|VOTRE ESPACE
+Preguntas del chat|Chat questions|Questions du chat
+Lectura del chat|Chat reading|Lecture du chat
+Panel del moderador|Moderator panel|Panneau du modérateur
+Encuestas|Polls|Sondages
+Chatbot|Chatbot|Chatbot
+Fuentes para streaming|Streaming sources|Sources de diffusion
+Control de escenas|Scene control|Contrôle des scènes
+Emisión y privacidad|Broadcast and privacy|Diffusion et confidentialité
+Alertas de regalos|Gift alerts|Alertes de cadeaux
+Voz personalizada|Custom voice|Voix personnalisée
+Personaje de voz|Voice character|Personnage vocal
+Configurar personaje de voz|Set up voice character|Configurer le personnage vocal
+Spotify|Spotify|Spotify
+Sonidos|Sounds|Sons
+Videos|Videos|Vidéos
+Atajos para juegos|Game shortcuts|Raccourcis de jeu
+Minecraft|Minecraft|Minecraft
+Automatizaciones|Automations|Automatisations
+Reglas de eventos|Event rules|Règles d’événements
+Streamer.bot|Streamer.bot|Streamer.bot
+Simulador|Simulator|Simulateur
+Revisión antes del directo|Pre-stream check|Vérification avant le direct
+Registro de eventos|Event log|Journal des événements
+Estudio del creador|Creator studio|Studio du créateur
+Preparar directo|Prepare live|Préparer le direct
+Canales externos|External channels|Chaînes externes
+Credenciales de canales|Channel credentials|Identifiants des chaînes
+Pruebas y diagnóstico|Testing and diagnostics|Tests et diagnostic
+Buscar herramienta|Search tools|Rechercher des outils
+Buscar herramienta…|Search tools…|Rechercher des outils…
+Resultados de herramientas|Tool results|Résultats des outils
+No se encontraron herramientas.|No tools found.|Aucun outil trouvé.
+Directo|Live|Direct
+Tu espacio|Your space|Votre espace
+Sistema|System|Système
+Sesiones|Sessions|Sessions
+Ajustes|Settings|Réglages
+Accesos rápidos|Quick access|Accès rapides
+Información de la aplicación|Application information|Informations sur l’application
+Completo|Full|Complet
 Transmisión en vivo|Live stream|Diffusion en direct
 En vivo: pausar animación|Live: pause animation|En direct : suspendre l’animation
 En vivo: activar animación|Live: enable animation|En direct : activer l’animation
@@ -971,12 +1156,12 @@ SISTEMA|SYSTEM|SYSTÈME
 VOZ Y EFECTOS|VOICE AND EFFECTS|VOIX ET EFFETS
 Pausa de seguridad|Safety pause|Pause de sécurité
 Reanudar voz y efectos|Resume voice and effects|Reprendre la voix et les effets
+En pausa · Reanudar|Paused · Resume|En pause · Reprendre
 Más opciones|More options|Plus d’options
 Última sesión|Last session|Dernière session
 Sin datos todavía|No data yet|Pas encore de données
 Los valores visibles pertenecen a la última sesión recibida.|Visible values belong to the last received session.|Les valeurs affichées proviennent de la dernière session reçue.
 Las métricas aparecerán al recibir actividad de TikTok.|Metrics will appear when TikTok activity is received.|Les statistiques apparaîtront dès réception d’activité TikTok.
-Galería de overlays|Overlay gallery|Galerie d’overlays
 Contraer menú|Collapse menu|Réduire le menu
 Expandir menú|Expand menu|Développer le menu
 Notificaciones|Notifications|Notifications
@@ -1261,6 +1446,21 @@ Abre más acciones para este comentario, como marcar un momento o traducir.|Open
 Color de la burbuja|Bubble color|Couleur de la bulle
 Color del reflejo|Reflection color|Couleur du reflet
 Burbujas transparentes con cuerpo y reflejo configurables. Combina dos colores y revisa el resultado en la vista previa.|Transparent bubbles with configurable body and reflection. Combine two colors and check the result in the preview.|Bulles transparentes avec corps et reflet configurables. Combinez deux couleurs et vérifiez le résultat dans l’aperçu.
+Pausar voz y efectos|Pause voice and effects|Mettre en pause la voix et les effets
+Todo en pausa · voz, efectos y overlays ocultos.|Everything paused · voice, effects, and overlays hidden.|Tout est en pause · voix, effets et overlays masqués.
+Apoyar el proyecto|Support the project|Soutenir le projet
+Leer comentarios|Read comments|Lire les commentaires
+Saludar participantes|Greet participants|Saluer les participants
+Leer regalos|Read gifts|Lire les cadeaux
+Abrir más herramientas|Open more tools|Ouvrir plus d’outils
+Cerrar menú|Close menu|Fermer le menu
+Temas recomendados|Recommended themes|Thèmes recommandés
+Cabina oscura|Dark studio|Studio sombre
+Máximo contraste para operar un LIVE.|Maximum contrast for operating a LIVE.|Contraste maximal pour gérer un LIVE.
+Superficie clara para espacios iluminados.|Light surface for bright rooms.|Surface claire pour les espaces lumineux.
+Color suave para una cabina más expresiva.|Soft color for a more expressive studio.|Couleurs douces pour un studio plus expressif.
+Ver todos los temas|View all themes|Voir tous les thèmes
+Explora las cabinas de personalidad y los estilos heredados.|Explore signature studios and legacy styles.|Explorez les studios de caractère et les styles hérités.
 `.trim().split('\n').map(line => line.split('|'));
   const en = Object.create(null), fr = Object.create(null);
   for (const [source, english, french] of rows) { en[source] = english; fr[source] = french; }
@@ -1274,6 +1474,35 @@ Burbujas transparentes con cuerpo y reflejo configurables. Combina dos colores y
     fr['Skin actual: ' + skin + '.'] = 'Thème actuel : ' + skin + '.';
     en['Skin ' + skin + ' aplicada.'] = 'Skin ' + skin + ' applied.';
     fr['Skin ' + skin + ' aplicada.'] = 'Thème ' + skin + ' appliqué.';
+  }
+  for (const [theme, english, french] of [
+    ['Consola Broadcast', 'Broadcast Console', 'Console de diffusion'],
+    ['Creator Pop', 'Creator Pop', 'Creator Pop'],
+    ['Guion de Estudio', 'Studio Rundown', 'Conducteur de studio'],
+    ['Terminal Retro · CRT', 'Retro Terminal · CRT', 'Terminal rétro · CRT'],
+    ['Neumorfismo Cyberpunk', 'Cyberpunk Neumorphism', 'Néomorphisme cyberpunk'],
+    ['Brutalismo Suizo', 'Swiss Brutalism', 'Brutalisme suisse'],
+    ['Scrapbook Táctil', 'Tactile Scrapbook', 'Scrapbook tactile'],
+    ['Cabina · Oscura', 'Studio · Dark', 'Studio · Sombre'],
+    ['Luz de estudio', 'Studio light', 'Lumière de studio'],
+    ['Creativo', 'Creative', 'Créatif'],
+    ['Kawai', 'Kawai', 'Kawai'],
+    ['Dark', 'Dark', 'Sombre'],
+    ['Dracula', 'Dracula', 'Dracula'],
+    ['Ice', 'Ice', 'Glace'],
+    ['One Dark Pro', 'One Dark Pro', 'One Dark Pro'],
+    ['GitHub Dark', 'GitHub Dark', 'GitHub sombre'],
+    ['Monokai', 'Monokai', 'Monokai'],
+    ['Glass', 'Glass', 'Verre'],
+    ['Aetheria', 'Aetheria', 'Aetheria'],
+    ['Cloudfoam', 'Cloudfoam', 'Cloudfoam'],
+    ['Monolith', 'Monolith', 'Monolith'],
+    ['ChromaPulse', 'ChromaPulse', 'ChromaPulse'],
+  ]) {
+    en['Tema actual: ' + theme + '.'] = 'Current theme: ' + english + '.';
+    fr['Tema actual: ' + theme + '.'] = 'Thème actuel : ' + french + '.';
+    en['Tema ' + theme + ' aplicado.'] = 'Theme ' + english + ' applied.';
+    fr['Tema ' + theme + ' aplicado.'] = 'Thème ' + french + ' appliqué.';
   }
   return {en, fr};
 })();

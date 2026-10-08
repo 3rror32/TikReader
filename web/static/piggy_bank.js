@@ -1,29 +1,84 @@
 (() => {
-  const markup = `<div class="piggy-fill" aria-hidden="true"></div><img class="piggy-glass" src="/static/piggy-bank-glass.png" alt="Alcancía de cochito de cristal"><span class="piggy-slot" aria-hidden="true"></span>`;
+  const markup = `<img class="piggy-custom-image" alt="" aria-hidden="true"><div class="piggy-fill" aria-hidden="true"></div><img class="piggy-glass" src="/static/piggy-bank-glass.png" alt="Alcancía de cochito de cristal"><span class="piggy-slot" aria-hidden="true"></span>`;
   const models={
     cochito:{label:'Cochito',src:'/static/piggy-bank-glass.png',area:[0,0,0,100],slot:[44,16]},
     cochita:{label:'Cochita',src:'/static/banks/cochita.png?v=2',area:[0,0,0,100],slot:[40,23]},
     pato:{label:'Pato',src:'/static/banks/pato.png',area:[0,0,0,100],slot:[46,40]},
     oso:{label:'Oso',src:'/static/banks/oso.png',area:[0,0,0,100],slot:[54,41]},
     perro:{label:'Perro',src:'/static/banks/perro.png',area:[0,0,0,100],slot:[53,41]},
-    gato:{label:'Gato',src:'/static/banks/gato.png',area:[0,0,0,100],slot:[55,41]}
+    gato:{label:'Gato',src:'/static/banks/gato.png',area:[0,0,0,100],slot:[55,41]},
+    custom:{label:'Personalizada',src:'',area:[0,0,0,100],slot:[50,16]}
   };
   let customShapes={};
-  const shapeFor=key=>customShapes[key]||{points:window.BankShapes[key],slot:models[key].slot};
+  const shapeFor=key=>customShapes[key]||{points:window.BankShapes[key]||window.BankShapes.cochito,slot:models[key].slot};
+  const assetId=value=>typeof value==='string'&&/^[a-f0-9]{32}\.(?:png|jpg|webp)$/.test(value)&&!/[\r\n]/.test(value);
+  const percent=(value,fallback)=>Number.isFinite(Number(value))&&Number(value)>=0&&Number(value)<=100?Number(value):fallback;
   const contourFor=(key,w,h)=>(shapeFor(key).points||[]).map(([x,y])=>[x*w/100,y*h/100]);
   function fitWorld(world,key,w,h){world.width=w;world.height=h;world.contour=contourFor(key,w,h);if(!world.contour.length)delete world.contour;}
   const glassImages=new Map();
-  function prepare(pig,key='cochito') {
-    key=Object.hasOwn(models,key)?key:'cochito';
+  const customImageSizes=new Map();
+  function prepare(pig,key='cochito',options={}) {
+    const custom=key==='custom'&&assetId(options.custom_bank_asset);
+    key=custom?'custom':Object.hasOwn(models,key)&&key!=='custom'?key:'cochito';
     const shape=shapeFor(key),revision=JSON.stringify(shape);
-    if(pig.dataset.bank===key&&pig.dataset.shape===revision)return;
+    const position={x:percent(options.bank_position?.x,50),y:percent(options.bank_position?.y,50)};
+    const entry={x:percent(options.entry_point?.x,shape.slot[0]),y:percent(options.entry_point?.y,shape.slot[1])};
+    const scale=Number.isFinite(Number(options.bank_scale))&&Number(options.bank_scale)>=25&&Number(options.bank_scale)<=200?Number(options.bank_scale):100;
+    const customRevision=custom?JSON.stringify([options.custom_bank_asset,position,entry,scale]):'';
+    if(pig.dataset.bank===key&&pig.dataset.shape===revision&&pig.dataset.bankScale===String(scale)&&pig.dataset.customRevision===customRevision)return;
     pig.dataset.shape=revision;
-    pig.dataset.bank=key;const model=models[key];
+    pig.dataset.bank=key;pig.dataset.customRevision=customRevision;const model=models[key];
+    pig.classList.toggle('is-custom-bank',custom);
+    const customImage=pig.querySelector('.piggy-custom-image'),selectedImage=pig.querySelector('.piggy-glass');
+    if(custom){
+      pig.dataset.customAsset=options.custom_bank_asset;
+      customImage.style.display='block';
+      selectedImage.style.display='none';
+      const src=`/broadcast/bank-assets/${options.custom_bank_asset}`;
+      if(customImage.dataset.asset!==options.custom_bank_asset){
+        customImage.dataset.asset=options.custom_bank_asset;
+        customImage.onload=()=>{
+          if(customImage.dataset.asset!==options.custom_bank_asset||pig.dataset.bank!=='custom'||pig.dataset.customAsset!==options.custom_bank_asset)return;
+          if(customImage.naturalWidth&&customImage.naturalHeight){
+            const dimensions=[customImage.naturalWidth,customImage.naturalHeight];
+            customImageSizes.set(options.custom_bank_asset,dimensions);
+            pig.style.setProperty('aspect-ratio',`${dimensions[0]} / ${dimensions[1]}`,'important');
+          }
+        };
+        customImage.onerror=()=>{if(customImage.dataset.asset===options.custom_bank_asset)customImage.style.display='none';};
+        customImage.src=src;
+      }
+      const dimensions=customImageSizes.get(options.custom_bank_asset)||
+        (customImage.dataset.asset===options.custom_bank_asset&&customImage.naturalWidth&&customImage.naturalHeight?[customImage.naturalWidth,customImage.naturalHeight]:null);
+      pig.style.setProperty('aspect-ratio',dimensions?`${dimensions[0]} / ${dimensions[1]}`:'1 / 1','important');
+      pig.dataset.bankScale=String(scale);
+      pig.style.setProperty('left',`${position.x}%`,'important');pig.style.setProperty('top',`${position.y}%`,'important');
+      pig.style.setProperty('bottom','auto','important');pig.style.setProperty('width','min(82vw,720px)','important');
+      pig.style.setProperty('transform',`translate(-50%, -50%) scale(${scale/100})`,'important');
+      ['left','right','bottom','height'].forEach(part=>pig.style.removeProperty(`--bank-${part}`));
+    }else{
+      pig.dataset.customAsset='';
+      customImage.style.display='none';selectedImage.style.removeProperty('display');
+      ['left','top','bottom','width','aspect-ratio'].forEach(part=>pig.style.removeProperty(part));
+      pig.dataset.bankScale=String(scale);
+      pig.style.setProperty('transform',`translateX(-50%) scale(${scale/100})`,'important');
+    }
     pig.querySelector('.piggy-fill').style.clipPath='polygon('+shape.points.map(p=>p.join('% ')+'%').join(',')+')';
     pig.classList.toggle('bank-variant',key!=='cochito');
     ['left','right','bottom','height'].forEach((part,i)=>pig.style.setProperty('--bank-'+part,model.area[i]+'%'));
-    pig.style.setProperty('--bank-slot-x',shape.slot[0]+'%');pig.style.setProperty('--bank-slot-y',shape.slot[1]+'%');
-    const selectedImage=pig.querySelector('.piggy-glass');selectedImage.classList.remove('is-ready');selectedImage.alt='Alcancía de cristal: '+model.label;
+    if(custom){
+      const fill=pig.querySelector('.piggy-fill');
+      ['left','right','bottom','height'].forEach((part,index)=>fill.style.setProperty(part,['0%','0%','0%','100%'][index],'important'));
+      const slot=pig.querySelector('.piggy-slot');slot.style.setProperty('left',`${entry.x}%`,'important');slot.style.setProperty('top',`${entry.y}%`,'important');
+      slot.style.setProperty('width','14%','important');
+    }else{
+      const fill=pig.querySelector('.piggy-fill'),slot=pig.querySelector('.piggy-slot');
+      ['left','right','bottom','height'].forEach(part=>fill.style.removeProperty(part));
+      ['left','top','width'].forEach(part=>slot.style.removeProperty(part));
+      pig.style.setProperty('--bank-slot-x',shape.slot[0]+'%');pig.style.setProperty('--bank-slot-y',shape.slot[1]+'%');
+      selectedImage.classList.remove('is-ready');selectedImage.alt='Alcancía de cristal: '+model.label;
+    }
+    if(!custom){
     let glassImage=glassImages.get(key);
     // The original photo has a black backdrop. Render its glass highlights
     // with alpha so gifts and the broadcast remain visible through the pig.
@@ -53,6 +108,7 @@
     const img = selectedImage;
     glassImage.then(src => {if(pig.dataset.bank!==key)return;img.src = src; img.classList.add('is-ready');})
       .catch(() => {if(pig.dataset.bank!==key)return;img.src=model.src;img.style.mixBlendMode='screen';img.classList.add('is-ready');});
+    }
     requestAnimationFrame(()=>{
       const fill=pig.querySelector('.piggy-fill'),world=piles.get(fill);
       if(!world||!world.width||!world.height||!fill.clientWidth)return;
@@ -123,8 +179,9 @@
     const diameter=giftDiameter(size,world.width,world.height);
     const r=diameter*.43;
     const slot=pig.querySelector('.piggy-slot').getBoundingClientRect(),rect=fill.getBoundingClientRect();
-    const x=Math.max(r,Math.min(world.width-r,slot.left+slot.width/2-rect.left));
-    const b={node:token,id:event.id,x,y:slot.top-rect.top+r,r,size:diameter,vx:(Math.random()-.5)*60,vy:12,angle:Math.random()*80-40,spin:matchMedia('(prefers-reduced-motion: reduce)').matches?0:(Math.random()-.5)*90};
+    const transformScale=Math.max(.25,Math.min(2,Number(pig.dataset.bankScale)/100||1));
+    const x=Math.max(r,Math.min(world.width-r,(slot.left+slot.width/2-rect.left)/transformScale));
+    const b={node:token,id:event.id,x,y:(slot.top-rect.top)/transformScale+r,r,size:diameter,vx:(Math.random()-.5)*60,vy:12,angle:Math.random()*80-40,spin:matchMedia('(prefers-reduced-motion: reduce)').matches?0:(Math.random()-.5)*90};
     token.classList.add('settled');
     Object.assign(token.style,{left:'0',top:'0',bottom:'auto',width:diameter+'px',height:diameter+'px',opacity:'1'});
     token.style.setProperty('--drop-size',diameter+'px');fill.append(token);world.bodies.push(b);
@@ -162,18 +219,22 @@
   }
   function drop({token,stage,pig,slot,event={},duration,onDeposit}) {
     const size=token.getBoundingClientRect().width,stageRect=stage.getBoundingClientRect();
-    const slotRect=slot.getBoundingClientRect(),fill=pig.querySelector('.piggy-fill').getBoundingClientRect();
+    const slotRect=slot.getBoundingClientRect(),fill=pig.querySelector('.piggy-fill');
     const drift=Number(event.drift)||0, x=slotRect.left-stageRect.left+slotRect.width/2-size/2;
     const entry=slotRect.top-stageRect.top, slotY=slotRect.top-stageRect.top-size/2;
     const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const scale=giftDiameter(size,fill.width,fill.height)/size;
+    const isRose=event.gift_id?['5655','observed:rose'].includes(String(event.gift_id)):giftName(event.gift)==='rose';
+    const bankScale=Math.max(.25,Math.min(2,Number(pig.dataset.bankScale)/100||1));
+    const scale=giftDiameter(size,fill.clientWidth,fill.clientHeight)/size*bankScale;
     const angle=reduced?0:Math.random()*80-40;
-    const fallMs=Math.max(1500,Math.min(12000,Number(duration)||4200));
+    const fallMs=reduced&&isRose?320:Math.max(1500,Math.min(12000,Number(duration)||4200));
+    token.classList.toggle('rose-drop',isRose&&!reduced);
+    if(isRose&&!reduced)token.style.setProperty('--rose-flight',`${fallMs}ms`);
     token.dataset.fallSeconds=String(fallMs/1000);
     token.style.left=token.style.top='0';
     // Fixed half-second acceleration/deceleration; only the cruise changes
     // with the duration. Integrating velocity avoids a jump between phases.
-    const easeMs=500, travelTime=fallMs-easeMs;
+    const easeMs=reduced&&isRose?Math.min(500,fallMs*.2):500, travelTime=fallMs-easeMs;
     const progressAt=t=>t<easeMs ? t*t/(2*easeMs*travelTime)
       : t>fallMs-easeMs ? 1-(fallMs-t)**2/(2*easeMs*travelTime)
       : (t-easeMs/2)/travelTime;
@@ -189,7 +250,10 @@
       const p=progressAt(t),end=path.findIndex(point=>point.p>=p);
       const b=path[Math.max(1,end)],a=path[Math.max(1,end)-1];
       const fraction=(p-a.p)/(b.p-a.p),lerp=key=>a[key]+(b[key]-a[key])*fraction;
-      return {transform:`translate(${lerp('x')}px,${lerp('y')}px) rotate(${lerp('a')}deg) scale(${lerp('s')})`,
+      const x=isRose&&!reduced?lerp('x')+Math.sin(p*Math.PI*2)*size*.18:lerp('x');
+      const y=isRose&&!reduced?lerp('y')-Math.sin(p*Math.PI)*size*.72:lerp('y');
+      const angle=isRose&&!reduced?lerp('a')+Math.sin(p*Math.PI*2)*18:lerp('a');
+      return {transform:`translate(${x}px,${y}px) rotate(${angle}deg) scale(${lerp('s')})`,
         opacity:Math.min(1,t/easeMs),offset:t/fallMs};
     });
     const motion=token.animate(frames,{duration:fallMs,easing:'linear',fill:'forwards'});

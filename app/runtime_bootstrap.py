@@ -3,6 +3,7 @@ from animation_studio import AnimationStudio
 from chatbot import Chatbot
 from core_routes import register_core_routes
 from creator_suite import CreatorSuite
+from custom_overlays import CustomOverlays
 from emoji_overlay import EmojiOverlay
 from game_hotkeys import GameHotkeys
 from interactivity import Interactivity
@@ -37,6 +38,7 @@ def register_runtime_services(app, runtime, project_root, config, metrics):
         return service
 
     add("production", Production, runtime)
+    add("custom_overlays", CustomOverlays, runtime)
     add("microphone_captions", MicrophoneCaptions, runtime)
     add("points", PointsSystem, runtime)
     add("live_counters", LiveCounters, runtime)

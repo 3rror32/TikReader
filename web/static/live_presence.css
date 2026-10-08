@@ -43,6 +43,26 @@ body[data-live-state=reconnecting] #session-persistent,body[data-live-state=conn
 
 .voice-dock #voice-pause[aria-pressed=true]{background:#463820;color:#ffdc98;border-color:#ad8849}
 .voice-dock #voice-visible{flex:1 1 180px;min-width:0;text-align:right;line-height:1.5;overflow-wrap:anywhere}
+
+/* Keep the connection mark quiet until the pending state is actually active. */
+.session-panel #btn-connect.is-connecting .connect-button__spinner{
+  position:relative;width:20px;height:20px;flex:0 0 20px;border:1.5px solid #ffe0a1;
+  border-top-color:#fff7e6;border-radius:50%;animation:connect-orbit 1.1s linear infinite;
+}
+.session-panel #btn-connect.is-connecting .connect-button__spinner::before{
+  content:"";position:absolute;inset:-4px;border:1px solid #ffd17c;border-radius:50%;
+  opacity:.45;animation:connect-pulse 1.4s ease-in-out infinite alternate;
+}
+.session-panel #btn-connect.is-connecting .connect-button__spinner::after{
+  content:"";position:absolute;top:-4px;left:50%;width:5px;height:5px;border-radius:50%;
+  background:#fff1cc;box-shadow:0 0 7px #ffc66d;transform:translateX(-50%);
+}
+@keyframes connect-orbit{to{transform:rotate(360deg)}}
+@keyframes connect-pulse{to{transform:scale(1.14);opacity:.8}}
+@media(prefers-reduced-motion:reduce){
+  .session-panel #btn-connect.is-connecting .connect-button__spinner,
+  .session-panel #btn-connect.is-connecting .connect-button__spinner::before{animation:none!important}
+}
 .session-panel .stat-card[data-value-state=inactive]{opacity:.6;border-style:dashed}
 .session-panel .stat-card[data-value-state=pending] .stat-value{color:#97a9ba!important}
 .session-panel .stat-card[data-value-state=recovered]{border-style:dashed;border-color:#b69b62}

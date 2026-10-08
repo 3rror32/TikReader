@@ -3,9 +3,16 @@ import importlib.util
 import json
 import threading
 import time
+from urllib.parse import urlsplit
 
 from flask import jsonify, render_template, request
 from app_paths import microphone_speech_model
+
+
+AI_DEFAULT_INSTRUCTION = (
+    'Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. '
+    'Devuelve únicamente el subtítulo corregido.'
+)
 
 
 DEFAULTS = {
@@ -17,10 +24,17 @@ DEFAULTS = {
     'background': '#101925',
     'show_background': True,
     'pause_during_voice': True,
+    'noise_suppression': True,
+    'echo_cancellation': True,
+    'auto_gain_control': True,
     'font_family': 'system',
     'text_style': 'solid',
     'shadow': 'soft',
     'animation': 'fade',
+    'ai_enabled': False,
+    'ai_endpoint': 'https://api.openai.com/v1',
+    'ai_model': '',
+    'ai_instruction': AI_DEFAULT_INSTRUCTION,
 }
 
 LANGUAGES = {'es-MX', 'es-US', 'es-ES', 'en-US'}
@@ -75,11 +89,36 @@ def validate_settings(data, current=None):
             if len(value) != 7 or value[0] != '#' or any(c not in '0123456789abcdef' for c in value[1:]):
                 raise ValueError('Color inválido')
             out[key] = value
-    for key in ('show_background', 'pause_during_voice'):
+    for key in (
+        'show_background', 'pause_during_voice', 'noise_suppression',
+        'echo_cancellation', 'auto_gain_control', 'ai_enabled',
+    ):
         if key in data:
             if type(data[key]) is not bool:
                 raise ValueError('Opción inválida')
             out[key] = data[key]
+    if 'ai_endpoint' in data:
+        value = str(data['ai_endpoint'] or '').strip().rstrip('/')
+        parsed = urlsplit(value)
+        host = (parsed.hostname or '').casefold()
+        local_hosts = {'localhost', '127.0.0.1', '::1'}
+        if (not value or len(value) > 500 or parsed.username or parsed.password or parsed.query or parsed.fragment
+                or parsed.scheme not in {'http', 'https'} or not host
+                or (parsed.scheme == 'http' and host not in local_hosts)):
+            raise ValueError('Usa una dirección HTTPS válida o un servicio local')
+        out['ai_endpoint'] = value
+    if 'ai_model' in data:
+        value = str(data['ai_model'] or '').strip()
+        if len(value) > 120:
+            raise ValueError('El nombre del modelo es demasiado largo')
+        out['ai_model'] = value
+    if 'ai_instruction' in data:
+        value = ' '.join(str(data['ai_instruction'] or '').split())
+        if not 1 <= len(value) <= 500:
+            raise ValueError('La instrucción debe tener entre 1 y 500 caracteres')
+        out['ai_instruction'] = value
+    if out.get('ai_enabled') and not out.get('ai_model'):
+        raise ValueError('Indica el nombre del modelo antes de activar la IA externa')
     return out
 
 
@@ -100,6 +139,70 @@ class MicrophoneCaptions:
         self.recognizer_language = None
         self.engine_error = ''
         self.register(app)
+
+    def ai_key(self):
+        store = getattr(self.r, 'platform_credentials', None)
+        if not store:
+            return ''
+        try:
+            return str(store.get('caption_ai').get('api_key') or '')
+        except (OSError, RuntimeError, ValueError):
+            return ''
+
+    def ai_key_configured(self):
+        return bool(self.ai_key())
+
+    def save_ai_key(self, value):
+        store = getattr(self.r, 'platform_credentials', None)
+        if not store:
+            raise RuntimeError('El almacenamiento protegido todavía no está disponible')
+        value = str(value or '').strip()
+        if len(value) > 1000:
+            raise ValueError('La clave API es demasiado larga')
+        store.save('caption_ai', {'api_key': value})
+
+    def external_model_url(self, endpoint):
+        endpoint = str(endpoint or '').rstrip('/')
+        return endpoint if endpoint.endswith('/chat/completions') else endpoint + '/chat/completions'
+
+    def call_external_model(self, text, config=None, api_key=None, test=False):
+        import httpx
+        config = validate_settings(config or {}, self.settings)
+        model = config.get('ai_model', '').strip()
+        if not model:
+            raise ValueError('Indica el nombre del modelo')
+        source = 'Responde únicamente con la palabra OK.' if test else config['ai_instruction']
+        content = 'Prueba de conexión' if test else str(text or '').strip()[:300]
+        headers = {'Content-Type': 'application/json'}
+        api_key = self.ai_key() if api_key is None else str(api_key or '').strip()
+        if api_key:
+            headers['Authorization'] = f'Bearer {api_key}'
+        body = {
+            'model': model,
+            'messages': [
+                {'role': 'system', 'content': source},
+                {'role': 'user', 'content': content},
+            ],
+            'temperature': 0,
+            'max_tokens': 12 if test else 180,
+        }
+        try:
+            response = httpx.post(
+                self.external_model_url(config['ai_endpoint']), json=body, headers=headers,
+                timeout=httpx.Timeout(10), follow_redirects=False,
+            )
+        except httpx.RequestError as exc:
+            raise RuntimeError('No se pudo contactar al modelo externo') from exc
+        if response.status_code < 200 or response.status_code >= 300:
+            raise RuntimeError(f'El proveedor rechazó la conexión ({response.status_code})')
+        try:
+            result = response.json()['choices'][0]['message']['content']
+        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            raise RuntimeError('El proveedor respondió con un formato no compatible') from exc
+        result = ' '.join(str(result or '').split())[:300]
+        if not result:
+            raise RuntimeError('El modelo no devolvió texto')
+        return result
 
     def engine_status(self, language=None):
         language = language or self.settings['language']
@@ -207,7 +310,11 @@ class MicrophoneCaptions:
         text = (self.interim or self.text) if visible else ''
         if public and self.muted():
             text = ''
-        return {
+        visible_settings = dict(self.settings)
+        if public:
+            for key in ('ai_enabled', 'ai_endpoint', 'ai_model', 'ai_instruction'):
+                visible_settings.pop(key, None)
+        result = {
             'text': text,
             'final_text': self.text if visible else '',
             'interim': bool(forming and visible),
@@ -216,8 +323,11 @@ class MicrophoneCaptions:
             'updated_at': self.updated_at,
             'visible_until': self.visible_until if text else 0,
             'revision': self.revision,
-            'settings': dict(self.settings),
+            'settings': visible_settings,
         }
+        if not public:
+            result['ai_key_configured'] = self.ai_key_configured()
+        return result
 
     def emit(self):
         socketio = getattr(self.r, 'socketio', None)
@@ -298,6 +408,74 @@ class MicrophoneCaptions:
                 except RuntimeError as exc:
                     return jsonify(error=str(exc), **self.engine_status(language)), 503
                 return jsonify(ok=True, **result)
+
+        @app.route('/microphone-captions/ai', methods=['POST', 'DELETE'])
+        def microphone_caption_ai():
+            production = getattr(self.r, 'production', None)
+            local_check = getattr(production, 'local', None)
+            if callable(local_check) and not local_check():
+                return jsonify(error='Solo disponible desde este equipo'), 403
+            if request.method == 'DELETE':
+                with self.lock:
+                    store = getattr(self.r, 'platform_credentials', None)
+                    if store:
+                        store.delete('caption_ai')
+                    self.settings['ai_enabled'] = False
+                    archive = getattr(self.r, 'archive', None)
+                    if archive:
+                        archive.set_setting('microphone_caption_settings', self.settings)
+                    return jsonify(ok=True, **self.snapshot())
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict):
+                return jsonify(error='Datos inválidos'), 400
+            try:
+                with self.lock:
+                    config = validate_settings({
+                        key: data[key] for key in ('ai_enabled', 'ai_endpoint', 'ai_model', 'ai_instruction')
+                        if key in data
+                    }, self.settings)
+                supplied_key = str(data.get('api_key') or '').strip()
+                if data.get('test') is True:
+                    # Network I/O intentionally stays outside the caption lock so a
+                    # slow provider never pauses the live microphone pipeline.
+                    self.call_external_model('Prueba de conexión', config, supplied_key or None, test=True)
+                    return jsonify(ok=True, message='Conexión confirmada')
+                with self.lock:
+                    if supplied_key:
+                        self.save_ai_key(supplied_key)
+                    self.settings = config
+                    archive = getattr(self.r, 'archive', None)
+                    if archive:
+                        archive.set_setting('microphone_caption_settings', self.settings)
+                    self.revision += 1
+                    return jsonify(ok=True, **self.snapshot())
+            except ValueError as exc:
+                return jsonify(error=str(exc)), 400
+            except (OSError, RuntimeError) as exc:
+                return jsonify(error=str(exc)), 503
+
+        @app.post('/microphone-captions/ai/refine')
+        def microphone_caption_ai_refine():
+            production = getattr(self.r, 'production', None)
+            local_check = getattr(production, 'local', None)
+            if callable(local_check) and not local_check():
+                return jsonify(error='Solo disponible desde este equipo'), 403
+            data = request.get_json(silent=True)
+            text = str(data.get('text') or '').strip() if isinstance(data, dict) else ''
+            if not text or len(text) > 300:
+                return jsonify(error='Texto inválido'), 400
+            with self.lock:
+                if not self.settings.get('ai_enabled'):
+                    return jsonify(error='El modelo externo no está activado'), 409
+                config = dict(self.settings)
+                api_key = self.ai_key()
+            try:
+                refined = self.call_external_model(text, config, api_key)
+            except ValueError as exc:
+                return jsonify(error=str(exc)), 400
+            except RuntimeError as exc:
+                return jsonify(error=str(exc)), 503
+            return jsonify(ok=True, text=refined)
 
         @app.get('/broadcast/microphone-captions')
         def microphone_caption_broadcast():

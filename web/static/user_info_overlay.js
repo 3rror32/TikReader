@@ -1,5 +1,5 @@
 (()=>{
- const root=document.getElementById('user-info'),preview=new URLSearchParams(location.search).get('preview')==='1';let settings=JSON.parse(document.getElementById('info-settings').textContent),signature='';
+ const root=document.getElementById('user-info'),preview=new URLSearchParams(location.search).get('preview')==='1';let settings=JSON.parse(document.getElementById('info-settings').textContent),signature='',paused=document.hidden,pollTimer=0,livePush=false;
  function render(info){const next=JSON.stringify([info,settings]);if(next===signature)return;signature=next;root.replaceChildren();root.hidden=!info;if(!info)return;root.style.fontSize=settings.font_size+'px';
   const rank=document.createElement('span');rank.className='rank';rank.textContent=info.rank?info.rank+'.':'—';rank.title='Posición por puntos acumulados';root.append(rank);
   const portrait=document.createElement('div');portrait.className='portrait';const initial=document.createElement('span');initial.className='initial';initial.textContent=String(info.user||'U').replace('@','').slice(0,1).toUpperCase();portrait.append(initial);
@@ -9,6 +9,10 @@
   const points=document.createElement('div');points.className='points';points.textContent=new Intl.NumberFormat('es-MX').format(info.points)+' '+info.currency;details.append(points);root.append(details);
  }
  const demo=()=>render({user:'TikReader',points:123456,level:90,rank:1,currency:'Puntos'});
- if(preview){demo();addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='user-info-preview')return;settings=e.data.settings;demo();});}
- else{async function poll(){try{const r=await fetch('/broadcast/user-info',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();settings=d.settings;render(d.info);}catch(_){render(null);}setTimeout(poll,700);}poll();}
+ function queuePoll(delay=0){clearTimeout(pollTimer);if(!paused&&!preview)pollTimer=setTimeout(poll,delay);}
+ async function poll(){if(paused||preview)return;try{const r=await fetch('/broadcast/user-info',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();settings=d.settings;render(d.info);}catch(_){render(null);}finally{queuePoll(livePush?5000:700);}}
+ if(preview){demo();addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='user-info-preview')return;settings=e.data.settings;demo();});}else queuePoll();
+ function setPaused(value){paused=!!value;clearTimeout(pollTimer);if(!paused&&!preview){signature='';queuePoll();}}
+ addEventListener('visibilitychange',()=>setPaused(document.hidden));addEventListener('pagehide',()=>setPaused(true),{once:true});
+ addEventListener('tikreader:runtime-ready',event=>{livePush=true;event.detail?.onData?.(()=>queuePoll());event.detail?.lifecycle?.onPause?.(setPaused);});
 })();

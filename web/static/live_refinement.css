@@ -1,6 +1,12 @@
 /* Reading desk: calm surfaces, compact telemetry and room for the conversation. */
 body::after { display: none; }
 .app > header { gap: 12px; justify-content: flex-start; }
+.app > header :is(#menu-toggle, #interface-mode-toggle, #session-persistent, #donation-button, .broadcast-safety .panic-button) {
+  box-sizing: border-box; height: 40px; min-height: 40px;
+}
+@media (pointer: coarse) {
+  .app > header #interface-mode-toggle { height: 44px; min-height: 44px; }
+}
 .app > header #menu-toggle { order: -2; }
 .app > header #section-title {
   order: -1;
@@ -65,8 +71,6 @@ html body .session-panel #btn-stop {
 .session-panel .stat-card { padding: 7px 12px; gap: 8px; }
 .session-panel :is(.stat-value, .stat-audience .stat-value) { font-size: 19px !important; }
 .session-panel .stat-label { font: 500 11px/1.3 var(--font-body); letter-spacing: 0; text-transform: none; }
-#session-data-context { margin: 7px 0 0; color: var(--skin-muted, #b4c4d3); font-size: 12px; line-height: 1.4; }
-#session-data-context[hidden] { display: none; }
 .live-columns :is(.feed-title, .participants-head h2, #gift-heading) {
   font: 700 15px/1.3 var(--font-body); text-transform: none; letter-spacing: 0;
 }
@@ -131,8 +135,9 @@ html body .session-panel .controls #username-input {
 html body .session-panel .controls #username-input:focus-visible { outline: none !important; }
 html body .session-panel #btn-connect.btn-primary {
   align-items: center; justify-content: center; gap: 12px;
-  min-height: 46px; padding: 12px 18px; border-radius: 10px;
+  height: 46px; min-height: 46px; padding: 12px 18px; border-radius: 10px;
   position: relative; isolation: isolate;
+  overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--skin-accent-ink) 24%, transparent);
   border-color: color-mix(in srgb, var(--skin-accent-ink) 24%, transparent) !important;
   background: linear-gradient(112deg,
@@ -144,13 +149,32 @@ html body .session-panel #btn-connect.btn-primary {
   font-size: 13px; font-weight: 750; letter-spacing: .1px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--skin-accent-ink) 12%, transparent),
     0 3px 10px color-mix(in srgb, var(--skin-accent) 24%, transparent) !important;
-  transition: background-position .24s ease, box-shadow .18s ease, transform .14s ease;
+  transition: background-position .24s ease, box-shadow .18s ease, transform 100ms ease;
 }
 html body:not([data-live-state="live"]) .session-panel #btn-connect { display: inline-flex; }
-.session-panel #btn-connect::after {
-  content: ''; width: 17px; height: 17px; flex: 0 0 17px; background: currentColor;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14m-6-6 6 6-6 6'/%3E%3C/svg%3E") center / contain no-repeat;
-  transition: transform .18s ease;
+.session-panel #btn-connect::before {
+  content: ''; position: absolute; z-index: 0; inset: 0 auto 0 -70%; width: 55%;
+  background: linear-gradient(112deg, transparent, rgb(255 255 255 / .34), transparent);
+  transform: skewX(-18deg); pointer-events: none; animation: connect-shimmer 6.5s ease-in-out infinite;
+}
+.session-panel #btn-connect .connect-button__icon { width: 18px; height: 18px; flex: 0 0 18px; }
+.session-panel #btn-connect .connect-button__pending { display: inline-flex; align-items: center; gap: 9px; }
+.session-panel #btn-connect .connect-button__pending[hidden],
+.session-panel #btn-connect [hidden] { display: none; }
+.session-panel #btn-connect .connect-button__spinner {
+  width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; animation: connect-spin .7s linear infinite;
+}
+html body .session-panel #btn-connect > :not([hidden]) { position: relative; z-index: 1; }
+@keyframes connect-shimmer {
+  0%, 76%, 100% { transform: translateX(0) skewX(-18deg); }
+  88% { transform: translateX(340%) skewX(-18deg); }
+}
+@keyframes connect-spin { to { transform: rotate(360deg); } }
+html body .session-panel #btn-connect.is-connecting { animation: none; cursor: progress; }
+html body .session-panel #btn-connect[aria-busy="true"] {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--skin-accent-ink) 12%, transparent),
+    0 3px 10px color-mix(in srgb, var(--skin-accent) 24%, transparent) !important;
 }
 html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]) {
   background: linear-gradient(112deg,
@@ -159,10 +183,11 @@ html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not
     var(--skin-accent) 78%) !important;
   background-size: 220% 100% !important; background-position: 88% 50% !important;
   border-color: var(--skin-accent) !important;
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--skin-accent-ink) 16%, transparent),
+  transform: scale(1.03) !important;
+  box-shadow: 0 0 15px color-mix(in srgb, #25f4ee 32%, transparent),
+    0 0 20px color-mix(in srgb, #fe2c55 26%, transparent),
     0 5px 15px color-mix(in srgb, var(--skin-accent) 34%, transparent) !important;
 }
-html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])::after { transform: translateX(3px); }
 html body .session-panel #btn-connect.btn-primary:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   outline: 2px solid transparent !important; outline-offset: 3px;
   box-shadow: 0 0 0 2px var(--skin-surface), 0 0 0 4px var(--skin-text) !important;
@@ -173,7 +198,7 @@ html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([ari
     color-mix(in srgb, var(--skin-accent) 80%, var(--skin-accent-ink)) 48%,
     color-mix(in srgb, var(--skin-accent) 90%, var(--skin-accent-ink)) 78%) !important;
   background-size: 220% 100% !important; background-position: 50% 50% !important;
-  transform: translateY(1px) !important;
+  transform: scale(0.95) !important;
   box-shadow: inset 0 2px 5px color-mix(in srgb, var(--skin-accent-ink) 18%, transparent) !important;
 }
 html body .session-panel #btn-connect.btn-primary:disabled {
@@ -185,8 +210,14 @@ html body .session-panel #btn-connect.btn-primary:disabled {
 }
 @media (prefers-reduced-motion: reduce) {
   html body .session-panel #btn-connect.btn-primary,
-  html body .session-panel #btn-connect.btn-primary::after,
+  html body .session-panel #btn-connect.btn-primary::before,
   html body:not([data-live-state="live"]) .session-panel .controls { transition: none; }
+  html body .session-panel #btn-connect.btn-primary,
+  html body .session-panel #btn-connect.btn-primary::before,
+  html body .session-panel #btn-connect.btn-primary .connect-button__spinner { animation: none !important; }
+  html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"]) {
+    transform: none !important;
+  }
   html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([aria-disabled="true"]) { transform: none !important; }
 }
 
@@ -243,10 +274,6 @@ html[data-skin] body .session-panel .stat-icon {
   text-shadow: none !important;
   outline: 0;
 }
-.session-panel #session-data-context {
-  grid-column: 1 / -1; justify-self: start; margin: 0 0 -5px;
-  color: var(--skin-muted, #b4c4d3); font: 500 11px/1.4 var(--font-body);
-}
 .session-panel :is(#error-panel, .session-warning) { grid-column: 1 / -1; }
 
 /* Subtle boundaries, with emphasis reserved for active controls. */
@@ -277,49 +304,13 @@ html body .live-columns .comment-card :is(button, summary):hover { background: v
   .live-columns .comment-card :is(.comment-actions, .comment-body > .chat-greet) { transition: none; }
 }
 
-/* The category itself expands; its destinations stay explicit. */
-html body .app-sidebar .nav-group { border: 0; margin: 0; padding: 2px 0; }
-html body .app-sidebar .nav-group details { margin: 0; padding: 0; border: 0; }
-html body .app-sidebar .nav-group summary {
-  display: flex; align-items: center; justify-content: flex-start; gap: 10px; min-height: 42px;
-  padding: 10px 12px; border-radius: var(--nav-radius); font: 600 13px/1.4 var(--font-body); color: var(--nav-ink);
-}
-.app-sidebar .nav-group summary::marker { content: ''; }
-.app-sidebar .nav-group summary::-webkit-details-marker { display: none; }
-html body .app-sidebar .nav-group summary::after { margin-left: auto; }
-html body .app-sidebar .nav-group .nav-submenu > button[data-section-nav] {
-  margin-left: 21px; width: calc(100% - 21px); min-height: 36px;
-  padding: 8px 12px 8px 20px; border-radius: 0 6px 6px 0 !important;
-  border-left: 1px solid var(--nav-line); font-size: 12px !important;
-}
-html body .app-sidebar .nav-group .nav-submenu > button[data-section-nav] .sidebar-icon { display: none; }
-html body .app-sidebar .nav-group .nav-submenu > button[data-section-nav].active {
-  border-color: transparent; border-left-color: var(--nav-accent); box-shadow: inset 2px 0 var(--nav-accent);
-}
-html body:not(.sidebar-collapsed) .app-sidebar .nav-group details[data-section-group="overlay-gallery"] > .nav-submenu {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 4px;
-}
-html body:not(.sidebar-collapsed) .app-sidebar .nav-group details[data-section-group="overlay-gallery"] > .nav-submenu > button[data-section-nav] {
-  --ui-type-body: .75rem; margin-left: 0; width: 100%; min-height: 34px; padding: 7px 8px; border-left-color: transparent; border-radius: 6px !important;
-}
-html body:not(.sidebar-collapsed) .app-sidebar .nav-group details[data-section-group="overlay-gallery"] > .nav-submenu > button[data-section-nav].active {
-  border-left-color: var(--nav-accent);
-}
-html body.basic-mode .app-sidebar [data-advanced-only] { display: none !important; }
-.app-sidebar .nav-group details:has(button.active) > summary { background: var(--nav-raised); }
-.app-sidebar .nav-group summary:hover { background: var(--nav-raised); }
-@media (min-width: 901px) {
-  html body.sidebar-collapsed .app-sidebar .nav-group details > summary { display: flex !important; justify-content: center; padding: 10px 8px; }
-  .sidebar-collapsed .app-sidebar .nav-group details > summary .sidebar-label,
-  .sidebar-collapsed .app-sidebar .nav-group details > summary::after { display: none; }
-  html body.sidebar-collapsed .app-sidebar .nav-group .nav-submenu > button[data-section-nav] { margin-left: 0; width: 100%; padding: 10px 8px; border-left-color: transparent; }
-  html body.sidebar-collapsed .app-sidebar .nav-group .nav-submenu > button[data-section-nav] .sidebar-icon { display: block; }
-}
+/* The complete navigation contract, including nested and advanced disclosures,
+   lives in sidebar.css so later page refinements cannot split its appearance. */
 @media (max-width: 1200px) {
   html body .app > .session-panel { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   html body .session-panel .controls { grid-column: 1; grid-row: 2; }
 }
-@media (min-width: 1201px) and (max-width: 1450px) {
+@media (min-width: 1201px) and (max-width: 1279px) {
   .app .live-columns { grid-template-columns: minmax(0, 1.8fr) minmax(240px, 1fr); }
   .live-columns > .gifts-column { grid-column: 1 / -1; height: 420px; }
   .live-columns > :is(.feed-wrap, .participants-bar) { height: 560px; }

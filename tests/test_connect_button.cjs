@@ -36,7 +36,7 @@ test('Connect declarations beat the shared important control cascade', () => {
 
   const hover = rule('html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])');
   assert.match(hover, /background-position: 88% 50%/);
-  assert.match(rule('html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])::after'), /transform: translateX\(3px\)/);
+  assert.match(hover, /transform: scale\(1\.03\) !important/);
   for (const property of ['background', 'background-size', 'background-position', 'border-color', 'box-shadow']) {
     assert.equal(hasImportant(hover, property), true, `${property} preserves the Connect hover/focus signature`);
   }
@@ -47,7 +47,7 @@ test('Connect declarations beat the shared important control cascade', () => {
   assert.equal(hasImportant(focus, 'box-shadow'), true);
 
   const active = rule('html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([aria-disabled="true"])');
-  assert.match(active, /transform: translateY\(1px\) !important/);
+  assert.match(active, /transform: scale\(0\.95\) !important/);
   for (const property of ['background', 'background-size', 'background-position', 'transform', 'box-shadow']) {
     assert.equal(hasImportant(active, property), true, `${property} preserves the Connect active state`);
   }
@@ -58,5 +58,56 @@ test('Connect declarations beat the shared important control cascade', () => {
     assert.equal(hasImportant(disabled, property), true, `${property} preserves the restrained disabled state`);
   }
   assert.match(liveRefinement, /#btn-connect\.btn-primary:active:not\(:disabled\):not\(\[aria-disabled="true"\]\)\s*\{\s*transform: none !important/);
-  assert.match(liveRefinement, /prefers-reduced-motion: reduce[\s\S]*#btn-connect\.btn-primary::after[\s\S]*transition: none/);
+  assert.match(liveRefinement, /prefers-reduced-motion: reduce[\s\S]*#btn-connect\.btn-primary::before[\s\S]*transition: none/);
+});
+
+test('Connect uses an accessible inline connection icon and synchronous pending state', () => {
+  const template = fs.readFileSync(path.join(root, 'web/templates/index.html'), 'utf8');
+  const coreUi = fs.readFileSync(path.join(root, 'web/static/core_ui.js'), 'utf8');
+  const button = template.match(/<button class="btn btn-primary" id="btn-connect"[\s\S]*?<\/button>/)?.[0];
+
+  assert.ok(button, 'expected the TikTok Connect button');
+  assert.match(button, /<svg[^>]*aria-hidden="true"/);
+  assert.match(button, /M9 3v5m6-5v5M7 8h10v4a5 5 0 0 1-10 0V8z/);
+  assert.match(button, /M12 17v1a4 4 0 0 0 4 4h2/);
+  assert.doesNotMatch(button, /M8\.8 5\.4|M6 3\.2|L12 8l3\.2 13/);
+  assert.doesNotMatch(button, /↗|\bmask:/);
+  assert.match(button, /Conectar/);
+  assert.match(button, /Conectando…/);
+  assert.match(button, /role="status"/);
+  assert.match(coreUi, /setConnectPending\(true\)/);
+  assert.match(coreUi, /setConnectPending\(false\)/);
+  assert.match(coreUi, /function setConnectPending\(/);
+});
+
+test('Connect motion, TikTok glow, shimmer, and reduced motion are explicit', () => {
+  const base = rule('html body .session-panel #btn-connect.btn-primary');
+  const hover = rule('html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])');
+  const active = rule('html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([aria-disabled="true"])');
+
+  assert.match(rule('.session-panel #btn-connect::before'), /animation: connect-shimmer 6\.5s/);
+  assert.match(base, /transform 100ms ease/);
+  assert.match(hover, /scale\(1\.03\)/);
+  assert.match(hover, /#25f4ee/i);
+  assert.match(hover, /#fe2c55/i);
+  assert.match(active, /scale\(0\.95\)/);
+  assert.match(liveRefinement, /prefers-reduced-motion: reduce[\s\S]*#btn-connect\.btn-primary::before[\s\S]*animation: none !important/);
+});
+
+test('Pending connection keeps Stop available and reduced motion resets hover scale', () => {
+  const coreUi = fs.readFileSync(path.join(root, 'web/static/core_ui.js'), 'utf8');
+  const pending = coreUi.match(/function setConnectPending\(pending\) \{([\s\S]*?)\n\}/)?.[1];
+  const start = coreUi.match(/function startLive\(\) \{([\s\S]*?)\n\}/)?.[1];
+  const connecting = coreUi.match(/socket\.on\('connecting',[\s\S]*?\n\}\);/)?.[0];
+  const restored = coreUi.match(/socket\.on\('status',[\s\S]*?\n\}\);/)?.[0];
+
+  assert.match(pending, /btn-stop/);
+  assert.match(start, /setConnectPending\(true\)/);
+  assert.match(connecting, /setConnectPending\(true\)/);
+  assert.match(restored, /else setConnectPending\(true\)/);
+  assert.match(restored, /setButtons\(false\)/);
+  assert.match(
+    liveRefinement,
+    /prefers-reduced-motion: reduce[\s\S]*#btn-connect\.btn-primary:is\(:hover, :focus-visible\)[\s\S]*transform: none !important/,
+  );
 });

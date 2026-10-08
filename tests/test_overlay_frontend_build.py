@@ -60,7 +60,21 @@ def test_public_chat_overlay_cannot_show_scrollbars():
     template = (ROOT / "web/templates/widget.html").read_text(encoding="utf-8")
     styles = (ROOT / "web/static/widgets.css").read_text(encoding="utf-8")
     assert 'data-widget="{{ panel }}"' in template
-    assert "widgets.css?v=12" in template
+    assert "widgets.css?v=" in template
     assert "html[data-widget=chat] body{position:fixed;inset:0}" in styles
     assert "scrollbar-width:none" in styles
     assert "::-webkit-scrollbar" in styles
+
+
+def test_overlay_runtime_batches_events_and_gift_alerts_expire():
+    transport = (ROOT / "frontend/runtime/transport.ts").read_text(encoding="utf-8")
+    broadcast = (ROOT / "frontend/entries/broadcast.ts").read_text(encoding="utf-8")
+    runtime = (ROOT / "frontend/entries/runtime.ts").read_text(encoding="utf-8")
+    assert "pendingEvents" in transport
+    assert "}, 80)" in transport
+    assert 'new CustomEvent("event"' in transport
+    assert "onEvent(handler" in transport
+    assert "this.socket.disconnect()" in transport
+    assert "giftQueue" in broadcast
+    assert "5200" in broadcast
+    assert 'params.has("preview")' in runtime

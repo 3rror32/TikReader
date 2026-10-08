@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TikReader · {{ manifest.name }}</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+    #custom-overlay-frame{display:block;width:100%;height:100%;border:0;background:transparent}
+    #custom-overlay-error{position:fixed;inset:auto 16px 16px;padding:12px 14px;border:1px solid #ff7187;background:#240c12e8;color:#fff;font:14px/1.45 system-ui;white-space:pre-wrap}
+  </style>
+</head>
+<body>
+  <iframe id="custom-overlay-frame" title="{{ manifest.name }}" sandbox="allow-scripts" src="/widget/custom/{{ overlay_id }}/content/{{ manifest.entry }}"></iframe>
+  <p id="custom-overlay-error" hidden></p>
+  <script id="custom-overlay-manifest" type="application/json">{{ manifest|tojson }}</script>
+  <script id="custom-overlay-settings" type="application/json">{{ settings|tojson }}</script>
+  <script type="module" src="/static/build/runtime.js"></script>
+  <script src="/static/custom_overlay_host.js"></script>
+</body>
+</html>

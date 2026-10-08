@@ -1,6 +1,9 @@
 import io
 import json
+import os
+import subprocess
 import tempfile
+import time
 import unittest
 import sys
 from pathlib import Path
@@ -14,6 +17,17 @@ from app_config import RuntimeConfig
 
 
 class StartupValidationTests(unittest.TestCase):
+    def test_server_defers_tiktoklive_until_a_live_is_requested(self):
+        root = Path(__file__).resolve().parents[1]
+        env = os.environ.copy()
+        env['TIKREADER_DATA_DIR'] = str(root / 'runtime' / 'lazy-import-test')
+        code = f'import sys; sys.path.insert(0, {str(root / "app")!r}); import server; print("TikTokLive" in sys.modules)'
+        result = subprocess.run(
+            [sys.executable, '-c', code],
+            cwd=root, env=env, check=True, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(result.stdout.strip(), 'False')
+
     def test_health_rejects_other_services_and_malformed_json(self):
         for body, expected in [('{}', False), ('[]', False), ('null', False),
                                ('invalid', False), ('{"application":"TikReader"}', True)]:
@@ -43,15 +57,45 @@ class StartupValidationTests(unittest.TestCase):
 
     def test_default_launch_opens_native_window(self):
         native = SimpleNamespace(run=Mock(return_value=7))
+        splash = Mock()
         with tempfile.TemporaryDirectory() as folder, patch.object(launcher, 'ROOT', Path(folder)), \
                 patch.object(launcher, 'dependencies', return_value=[]), \
                 patch.object(launcher.importlib.util, 'find_spec', return_value=object()), \
+                patch.object(launcher, '_create_startup_splash', return_value=splash), \
                 patch.object(launcher, 'health', return_value=True), \
                 patch.dict(sys.modules, {'desktop_window': native}), \
                 patch.object(launcher.subprocess, 'Popen') as spawn:
             self.assertEqual(launcher.launch(), 7)
-            native.run.assert_called_once_with(launcher.URL)
+            native.run.assert_called_once_with(launcher.URL, startup_splash=splash)
+            splash.set_status.assert_any_call('Cargando el estudio en vivo…')
             spawn.assert_not_called()
+
+    def test_blocking_health_check_keeps_splash_responsive(self):
+        splash = Mock()
+
+        def delayed_health():
+            time.sleep(.08)
+            return True
+
+        with patch.object(launcher, 'health', side_effect=delayed_health):
+            self.assertTrue(launcher._health_with_splash(splash))
+        self.assertGreaterEqual(splash.pump.call_count, 2)
+
+    def test_server_child_uses_external_bytecode_cache(self):
+        child = Mock()
+        child.poll.return_value = None
+        probe = Mock()
+        probe.connect_ex.return_value = 1
+        with tempfile.TemporaryDirectory() as folder, patch.object(launcher, 'ROOT', Path(folder)), \
+                patch.object(launcher, 'dependencies', return_value=[]), \
+                patch.object(launcher, 'health', side_effect=[False, True]), \
+                patch.object(launcher.subprocess, 'Popen', return_value=child) as spawn, \
+                patch('socket.socket') as socket:
+            socket.return_value.__enter__.return_value = probe
+            self.assertEqual(launcher.launch(False), launcher.URL)
+        command = spawn.call_args.args[0]
+        self.assertNotIn('-B', command)
+        self.assertTrue(spawn.call_args.kwargs['env']['PYTHONPYCACHEPREFIX'].endswith('pycache'))
 
     def test_preflight_reports_missing_package_and_occupied_port(self):
         probe=Mock();probe.connect_ex.return_value=0

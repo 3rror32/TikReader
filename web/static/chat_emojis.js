@@ -1,7 +1,7 @@
 (()=>{
  'use strict';
- const root=document.getElementById('emoji-stage'),preview=new URLSearchParams(location.search).get('preview')==='1',particles=[];
- let settings=JSON.parse(document.getElementById('emoji-settings').textContent),session=null,cursor=0,last=0;
+ const root=document.getElementById('emoji-stage'),params=new URLSearchParams(location.search),preview=params.get('preview')==='1',catalog=params.has('catalog'),particles=[];
+ let settings=JSON.parse(document.getElementById('emoji-settings').textContent),session=null,cursor=0,last=0,paused=document.hidden,frameId=0,pollTimer=0,demoTimer=0,livePush=false;
  function safeImage(value){try{const u=new URL(value);return u.protocol==='https:'&&!u.username?u.href:null;}catch(_){return null;}}
  function clear(){for(const p of particles)p.el.remove();particles.length=0;}
  function burst(record,demo=false){
@@ -15,6 +15,7 @@
    particles.push({el,width:0,height:0,age:-i*.6,duration:settings.duration,origin,phase:Math.random()*6,direction:settings.direction,reduced:settings.motion==='reduced'||settings.motion==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches});
   }
  }
+ function scheduleFrame(){cancelAnimationFrame(frameId);if(!paused)frameId=requestAnimationFrame(frame);}
  function frame(now){const dt=Math.min(.08,(now-last)/1000);last=now;const w=root.clientWidth,h=root.clientHeight;
   // Batch layout reads once per new emoji instead of forcing layout every frame.
   for(const p of particles)if(!p.width){const box=p.el.getBoundingClientRect();p.width=box.width;p.height=box.height;}
@@ -25,14 +26,20 @@
    else{x=p.direction==='left'?w-(w+width)*t:-width+(w+width)*t;y=p.origin*Math.max(0,h-height)+Math.sin(t*6+p.phase)*18;}
    if(p.direction==='up')x=Math.max(0,Math.min(w-width,x));else y=Math.max(0,Math.min(h-height,y));
    p.el.style.transform=`translate3d(${x}px,${y}px,0)`;p.el.style.opacity=String(Math.min(1,t*10,(1-t)*5));
-  }requestAnimationFrame(frame);
+  }scheduleFrame();
  }
- if(preview){const demo=()=>burst({comment:'😂 😍 🥳 💜 🔥 ✨'},true);demo();setInterval(demo,2500);addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='emoji-preview')return;settings=e.data.settings;clear();demo();});}
- else{async function poll(){try{const options={cache:'no-store'},controller=typeof AbortController==='function'?new AbortController():null;if(controller){options.signal=controller.signal;setTimeout(()=>controller.abort(),4000);}const r=await fetch('/broadcast/emoji-overlay',options);if(!r.ok)throw Error();const d=await r.json();settings=d.settings;
+ const demo=()=>{if(paused)return;burst({comment:'😂 😍 🥳 💜 🔥 ✨'},true);if(!catalog)demoTimer=setTimeout(demo,2500);};
+ function queuePoll(delay=0){clearTimeout(pollTimer);if(!paused&&!preview)pollTimer=setTimeout(poll,delay);}
+ async function poll(){if(paused||preview)return;try{const options={cache:'no-store'},controller=typeof AbortController==='function'?new AbortController():null;if(controller){options.signal=controller.signal;setTimeout(()=>controller.abort(),4000);}const r=await fetch('/broadcast/emoji-overlay',options);if(!r.ok)throw Error();const d=await r.json();settings=d.settings;
    if(session!==d.session){clear();session=d.session;cursor=d.serial;}
    // Clear existing photos immediately if the delivered feed removes them.
    if(!settings.show_avatar||d.comments.length&&d.comments.every(c=>!c.avatar_url))for(const p of particles)p.el.querySelector('img')?.remove();
    if(d.muted)clear();else for(const c of d.comments)if(c.sequence>cursor)burst(c);cursor=d.serial;
-  }catch(_){clear();}setTimeout(poll,800);}poll();}
- requestAnimationFrame(frame);
+  }catch(_){clear();}finally{queuePoll(livePush?5000:800);}}
+ if(preview){demo();addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='emoji-preview')return;settings=e.data.settings;clear();clearTimeout(demoTimer);demo();});}
+ else queuePoll();
+ function setPaused(value){paused=!!value;clearTimeout(pollTimer);clearTimeout(demoTimer);cancelAnimationFrame(frameId);if(!paused){last=performance.now();scheduleFrame();if(preview&&!catalog)demoTimer=setTimeout(demo,600);else if(!preview)queuePoll(0);}}
+ addEventListener('visibilitychange',()=>setPaused(document.hidden));addEventListener('pagehide',()=>setPaused(true),{once:true});
+ addEventListener('tikreader:runtime-ready',event=>{livePush=true;event.detail?.onData?.(()=>queuePoll(0));event.detail?.lifecycle?.onPause?.(setPaused);});
+ scheduleFrame();
 })();

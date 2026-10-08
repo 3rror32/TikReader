@@ -34,10 +34,10 @@ window.ChatExtras = (() => {
     });
     parent.append(button);
   }
-  function bindAutoToggle(button, settingId, label) {
+  function bindAutoToggle(button, settingId, label, visibleLabel) {
     const setting=document.getElementById(settingId);
     const sync=()=>{
-      button.textContent='Voz automática';
+      button.textContent=visibleLabel;
       button.title=`${setting.checked?'Desactivar':'Activar'} ${label}`;
       button.setAttribute('aria-label',button.title);
       button.setAttribute('aria-pressed',String(setting.checked));

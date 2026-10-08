@@ -99,6 +99,25 @@ test('viewer messages, editable content, code and explicit opt-outs remain untou
   app.window.I18n.setLocale('fr'); assert.ok(nodes.every(node => node.textContent === 'Guardar'));
 });
 
+test('paused button visible and accessible labels stay localized through state and locale changes', () => {
+  const app = setup('en'), button = new Element('button','Pausar voz y efectos', {'aria-label':'Pausar voz y efectos'});
+  app.body.append(button); app.start();
+  button.childNodes[0].nodeValue = 'En pausa · Reanudar';
+  button.setAttribute('aria-label','En pausa · Reanudar');
+  app.mutate(button.childNodes[0]); app.added(button);
+  for (const [locale, label] of [['en','Paused · Resume'],['fr','En pause · Reprendre'],['es-419','En pausa · Reanudar']]) {
+    app.window.I18n.setLocale(locale);
+    assert.equal(button.textContent,label);
+    assert.equal(button.getAttribute('aria-label'),label);
+  }
+  app.window.I18n.setLocale('en');
+  button.childNodes[0].nodeValue = 'Pausar voz y efectos';
+  button.setAttribute('aria-label','Pausar voz y efectos');
+  app.mutate(button.childNodes[0]); app.added(button);
+  assert.equal(button.textContent,'Pause voice and effects');
+  assert.equal(button.getAttribute('aria-label'),button.textContent);
+});
+
 test('option labels translate without changing implicit values sent to application code', () => {
   const app = setup('fr'), option = new Element('option','Guardar'); app.body.append(option); app.start();
   assert.equal(option.textContent,'Enregistrer'); assert.equal(option.value,'Guardar');

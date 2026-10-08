@@ -55,4 +55,9 @@ def widget_defaults(base, panel=None):
         defaults.update(font_size=18,title_size=18,radius=8,opacity=85,show_time=False,show_connection=False,animation='none')
     if panel in ('top-donors','top-likes'):
         defaults.update(show_background=False,show_connection=False,show_time=False,max_items=10,font_size=18,title_size=19,animation='none')
+    if panel == 'timer':
+        defaults.update(font_size=64,title_size=14,alignment='center',animation='none',show_connection=False,
+                        timer_title='TIEMPO RESTANTE',timer_format='hms',timer_show_label=True,
+                        timer_show_state=True,timer_warning_seconds=30,timer_digit_animation='flip',
+                        timer_animation_speed=420,timer_glow=True)
     return defaults

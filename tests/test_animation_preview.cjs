@@ -55,6 +55,25 @@ test('every configurable animation message explains and applies the usuario vari
   assert.match(controls, /Puedes usar \{usuario\}/);
   assert.match(controls, /aria-describedby/);
   assert.match(vip, /OverlayAnimationRenderer\?\.formatMessage\(s\.message,record\.user/);
-  assert.match(studio, /Puedes usar \{usuario\}, \{regalo\} y \{cantidad\}/);
+  assert.match(studio, /Variables disponibles: \{usuario\}, \{evento\}, \{regalo\}, \{cantidad\} y \{diamantes\}/);
   assert.match(studio, /alert-text-variable-help/);
+});
+
+test('alert studio exposes readiness, source testing, new events and audio', () => {
+  const studio = fs.readFileSync(require.resolve('../web/static/animation_studio.js'), 'utf8');
+  const widget = fs.readFileSync(require.resolve('../web/static/alert_widget.js'), 'utf8');
+  const css = fs.readFileSync(require.resolve('../web/static/alerts.css'), 'utf8');
+  assert.match(studio, /Preparación de la transmisión/);
+  assert.match(studio, /animation-studio\/test/);
+  assert.match(studio, /\['subscribe','Alguien se suscribe'\]/);
+  assert.match(studio, /sound_asset/);
+  assert.match(widget, /broadcast\/alerts\/heartbeat/);
+  assert.match(css, /alert-stage\[data-motion=reduced\].*animation:none!important/);
+});
+
+test('alert text supports event and diamond variables', () => {
+  const window = {};
+  vm.runInNewContext(fs.readFileSync(require.resolve('../web/static/alert_renderer.js'), 'utf8'), {window});
+  const template = {text:'{evento}: {usuario} · {diamantes}',trigger:'gift',diamonds:75};
+  assert.equal(window.AlertRenderer.sample(template,'Ana','Rosa',2),'Regalo: Ana · 75');
 });

@@ -1,0 +1,98 @@
+/*
+ * Final geometry contract shared by every skin.
+ *
+ * Themes may change material, type, radii and internal spacing. They must not
+ * independently move the application canvas or consume a component's bounds.
+ */
+
+html[data-skin] body :is(
+  .app,
+  .config-content,
+  .settings-view,
+  .settings-stack,
+  .setting-card,
+  .panel,
+  .studio-pane
+) {
+  min-width: 0;
+}
+
+html[data-skin] body .app-sidebar {
+  inset-inline-start: 0;
+  margin: 0;
+}
+
+html[data-skin] body .sidebar-brand {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  transform-origin: center;
+}
+
+html[data-skin] body .sidebar-brand .tikreader-brand-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  max-width: 36px;
+  margin: 0;
+}
+
+html[data-skin] body .sidebar-brand span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+html[data-skin] body #app-sidebar [data-section-nav] {
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+html[data-skin] body .settings-view,
+html[data-skin] body .settings-stack {
+  width: 100%;
+  max-width: 100%;
+}
+
+html[data-skin] body .settings-stack > .setting-card {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0 !important;
+}
+
+html[data-skin] body .setting-card > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The Swiss active route used a physical left offset. Inside the sidebar's
+   clipped viewport that could shave off the opposite edge of the control. */
+html[data-skin="swiss-brutalist"] body #app-sidebar [data-section-nav].active {
+  left: 0 !important;
+  transform: none !important;
+}
+
+/* Keep the scrapbook tilt, but inset it enough that its corners remain inside
+   the common component box at desktop sizes. */
+html[data-skin="tactile-scrapbook"] body .sidebar-brand {
+  transform: rotate(-1deg) scale(.98);
+}
+
+@media (min-width: 901px) {
+  html[data-skin] body .app-sidebar {
+    width: var(--sidebar-width) !important;
+    max-width: var(--sidebar-width);
+  }
+
+  html[data-skin] body .app {
+    width: calc(100% - var(--sidebar-width)) !important;
+    max-width: calc(100% - var(--sidebar-width));
+    margin-inline: var(--sidebar-width) 0 !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-skin] body .app {
+    width: 100% !important;
+    max-width: 100%;
+    margin-inline: 0 !important;
+  }
+}

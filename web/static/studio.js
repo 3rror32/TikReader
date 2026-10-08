@@ -198,16 +198,16 @@ window.Studio = (() => {
   }
   async function refreshStudio() {try{const r=await fetch('/studio/state',{cache:'no-store',signal:AbortSignal.timeout(5000)});if(r.ok)showState(await r.json());}catch(_){}finally{setTimeout(refreshStudio,document.hidden?15000:5000);}}
   function alertGift(text,test=false) {
-    if(productionMuted)return;
-    if(!test && (!$('alerts-enabled').checked || Date.now()-lastAlert<5000))return;
-    lastAlert=Date.now();window.Notifications?.show(text,{type:'success',duration:4000});
-    if(holds.has('audio-owner')||holds.has('effects'))return;
-    try {audio ||= new (window.AudioContext||window.webkitAudioContext)();audio.resume();const osc=audio.createOscillator(),gain=audio.createGain();osc.frequency.value=Number($('alert-tone').value);gain.gain.setValueAtTime(.08,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.4);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.4);}catch(_){}
+    if(productionMuted)return {shown:false,sounded:false,reason:'La emisión está silenciada; no se envió la prueba.'};
+    if(!test && (!$('alerts-enabled').checked || Date.now()-lastAlert<5000))return {shown:false,sounded:false};
+    if(!test)lastAlert=Date.now();window.Notifications?.show(text,{type:'success',duration:4000});
+    if(holds.has('audio-owner')||holds.has('effects'))return {shown:true,sounded:false,reason:'El mensaje se mostró, pero el audio está ocupado por otro efecto.'};
+    try {audio ||= new (window.AudioContext||window.webkitAudioContext)();audio.resume();const osc=audio.createOscillator(),gain=audio.createGain();osc.frequency.value=Number($('alert-tone').value);gain.gain.setValueAtTime(.08,audio.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audio.currentTime+.4);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+.4);return {shown:true,sounded:true};}catch(_){return {shown:true,sounded:false,reason:'El mensaje se mostró, pero no se pudo reproducir el sonido.'};}
   }
   function updateLocalAlert() {
     const enabled=$('alerts-enabled').checked;
     for(const control of $('alert-local-options')?.querySelectorAll?.('input, select')||[])control.disabled=!enabled;
-    if($('alert-local-status'))$('alert-local-status').textContent=enabled?'Activo · avisará aquí cuando llegue un regalo que cumpla estos filtros.':'Apagado · no emitirá avisos cuando lleguen regalos.';
+    if($('alert-local-status'))$('alert-local-status').textContent=enabled?'Aviso activo.':'Aviso desactivado.';
   }
   function giftUpdate(snapshot) {
     ensure(snapshot.session);
@@ -239,7 +239,7 @@ window.Studio = (() => {
     };
   }
   $('tts-pause').onclick=pause;$('tts-skip').onclick=skip;$('tts-test').onclick=()=>speak('Esta es una prueba de voz de TikReader.',true);
-  $('alert-test').onclick=()=>{alertGift('Prueba de aviso local · no es un regalo real',true);if($('alert-local-status'))$('alert-local-status').textContent='Prueba enviada. Debes ver el mensaje y escuchar el sonido en esta computadora.';};
+  $('alert-test').onclick=()=>{const result=alertGift('Prueba de aviso local · no es un regalo real',true);if($('alert-local-status'))$('alert-local-status').textContent=result.reason||(result.shown&&result.sounded?'Prueba enviada.':'No se pudo enviar la prueba.');};
   $('alerts-enabled').onchange=()=>{if($('alerts-enabled').checked){try{audio ||= new (window.AudioContext||window.webkitAudioContext)();audio.resume();}catch(_){}}updateLocalAlert();};
   $('chat-search').oninput=render;$('questions-only').onchange=render;
   function configureStudioNavigation(root = document, onSelect = () => {}) {

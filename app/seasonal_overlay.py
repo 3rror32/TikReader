@@ -7,7 +7,8 @@ KINDS = ('snow', 'leaves', 'wind', 'rain', 'rain-original', 'fireflies', 'aurora
          'embers', 'stars', 'petals', 'bubbles', 'digital-rain')
 DEFAULTS = dict(enabled=True, density=70, size=12, speed=30, direction=0, wind=15, opacity=80,
     motion='full', thickness=1, glass_count=45, glass_speed=25, background_image='',
-    background_visible=True, primary_color='#f0f8ff', secondary_color='#8bdcff', canvas_format='horizontal')
+    background_visible=True, primary_color='#f0f8ff', secondary_color='#8bdcff', canvas_format='horizontal',
+    fog_style='low', fog_clear_zone='center')
 KIND_DEFAULTS = {
     'leaves': dict(size=26, primary_color='#d9823b', secondary_color='#f3c969'),
     'wind': dict(density=18, primary_color='#e9e5d4', secondary_color='#b9e8ff'),
@@ -15,7 +16,7 @@ KIND_DEFAULTS = {
     'rain-original': dict(density=10, size=60, glass_count=2000, opacity=100),
     'fireflies': dict(density=55, size=9, speed=18, wind=4, opacity=88, primary_color='#ffd86b', secondary_color='#72ffbd'),
     'aurora': dict(density=7, size=52, speed=8, direction=12, wind=0, opacity=58, primary_color='#52f2c5', secondary_color='#826cff'),
-    'fog': dict(density=18, size=70, speed=12, direction=90, wind=8, opacity=45, primary_color='#d9e4ef', secondary_color='#91a9bf'),
+    'fog': dict(density=18, size=45, speed=12, direction=90, wind=0, opacity=45, primary_color='#d9e4ef', secondary_color='#91a9bf'),
     'embers': dict(density=105, size=9, speed=32, direction=180, wind=7, opacity=90, primary_color='#ffcf7a', secondary_color='#ff481f'),
     'stars': dict(density=95, size=6, speed=8, direction=90, wind=0, opacity=82, primary_color='#fff4cf', secondary_color='#8fc7ff'),
     'petals': dict(density=52, size=18, speed=24, direction=0, wind=10, opacity=85, primary_color='#ff9fc8', secondary_color='#ffe0ed'),
@@ -43,6 +44,10 @@ class SeasonalOverlay:
             raise ValueError('Estado o movimiento inválido')
         if out['canvas_format'] not in ('horizontal','vertical'):
             raise ValueError('Formato de lienzo inválido')
+        if out['fog_style'] not in ('low','enveloping','cinematic'):
+            raise ValueError('Estilo de niebla inválido')
+        if out['fog_clear_zone'] not in ('none','left','center','right'):
+            raise ValueError('Zona despejada inválida')
         if not isinstance(out['background_visible'], bool):
             raise ValueError('Visibilidad de fondo inválida')
         for field in ('primary_color', 'secondary_color'):

@@ -1,0 +1,418 @@
+/*
+ * Shared form-control contract.
+ *
+ * This file is intentionally loaded after every page and feature stylesheet.
+ * Feature CSS owns layout; this layer owns the appearance and interaction
+ * states of fields in every page and skin.
+ */
+:root {
+  --control-field-bg: var(--skin-bg, #182738);
+  --control-field-ink: var(--skin-text, #edf3fa);
+  --control-field-muted: var(--skin-muted, #a4b6c8);
+  --control-field-line: var(--skin-border, #465a70);
+  --control-field-accent: var(--skin-accent, #68e0b5);
+  --control-field-accent-ink: var(--skin-accent-ink, #09251d);
+  --control-field-danger: var(--skin-danger, #ff9ca7);
+  --control-field-radius: 9px;
+  --control-field-height: 40px;
+  --control-field-shadow: inset 0 1px 2px color-mix(in srgb, var(--skin-shadow, #0007) 58%, transparent);
+}
+
+/* Text entry and combo boxes share the exact same box model.  The unused ID
+   raises specificity so legacy feature selectors cannot fork the contract. */
+html body :is(
+  #ui-control-contract,
+  input:not([type]),
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"],
+  select,
+  textarea
+) {
+  min-width: 0;
+  min-height: var(--control-field-height) !important;
+  max-width: 100%;
+  padding: 8px 11px !important;
+  border: 1px solid var(--control-field-line) !important;
+  border-radius: var(--control-field-radius) !important;
+  background-color: var(--control-field-bg) !important;
+  color: var(--control-field-ink) !important;
+  box-shadow: var(--control-field-shadow) !important;
+  font: inherit;
+  line-height: 1.45;
+  caret-color: var(--control-field-accent);
+  transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+html body :is(#ui-control-contract, textarea) {
+  min-height: 88px !important;
+  resize: vertical;
+}
+
+html body :is(#ui-control-contract, select:not([multiple]):not([size])) {
+  appearance: none;
+  padding-inline-end: 38px !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--control-field-muted) 50%),
+    linear-gradient(135deg, var(--control-field-muted) 50%, transparent 50%) !important;
+  background-position:
+    calc(100% - 17px) calc(50% + 1px),
+    calc(100% - 12px) calc(50% + 1px) !important;
+  background-repeat: no-repeat !important;
+  background-size: 5px 5px, 5px 5px !important;
+  cursor: pointer;
+}
+
+html body :is(#ui-control-contract, select[multiple], select[size]) {
+  padding-block: 7px !important;
+}
+
+html body select option,
+html body select optgroup {
+  background: var(--control-field-bg);
+  color: var(--control-field-ink);
+}
+
+html body :is(input, textarea)::placeholder {
+  color: var(--control-field-muted) !important;
+  opacity: .88 !important;
+}
+
+/* The connection field used to be visually delegated to its flex wrapper.
+   Keep the @ adornment, but make the field itself follow the shared contract. */
+html body:not([data-live-state="live"]) .session-panel .controls {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html body:not([data-live-state="live"]) .session-panel .controls:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* The label makes the input wrapper taller than the adjacent action. Align the
+   row by its lower edge so the action sits level with the field, then give both
+   controls the same explicit height. */
+html body .session-panel .controls {
+  align-items: flex-end;
+}
+
+html body .session-panel .controls #username-input {
+  height: var(--control-field-height);
+  min-height: var(--control-field-height) !important;
+  padding: 8px 11px 8px 52px !important;
+  border: 1px solid var(--control-field-line) !important;
+  background-color: var(--control-field-bg) !important;
+  box-shadow: var(--control-field-shadow) !important;
+}
+
+html body .session-panel #btn-connect {
+  align-self: flex-end;
+  height: var(--control-field-height);
+  min-height: var(--control-field-height) !important;
+  padding-block: 0;
+}
+
+html body .session-panel .connection-field-label {
+  display: block;
+  margin: 0 0 6px 2px;
+  color: var(--control-field-text);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+html body .session-panel .input-wrap .at {
+  top: auto;
+  bottom: 4px;
+  transform: none;
+}
+
+html body .session-panel .controls #username-input:focus-visible {
+  border-color: var(--control-field-accent) !important;
+  outline: 2px solid var(--control-field-accent) !important;
+  outline-offset: 2px !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--control-field-accent) 20%, transparent),
+    var(--control-field-shadow) !important;
+}
+
+html body :is(
+  #ui-control-contract,
+  input:not([type]),
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="url"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"],
+  select,
+  textarea
+):hover:not(:disabled):not(:focus-visible) {
+  border-color: color-mix(in srgb, var(--control-field-accent) 58%, var(--control-field-line)) !important;
+}
+
+html body :is(input, select, textarea):focus-visible {
+  border-color: var(--control-field-accent) !important;
+  outline: 2px solid var(--control-field-accent) !important;
+  outline-offset: 2px !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--control-field-accent) 20%, transparent),
+    var(--control-field-shadow) !important;
+}
+
+html body :is(input, select, textarea):is(:user-invalid, [aria-invalid="true"]) {
+  border-color: var(--control-field-danger) !important;
+}
+
+html body :is(input, select, textarea):is(:user-invalid, [aria-invalid="true"]):focus-visible {
+  outline-color: var(--control-field-danger) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-field-danger) 20%, transparent) !important;
+}
+
+html body :is(input, textarea):read-only:not([type="range"]):not([type="checkbox"]):not([type="radio"]) {
+  background-color: color-mix(in srgb, var(--control-field-bg) 84%, var(--skin-raised, #26384b)) !important;
+}
+
+html body :is(input, select, textarea):disabled {
+  opacity: .55 !important;
+  cursor: not-allowed !important;
+  filter: saturate(.65);
+}
+
+/* Checkboxes and radios use one high-contrast shape in every component. */
+html body :is(#ui-control-contract, input[type="checkbox"], input[type="radio"]) {
+  appearance: none !important;
+  display: inline-grid !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  margin: 0;
+  padding: 0 !important;
+  place-content: center;
+  flex: 0 0 20px;
+  vertical-align: middle;
+  border: 1px solid var(--control-field-line) !important;
+  background: var(--control-field-bg) !important;
+  color: var(--control-field-accent-ink) !important;
+  box-shadow: inset 0 1px 2px color-mix(in srgb, var(--skin-shadow, #0007) 55%, transparent) !important;
+  cursor: pointer;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+
+html body input[type="checkbox"] {
+  border-radius: 5px !important;
+}
+
+html body input[type="radio"] {
+  border-radius: 50% !important;
+}
+
+html body input[type="checkbox"]::before {
+  content: "";
+  width: 10px;
+  height: 5px;
+  border: solid currentColor;
+  border-width: 0 0 2px 2px;
+  transform: translateY(-1px) rotate(-45deg) scale(0);
+  transform-origin: center;
+  transition: transform .14s ease;
+}
+
+html body :is(#ui-control-contract, input[type="checkbox"]:checked) {
+  border-color: var(--control-field-accent) !important;
+  background: var(--control-field-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-field-accent) 14%, transparent) !important;
+}
+
+html body :is(#ui-control-contract, input[type="checkbox"]:checked)::before {
+  transform: translateY(-1px) rotate(-45deg) scale(1);
+}
+
+html body :is(#ui-control-contract, input[type="checkbox"]:indeterminate)::before {
+  width: 10px;
+  height: 0;
+  border-width: 0 0 2px;
+  transform: none;
+}
+
+html body input[type="radio"]::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--control-field-accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--control-field-accent) 65%, transparent);
+  transform: scale(0);
+  transition: transform .14s ease;
+}
+
+html body :is(#ui-control-contract, input[type="radio"]:checked) {
+  border-color: var(--control-field-accent) !important;
+  background: var(--control-field-bg) !important;
+}
+
+html body :is(#ui-control-contract, input[type="radio"]:checked)::before {
+  transform: scale(1);
+}
+
+html body :is(#ui-control-contract, input[type="checkbox"]:hover:not(:disabled), input[type="radio"]:hover:not(:disabled)) {
+  border-color: var(--control-field-accent) !important;
+}
+
+/* The microphone processor intentionally hides the native checkbox and draws
+   its state on the adjacent component. Preserve that accessible technique. */
+html body :is(#ui-control-contract, .mic-caption-processing-toggle) input[type="checkbox"] {
+  position: absolute !important;
+  width: 1px !important;
+  min-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Sliders receive a common track/thumb while feature CSS keeps their width. */
+html body input[type="range"] {
+  appearance: none;
+  min-width: 0;
+  min-height: 28px;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--control-field-accent);
+  cursor: pointer;
+}
+
+html body input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border: 1px solid color-mix(in srgb, var(--control-field-line) 82%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--control-field-line) 36%, var(--control-field-bg));
+}
+
+html body input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border: 2px solid var(--control-field-bg);
+  border-radius: 50%;
+  background: var(--control-field-accent);
+  box-shadow: 0 0 0 1px var(--control-field-accent), 0 2px 7px var(--skin-shadow, #0006);
+}
+
+html body input[type="range"]::-moz-range-track {
+  height: 6px;
+  border: 1px solid color-mix(in srgb, var(--control-field-line) 82%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--control-field-line) 36%, var(--control-field-bg));
+}
+
+html body input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--control-field-accent);
+}
+
+html body input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--control-field-bg);
+  border-radius: 50%;
+  background: var(--control-field-accent);
+  box-shadow: 0 0 0 1px var(--control-field-accent), 0 2px 7px var(--skin-shadow, #0006);
+}
+
+html body input[type="color"] {
+  min-width: 48px;
+  min-height: var(--control-field-height) !important;
+  padding: 4px !important;
+  border: 1px solid var(--control-field-line) !important;
+  border-radius: var(--control-field-radius) !important;
+  background: var(--control-field-bg) !important;
+  cursor: pointer;
+}
+
+html body input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
+
+html body input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
+
+html body input[type="file"] {
+  max-width: 100%;
+  min-height: var(--control-field-height);
+  color: var(--control-field-muted) !important;
+  font: inherit;
+}
+
+html body input[type="file"]::file-selector-button {
+  min-height: var(--control-field-height);
+  margin-inline-end: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--control-field-line) !important;
+  border-radius: var(--control-field-radius) !important;
+  background: var(--skin-raised, #203247) !important;
+  color: var(--control-field-ink) !important;
+  font: inherit;
+  cursor: pointer;
+}
+
+html body input[type="file"]::file-selector-button:hover {
+  border-color: var(--control-field-accent) !important;
+  background: color-mix(in srgb, var(--skin-raised, #203247) 88%, var(--control-field-accent)) !important;
+}
+
+html body input:-webkit-autofill {
+  -webkit-text-fill-color: var(--control-field-ink) !important;
+  caret-color: var(--control-field-accent);
+  box-shadow: inset 0 0 0 1000px var(--control-field-bg) !important;
+}
+
+@media (pointer: coarse) {
+  :root { --control-field-height: 44px; }
+  html body :is(input[type="checkbox"], input[type="radio"]) {
+    width: 22px !important;
+    min-width: 22px !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    flex-basis: 22px;
+  }
+  html body :is(#ui-control-contract, .mic-caption-processing-toggle) input[type="checkbox"] {
+    width: 1px !important;
+    min-width: 1px !important;
+    height: 1px !important;
+    min-height: 1px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body :is(input, select, textarea),
+  html body :is(input[type="checkbox"], input[type="radio"])::before {
+    transition: none !important;
+  }
+}

@@ -1,5 +1,6 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
+from types import SimpleNamespace
 import server
 
 class InteractiveTests(unittest.TestCase):
@@ -173,5 +174,137 @@ class InteractiveTests(unittest.TestCase):
         bad=self.client.post('/interactivity/overlays',json={'game':'drop','action':'configure','bank':'../unknown'})
         self.assertEqual(bad.status_code,400)
         self.assertEqual(self.i.overlay_games['drop']['bank'],'gato')
+
+    def test_custom_bank_transform_is_validated_and_persisted(self):
+        original_archive=self.i.r.archive
+        saved_settings={}
+        archive=SimpleNamespace(settings=lambda:saved_settings,set_setting=lambda key,value:saved_settings.__setitem__(key,value))
+        self.i.r.archive=archive
+        self.addCleanup(setattr,self.i.r,'archive',original_archive)
+        asset_id='a'*32+'.png'
+        custom={'x':12.5,'y':77.25}
+        entry={'x':43.5,'y':18.25}
+        response=self.client.post('/interactivity/overlays',json={
+            'game':'drop','action':'configure','bank':'custom','custom_bank_asset':asset_id,
+            'bank_position':custom,'bank_scale':125,'entry_point':entry,
+        })
+        self.assertEqual(response.status_code,200,response.get_json())
+        state=response.get_json()['drop']
+        self.assertEqual(state['bank'],'custom')
+        self.assertEqual(state['custom_bank_asset'],asset_id)
+        self.assertEqual(state['bank_position'],custom)
+        self.assertEqual(state['bank_scale'],125)
+        self.assertEqual(state['entry_point'],entry)
+        saved=archive.settings()['interactive_overlay_games']['drop']
+        for key in ('custom_bank_asset','bank_position','bank_scale','bank_scales','entry_point'):
+            self.assertEqual(saved[key],state[key])
+        for key,value in (('bank_position',{'x':float('nan'),'y':50}),
+                          ('entry_point',{'x':50,'y':101}),('bank_scale',201),
+                          ('custom_bank_asset','../../secret.png')):
+            invalid=self.client.post('/interactivity/overlays',json={
+                'game':'drop','action':'configure',key:value,
+            })
+            self.assertEqual(invalid.status_code,400,(key,invalid.get_json()))
+
+    def test_custom_bank_position_and_cavity_saves_compose_across_reload_in_either_order(self):
+        import bank_storage
+        from copy import deepcopy
+        class MemoryArchive:
+            def __init__(self): self.values={}
+            def settings(self): return deepcopy(self.values)
+            def set_setting(self,key,value): self.values[key]=deepcopy(value)
+        previous_archive=self.i.r.archive
+        archive=MemoryArchive();self.i.r.archive=archive
+        self.addCleanup(setattr,self.i.r,'archive',previous_archive)
+        asset_id='b'*32+'.png'
+        position={'x':35.0,'y':62.0};entry={'x':43.0,'y':18.0};scale=85.0
+        shape={'points':[[10,10],[30,10],[70,10],[90,30],[90,70],[10,70]],'slot':[43,18]}
+        orders=(('configure','shape'),('shape','configure'))
+        for first,second in orders:
+            if first=='configure':
+                config={'game':'drop','action':'configure','bank':'custom','custom_bank_asset':asset_id,
+                        'bank_position':position,'bank_scale':scale,'entry_point':entry}
+                cavity={'game':'drop','action':'shape','bank':'custom','shape':shape,'custom_bank_asset':asset_id,
+                        'bank_position':position,'bank_scale':scale,'entry_point':entry}
+            else:
+                config={'game':'drop','action':'configure','bank':'custom','custom_bank_asset':asset_id,
+                        'bank_position':position,'bank_scale':scale,'entry_point':entry}
+                cavity={'game':'drop','action':'shape','bank':'custom','shape':shape,'custom_bank_asset':asset_id,
+                        'bank_position':position,'bank_scale':scale,'entry_point':entry}
+            self.assertEqual(self.client.post('/interactivity/overlays',json=(config if first=='configure' else cavity)).status_code,200)
+            self.assertEqual(self.client.post('/interactivity/overlays',json=(cavity if second=='shape' else config)).status_code,200)
+            saved=archive.settings()
+            persisted=saved['interactive_overlay_games']['drop']
+            self.assertEqual(persisted['bank'],'custom')
+            self.assertEqual(persisted['custom_bank_asset'],asset_id)
+            self.assertEqual(persisted['bank_position'],position)
+            self.assertEqual(persisted['bank_scale'],scale)
+            self.assertEqual(persisted['entry_point'],entry)
+            self.i.overlay_games['drop'].update(bank='cochito',custom_bank_asset=None,
+                bank_position={'x':50.0,'y':50.0},bank_scale=100.0,entry_point={'x':50.0,'y':16.0},shapes={})
+            self.i.restore_overlays()
+            bank_storage.restore(self.i.r,self.i.overlay_games['drop'])
+            restored=self.i.overlay_games['drop']
+            self.assertEqual(restored['bank'],'custom')
+            self.assertEqual(restored['custom_bank_asset'],asset_id)
+            self.assertEqual(restored['bank_position'],position)
+            self.assertEqual(restored['bank_scale'],scale)
+            self.assertEqual(restored['entry_point'],entry)
+            self.assertEqual(restored['shapes']['custom'],shape)
+
+    def test_custom_cavity_save_persists_the_carried_image_transform(self):
+        import bank_storage
+        from copy import deepcopy
+        class MemoryArchive:
+            def __init__(self): self.values={}
+            def settings(self): return deepcopy(self.values)
+            def set_setting(self,key,value): self.values[key]=deepcopy(value)
+        previous_archive=self.i.r.archive
+        archive=MemoryArchive();self.i.r.archive=archive
+        self.addCleanup(setattr,self.i.r,'archive',previous_archive)
+        asset_id='c'*32+'.png';position={'x':35.0,'y':62.0};entry={'x':43.0,'y':18.0};scale=85.0
+        shape={'points':[[10,10],[30,10],[70,10],[90,30],[90,70],[10,70]],'slot':[43,18]}
+        state=self.i.overlay_games['drop']
+        state.update(bank='custom',custom_bank_asset=None,bank_position={'x':50.0,'y':50.0},
+                     bank_scale=100.0,entry_point={'x':50.0,'y':16.0},shapes={})
+        response=self.client.post('/interactivity/overlays',json={
+            'game':'drop','action':'shape','bank':'custom','shape':shape,'custom_bank_asset':asset_id,
+            'bank_position':position,'bank_scale':scale,'entry_point':entry,
+        })
+        self.assertEqual(response.status_code,200,response.get_json())
+        saved=archive.settings()['interactive_overlay_games']['drop']
+        self.assertEqual(saved['bank'],'custom')
+        self.assertEqual(saved['custom_bank_asset'],asset_id)
+        self.assertEqual(saved['bank_position'],position)
+        self.assertEqual(saved['bank_scale'],scale)
+        self.assertEqual(saved['entry_point'],entry)
+        state.update(custom_bank_asset=None,bank_position={'x':50.0,'y':50.0},
+                     bank_scale=100.0,entry_point={'x':50.0,'y':16.0},shapes={})
+        self.i.restore_overlays();bank_storage.restore(self.i.r,state)
+        self.assertEqual(state['bank'],'custom')
+        self.assertEqual(state['custom_bank_asset'],asset_id)
+        self.assertEqual(state['bank_position'],position)
+        self.assertEqual(state['bank_scale'],scale)
+        self.assertEqual(state['entry_point'],entry)
+        self.assertEqual(state['shapes']['custom'],shape)
+
+    def test_legacy_drop_settings_receive_custom_bank_defaults(self):
+        archive=SimpleNamespace(settings=Mock(return_value={
+            'interactive_overlay_games':{'drop':{'bank':'pato','size':72,'bank_scale':137}},
+        }))
+        self.i.overlay_games['drop'].update(bank='cochito',custom_bank_asset=None,
+            bank_position={'x':50.0,'y':50.0},bank_scale=100.0,
+            bank_scales={key:100.0 for key in ('cochito','cochita','pato','oso','perro','gato','custom')},
+            entry_point={'x':50.0,'y':16.0})
+        with patch.object(self.i.r,'archive',archive):
+            self.i.restore_overlays()
+        state=self.i.overlay_games['drop']
+        self.assertEqual(state['bank'],'pato')
+        self.assertIsNone(state['custom_bank_asset'])
+        self.assertEqual(state['bank_position'],{'x':50.0,'y':50.0})
+        self.assertEqual(state['bank_scale'],137.0)
+        self.assertEqual(state['bank_scales']['pato'],137.0)
+        self.assertEqual(state['bank_scales']['cochito'],100.0)
+        self.assertEqual(state['entry_point'],{'x':50.0,'y':16.0})
 
 if __name__=='__main__':unittest.main()

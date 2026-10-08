@@ -11,7 +11,7 @@ import os
 from app_paths import data_dir, installed
 
 ROOT=Path(__file__).resolve().parent.parent
-ROOT_FILES={'animation_studio.py','server.py','core_routes.py','history_routes.py','studio_routes.py','widget_routes.py','diagnostics_routes.py','production.py','interactivity.py','operator_tools.py','live_tools.py','reliability.py','voice_models.py','rvc_gpu_runner.py','setup_rvc.py','runtime_guard.py','runtime_state.py','system_routes.py','observability.py','app_config.py','preflight.py','game_hotkeys.py','spotify_integration.py','history_store.py','launcher.py','maintenance.py','organize_diagnostics.py','requirements.txt','requirements-dev.txt','pyproject.toml','.gitignore','README.md','INSTRUCCIONES.md','VALIDACION_FISICA.md','Iniciar TikReader.cmd','Iniciar TikReaer.cmd','Instalar TikReader.cmd','Actualizar o recuperar TikReader.cmd'}
+ROOT_FILES={'animation_studio.py','server.py','core_routes.py','history_routes.py','studio_routes.py','widget_routes.py','diagnostics_routes.py','production.py','interactivity.py','operator_tools.py','live_tools.py','reliability.py','voice_models.py','rvc_gpu_runner.py','setup_rvc.py','runtime_guard.py','runtime_state.py','system_routes.py','observability.py','app_config.py','preflight.py','game_hotkeys.py','spotify_integration.py','history_store.py','launcher.py','maintenance.py','organize_diagnostics.py','requirements.txt','requirements-dev.txt','pyproject.toml','.gitignore','README.md','INSTRUCCIONES.md','VALIDACION_FISICA.md','Iniciar TikReader.cmd','Instalar TikReader.cmd','Actualizar o recuperar TikReader.cmd'}
 ROOT_FILES.update({'daily_diagnostics.py','live_counters.py','minecraft_connector.py','points_system.py','user_badges.py','data_recovery.py','Respaldar o recuperar datos.cmd','RECUPERACION.md'})
 
 def organized_name(name):
@@ -21,7 +21,7 @@ def organized_name(name):
     if '/' not in name:
         if name.endswith('.py'):return ('tools/' if name in ('setup_rvc.py', 'organize_diagnostics.py') else 'app/') + name
         if name.endswith('.md'):return 'docs/' + name
-        if name.endswith('.cmd') and name not in ('Iniciar TikReader.cmd','Iniciar TikReaer.cmd'):return 'tools/' + name
+        if name.endswith('.cmd') and name != 'Iniciar TikReader.cmd':return 'tools/' + name
     return name
 
 

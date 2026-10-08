@@ -15,12 +15,24 @@ La ventana de transmisión dispone ahora de dos fuentes dedicadas:
 
 - `OverlayTransport` mantiene una conexión Socket.IO para reaccionar a comentarios, regalos, estadísticas y cambios de sesión. Las consultas HTTP pasan a ser recuperación cada 5 segundos, no el mecanismo principal cada segundo.
 - `OverlayLifecycle` detiene intervalos y renderizadores cuando la fuente queda oculta y libera recursos al cerrar la página.
+- Las fuentes especializadas (ambientes, emojis, personajes e información de usuario) comparten el mismo ciclo de pausa, desconectan Socket.IO al ocultarse y recuperan una instantánea al volver.
+- La niebla ambiental usa bancos de ruido orgánico en varios planos, con deriva y desenfoque por profundidad. Funciona a un máximo de 30 FPS, reduce capas automáticamente si el render se vuelve costoso y funde su entrada o salida en 700 ms.
+- La niebla ofrece tres tratamientos —baja, envolvente y cinematográfica— y puede reservar el centro o uno de los lados para la cámara, subtítulos u otros widgets.
+- Su editor usa niveles de densidad y direcciones legibles en lugar de escalas técnicas. La velocidad y la dirección se bloquean al elegir «Sin movimiento», y «Reiniciar movimiento» es la única acción de repetición de la vista privada.
+- Las vistas previas del catálogo no abren conexiones al LIVE y los efectos continuos sólo dibujan el fotograma necesario para su miniatura.
 - CSS Keyframes/Transitions cubren entradas simples y respetan `prefers-reduced-motion`.
 - GSAP se descarga de forma diferida sólo cuando un contador, regalo o secuencia compleja necesita una línea de tiempo.
 - tsParticles se usa para celebraciones masivas con límite de 30 FPS, densidad fija y vida finita.
 - Las monedas se dibujan en Canvas 2D y Matter.js calcula sus colisiones. Así se evita mantener un segundo contexto WebGL para una animación breve.
 - Lottie light reproduce la medalla vectorial y se destruye junto con su escena.
 - Los efectos tienen límites por tamaño de pantalla; no dependen de la densidad de píxeles completa de monitores 4K.
+- Los eventos Socket.IO se agrupan durante 80 ms antes de pedir una instantánea, evitando ráfagas de consultas durante actividad intensa.
+
+## Alertas y escenas
+
+- La fuente dedicada de regalos muestra cada evento durante unos segundos, conserva una fila acotada y actualiza las rachas sin dejar una tarjeta permanente en pantalla.
+- Cada animación puede habilitarse para una o varias escenas: En vivo, Comenzamos pronto, Pausa y Cierre.
+- Al reanudar una fuente oculta se recupera el estado actual sin reproducir de nuevo toda la actividad anterior.
 
 ## Capas
 

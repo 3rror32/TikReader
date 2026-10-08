@@ -22,7 +22,7 @@ class AnimationStudioTests(unittest.TestCase):
         self.client=self.app.test_client()
 
     def template(self,**extra):
-        return dict(name='Gracias',text='Gracias {usuario}: {regalo} ×{cantidad}',gift='Rose',amount=2,enabled=True,**extra)
+        return {**dict(name='Gracias',text='Gracias {usuario}: {regalo} ×{cantidad}',gift='Rose',amount=2,enabled=True),**extra}
 
     def save(self,**extra):
         response=self.client.post('/animation-studio',json=self.template(**extra))
@@ -89,8 +89,11 @@ class AnimationStudioTests(unittest.TestCase):
         self.assertEqual(self.client.post('/animation-studio',json=self.template(),headers={'Origin':'https://other.invalid'}).status_code,403)
         remote={'REMOTE_ADDR':'192.0.2.1'}
         self.assertEqual(self.client.get('/broadcast/alerts',environ_overrides=remote).status_code,401)
+        self.assertEqual(self.client.post('/broadcast/alerts/heartbeat',environ_overrides=remote).status_code,401)
         self.assertEqual(self.client.get('/broadcast/alerts?access='+self.runtime.production.view_token,
                                          environ_overrides=remote).status_code,200)
+        self.assertEqual(self.client.post('/broadcast/alerts/heartbeat?access='+self.runtime.production.view_token,
+                                          environ_overrides=remote).status_code,200)
 
     def test_new_session_resets_cooldown_without_replaying_previous_alerts(self):
         self.save()
@@ -99,3 +102,47 @@ class AnimationStudioTests(unittest.TestCase):
         self.studio.gift({'gift':'Rose','count':2},'same:2')
         self.assertEqual(self.studio.serial,2)
         self.assertEqual(len(self.studio.events),1)
+
+    def test_follow_like_and_diamond_triggers(self):
+        follow=self.save(trigger='follow',gift='',text='{evento}: {usuario}')
+        like=self.save(id='likes',trigger='like',gift='',amount=20,text='{usuario} envió {cantidad} likes')
+        gift=self.save(id='diamonds',diamonds=50,text='{regalo}: {diamantes} diamantes')
+        self.studio.event('follow',{'user':'Ana'},'follow-1')
+        self.studio.event('like',{'user':'Luis','count':10},'like-1')
+        self.studio.event('like',{'user':'Luis','count':25},'like-2')
+        self.studio.gift({'user':'Eva','gift':'Rose','count':2,'diamonds':20},'gift-low:2')
+        self.studio.gift({'user':'Eva','gift':'Rose','count':2,'diamonds':60},'gift-high:2')
+        data=self.client.get('/broadcast/alerts').get_json()
+        self.assertEqual(len(data['events']),3)
+        self.assertIn('Nuevo seguidor: Ana',[item['text'] for item in data['events']])
+        self.assertIn('Luis envió 25 likes',[item['text'] for item in data['events']])
+        self.assertIn('Rose: 60 diamantes',[item['text'] for item in data['events']])
+        self.assertTrue(all(item['template']['enabled'] for item in data['events']))
+
+    def test_source_heartbeat_stream_test_and_bulk_activation(self):
+        saved=self.save()
+        self.client.post('/animation-studio',json={**saved,'enabled':False})
+        sample={**self.template(),'enabled':False}
+        offline=self.client.post('/animation-studio/test',json=sample)
+        self.assertEqual(offline.status_code,409)
+        self.assertFalse(offline.get_json()['source_online'])
+        self.assertEqual(self.client.post('/broadcast/alerts/heartbeat').status_code,200)
+        sent=self.client.post('/animation-studio/test',json=sample)
+        self.assertEqual(sent.status_code,200)
+        self.assertTrue(sent.get_json()['source_online'])
+        armed=self.client.post('/animation-studio/arm',json={'enabled':True}).get_json()
+        self.assertEqual(armed['enabled_count'],1)
+        self.assertTrue(armed['templates'][0]['enabled'])
+        disarmed=self.client.post('/animation-studio/arm',json={'enabled':False}).get_json()
+        self.assertEqual(disarmed['enabled_count'],0)
+
+    def test_custom_audio_upload_and_reference_protection(self):
+        wav=b'RIFF'+(24).to_bytes(4,'little')+b'WAVEfmt '+b'\0'*20
+        response=self.client.post('/animation-studio/media',data={'file':(io.BytesIO(wav),'sound.wav')})
+        self.assertEqual(response.status_code,200)
+        name=response.get_json()['name']
+        saved=self.save(sound='custom',sound_asset=name,volume=75)
+        self.assertEqual(saved['sound_asset'],name)
+        self.assertEqual(self.client.delete('/animation-studio/media/'+name).status_code,409)
+        with self.client.get('/broadcast/alert-media/'+name) as served:
+            self.assertEqual(served.mimetype,'audio/wav')

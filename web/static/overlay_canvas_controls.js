@@ -14,7 +14,7 @@ window.OverlayCanvas=(()=>{
   const code=$('overlay-selected-url'),open=$('overlay-open'),copy=$('overlay-copy'),help=$('overlay-source-resolution');
   if(code)code.textContent=url();
   if(open)open.href=url({preview:targetOptions.preview});
-  if(copy)copy.textContent='Copiar URL · '+(format==='vertical'?'9:16':'16:9');
+  if(copy)copy.textContent='Copiar URL';
   if(help)help.textContent=format==='vertical'
    ?'TikTok LIVE Studio: activa Resolución personalizada y usa 1080 × 1920; después elige Ajustar a pantalla.'
    :'TikTok LIVE Studio: activa Resolución personalizada y usa 1920 × 1080; después elige Ajustar a pantalla.';

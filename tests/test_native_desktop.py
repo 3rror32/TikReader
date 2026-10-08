@@ -55,6 +55,28 @@ class DesktopApiTests(unittest.TestCase):
 
 
 class DesktopWindowSafetyTests(unittest.TestCase):
+    def test_windows_launcher_waits_without_batch_interrupt_prompt(self):
+        root = Path(__file__).resolve().parents[1]
+        script = (root / 'Iniciar TikReader.cmd').read_text(encoding='utf-8')
+
+        self.assertEqual(script.count('start "" /wait /b'), 3)
+
+    def test_native_startup_uses_a_branded_animated_splash(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / 'app' / 'startup_splash.py').read_text(encoding='utf-8')
+        launcher = (root / 'app' / 'launcher.py').read_text(encoding='utf-8')
+        self.assertIn('tikreader-192.png', source)
+        self.assertIn('QLabel("Desarrollado por")', source)
+        self.assertIn('QLabel("3error32")', source)
+        self.assertIn('class SignalProgressBar(QWidget):', source)
+        self.assertNotIn('3rror32-avatar.png', source)
+        self.assertNotIn('QLabel("TR")', source)
+        self.assertNotIn('ESTUDIO EN VIVO', source)
+        self.assertIn('self.progress.complete()', source)
+        self.assertIn('QPropertyAnimation', source)
+        self.assertIn('_health_with_splash(splash)', launcher)
+        self.assertIn('Servicio listo · preparando la interfaz…', launcher)
+
     def test_windows_uses_tikreader_identity_instead_of_python(self):
         source = (Path(__file__).resolve().parents[1] / 'app' / 'desktop_window.py').read_text(
             encoding='utf-8'

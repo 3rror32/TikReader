@@ -129,7 +129,9 @@ html[data-skin="cute"] .setting-card{outline:1px dashed #ffad9166;outline-offset
 html[data-skin="cute"] .settings-order{border-radius:12px;background:#ffad91;color:#442830;border:0;transform:rotate(-3deg)}
 html[data-skin="cute"] .sidebar-brand{font-family:'Trebuchet MS',sans-serif;text-transform:none}
 
-@media(min-width:901px){html[data-skin="kawai"] .app,html[data-skin="cute"] .app{margin-left:230px;width:calc(100% - 230px);padding:20px 26px}html[data-skin="kawai"] .app-sidebar,html[data-skin="cute"] .app-sidebar{width:230px}html[data-skin="dark"] .app{margin-left:205px;width:calc(100% - 205px);padding:12px 16px}html[data-skin="dark"] .app-sidebar{width:205px}}
+/* Los skins sólo cambian el acabado y el aire interior. El ancho de la barra y
+   el margen del espacio de trabajo pertenecen al contrato común de sidebar.css. */
+@media(min-width:901px){html[data-skin="kawai"] .app,html[data-skin="cute"] .app{padding:20px 26px}html[data-skin="dark"] .app{padding:12px 16px}}
 @media(max-width:700px){.profile-fields{grid-template-columns:1fr}.settings-group-title{gap:10px}.settings-heading h2{font-size:24px!important}}
 
 /* Los estados funcionales conservan el mismo significado en las cuatro paletas. */

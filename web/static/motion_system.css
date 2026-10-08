@@ -1,0 +1,187 @@
+/* Purposeful motion: feedback for state changes, never decoration for its own sake. */
+:root {
+  --motion-fast: 150ms;
+  --motion-base: 240ms;
+  --motion-slow: 420ms;
+  --motion-distance: 8px;
+  --motion-ease: cubic-bezier(.22, .82, .24, 1);
+  --motion-spring: cubic-bezier(.16, 1.18, .32, 1);
+}
+
+html[data-motion-level="expressive"] {
+  --motion-fast: 180ms;
+  --motion-base: 330ms;
+  --motion-slow: 560ms;
+  --motion-distance: 14px;
+}
+
+html.motion-system-ready body:not(.menu-motion-reduced) .app > header {
+  animation: tr-app-arrival var(--motion-slow) var(--motion-ease) both;
+}
+
+html.motion-system-ready body:not(.menu-motion-reduced) .app > :is(.session-panel, .panel) {
+  animation: tr-app-arrival var(--motion-slow) var(--motion-ease) 70ms both;
+}
+
+html.motion-system-ready body:not(.menu-motion-reduced) .live-columns > * {
+  animation: tr-app-arrival var(--motion-slow) var(--motion-ease) both;
+}
+
+html.motion-system-ready body:not(.menu-motion-reduced) .live-columns > :nth-child(1) { animation-delay: 130ms; }
+html.motion-system-ready body:not(.menu-motion-reduced) .live-columns > :nth-child(2) { animation-delay: 190ms; }
+html.motion-system-ready body:not(.menu-motion-reduced) .live-columns > :nth-child(3) { animation-delay: 250ms; }
+
+body:not(.menu-motion-reduced) :is(button, summary, .tool-buttons > a) {
+  transition-duration: var(--motion-fast);
+  transition-timing-function: var(--motion-ease);
+}
+
+body:not(.menu-motion-reduced) :is(button, summary, .tool-buttons > a):active {
+  translate: 0 1px;
+  scale: .985;
+}
+
+body:not(.menu-motion-reduced) .app-sidebar :is([data-section-nav], summary):hover .sidebar-icon {
+  translate: 2px 0;
+}
+
+body:not(.menu-motion-reduced) .motion-view-enter {
+  animation: tr-view-enter var(--motion-base) var(--motion-ease) both;
+}
+
+body:not(.menu-motion-reduced) .motion-comment-arrival {
+  animation: tr-comment-arrival var(--motion-base) var(--motion-spring) both !important;
+}
+
+body:not(.menu-motion-reduced) .motion-metric-update {
+  animation: tr-metric-update var(--motion-base) var(--motion-spring) both;
+}
+
+body:not(.menu-motion-reduced) .motion-stage-update .signal-stage-dot {
+  animation: tr-stage-update var(--motion-slow) var(--motion-ease) both;
+}
+
+body:not(.menu-motion-reduced) details.motion-details-open > :not(summary) {
+  animation: tr-details-open var(--motion-base) var(--motion-ease) both;
+}
+
+body:not(.menu-motion-reduced)[data-live-state="live"] .session-live-dot {
+  animation: tr-live-breathe 2.4s ease-in-out infinite;
+}
+
+/* Each authored skin gets a recognizable, restrained motion signature. */
+html[data-skin="studio-rundown"] body:not(.menu-motion-reduced) .motion-view-enter {
+  animation-name: tr-rundown-enter;
+}
+
+html[data-skin="broadcast-console"] body:not(.menu-motion-reduced)[data-live-state="live"] .session-live-dot {
+  animation-name: tr-tally-breathe;
+}
+
+html[data-skin="creator-pop"] body:not(.menu-motion-reduced) .motion-view-enter,
+html[data-skin="creator-pop"] body:not(.menu-motion-reduced) .motion-comment-arrival {
+  animation-timing-function: var(--motion-spring);
+}
+
+html[data-skin="terminal-crt"] body:not(.menu-motion-reduced) .motion-view-enter {
+  animation-name: tr-terminal-enter;
+}
+
+html[data-skin="cyber-neumorph"] body:not(.menu-motion-reduced) .motion-stage-update {
+  animation: tr-cyber-glow var(--motion-slow) ease-out both;
+}
+
+html[data-skin="swiss-brutalist"] body:not(.menu-motion-reduced) .motion-view-enter {
+  animation-name: tr-swiss-enter;
+  animation-timing-function: steps(3, end);
+}
+
+html[data-skin="tactile-scrapbook"] body:not(.menu-motion-reduced) .motion-view-enter {
+  animation-name: tr-paper-settle;
+  transform-origin: top center;
+}
+
+@keyframes tr-app-arrival {
+  from { opacity: 0; translate: 0 var(--motion-distance); }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes tr-view-enter {
+  from { opacity: .7; translate: var(--motion-distance) 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes tr-comment-arrival {
+  from { opacity: 0; translate: 0 10px; scale: .985; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+@keyframes tr-metric-update {
+  0% { scale: 1; }
+  42% { scale: 1.12; color: var(--skin-accent, #86dfbe); }
+  100% { scale: 1; }
+}
+
+@keyframes tr-stage-update {
+  0% { scale: .55; opacity: .45; }
+  55% { scale: 1.45; opacity: 1; }
+  100% { scale: 1; opacity: 1; }
+}
+
+@keyframes tr-details-open {
+  from { opacity: 0; translate: 0 -5px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes tr-live-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 28%, transparent); }
+  50% { box-shadow: 0 0 0 5px transparent; }
+}
+
+@keyframes tr-rundown-enter {
+  from { opacity: .7; clip-path: inset(0 100% 0 0); translate: -6px 0; }
+  to { opacity: 1; clip-path: inset(0 0 0 0); translate: 0 0; }
+}
+
+@keyframes tr-tally-breathe {
+  0%, 100% { opacity: .78; box-shadow: 0 0 0 0 #ff5d6688; }
+  50% { opacity: 1; box-shadow: 0 0 0 6px transparent; }
+}
+
+@keyframes tr-terminal-enter {
+  0% { opacity: .45; filter: brightness(1.6); translate: 0 3px; }
+  35% { opacity: 1; filter: brightness(.82); }
+  55% { opacity: .78; }
+  100% { opacity: 1; filter: none; translate: 0 0; }
+}
+
+@keyframes tr-cyber-glow {
+  0% { filter: drop-shadow(0 0 0 transparent); }
+  48% { filter: drop-shadow(0 0 9px var(--skin-accent, #36e7ff)); }
+  100% { filter: drop-shadow(0 0 0 transparent); }
+}
+
+@keyframes tr-swiss-enter {
+  from { opacity: .3; translate: 16px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes tr-paper-settle {
+  0% { opacity: .4; translate: 0 -8px; rotate: -1.1deg; }
+  72% { opacity: 1; translate: 0 2px; rotate: .35deg; }
+  100% { opacity: 1; translate: 0 0; rotate: 0deg; }
+}
+
+html[data-motion-level="reduced"] *,
+body.menu-motion-reduced * {
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}

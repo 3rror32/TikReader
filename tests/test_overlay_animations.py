@@ -66,6 +66,18 @@ class OverlayAnimationTests(AnimationStudioTests):
         self.assertEqual(self.effects.settings['hearts']['canvas_format'],'vertical')
         self.assertEqual(self.client.post('/overlay-animations/hearts',json={'canvas_format':'auto'}).status_code,400)
 
+    def test_animation_can_be_limited_to_selected_scenes(self):
+        self.enable('hearts', scenes=['talk', 'pause'])
+        self.runtime.production.settings['scene'] = 'start'
+        self.effects.event('like', {'count': 1}, 'start-like')
+        self.assertEqual(self.events('hearts'), [])
+        self.runtime.production.settings['scene'] = 'pause'
+        self.effects.event('like', {'count': 1}, 'pause-like')
+        self.assertEqual(len(self.events('hearts')), 1)
+        self.assertEqual(self.effects.settings['hearts']['scenes'], ['talk', 'pause'])
+        for scenes in ([], ['talk', 'unknown'], 'talk'):
+            self.assertEqual(self.client.post('/overlay-animations/hearts', json={'scenes': scenes}).status_code, 400)
+
     def test_cannon_delivers_gift_image_and_owns_overlay_route(self):
         self.enable('cannon')
         self.effects.event('gift',{'gift':'Rosa','count':10,'image_url':'https://example.com/rose.png'},'rose:10')

@@ -42,6 +42,7 @@ window.LivePresence = (() => {
   }
   const warning = document.createElement('p');
   warning.className = 'session-warning';
+  warning.id = 'connection-inline-status';
   warning.setAttribute('role', 'alert');
   warning.hidden = true;
   panel.append(warning);
@@ -99,48 +100,40 @@ window.LivePresence = (() => {
   donate.target = '_blank';
   donate.rel = 'noopener noreferrer';
   donate.style.textDecoration = 'none';
-  donate.dataset.text = 'REGÁLAME UN CAFÉ';
-  donate.innerHTML = '<span aria-hidden="true">☕</span><b>Regálame un café</b>';
+  donate.className = 'project-support-button';
+  donate.dataset.text = 'APOYAR EL PROYECTO';
+  donate.innerHTML = '<span aria-hidden="true">☕</span><b>Apoyar el proyecto</b>';
   donate.setAttribute('aria-label', 'Regálame un café en Ko-fi. Se abre en una pestaña nueva.');
   donate.title = 'Apoyar en Ko-fi';
+  const aboutDonate = donate.cloneNode(true);
+  aboutDonate.removeAttribute('id');
   const headerActions = document.createElement('div');
   headerActions.className = 'header-session-actions';
   const safety = document.querySelector('.broadcast-safety');
   headerActions.append(persistent);
   if (safety) headerActions.append(safety);
   headerActions.append(donate);
+  document.querySelector('.creator-actions')?.append(aboutDonate);
   document.querySelector('header').append(headerActions);
-  const dataContext = document.createElement('p');
-  dataContext.id = 'session-data-context';
-  dataContext.setAttribute('role', 'status');
-  dataContext.textContent = 'Última sesión';
-  dataContext.title = 'Los valores visibles pertenecen a la última sesión recibida.';
-  panel.querySelector('.stats-bar').before(dataContext);
   const viewerCard = $('stat-viewers').closest('.stat-card');
   viewerCard.classList.add('stat-audience');
   viewerCard.parentElement.prepend(viewerCard);
   $('btn-stop').textContent = 'Desconectar';
   $('username-input').setAttribute('aria-label', 'Usuario de TikTok');
+  $('username-input').setAttribute('aria-describedby', 'connection-inline-status');
   let mode = 'idle', username = '', since = 0, lastComment = 0, lastEvent = 0, pulseTimer, retryAt = 0;
   let latestStats = null;
-  function syncDataContext() {
-    const hasData = latestStats && ['likes', 'viewers', 'comments', 'gifts'].some(key => Number(latestStats[key]) > 0);
-    dataContext.hidden = mode === 'live';
-    dataContext.textContent = hasData ? 'Última sesión' : 'Sin datos todavía';
-    dataContext.title = hasData ? 'Los valores visibles pertenecen a la última sesión recibida.' : 'Las métricas aparecerán al recibir actividad de TikTok.';
-  }
   function stats(data) {
     latestStats = data;
-    syncDataContext();
     for (const [key, label] of [['likes','Likes'],['viewers','Espectadores'],['comments','Comentarios'],['gifts','Regalos']]) {
       const value = $('stat-' + key), card = value.closest('.stat-card');
       const pending = key === 'likes' ? !(data.likes_known || data.like_events) : key === 'viewers' ? !(data.viewers_known || data.viewers > 0) : false;
       const recovered = key === 'likes' && data.likes_source === 'recovered';
-      const state = pending ? 'pending' : mode !== 'live' ? 'inactive' : recovered ? 'recovered' : 'current';
+      const state = mode !== 'live' ? 'inactive' : pending ? 'pending' : recovered ? 'recovered' : 'current';
       card.dataset.valueState = state;
-      const note = pending ? 'Esperando datos' : state === 'inactive' ? 'Último valor observado; sin conexión activa' : recovered ? 'Total recuperado; pendiente de actualización en vivo' : 'Datos de la conexión actual';
+      const note = state === 'inactive' ? 'Sin conexión activa; se actualizará al conectar' : pending ? 'En cero; esperando actualización de TikTok' : recovered ? 'Total recuperado; pendiente de actualización en vivo' : 'Datos de la conexión actual';
       card.title = `${label}: ${note}`;
-      value.setAttribute('aria-label', `${label}: ${pending ? 'sin datos' : value.textContent}. ${note}`);
+      value.setAttribute('aria-label', `${label}: ${value.textContent}. ${note}`);
     }
   }
   const titles = {idle:'Listo para conectar', connecting:'CONECTANDO', reconnecting:'RECONECTANDO', live:'EN VIVO', offline:'SIN CONEXIÓN'};
@@ -161,7 +154,6 @@ window.LivePresence = (() => {
     $('btn-stop').textContent = ['connecting','reconnecting'].includes(mode) ? 'Cancelar conexión' : 'Desconectar';
     document.body.dataset.liveState = mode;
     syncLiveLight(mode === 'live');
-    syncDataContext();
     if (latestStats) stats(latestStats);
     $('session-heading').textContent = titles[mode];
     $('session-channel').textContent = username && ['live','connecting','reconnecting'].includes(mode) ? `@${username}` : 'Conecta un canal para seguir su directo.';

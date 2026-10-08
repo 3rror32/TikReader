@@ -1,0 +1,131 @@
+/*
+ * Final accessibility guardrails for every skin.
+ *
+ * Theme files may change material, geometry and typography. This layer keeps
+ * semantic text, controls and status surfaces readable after those changes.
+ */
+
+html[data-skin] body :is(
+  button,
+  [role="button"],
+  summary,
+  .tool-buttons > a,
+  .overlay-actions > a
+) {
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+html[data-skin] body :is(label, legend, .setting-card, .panel, .config-content) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Nested labels must follow the navigation palette, not the page palette. */
+html[data-skin] body .sidebar-brand { color: var(--nav-ink, var(--skin-text)) !important; }
+html[data-skin] body .sidebar-brand span { color: inherit !important; }
+html[data-skin="tactile-scrapbook"] body .sidebar-brand {
+  color: var(--skin-text) !important;
+}
+html[data-skin] body #app-sidebar .nav-section-label {
+  color: var(--nav-muted, var(--skin-muted)) !important;
+}
+
+/* Compact header telemetry is small text, so use the strongest theme ink. */
+html[data-skin] body :is(.session-persistent-label, .app > header #section-title) {
+  color: var(--skin-text) !important;
+}
+
+html[data-skin] body .app > header .beta-badge {
+  color: var(--skin-text) !important;
+}
+
+html[data-skin] body .app > header #emergency-status {
+  color: color-mix(in srgb, var(--skin-danger) 50%, var(--skin-text)) !important;
+  font-weight: 650;
+}
+
+/* Destructive intent remains visible in the border and tint; body ink keeps
+   the label readable in both light and dark skins. */
+html[data-skin] body #profile-delete {
+  --control-ink: var(--skin-text);
+  background: var(--skin-surface) !important;
+  border-color: var(--skin-danger) !important;
+  color: var(--skin-text) !important;
+}
+
+html[data-skin] body #profile-delete:hover:not(:disabled) {
+  background: var(--skin-surface) !important;
+  box-shadow: inset 0 0 0 1px var(--skin-danger);
+}
+
+/* Do not wash a primary button toward its label color on hover: that lowers
+   contrast in mid-tone light themes. The border still provides feedback. */
+html[data-skin] body :is(
+  .btn-primary,
+  .primary-action,
+  .timer-actions .primary,
+  #skin-apply,
+  #custom-voice-save,
+  #custom-voice-test,
+  #overlay-save,
+  #overlay-copy,
+  .platform-config-actions button[type="submit"]
+):hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--skin-accent) !important;
+  color: var(--skin-accent-ink) !important;
+  border-color: var(--skin-text) !important;
+}
+
+html[data-skin] body #skin-status { color: var(--skin-accent) !important; }
+
+/* Update messages are application chrome and must use the selected skin too. */
+html[data-skin] body #update-available {
+  background: var(--skin-surface) !important;
+  color: var(--skin-text) !important;
+  border-color: var(--skin-accent) !important;
+}
+html[data-skin] body #update-available :is(span, p, strong) {
+  color: inherit !important;
+}
+
+/* Creator Studio uses muted tokens for compact labels. Some expressive light
+   skins reserve those tokens for decoration, so controls use body ink here. */
+html[data-skin] body.creator-app :is(label, small, .hint) {
+  color: var(--skin-text) !important;
+}
+
+html[data-skin] body.creator-app .back-link {
+  color: var(--skin-text) !important;
+  text-decoration: underline;
+  text-decoration-color: var(--skin-accent);
+  text-underline-offset: 0.2em;
+}
+
+html[data-skin] body.creator-app input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Unchecked controls need a visible 3:1 outline. The muted text token already
+   meets text contrast against every field background. */
+html[data-skin] body :is(
+  #ui-control-contract,
+  input[type="checkbox"],
+  input[type="radio"]
+):not(:checked) {
+  border-color: color-mix(in srgb, var(--skin-text) 70%, var(--skin-surface)) !important;
+}
+
+@media (max-width: 700px) {
+  html[data-skin] body :is(.skin-picker, .skin-picker label, .skin-picker select, .skin-picker button) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+}

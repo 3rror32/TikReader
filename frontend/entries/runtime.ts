@@ -4,5 +4,10 @@ declare global {
   interface Window { TikReaderOverlay?: OverlayTransport; }
 }
 
-window.TikReaderOverlay ??= new OverlayTransport();
-window.dispatchEvent(new CustomEvent("tikreader:runtime-ready", { detail: window.TikReaderOverlay }));
+const params = new URLSearchParams(location.search);
+const preview = params.has("preview") || params.has("editor");
+
+if (!preview) {
+  window.TikReaderOverlay ??= new OverlayTransport();
+  window.dispatchEvent(new CustomEvent("tikreader:runtime-ready", { detail: window.TikReaderOverlay }));
+}

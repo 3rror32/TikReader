@@ -41,8 +41,10 @@ test('automatic comment voice retains enabled and disabled choices across reload
   const storage = new Map();
   const first = setup(storage);
   assert.equal(first.get('voice-toggle').getAttribute('aria-pressed'), 'false');
+  assert.equal(first.get('voice-toggle').textContent, 'Leer comentarios');
   first.get('voice-toggle').onclick();
   assert.equal(storage.get('tikreader.voiceWanted'), 'true');
+  assert.equal(first.get('voice-toggle').textContent, 'Leer comentarios');
   assert.equal(first.changes(), 2, 'one initialization and one change per click');
   const reloaded = setup(storage);
   assert.equal(reloaded.get('tts-enabled').checked, true);

@@ -24,7 +24,7 @@ class Interactivity:
         self.overlay_serial=0
         self.overlay_games={
             'wheel':{'serial':0,'options':['Reto sorpresa','+1 minuto','El chat elige','Giro extra','Saludo especial','Sin premio'],'winner':'','winner_index':-1,'angle':0,'spin_start_angle':0,'spin_delta':0,'spinning':False,'duration':4.8,'turns':5,'title':'RUEDA DE LA FORTUNA','show_result':True},
-            'drop':{'serial':0,'score':0,'event':None,'events':[],'title':'LLUVIA DE PUNTOS','speed':4.2,'size':64,'density':8,'show_score':True,'bank':'cochito'}
+            'drop':{'serial':0,'score':0,'event':None,'events':[],'title':'LLUVIA DE PUNTOS','speed':4.2,'size':64,'density':8,'show_score':True,'bank':'cochito',**bank_storage.CUSTOM_BANK_DEFAULTS}
         }
         self.restore_overlays()
         bank_storage.restore(self.r, self.overlay_games['drop'])
@@ -39,9 +39,14 @@ class Interactivity:
         try:
             saved=(self.r.archive.settings().get('interactive_overlay_games',{}) if self.r.archive else {})
             if isinstance(saved,dict):
-                for game,keys in {'wheel':('options','duration','turns','title','show_result'),'drop':('speed','size','density','title','show_score','bank')}.items():
+                for game,keys in {'wheel':('options','duration','turns','title','show_result'),'drop':('speed','size','density','title','show_score','bank',*bank_storage.CUSTOM_BANK_DEFAULTS)}.items():
                     if isinstance(saved.get(game),dict):self.overlay_games[game].update({k:saved[game][k] for k in keys if k in saved[game]})
                 if self.overlay_games['drop']['title']=='LLUVIA DE DONACIONES':self.overlay_games['drop']['title']='LLUVIA DE PUNTOS'
+                state=self.overlay_games['drop']
+                if not isinstance(saved.get('drop'),dict) or 'bank_scales' not in saved['drop']:state.pop('bank_scales',None)
+                state.update(bank_storage.normalize_custom_bank_fields(state))
+                if state.get('bank')=='custom' and not state['custom_bank_asset']:state['bank']='cochito'
+                state['bank_scale']=state['bank_scales'].get(state['bank'],100.0)
         except Exception:pass
 
     def reset_live_session(self):
@@ -363,11 +368,17 @@ class Interactivity:
                                 state.update(options=[x.strip()[:40] for x in options],duration=max(2,min(12,float(data.get('duration',state['duration'])))),turns=max(2,min(12,int(turns))),title=str(data.get('title',state['title'])).strip()[:50] or 'RUEDA DE LA FORTUNA',show_result=data.get('show_result',state['show_result']) is True)
                             else:
                                 bank=data.get('bank',state.get('bank','cochito'))
-                                if bank not in ('cochito','cochita','pato','oso','perro','gato'):raise ValueError('Alcancía desconocida')
-                                state['bank']=bank
-                                state.update(speed=max(1.5,min(12,float(data.get('speed',state['speed'])))),size=max(36,min(120,int(data.get('size',state['size'])))),density=max(1,min(20,int(data.get('density',state['density'])))),title=str(data.get('title',state['title'])).strip()[:50] or 'LLUVIA DE PUNTOS',show_score=data.get('show_score',state['show_score']) is True)
+                                custom=bank_storage.validate_custom_bank_fields(data,state)
+                                if bank not in bank_storage.BANKS:raise ValueError('Alcancía desconocida')
+                                if bank=='custom' and not custom['custom_bank_asset']:raise ValueError('Sube una imagen para usar la alcancía personalizada')
+                                configured={'speed':max(1.5,min(12,float(data.get('speed',state['speed'])))),
+                                            'size':max(36,min(120,int(data.get('size',state['size'])))),
+                                            'density':max(1,min(20,int(data.get('density',state['density'])))),
+                                            'title':str(data.get('title',state['title'])).strip()[:50] or 'LLUVIA DE PUNTOS',
+                                            'show_score':data.get('show_score',state['show_score']) is True}
+                                state.update(custom,bank=bank,**configured)
                             if self.r.archive:
-                                self.r.archive.set_setting('interactive_overlay_games',{name:{k:v for k,v in value.items() if k in ('options','duration','turns','title','show_result','speed','size','density','show_score','bank')} for name,value in self.overlay_games.items()})
+                                self.r.archive.set_setting('interactive_overlay_games',{name:{k:v for k,v in value.items() if k in ('options','duration','turns','title','show_result','speed','size','density','show_score','bank',*bank_storage.CUSTOM_BANK_DEFAULTS)} for name,value in self.overlay_games.items()})
                         elif (game,action) in (('wheel','spin'),('drop','launch')):
                             self.overlay_action(game,action)
                         elif game=='wheel' and action=='finish':self.finish_wheel()
@@ -376,8 +387,15 @@ class Interactivity:
                         elif game=='drop' and action=='shape':
                             bank=data.get('bank')
                             if bank not in bank_storage.BANKS:raise ValueError('Alcancía desconocida')
-                            if data.get('shape') is None:state['shapes'].pop(bank,None)
-                            else:state['shapes'][bank]=bank_storage.validate_shape(data['shape'])
+                            shape=bank_storage.validate_shape(data['shape']) if data.get('shape') is not None else None
+                            custom=None
+                            if bank=='custom' and any(key in data for key in bank_storage.CUSTOM_BANK_DEFAULTS):
+                                custom=bank_storage.validate_custom_bank_fields(data,state)
+                            if custom:state.update(custom)
+                            if shape is None:state['shapes'].pop(bank,None)
+                            else:state['shapes'][bank]=shape
+                            if custom and self.r.archive:
+                                self.r.archive.set_setting('interactive_overlay_games',{name:{k:v for k,v in value.items() if k in ('options','duration','turns','title','show_result','speed','size','density','show_score','bank',*bank_storage.CUSTOM_BANK_DEFAULTS)} for name,value in self.overlay_games.items()})
                             bank_storage.persist(self.r,state)
                         else:raise ValueError('Acción inválida')
                     except (ValueError,TypeError) as exc:return jsonify(error=str(exc) or 'Configuración inválida'),400
