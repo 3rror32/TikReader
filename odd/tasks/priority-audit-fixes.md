@@ -33,10 +33,17 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 
 ## Delivery
 
-- Strategy: `ask-on-risk`.
-- Forecast: approximately 280 authored changed lines, below the 400-line chaining threshold.
+- Strategy: `stacked-to-main` (selected by the user after the running authored-line count approached the delivery threshold).
+- Forecast at creation: approximately 280 authored changed lines; current observed cumulative total is above 400, so use independent task slices.
 - Feature branch: `codex/priority-audit-fixes`.
 - Initial reviewed boundary: `dd285d12e44e0a58497da48cae09c2a502e0f12c`.
+- Future PR slices (planning only; do not create or push):
+  1. PAF-1 backend state/rate limiting, target `main`, independent; estimated 195 authored lines including initial feature documentation.
+  2. PAF-2 overlay QA and accessible navigation, target `main`, independent; estimated 156 authored lines including its task-document update and excluding unrelated alert hunks.
+  3. PAF-3 CI/watch configuration and background diagnostics, target `main`, independent; observed code diff 47 authored lines, plus its task-document evidence update (expected under 100 total).
+  4. PAF-4 frontend regression repairs and final verification record, target `main`, independent; budget 100 authored lines, to be replaced with observed count at closure.
+- Slice order: PAF-1 → PAF-2 → PAF-3 → PAF-4 for review convenience only; each slice targets `main` and has no prerequisite slice dependency.
+- Dependency diagram: `main ← [PAF-1]`; `main ← [PAF-2]`; `main ← [PAF-3] 📍 current`; `main ← [PAF-4]`. No slice depends on another.
 
 ## Tasks
 
@@ -71,7 +78,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
     - Background service failures preserve actionable local exception details without exposing them to users.
     - Focused checks pass.
   - Checks: configuration assertions; Python/Node focused tests where available; `git diff --check`.
-  - Evidence: pending.
+  - Evidence: RED observed: before implementation, the focused Node suite failed the three new PAF-3 checks (coverage upload behavior, TypeScript watch glob, and background exception logging). GREEN observed: focused Node suite passed 5/5; `node --check web/static/studio.js`, bundled Python `py_compile` for the three services and watcher, and `git diff --check` passed. The Python runtime compile check is not a substitute for behavior-level Flask tests; no runtime logging capture test was added. Work-unit code diff currently totals 47 authored lines; commit and final task-document count pending.
 
 - [ ] **PAF-4 — Restore the regression suite and verify the candidate**
   - Route: delegated direct verification.
@@ -86,7 +93,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 
 ## Progress
 
-- Current task: PAF-3.
+- Current task: PAF-3 (selected delivery strategy cached as `stacked-to-main`; no PRs created or pushed).
 - Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright).
-- Running authored-line count: 359 (PAF-1 195 + PAF-1 metadata update 4 + PAF-2 156 + PAF-2 metadata update 4; excludes pre-existing unrelated hunks).
-- Next step: align coverage/watch inputs and improve background-service exception logging.
+- Running authored-line count before PAF-3: 359 (PAF-1 195 + PAF-1 metadata update 4 + PAF-2 156 + PAF-2 metadata update 4; excludes pre-existing unrelated hunks); PAF-3 code diff adds 47 before task-document updates.
+- Next step: commit PAF-3 as its own work unit, then repair the three frontend regressions in PAF-4 and run closure checks.

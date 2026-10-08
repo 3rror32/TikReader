@@ -1,10 +1,13 @@
 """Command replies and timed chat messages, disabled until configured locally."""
 import queue
+import logging
 import re
 import threading
 import time
 from collections import deque
 from flask import request, jsonify
+
+logger = logging.getLogger(__name__)
 
 class Chatbot:
     def __init__(self,app,runtime):
@@ -97,6 +100,7 @@ class Chatbot:
                     self.last_send=time.monotonic();self.recent.append((text,self.last_send))
                 self.send(text);self.note('TikTok confirmó el mensaje')
             except Exception:
+                logger.exception('Chatbot background send failed')
                 self.note('Envío sin confirmar. Revisa conexión, token OAuth y permiso Premium Routes de Eulerstream; no se reintenta.')
             finally:self.jobs.task_done()
 

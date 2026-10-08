@@ -4,6 +4,29 @@ const assert = require('node:assert/strict');
 
 const qa = fs.readFileSync('tools/qa_overlay_studio.cjs', 'utf8');
 const studio = fs.readFileSync('web/static/studio.js', 'utf8');
+const quality = fs.readFileSync('.github/workflows/quality.yml', 'utf8');
+const watcher = fs.readFileSync('tools/check_changes.py', 'utf8');
+const chatbot = fs.readFileSync('app/chatbot.py', 'utf8');
+const gameHotkeys = fs.readFileSync('app/game_hotkeys.py', 'utf8');
+const minecraft = fs.readFileSync('app/minecraft_connector.py', 'utf8');
+
+test('quality automation uploads runtime coverage and fails when the report is absent', () => {
+  assert.match(quality, /path:\s*runtime\/\.coverage/);
+  assert.match(quality, /if-no-files-found:\s*error/);
+});
+
+test('watch snapshots include nested frontend TypeScript sources', () => {
+  assert.match(watcher, /frontend\/\*\*\/\*\.ts/);
+});
+
+test('background service failures retain local tracebacks and safe operator messages', () => {
+  assert.match(chatbot, /logger\.exception\(['"]Chatbot background send failed['"]\)/);
+  assert.match(chatbot, /self\.note\(['"]Envío sin confirmar\./);
+  assert.match(gameHotkeys, /logger\.exception\(['"]Game hotkey/);
+  assert.match(gameHotkeys, /self\.note\(['"]Error de ejecución: /);
+  assert.match(minecraft, /logger\.exception\(['"]Minecraft RCON execution failed/);
+  assert.match(minecraft, /self\.note\(f'Minecraft no confirmó/);
+});
 
 test('overlay QA loads the shipped widget template and Vite bundle', () => {
   assert.match(qa, /widgetTemplatePath\s*=\s*path\.join\(root, 'web', 'templates', 'widget\.html'\)/);

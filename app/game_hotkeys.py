@@ -1,8 +1,9 @@
 """Opt-in gift hotkeys with profiles, sequences, dry runs, limits and foreground safeguards."""
-import copy, json, os, queue, re, threading, time, unicodedata
+import copy, json, logging, os, queue, re, threading, time, unicodedata
 from itertools import count
 from uuid import uuid4
 from flask import request, jsonify
+logger=logging.getLogger(__name__)
 MODIFIERS={'CTRL':0x11,'ALT':0x12,'SHIFT':0x10,'WIN':0x5B};SPECIAL={'SPACE':0x20,'ENTER':0x0D,'TAB':0x09,'ESC':0x1B,'UP':0x26,'DOWN':0x28,'LEFT':0x25,'RIGHT':0x27}
 ALLOWED=set(MODIFIERS)|set(SPECIAL)|{chr(x) for x in range(65,91)}|{str(x) for x in range(10)}|{f'F{x}' for x in range(1,25)}
 def normalize(text):return unicodedata.normalize('NFKC',str(text)).strip().casefold()
@@ -159,7 +160,9 @@ class GameHotkeys:
                 if not hwnd:
                     self.note(f"El destino {m['window']} dejó de estar disponible; vuelve al juego.",job.get('user',''),m['name'],'Bloqueada');return False
                 self.injector(step['keys'],step['hold_ms'],0 if m['target']=='foreground' else hwnd)
-        except Exception as exc:self.note('No se pudo pulsar: '+type(exc).__name__,job.get('user',''),m['name'],'Error');return False
+        except Exception as exc:
+            logger.exception('Game hotkey key injection failed')
+            self.note('No se pudo pulsar: '+type(exc).__name__,job.get('user',''),m['name'],'Error');return False
         self.note('Hotkey pulsada',job.get('user',''),m['name'],'Ejecutada')
         if m['overlay']:
             with self.r.interactive.lock:
@@ -169,7 +172,9 @@ class GameHotkeys:
         while True:
             _,_,job=self.jobs.get()
             try:self.execute(job)
-            except Exception as exc:self.note('Error de ejecución: '+type(exc).__name__,outcome='Error')
+            except Exception as exc:
+                logger.exception('Game hotkey background job failed')
+                self.note('Error de ejecución: '+type(exc).__name__,outcome='Error')
             finally:self.jobs.task_done()
     def payload(self):
         _,title=foreground();return dict(mappings=self.mappings,profiles=self.profiles,active_profile=self.active_profile,authorized=self.authorized,paused=self.paused,foreground=title,log=self.log,queue=self.jobs.qsize(),emergency=self.r.production.settings['emergency'])

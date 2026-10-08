@@ -36,7 +36,7 @@ def run():
     return int(any(results))
 
 def snapshot():
-    return {str(p):p.stat().st_mtime_ns for pattern in ('app/*.py','tools/*.py','tests/*.py','tests/*.cjs','web/static/*.js','web/static/*.css','web/templates/*.html') for p in ROOT.glob(pattern)}
+    return {str(p):p.stat().st_mtime_ns for pattern in ('app/*.py','tools/*.py','tests/*.py','tests/*.cjs','frontend/**/*.ts','web/static/*.js','web/static/*.css','web/templates/*.html') for p in ROOT.glob(pattern)}
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--watch',action='store_true');args=parser.parse_args()
