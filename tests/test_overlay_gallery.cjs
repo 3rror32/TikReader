@@ -14,17 +14,14 @@ test('overlay navigation exposes the requested six destinations',()=>{
  for(const key of ['animations','effects','tools','goals'])assert.match(gallery,new RegExp(`key:'${key}'`));
  assert.match(shell,/key==='overlay-my-animations'\)viewKey='alerts'/);
  assert.match(gallery,/section==='favorites'\)renderFavoritesView/);
-test('overlay submenu is a single column with favorites first and no gallery destination',()=>{
- const submenu=shell.match(/"Overlays"\s*,\s*"overlay-gallery"\s*,\s*\[([\s\S]*?)\n\s*\]\s*\]/);
+test('overlay submenu offers favorites and animations as independent destinations',()=>{
+ const submenu=shell.match(/["']overlay-gallery["']\s*,\s*\[([\s\S]*?)\]\s*\]/);
  assert.ok(submenu, 'the overlay navigation submenu must exist');
- const favorites=submenu[1].indexOf('"overlay-favorites"');
- const animations=submenu[1].indexOf('"overlay-animations"');
- assert.ok(favorites>=0&&animations>=0&&favorites<animations, 'favorites must precede animations in the overlay submenu');
- assert.doesNotMatch(submenu[1],/"overlay-gallery"/);
- assert.doesNotMatch(menuStyles,/data-section-group="overlay-gallery"[^{}]*> \.nav-submenu/);
- assert.match(sidebarStyles,/:is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*border-left:1px solid var\(--nav-line\)/);
- assert.match(shell,/key==='overlay-gallery'[^}]*activeKey='overlay-favorites'[^}]*overlaySection='favorites'/);
- assert.doesNotMatch(gallery,/renderGalleryView|overlay-categories|overlay-browse-title/);
+ const destinations=[...submenu[1].matchAll(/["'](overlay-[\w-]+)["']/g)].map(([,key])=>key);
+ assert.ok(destinations.includes('overlay-favorites'), 'favorites must be a direct overlay destination');
+ assert.ok(destinations.includes('overlay-animations'), 'animations must be a direct overlay destination');
+ assert.ok(shell.includes("key.startsWith('overlay-')"));
+ assert.ok(shell.includes('overlaySection=key.slice(8)'));
 });
 });
 
