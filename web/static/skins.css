@@ -215,6 +215,25 @@ html:root[data-skin="original"] body::before {
     radial-gradient(ellipse at 100% 100%, #ff149316, transparent 42%);
 }
 
+html:root[data-skin="original"]::after {
+  content: "";
+  position: fixed;
+  inset: clamp(8px, 1.3vw, 18px);
+  z-index: 10010;
+  padding: 1px;
+  border-radius: 16px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 0% 0%, #06e4ff42, transparent 24%),
+    radial-gradient(ellipse at 100% 100%, #ff149338, transparent 26%),
+    linear-gradient(to bottom right, #06e4ff 0%, #06e4ff92 10%, #06e4ff32 28%, #26313e 49%, #3e2b3a 61%, #ff149350 72%, #ff149394 90%, #ff1493 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 9px #06e4ff16) drop-shadow(0 0 9px #ff149316);
+}
+
 html:root[data-skin="original"] body .app-sidebar {
   color: #edf7ff;
   background: linear-gradient(155deg, #061521 0%, #050d16 62%, #090b14 100%);
@@ -228,24 +247,35 @@ html:root[data-skin="original"] body .sidebar-brand {
   border: 0;
   background: transparent;
   color: #edf7ff;
-  font-size: 27px;
+  font-family: var(--font-data);
+  font-size: 21px;
   font-weight: 800;
-  letter-spacing: -.055em;
+  letter-spacing: .04em;
   text-shadow: none;
   box-shadow: none;
 }
 
-html:root[data-skin="original"] body :is(.btn-primary, .primary-action, .timer-actions .primary, #skin-apply, #custom-voice-save, #custom-voice-test, #overlay-save, #overlay-copy) {
-  --control-bg: var(--skin-accent);
-  --control-ink: var(--skin-accent-ink);
+html:root[data-skin="original"] body :is(.btn-primary, .primary-action, .timer-actions .primary, #skin-apply, #custom-voice-save, #custom-voice-test, #overlay-save, #overlay-copy):not(:disabled):not([aria-disabled="true"]):not(.panic-button):not(.btn-stop):not(.danger-lite):not(.platform-remove):not(#emergency-button):not(#voice-model-delete):not(#profile-delete):not(.recording) {
+  --control-bg: var(--skin-raised);
+  --control-ink: var(--skin-text);
   --control-line: var(--skin-accent);
+  background: var(--skin-raised) !important;
+  color: var(--skin-text) !important;
+  border-color: var(--skin-border) !important;
+  border-left-color: var(--skin-accent) !important;
   border-bottom-color: var(--skin-accent-2) !important;
+  box-shadow: inset 2px 0 var(--skin-accent), inset 0 -2px var(--skin-accent-2) !important;
 }
 
 html:root[data-skin="original"] body :is(button, #skin-apply):is(.active, .selected, .enabled, [data-selected="true"], [aria-pressed="true"], [aria-selected="true"]):not(:disabled):not([aria-disabled="true"]):not(.panic-button):not(.btn-stop):not(.danger-lite):not(.platform-remove):not(#emergency-button):not(#voice-model-delete):not(#profile-delete):not(.recording) {
-  --control-bg: color-mix(in srgb, var(--skin-accent-2) 16%, var(--skin-surface));
+  --control-bg: var(--skin-raised);
   --control-ink: var(--skin-text);
   --control-line: var(--skin-accent-2);
+  background: var(--skin-raised) !important;
+  color: var(--skin-text) !important;
+  border-left-color: var(--skin-accent) !important;
+  border-bottom-color: var(--skin-accent-2) !important;
+  box-shadow: inset 2px 0 var(--skin-accent), inset 0 -2px var(--skin-accent-2) !important;
 }
 
 html:root[data-skin="original"] body :is(button, [role="button"], input[type="button"], input[type="submit"], .tool-buttons > a, .overlay-actions > a):hover:not(:disabled):not([aria-disabled="true"]):not(.panic-button):not(.btn-stop):not(.danger-lite):not(.platform-remove):not(#emergency-button):not(#voice-model-delete):not(#profile-delete):not(.recording) {
@@ -269,7 +299,12 @@ html:root[data-skin="original"] body :is(.app-sidebar button, button, a, input, 
   html:root[data-skin="original"] body .sidebar-brand {
     min-height: 42px;
     padding: 4px 6px 8px;
-    font-size: clamp(21px, 6vw, 25px);
+    font-size: clamp(18px, 5vw, 20px);
+  }
+
+  html:root[data-skin="original"]::after {
+    inset: 6px;
+    border-radius: 12px;
   }
 
   html:root[data-skin="original"] body::before {
