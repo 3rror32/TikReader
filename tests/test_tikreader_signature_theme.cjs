@@ -12,6 +12,8 @@ const visualRefresh = read('web/static/visual_refresh.css');
 const sidebar = read('web/static/sidebar.css');
 const skinComponents = read('web/static/skin_components.css');
 const signature = css.split('/* TikReader principal signature theme */').at(-1);
+const brandRule = signature.match(/html:root\[data-skin="original"\] body \.sidebar-brand\s*\{([^}]*)\}/s)?.[1] || '';
+const interactiveHoverRule = signature.match(/html:root\[data-skin="original"\] body :is\([^)]*\):hover[^{}]*\{[^}]*\}/s)?.[0] || '';
 
 test('the stable original theme receives the splash-inspired TikReader signature', () => {
   assert.match(template, /skins\.includes\(saved\)\s*\?\s*saved\s*:\s*'original'/);
@@ -30,11 +32,30 @@ test('the principal theme is visibly selectable as TikReader', () => {
   assert.match(skins, /original:'TikReader'/);
 });
 
-test('the signature uses existing TikReader branding and one restrained dual-energy frame', () => {
+test('the signature uses clean TikReader branding with restrained opposing ambient glows', () => {
   assert.match(signature, /\.sidebar-brand/);
-  assert.match(signature, /linear-gradient\([^)]*#06e4ff[^)]*#ff1493/i);
+  assert.match(signature, /radial-gradient\(ellipse at 5% 0%, #06e4ff/i);
+  assert.match(signature, /radial-gradient\(ellipse at 100% 100%, #ff1493/i);
   assert.match(signature, /body::before/);
   assert.doesNotMatch(signature, /content\s*:\s*['"]TikReader/i);
+  assert.match(brandRule, /background:\s*transparent/);
+  assert.match(brandRule, /border:\s*0/);
+  assert.match(brandRule, /text-shadow:\s*none/);
+  assert.doesNotMatch(brandRule, /linear-gradient|#06e4ff|#ff1493/);
+});
+
+test('original controls carry restrained cyan and magenta hierarchy without changing danger or disabled states', () => {
+  assert.match(signature, /html:root\[data-skin="original"\] body :is\([^)]*\.btn-primary[^)]*\)/);
+  assert.match(signature, /--control-bg:\s*var\(--skin-accent\)/);
+  assert.match(signature, /border-bottom-color:\s*var\(--skin-accent-2\)\s*!important/);
+  assert.match(signature, /:is\(\.active, \.selected, \.enabled, \[data-selected="true"\], \[aria-pressed="true"\], \[aria-selected="true"\]\)/);
+  assert.match(signature, /--control-bg:\s*color-mix\(in srgb, var\(--skin-accent-2\) 16%, var\(--skin-surface\)\)/);
+  assert.match(signature, /:not\(:disabled\):not\(\[aria-disabled="true"\]\)/);
+  assert.match(signature, /:not\(\.panic-button\):not\(\.btn-stop\):not\(\.danger-lite\)/);
+  assert.match(signature, /:not\(\.platform-remove\):not\(#emergency-button\)/);
+  assert.match(interactiveHoverRule, /:not\(\.recording\)/);
+  assert.match(skinComponents, /\.btn-stop, \.panic-button, \.danger-lite/);
+  assert.match(skinComponents, /:is\(:disabled, \[aria-disabled="true"\]\)/);
 });
 
 test('the original-only signature preserves responsive, focus, and reduced-motion behavior without animation', () => {

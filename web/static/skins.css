@@ -225,15 +225,31 @@ html:root[data-skin="original"] body .app-sidebar {
 html:root[data-skin="original"] body .sidebar-brand {
   min-height: 48px;
   padding: 5px 8px 10px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: linear-gradient(#061521, #061521) padding-box,
-    linear-gradient(105deg, #06e4ff 0%, #247c9b 44%, #ff1493 100%) border-box;
+  border: 0;
+  background: transparent;
   color: #edf7ff;
   font-size: 27px;
   font-weight: 800;
   letter-spacing: -.055em;
-  text-shadow: 0 0 18px #06e4ff30;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+html:root[data-skin="original"] body :is(.btn-primary, .primary-action, .timer-actions .primary, #skin-apply, #custom-voice-save, #custom-voice-test, #overlay-save, #overlay-copy) {
+  --control-bg: var(--skin-accent);
+  --control-ink: var(--skin-accent-ink);
+  --control-line: var(--skin-accent);
+  border-bottom-color: var(--skin-accent-2) !important;
+}
+
+html:root[data-skin="original"] body :is(button, #skin-apply):is(.active, .selected, .enabled, [data-selected="true"], [aria-pressed="true"], [aria-selected="true"]):not(:disabled):not([aria-disabled="true"]):not(.panic-button):not(.btn-stop):not(.danger-lite):not(.platform-remove):not(#emergency-button):not(#voice-model-delete):not(#profile-delete):not(.recording) {
+  --control-bg: color-mix(in srgb, var(--skin-accent-2) 16%, var(--skin-surface));
+  --control-ink: var(--skin-text);
+  --control-line: var(--skin-accent-2);
+}
+
+html:root[data-skin="original"] body :is(button, [role="button"], input[type="button"], input[type="submit"], .tool-buttons > a, .overlay-actions > a):hover:not(:disabled):not([aria-disabled="true"]):not(.panic-button):not(.btn-stop):not(.danger-lite):not(.platform-remove):not(#emergency-button):not(#voice-model-delete):not(#profile-delete):not(.recording) {
+  border-bottom-color: var(--skin-accent-2) !important;
 }
 
 html:root[data-skin="original"] body :is(.panel, .feed-wrap, .gifts-column, .participants-bar, .config-content, .setting-card) {
