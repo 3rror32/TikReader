@@ -69,7 +69,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
   - Checks: relevant Node tests; JavaScript syntax; TypeScript no-emit check; `git diff --check`.
   - Evidence: QA now loads `web/templates/widget.html` and asserts the shipped `/static/build/studio.js` was requested; the standalone legacy effects page is retained only as a clearly labeled compatibility fixture. Studio panes now expose linked tab/tab-panel semantics, selected/focus state, click activation, and Arrow/Home/End handling. The focused Node regressions, JavaScript syntax checks, TypeScript no-emit check (`npm run check:overlays`), and `git diff --check` passed. Browser QA was attempted but cannot start because Playwright is missing (`Cannot find module 'playwright'`). Work-unit commit: `0c6e5fa`; PAF-2 authored line count: 156 including task-document changes and excluding pre-existing alert hunks.
 
-- [ ] **PAF-3 — Repair quality automation and diagnostics**
+- [x] **PAF-3 — Repair quality automation and diagnostics**
   - Route: delegated direct.
   - Trigger: workflow, watcher, three runtime services, and regression coverage span multiple non-trivial files.
   - Acceptance:
@@ -78,7 +78,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
     - Background service failures preserve actionable local exception details without exposing them to users.
     - Focused checks pass.
   - Checks: configuration assertions; Python/Node focused tests where available; `git diff --check`.
-  - Evidence: RED observed: before implementation, the focused Node suite failed the three new PAF-3 checks (coverage upload behavior, TypeScript watch glob, and background exception logging). GREEN observed: focused Node suite passed 5/5; `node --check web/static/studio.js`, bundled Python `py_compile` for the three services and watcher, and `git diff --check` passed. The Python runtime compile check is not a substitute for behavior-level Flask tests; no runtime logging capture test was added. Work-unit code diff currently totals 47 authored lines; commit and final task-document count pending.
+  - Evidence: RED observed: before implementation, the focused Node suite failed the three new PAF-3 checks (coverage upload behavior, TypeScript watch glob, and background exception logging). GREEN observed: focused Node suite passed 5/5; `node --check web/static/studio.js`, bundled Python `py_compile` for the three services and watcher, and `git diff --check` passed. The Python runtime compile check is not a substitute for behavior-level Flask tests; no runtime logging capture test was added. Work-unit commit: `b635b42`; authored line count: 66 including task-document changes.
 
 - [ ] **PAF-4 — Restore the regression suite and verify the candidate**
   - Route: delegated direct verification.
@@ -93,7 +93,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 
 ## Progress
 
-- Current task: PAF-3 (selected delivery strategy cached as `stacked-to-main`; no PRs created or pushed).
-- Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright).
-- Running authored-line count before PAF-3: 359 (PAF-1 195 + PAF-1 metadata update 4 + PAF-2 156 + PAF-2 metadata update 4; excludes pre-existing unrelated hunks); PAF-3 code diff adds 47 before task-document updates.
-- Next step: commit PAF-3 as its own work unit, then repair the three frontend regressions in PAF-4 and run closure checks.
+- Current task: PAF-4 (selected delivery strategy cached as `stacked-to-main`; no PRs created or pushed).
+- Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright); PAF-3 (coverage/watch configuration and local traceback logging).
+- Running authored-line count after PAF-3: 425 (PAF-1 195 + PAF-1 metadata update 4 + PAF-2 156 + PAF-2 metadata update 4 + PAF-3 work unit 66; excludes pre-existing unrelated hunks).
+- Next step: repair the three frontend regressions in PAF-4 and run closure checks.
