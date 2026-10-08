@@ -43,7 +43,8 @@ The installer currently launches the embedded `pythonw.exe` with `desktop_launch
     - `python -m pytest tests/test_windows_packaging.py -q`
     - Structural inspection of the PyInstaller and Inno Setup configuration.
   - Evidence: the pre-change packaging contract failed because no PyInstaller spec existed; after implementation all four focused contract checks passed when invoked directly. `python -m pytest tests/test_windows_packaging.py -q` could not run because the configured Python launcher was inaccessible and the available bundled Python has no pytest module. PyInstaller is not installed in the available Python environment, so no executable or FileVersionInfo values were produced; no dependencies were installed. The PowerShell build script parsed cleanly and `git diff --check` passed. Implementation, tests, and the newly tracked feature document total 226 authored changed lines (221 insertions plus 5 deletions).
-  - Commit: pending. The initial staging attempt could not write `.git/index.lock`; authorized staging of only the allowed paths then succeeded. Existing unrelated staged changes were not changed.
+  - Runtime harness: unavailable; PyInstaller is not installed, so the branded executable could not be built or launched.
+  - Commit: `d44bc66` — `fix(packaging): brand Windows launcher executable`. Only the seven authorized paths were committed; unrelated staged changes remain untouched.
   - RDD assessment: disabled/unmanaged (clone-local mode reported off; no native review started).
 
 ## Progress
@@ -53,4 +54,4 @@ The installer currently launches the embedded `pythonw.exe` with `desktop_launch
 
 ## Next Step
 
-Create the work-unit commit containing only the authorized paths. Run the packaging tests and PyInstaller build on a Python 3.13 build environment with PyInstaller available, inspect the resulting executable's version metadata, then close WTI-1 and record verification evidence.
+Run the packaging tests and PyInstaller build on a Python 3.13 build environment with PyInstaller available, inspect the resulting executable's version metadata and runtime behavior, then close WTI-1 and record verification evidence.
