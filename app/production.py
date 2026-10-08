@@ -41,7 +41,7 @@ class Production:
         self.seen = set()
         self.view_token_path = data_dir() / '.lan-view-token'
         self.view_token = self._load_view_token(app.config.get('SECRET_KEY', ''))
-        self.remote_access_lock = threading.RLock()
+        self.remote_access_lock = threading.Lock()
         self.remote_readers = OrderedDict()
         self.remote_requests = {}
         self.register(app)
