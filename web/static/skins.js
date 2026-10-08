@@ -1,5 +1,5 @@
 (()=>{
-  const labels={original:'Original',kawai:'Kawai',dark:'Dark',light:'Light',cute:'Cute',dracula:'Dracula',ice:'Ice','one-dark-pro':'One Dark Pro','github-dark':'GitHub Dark',monokai:'Monokai',glass:'Glass',aetheria:'Aetheria',cloudfoam:'Cloudfoam',monolith:'Monolith',chromapulse:'ChromaPulse'};
+  const labels={original:'TikReader',kawai:'Kawai',dark:'Dark',light:'Light',cute:'Cute',dracula:'Dracula',ice:'Ice','one-dark-pro':'One Dark Pro','github-dark':'GitHub Dark',monokai:'Monokai',glass:'Glass',aetheria:'Aetheria',cloudfoam:'Cloudfoam',monolith:'Monolith',chromapulse:'ChromaPulse'};
   const allowed=new Set(Object.keys(labels));
   const select=document.getElementById('skin-select');
   const apply=document.getElementById('skin-apply');

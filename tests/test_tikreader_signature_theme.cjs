@@ -25,6 +25,11 @@ test('the stable original theme receives the splash-inspired TikReader signature
   assert.match(signature, /#edf7ff/i);
 });
 
+test('the principal theme is visibly selectable as TikReader', () => {
+  assert.match(template, /<option value="original">TikReader<\/option>/);
+  assert.match(skins, /original:'TikReader'/);
+});
+
 test('the signature uses existing TikReader branding and one restrained dual-energy frame', () => {
   assert.match(signature, /\.sidebar-brand/);
   assert.match(signature, /linear-gradient\([^)]*#06e4ff[^)]*#ff1493/i);
