@@ -41,9 +41,9 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
   1. PAF-1 backend state/rate limiting, target `main`, independent; observed task and metadata commits total 199 authored lines including initial feature documentation.
   2. PAF-2 overlay QA and accessible navigation, target `main`, independent; observed task and metadata commits total 160 authored lines excluding unrelated alert hunks.
   3. PAF-3 CI/watch configuration and background diagnostics, target `main`, independent; observed work-unit and SHA-metadata commits total 78 authored lines.
-  4. PAF-4 frontend regression repairs and final verification record, target `main`, independent; work-unit commit total 42 authored lines; final SHA-metadata update pending.
+  4. PAF-4 frontend regression repairs and final verification record, target `main`, independent; task and SHA-evidence commits total 56 authored lines.
 - Slice order: PAF-1 → PAF-2 → PAF-3 → PAF-4 for review convenience only; each slice targets `main` and has no prerequisite slice dependency.
-- Dependency diagram: `main ← [PAF-1]`; `main ← [PAF-2]`; `main ← [PAF-3] 📍 current`; `main ← [PAF-4]`. No slice depends on another.
+- Dependency diagram: `main ← [PAF-1]`; `main ← [PAF-2]`; `main ← [PAF-3]`; `main ← [PAF-4] ✓ complete`. No slice depends on another.
 
 ## Tasks
 
@@ -93,7 +93,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 
 ## Progress
 
-- Current task: PAF-4 work unit is ready for commit; selected strategy remains `stacked-to-main`, and no PRs were created or pushed.
+- Current slice: PAF-4 is complete; selected strategy remains `stacked-to-main`, and no PRs were created or pushed.
 - Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright); PAF-3 (coverage/watch configuration and local traceback logging); PAF-4 (frontend test repairs and final applicable verification).
-- Running authored-line count after PAF-4 work unit: 479 (PAF-1 199 + PAF-2 160 + PAF-3 78 + PAF-4 42; excludes unrelated pre-existing hunks).
-- Next step: record the PAF-4 commit SHA metadata and final count; feature tasks are otherwise complete. No PRs/pushes requested or performed.
+- Running authored-line count through PAF-4 SHA-evidence commit: 493 (PAF-1 199 + PAF-2 160 + PAF-3 78 + PAF-4 56; excludes unrelated pre-existing hunks).
+- Next step: none for implementation. Python unittest, Ruff, and browser QA remain unavailable under the installed environment; no PRs/pushes requested or performed.
