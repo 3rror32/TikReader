@@ -79,6 +79,15 @@ test('the donation button remains visible in basic mode', () => {
   assert.doesNotMatch(styles, /body\.basic-mode\s+#donation-button/);
 });
 
+test('the primary Live connection action uses the concise label', () => {
+  const template = read('web/templates/index.html');
+  const button = template.match(/<button\b(?=[^>]*\bid="btn-connect")[^>]*>([\s\S]*?)<\/button>/i);
+  assert.ok(button, 'the primary Live connection action must exist');
+  const label = button[1].match(/<span\b(?=[^>]*class="[^"]*\bconnect-button__label\b")[^>]*>([\s\S]*?)<\/span>/i);
+  assert.ok(label, 'the primary Live connection action must expose its label');
+  assert.equal(label[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim(), 'Conectar');
+  assert.doesNotMatch(template, /Conectar transmisi[oó]n/);
+});
 test('menu motion is optional and honors the operating system preference', () => {
   const template = read('web/templates/index.html');
   const sidebar = read('web/static/sidebar.js');

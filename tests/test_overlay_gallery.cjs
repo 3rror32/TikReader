@@ -4,6 +4,8 @@ const vm=require('node:vm');
 const gallery=fs.readFileSync('web/static/overlay_gallery.js','utf8');
 const customizer=fs.readFileSync('web/static/widget_customizer.js','utf8');
 const shell=fs.readFileSync('web/static/shell.js','utf8');
+const menuStyles=fs.readFileSync('web/static/live_refinement.css','utf8');
+const sidebarStyles=fs.readFileSync('web/static/sidebar.css','utf8');
 const widgetsRoute=fs.readFileSync('app/widget_routes.py','utf8');
 const canvas=fs.readFileSync('web/static/overlay_canvas_controls.js','utf8');
 
@@ -12,6 +14,18 @@ test('overlay navigation exposes the requested six destinations',()=>{
  for(const key of ['animations','effects','tools','goals'])assert.match(gallery,new RegExp(`key:'${key}'`));
  assert.match(shell,/key==='overlay-my-animations'\)viewKey='alerts'/);
  assert.match(gallery,/section==='favorites'\)renderFavoritesView/);
+test('overlay submenu is a single column with favorites first and no gallery destination',()=>{
+ const submenu=shell.match(/"Overlays"\s*,\s*"overlay-gallery"\s*,\s*\[([\s\S]*?)\n\s*\]\s*\]/);
+ assert.ok(submenu, 'the overlay navigation submenu must exist');
+ const favorites=submenu[1].indexOf('"overlay-favorites"');
+ const animations=submenu[1].indexOf('"overlay-animations"');
+ assert.ok(favorites>=0&&animations>=0&&favorites<animations, 'favorites must precede animations in the overlay submenu');
+ assert.doesNotMatch(submenu[1],/"overlay-gallery"/);
+ assert.doesNotMatch(menuStyles,/data-section-group="overlay-gallery"[^{}]*> \.nav-submenu/);
+ assert.match(sidebarStyles,/:is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*border-left:1px solid var\(--nav-line\)/);
+ assert.match(shell,/key==='overlay-gallery'[^}]*activeKey='overlay-favorites'[^}]*overlaySection='favorites'/);
+ assert.doesNotMatch(gallery,/renderGalleryView|overlay-categories|overlay-browse-title/);
+});
 });
 
 test('every server overlay appears in the categorized gallery',()=>{

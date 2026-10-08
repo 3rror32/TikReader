@@ -80,20 +80,20 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
   - Checks: configuration assertions; Python/Node focused tests where available; `git diff --check`.
   - Evidence: RED observed: before implementation, the focused Node suite failed the three new PAF-3 checks (coverage upload behavior, TypeScript watch glob, and background exception logging). GREEN observed: focused Node suite passed 5/5; `node --check web/static/studio.js`, bundled Python `py_compile` for the three services and watcher, and `git diff --check` passed. The Python runtime compile check is not a substitute for behavior-level Flask tests; no runtime logging capture test was added. Work-unit commit: `b635b42`; authored line count: 66 including task-document changes.
 
-- [ ] **PAF-4 — Restore the regression suite and verify the candidate**
+- [x] **PAF-4 — Restore the regression suite and verify the candidate**
   - Route: delegated direct verification.
-  - Trigger: full suites/builds must remain outside the parent context.
+  - Trigger: three existing dirty frontend regression files required isolated hunk staging; the full suite and static checks run at feature closure.
   - Acceptance:
     - Brittle connect-label and overlay-menu assertions validate behavior rather than formatting.
     - The sliced live-games harness supplies required lexical state.
     - Node suite, static JavaScript syntax checks, and TypeScript checking pass.
     - Python suite and Ruff pass, or precise environment blockers are recorded.
   - Checks: full applicable verification commands and final status/diff review.
-  - Evidence: pending.
+  - Evidence: RED observed: the initial focused run failed the brittle connection-label assertion and whitespace-sensitive overlay-order assertion; the sliced games harness raised `ReferenceError: bankStateRevision is not defined`. After those repairs, the full CJS suite exposed PAF-2's new navigation helper assuming every test root had `querySelector`; a narrow guard restored compatibility without changing real document navigation. GREEN observed: the three focused suites passed 38/38, then focused RVC + priority tests passed 13/13, and full `node --test --test-timeout=30000 tests/test_*.cjs` passed 267/267. All 88 `web/static/*.js` files passed `node --check`; `npm run check:overlays` / TypeScript no-emit passed. Python unittest ran 44 tests but all 44 failed import/collection because bundled Python lacks Flask (`ModuleNotFoundError: No module named 'flask'`); no project `.venv` was present. Ruff was unavailable (`No module named ruff`). PAF-2 browser QA remains unavailable because Playwright is not installed. Task-owned `git diff --check` passed; staged-only changes preserve unrelated pre-existing hunks. Commit and exact authored-line count pending.
 
 ## Progress
 
-- Current task: PAF-4 (selected delivery strategy cached as `stacked-to-main`; no PRs created or pushed).
-- Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright); PAF-3 (coverage/watch configuration and local traceback logging).
-- Running authored-line count after PAF-3: 425 (PAF-1 195 + PAF-1 metadata update 4 + PAF-2 156 + PAF-2 metadata update 4 + PAF-3 work unit 66; excludes pre-existing unrelated hunks).
-- Next step: repair the three frontend regressions in PAF-4 and run closure checks.
+- Current task: PAF-4 work unit is ready for commit; selected strategy remains `stacked-to-main`, and no PRs were created or pushed.
+- Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright); PAF-3 (coverage/watch configuration and local traceback logging); PAF-4 (frontend test repairs and final applicable verification).
+- Running authored-line count before PAF-4 metadata: 425 after PAF-3; PAF-4 code/test diff currently adds 24 and deletes 2 authored lines, plus task-document changes pending exact count; excludes unrelated pre-existing hunks.
+- Next step: record the PAF-4 commit SHA and exact line count; feature tasks are otherwise complete. No PRs/pushes requested or performed.

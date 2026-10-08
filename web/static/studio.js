@@ -243,6 +243,7 @@ window.Studio = (() => {
   $('alerts-enabled').onchange=()=>{if($('alerts-enabled').checked){try{audio ||= new (window.AudioContext||window.webkitAudioContext)();audio.resume();}catch(_){}}updateLocalAlert();};
   $('chat-search').oninput=render;$('questions-only').onchange=render;
   function configureStudioNavigation(root = document, onSelect = () => {}) {
+    if (!root || typeof root.querySelector !== 'function' || typeof root.querySelectorAll !== 'function') return;
     const tablist = root.querySelector('.studio-tabs');
     if (!tablist) return;
     const buttons = [...root.querySelectorAll('[data-tab]')];

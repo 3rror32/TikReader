@@ -55,8 +55,8 @@ test('operator receives automatic wheel results and drop score without reloading
  const source=fs.readFileSync('web/static/live_games.js','utf8');
  const deposits=[],score={},result={},disc={style:{}},history={children:[],prepend(x){this.children.unshift(x)}};
  const context=vm.createContext({overlayCall:async()=>({wheel:{serial:2,winner:'Premio',spinning:false,angle:1080},drop:{score:8,events:[{id:8,at:Date.now()/1000}]}}),
-  score,wheelResult:result,wheelDisc:disc,wheelHistory:history,showDeposit:(d,e)=>deposits.push(e.id),el:(_,text)=>text,
-  configNote:{},arena:{querySelectorAll:()=>[]},Date,document:{activeElement:null},bankSaving:false,sizePending:false,sizeSending:false,dropSize:{},bankSelect:{},piggy:{},window:{PiggyBank:{setShapes(){},setSize(){},prepare(){}}}});
+  score,wheel:{hidden:false},drop:{hidden:false},wheelResult:result,wheelDisc:disc,wheelHistory:history,showDeposit:(d,e)=>deposits.push(e.id),el:(_,text)=>text,
+  configNote:{},arena:{querySelectorAll:()=>[]},Date,document:{activeElement:null},bankStateRevision:0,dropActionBusy:false,hydrateBankState:()=>({}),publishBankHydration(){},bankSaving:false,sizePending:false,sizeSending:false,dropSize:{},bankSelect:{},piggy:{},window:{PiggyBank:{setShapes(){},setSize(){},prepare(){}}}});
  vm.runInContext('let spinning=false,wheelSerial=0,total=0,settledCoins=0;'+source.slice(source.indexOf('  let gamesBusy='),source.indexOf('  setInterval(syncGames')),context);
  await context.syncGames();assert.equal(score.textContent,8);assert.equal(result.textContent,'Resultado: Premio');assert.deepEqual(deposits,[8]);
 });
