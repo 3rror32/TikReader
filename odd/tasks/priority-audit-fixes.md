@@ -51,7 +51,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
   - Checks: focused Python tests; structural CodeGraph/readback; `git diff --check`.
   - Evidence: Added `build_studio_state` and used it from both routes; capped IP state at 1,000 entries and pruned expired per-IP timestamps before enforcing the unchanged 300/minute limit. Added route parity, churn, and threshold regressions. `py_compile` and `git diff --check` passed. Focused unittest collection was attempted with the bundled Python but is unavailable because Flask is missing (`ModuleNotFoundError: No module named 'flask'`). Work-unit commit: `3ebb80c`; authored line count: 195 (includes the new task document); no unrelated paths staged.
 
-- [ ] **PAF-2 — Align overlay QA and accessible studio navigation**
+- [x] **PAF-2 — Align overlay QA and accessible studio navigation**
   - Route: delegated direct.
   - Trigger: template semantics, browser behavior, QA fixture, and tests span multiple non-trivial files.
   - Acceptance:
@@ -60,7 +60,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
     - Arrow/Home/End keyboard navigation works without breaking existing clicks.
     - Focused frontend tests pass.
   - Checks: relevant Node tests; JavaScript syntax; TypeScript no-emit check; `git diff --check`.
-  - Evidence: pending.
+  - Evidence: QA now loads `web/templates/widget.html` and asserts the shipped `/static/build/studio.js` was requested; the standalone legacy effects page is retained only as a clearly labeled compatibility fixture. Studio panes now expose linked tab/tab-panel semantics, selected/focus state, click activation, and Arrow/Home/End handling. The focused Node regressions, JavaScript syntax checks, TypeScript no-emit check (`npm run check:overlays`), and `git diff --check` passed. Browser QA was attempted but cannot start because Playwright is missing (`Cannot find module 'playwright'`). Work-unit commit SHA will be recorded in the next task-document update; PAF-2 authored line count: 150 including task-document changes and excluding pre-existing alert hunks.
 
 - [ ] **PAF-3 — Repair quality automation and diagnostics**
   - Route: delegated direct.
@@ -86,7 +86,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 
 ## Progress
 
-- Current task: PAF-2.
-- Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask).
-- Running authored-line count: 195 (PAF-1 work-unit commit).
-- Next step: align overlay QA with the Vite runtime and implement accessible studio pane navigation.
+- Current task: PAF-3.
+- Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright).
+- Running authored-line count: 349 (PAF-1 work unit 195 + PAF-1 metadata update 4 + PAF-2 150; excludes pre-existing unrelated hunks).
+- Next step: align coverage/watch inputs and improve background-service exception logging.

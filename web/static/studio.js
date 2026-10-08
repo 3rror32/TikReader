@@ -242,7 +242,56 @@ window.Studio = (() => {
   $('alert-test').onclick=()=>{alertGift('Prueba de aviso local · no es un regalo real',true);if($('alert-local-status'))$('alert-local-status').textContent='Prueba enviada. Debes ver el mensaje y escuchar el sonido en esta computadora.';};
   $('alerts-enabled').onchange=()=>{if($('alerts-enabled').checked){try{audio ||= new (window.AudioContext||window.webkitAudioContext)();audio.resume();}catch(_){}}updateLocalAlert();};
   $('chat-search').oninput=render;$('questions-only').onchange=render;
-  for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{for(const b of document.querySelectorAll('[data-tab]'))b.classList.toggle('active',b===button);for(const pane of document.querySelectorAll('[data-pane]'))pane.hidden=pane.dataset.pane!==button.dataset.tab;if(button.dataset.tab==='history')history();};
+  function configureStudioNavigation(root = document, onSelect = () => {}) {
+    const tablist = root.querySelector('.studio-tabs');
+    if (!tablist) return;
+    const buttons = [...root.querySelectorAll('[data-tab]')];
+    const panes = [...root.querySelectorAll('[data-pane]')];
+    const paneByName = new Map(panes.map(pane => [pane.dataset.pane, pane]));
+    const pairs = buttons.map(button => ({ button, pane: paneByName.get(button.dataset.tab) })).filter(pair => pair.pane);
+    if (!pairs.length) return;
+    tablist.setAttribute('role', 'tablist');
+    tablist.setAttribute('aria-orientation', 'horizontal');
+    for (const { button, pane } of pairs) {
+      button.id ||= `studio-tab-${button.dataset.tab}`;
+      pane.id ||= `studio-pane-${pane.dataset.pane}`;
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-controls', pane.id);
+      pane.setAttribute('role', 'tabpanel');
+      pane.setAttribute('aria-labelledby', button.id);
+      pane.tabIndex = 0;
+    }
+    const activate = (selected, focus = false, notify = true) => {
+      for (const { button, pane } of pairs) {
+        const isSelected = button === selected;
+        button.classList.toggle('active', isSelected);
+        button.setAttribute('aria-selected', String(isSelected));
+        button.tabIndex = isSelected ? 0 : -1;
+        pane.hidden = !isSelected;
+      }
+      if (focus) selected.focus();
+      if (notify) onSelect(selected.dataset.tab);
+    };
+    const initial = pairs.find(({ button }) => button.classList.contains('active'))
+      || pairs.find(({ pane }) => !pane.hidden) || pairs[0];
+    activate(initial.button, false, false);
+    for (const { button } of pairs) button.addEventListener('click', () => activate(button));
+    tablist.addEventListener('keydown', event => {
+      const activeButton = pairs.some(pair => pair.button === event.target)
+        ? event.target : pairs.find(({ button }) => button.getAttribute('aria-selected') === 'true')?.button;
+      const index = pairs.findIndex(({ button }) => button === activeButton);
+      if (index < 0) return;
+      let next = index;
+      if (event.key === 'ArrowRight') next = (index + 1) % pairs.length;
+      else if (event.key === 'ArrowLeft') next = (index - 1 + pairs.length) % pairs.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = pairs.length - 1;
+      else return;
+      event.preventDefault();
+      activate(pairs[next].button, true);
+    });
+  }
+  configureStudioNavigation(document, tab => { if (tab === 'history') history(); });
   document.addEventListener('keydown',event=>{if(!event.altKey || event.shiftKey || event.ctrlKey || event.metaKey || event.target.isContentEditable || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName))return;const key=event.key.toLowerCase();if(['p','n','d'].includes(key)){event.preventDefault();if(key==='p')pause();if(key==='n')skip();if(key==='d'){const item=[...cache].reverse().find(accepted);if(item)pin(item);}}});
   updateLocalAlert();voices();window.speechSynthesis?.addEventListener('voiceschanged',voices);setTimeout(refreshStudio,500);
   return {ingest,decorate,gifts:giftUpdate,clearVoice:clearPreviousVoice,
