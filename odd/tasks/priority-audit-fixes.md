@@ -57,6 +57,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
     - Focused route and IP-churn regression tests pass, or runner unavailability is recorded.
   - Checks: focused Python tests; structural CodeGraph/readback; `git diff --check`.
   - Evidence: Added `build_studio_state` and used it from both routes; capped IP state at 1,000 entries and pruned expired per-IP timestamps before enforcing the unchanged 300/minute limit. Added route parity, churn, and threshold regressions. `py_compile` and `git diff --check` passed. Focused unittest collection was attempted with the bundled Python but is unavailable because Flask is missing (`ModuleNotFoundError: No module named 'flask'`). Work-unit commit: `3ebb80c`; authored line count: 195 (includes the new task document); no unrelated paths staged.
+  - Independent correction: concurrent requests could prune the same stale key because shared rate-limit and reader maps had no synchronization. Added one `remote_access_lock` around pruning, eviction, rate checks, map writes/reads, and token-rotation clearing; the 300/minute rule and 1,000-key bound are unchanged. Added a barrier-coordinated two-request regression. Python behavior test remains unavailable (`ModuleNotFoundError: No module named 'flask'`); `py_compile` and `git diff --check` pass. Correction work-unit SHA and final slice budget are recorded after commit.
 
 - [x] **PAF-2 — Align overlay QA and accessible studio navigation**
   - Route: delegated direct.
@@ -93,7 +94,7 @@ These defects can blank the broadcast overlay, reduce accessibility, hide useful
 
 ## Progress
 
-- Current slice: PAF-4 is complete; selected strategy remains `stacked-to-main`, and no PRs were created or pushed.
+- Current slice: bounded correction follow-ups for PAF-1 and PAF-4; selected strategy remains `stacked-to-main`, and no PRs were created or pushed.
 - Completed tasks: PAF-1 (backend state reuse and bounded LAN request state; focused Python runner blocked by missing Flask); PAF-2 (shipped overlay bundle QA and keyboard-accessible studio tabs; browser QA blocked by missing Playwright); PAF-3 (coverage/watch configuration and local traceback logging); PAF-4 (frontend test repairs and final applicable verification).
-- Running authored-line count through PAF-4 SHA-evidence commit: 493 (PAF-1 199 + PAF-2 160 + PAF-3 78 + PAF-4 56; excludes unrelated pre-existing hunks).
-- Next step: none for implementation. Python unittest, Ruff, and browser QA remain unavailable under the installed environment; no PRs/pushes requested or performed.
+- Running authored-line count before independent-review corrections: 503 including the final 10-line document closure commit (PAF-1 199 + PAF-2 160 + PAF-3 78 + PAF-4 56 + 10-line closure; excludes unrelated pre-existing hunks).
+- Independent review reopened PAF-1 for stale-key deletion synchronization and PAF-4 for committed-byte UI test portability. Next step: commit each correction as a separate task-owned work unit, then record final SHAs/budgets. Current full Node suite, JavaScript syntax, TypeScript no-emit, Python syntax, and committed-byte semantic checks pass; focused Python behavior remains unavailable without Flask. Ruff and browser QA remain unavailable; no PRs/pushes requested or performed.

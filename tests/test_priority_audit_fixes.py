@@ -1,4 +1,6 @@
 import unittest
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from unittest.mock import patch
 
 import server
@@ -45,6 +47,37 @@ class PriorityAuditBackendTests(unittest.TestCase):
                 for _ in range(300):
                     self.assertTrue(production.allow_remote_read())
                 self.assertFalse(production.allow_remote_read())
+
+    def test_concurrent_remote_request_pruning_does_not_delete_a_stale_ip_twice(self):
+        production = server.production
+        original_requests = production.remote_requests
+        original_readers = production.remote_readers
+        gate = Barrier(2)
+
+        class CoordinatedRequestMap(dict):
+            def items(self):
+                snapshot = list(super().items())
+                lock = getattr(production, 'remote_access_lock', None)
+                if lock is None or not lock.locked():
+                    gate.wait(timeout=3)
+                return snapshot
+
+        production.remote_requests = CoordinatedRequestMap({'198.51.100.1': [1000]})
+        production.remote_readers = type(original_readers)()
+
+        def request_from(address):
+            with server.app.test_request_context('/', environ_base={'REMOTE_ADDR': address}):
+                return production.allow_remote_read()
+
+        try:
+            with patch('production.time.time', return_value=1061):
+                with ThreadPoolExecutor(max_workers=2) as workers:
+                    results = list(workers.map(request_from, ('192.0.2.10', '192.0.2.11')))
+            self.assertEqual(results, [True, True])
+            self.assertEqual(set(production.remote_requests), {'192.0.2.10', '192.0.2.11'})
+        finally:
+            production.remote_requests = original_requests
+            production.remote_readers = original_readers
 
 
 if __name__ == '__main__':
