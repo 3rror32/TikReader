@@ -13,7 +13,6 @@ window.Shell=(()=>{
  badge.setAttribute('role','button');badge.tabIndex=0;setBadgeMotion();
  badge.onclick=()=>{badgeMotion=!badgeMotion;setBadgeMotion();try{localStorage.setItem('tikreader.liveBadgeMotion',badgeMotion?'on':'off');}catch(_){}};
  badge.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();badge.click();}};
- const subtitle=document.createElement('small');subtitle.textContent='CABINA DE REALIZACIÓN';sidebar.append(subtitle);
  const nav=document.createElement('nav');sidebar.append(nav);
  const config=document.createElement('main');config.className='config-content';config.hidden=true;app.append(config);
  const views=new Map();
@@ -42,27 +41,31 @@ window.Shell=(()=>{
   const oldHeading=alerts.querySelector('h2'),localHeading=document.createElement('h3');
   localHeading.id='alerts-local-title';localHeading.textContent='Avisos en esta computadora';oldHeading.replaceWith(localHeading);
   alerts.setAttribute('aria-labelledby',localHeading.id);
-  alertStudio.querySelector('.alerts-destinations').after(alerts);alerts.hidden=true;
+  alertStudio.querySelector('.alerts-page-header, .alerts-destinations').after(alerts);alerts.hidden=true;
   alertStudio.classList.add('alerts-workspace');
  }
  add('voice',panes.tools);add('filters',filters);add('alerts',alertStudio||alerts);add('history',panes.history);add('workspace',panes.workspace);add('diagnostics',panes.diagnostics);add('obs',obs);
  for(const node of document.querySelectorAll('[data-section]')){if(node===alertStudio)continue;add(node.dataset.section,node);}
- const links=[['Modo simulación','simulation'],['Chatbot','chatbot'],['Control de Stream','obs-direct'],['Diagnóstico de eventos','event-diagnostics'],['Spotify','spotify'],['Encuesta del chat','chat-poll'],['Chatbot','chatbot'],['Streamer.bot','streamerbot'],['Biblioteca de sonidos','sound-library'],['Videos y panel separable','video-library'],['Automatizaciones avanzadas','interactive'],['Transmisión','live'],['Preguntas','questions'],['Hotkeys de juegos','game-hotkeys'],['Minecraft','minecraft'],['Puntos y niveles','points'],['Centro de control','control-center'],['Voz y traducción','voice'],['Configurar voz personalizada','custom-voice'],['Filtros de comentarios','filters'],['Emisión y privacidad','production'],['Alertas','alerts'],['Overlays','overlay-gallery'],['Temporizador','timer-control'],['Centro de emisión','obs'],['Historial y análisis','history'],['Moderador','moderator'],['Revisión previa','preflight'],['Conexión','diagnostics'],['Ajustes y perfiles','workspace'],['Acerca de','about']];
+ const links=[['Simulador','simulation'],['Chatbot','chatbot'],['Escenas','obs-direct'],['Eventos','event-diagnostics'],['Spotify','spotify'],['Encuestas','chat-poll'],['Streamer.bot','streamerbot'],['Sonidos','sound-library'],['Videos','video-library'],['Reglas','interactive'],['En vivo','live'],['Preguntas','questions'],['Atajos','game-hotkeys'],['Minecraft','minecraft'],['Puntos','points'],['Automatizaciones','control-center'],['Lectura','voice'],['Personaje','custom-voice'],['Filtros','filters'],['Emisión','production'],['Alertas','alerts'],['Overlays','overlay-gallery'],['Fuentes','obs'],['Sesiones','history'],['Moderación','moderator'],['Revisión','preflight'],['Conexión','diagnostics'],['Configuración','workspace'],['Acerca de','about']];
  // Each category contains destinations directly: no duplicated parent link.
  const groups=[
   [
-    "TU DIRECTO",
+    "Directo",
     [
       [
         "En vivo",
         "live"
       ],
       [
-        "Voz del chat",
+        "Preparar",
+        "creator-suite"
+      ],
+      [
+        "Lectura",
         "voice"
       ],
       [
-        "Subtítulos del micrófono",
+        "Subtítulos",
         "microphone-captions"
       ],
       [
@@ -70,8 +73,12 @@ window.Shell=(()=>{
         "overlay-gallery",
         [
           [
-            "Galería",
-            "overlay-gallery"
+            "Favoritos",
+            "overlay-favorites"
+          ],
+          [
+            "Mis overlays",
+            "overlay-custom"
           ],
           [
             "Animaciones",
@@ -90,18 +97,14 @@ window.Shell=(()=>{
             "overlay-goals"
           ],
           [
-            "Favoritos",
-            "overlay-favorites"
-          ],
-          [
             "Mis animaciones",
             "overlay-my-animations"
           ]
         ]
       ],
       [
-        "Moderación",
-        "questions"
+        "Alertas",
+        "alerts"
       ]
     ]
   ],
@@ -109,11 +112,15 @@ window.Shell=(()=>{
     "Chat",
     [
       [
-        "Filtros de comentarios",
+        "Preguntas",
+        "questions"
+      ],
+      [
+        "Filtros",
         "filters"
       ],
       [
-        "Panel del moderador",
+        "Moderación",
         "moderator"
       ],
       [
@@ -127,39 +134,27 @@ window.Shell=(()=>{
     ]
   ],
   [
-    "Escena",
+    "Producción",
     [
       [
-        "Fuentes para streaming",
+        "Fuentes",
         "obs"
       ],
       [
-        "Control de Stream",
+        "Escenas",
         "obs-direct"
       ],
       [
-        "Emisión y privacidad",
+        "Emisión",
         "production"
-      ],
-      [
-        "Alertas",
-        "alerts"
-      ],
-      [
-        "Temporizador",
-        "timer-control"
-      ],
-      [
-        "Editor de escenas",
-        "creator-scenes"
       ]
     ]
   ],
   [
-    "Audio y video",
+    "Multimedia",
     [
       [
-        "Voz personalizada",
+        "Personaje",
         "custom-voice"
       ],
       [
@@ -180,7 +175,7 @@ window.Shell=(()=>{
     "Juegos",
     [
       [
-        "Atajos para juegos",
+        "Atajos",
         "game-hotkeys"
       ],
       [
@@ -188,32 +183,20 @@ window.Shell=(()=>{
         "minecraft"
       ],
       [
-        "Puntos y niveles",
+        "Puntos",
         "points"
-      ],
-      [
-        "Juegos del chat",
-        "creator-games"
-      ],
-      [
-        "Batallas",
-        "creator-battles"
-      ],
-      [
-        "Comunidad",
-        "creator-community"
       ]
     ]
   ],
   [
-    "Automatizaciones",
+    "Interactividad",
     [
       [
-        "Centro de control",
+        "Automatizaciones",
         "control-center"
       ],
       [
-        "Reglas de eventos",
+        "Reglas",
         "interactive"
       ],
       [
@@ -223,63 +206,30 @@ window.Shell=(()=>{
     ]
   ],
   [
-    "Pruebas",
+    "Diagnóstico",
     [
       [
         "Simulador",
         "simulation"
       ],
       [
-        "Revisión antes del directo",
+        "Revisión",
         "preflight"
       ],
       [
-        "Estado de conexión",
+        "Conexión",
         "diagnostics"
       ],
       [
-        "Registro de eventos",
+        "Eventos",
         "event-diagnostics"
-      ]
-    ]
-  ],
-  [
-    "TU ESPACIO",
-    [
-      [
-        "Configuración",
-        "workspace",
-        [
-          [
-            "Historial",
-            "history"
-          ],
-          [
-            "Apariencia",
-            "workspace"
-          ],
-          [
-            "Canales externos",
-            "platform-integrations"
-          ],
-          [
-            "Perfiles del creador",
-            "creator-profiles"
-          ],
-          [
-            "Calendario",
-            "creator-calendar"
-          ],
-          [
-            "Recursos del creador",
-            "creator-library"
-          ]
-        ]
       ]
     ]
   ]
 ];
- const destinationLabels=new Map(groups.flatMap(([,items])=>items.flatMap(([label,key,children])=>[[key,label],...(children||[]).map(([childLabel,childKey])=>[childKey,childLabel])])));
+ const trailingItems=[["Sesiones","history"],["Acerca de","about"]];
+ const utilityItems=[["Configuración","workspace"]];
+ const destinationLabels=new Map([...groups.flatMap(([,items])=>items.flatMap(([label,key,children])=>[[key,label],...(children||[]).map(([childLabel,childKey])=>[childKey,childLabel])])),...trailingItems.map(([label,key])=>[key,label]),...utilityItems.map(([label,key])=>[key,label])]);
  for(const [section,items] of groups){
   const sectionLabel=document.createElement('span');sectionLabel.className='nav-section-label';sectionLabel.textContent=section;nav.append(sectionLabel);
   for(const [label,key,children] of items){
@@ -293,13 +243,13 @@ window.Shell=(()=>{
    const button=document.createElement('button');button.type='button';button.textContent=label;button.dataset.sectionNav=key;button.onclick=()=>show(key);
    group.append(button);nav.append(group);
   }
- }
- const aboutFooter=document.createElement('div');aboutFooter.className='sidebar-about';
- const about=document.createElement('button');about.type='button';about.dataset.sectionNav='about';
- const version=document.body.dataset.appVersion||'';about.textContent=`TikReader${version?` ${version}`:''}`;about.onclick=()=>show('about');
- aboutFooter.append(about);sidebar.append(aboutFooter);
+  }
+ for(const [label,key] of trailingItems){const group=document.createElement('div');group.className='nav-group nav-tail-item';const button=document.createElement('button');button.type='button';button.textContent=label;button.dataset.sectionNav=key;button.onclick=()=>show(key);group.append(button);nav.append(group);}
+ const utilityDock=document.createElement('div');utilityDock.className='sidebar-utility';utilityDock.setAttribute('role','navigation');utilityDock.setAttribute('aria-label','Accesos rápidos');
+ for(const [label,key] of utilityItems){const button=document.createElement('button');button.type='button';button.textContent=label;button.dataset.sectionNav=key;button.onclick=()=>show(key);utilityDock.append(button);}
+ sidebar.append(utilityDock);
  const safety=document.createElement('div');safety.className='broadcast-safety';
-  const panic=document.createElement('button');panic.id='emergency-button';panic.type='button';panic.className='panic-button';panic.setAttribute('aria-label','Pausa de seguridad');panic.setAttribute('aria-pressed','false');panic.title='Pausa la voz y las acciones y oculta los overlays.';
+  const panic=document.createElement('button');panic.id='emergency-button';panic.type='button';panic.className='panic-button';panic.textContent='Pausar voz y efectos';panic.setAttribute('aria-label','Pausar voz y efectos');panic.setAttribute('aria-pressed','false');panic.title='Pausa la voz y las acciones y oculta los overlays.';
  const status=document.createElement('p');status.id='emergency-status';status.setAttribute('role','status');
  safety.append(panic,status);document.querySelector('.app > header').append(safety);document.body.prepend(sidebar);
  const toggle=document.createElement('button');toggle.id='menu-toggle';toggle.textContent='Menú';toggle.setAttribute('aria-expanded','false');toggle.onclick=()=>{const open=document.body.classList.toggle('menu-open');toggle.setAttribute('aria-expanded',String(open));};document.querySelector('header').prepend(toggle);
@@ -308,15 +258,15 @@ window.Shell=(()=>{
  function show(key){
   let activeKey=key,viewKey=key,overlaySection='';
   if(key==='fortune-wheel'||key==='point-drop'){const game=key;activeKey='overlay-tools';viewKey='overlay-gallery';overlaySection='tools';requestAnimationFrame(()=>window.dispatchEvent(new CustomEvent('tikreader:open-overlay',{detail:{key:game}})));}
-  else if(key==='overlay-gallery'){activeKey='overlay-gallery';viewKey='overlay-gallery';}
+  else if(key==='overlay-gallery'){activeKey='overlay-favorites';viewKey='overlay-gallery';overlaySection='favorites';}
   else if(key.startsWith('overlay-')){
    if(key==='overlay-my-animations')viewKey='alerts';
+   else if(key==='overlay-custom')viewKey='custom-overlays';
    else{viewKey='overlay-gallery';overlaySection=key.slice(8);}
   }
   if(key==='animation-studio'){activeKey='overlay-my-animations';viewKey='alerts';}
-  if(key==='timer-settings'||key==='timer-shortcuts'){activeKey='timer-control';viewKey='timer-control';}
   const isLive=viewKey==='live';document.body.classList.toggle('config-view',!isLive);config.hidden=isLive;live.hidden=!isLive;for(const [name,node] of views)node.hidden=name!==viewKey;
-  if(viewKey==='alerts'&&alertStudio){const custom=activeKey==='overlay-my-animations',title=alertStudio.querySelector(':scope > h2'),intro=alertStudio.querySelector(':scope > .alerts-page-intro');if(title)title.textContent=custom?'Mis animaciones':'Alertas';if(intro)intro.textContent=custom?'Crea, prueba y activa tus animaciones personalizadas para regalos.':'Elige dónde quieres recibir los regalos: en tu transmisión o en esta computadora.';}
+  if(viewKey==='alerts'&&alertStudio){const custom=activeKey==='overlay-my-animations',title=alertStudio.querySelector('.alerts-page-header h2, :scope > h2'),intro=alertStudio.querySelector('.alerts-page-intro');if(title)title.textContent=custom?'Mis animaciones':'Alertas';if(intro)intro.textContent=custom?'Crea, prueba y activa tus animaciones personalizadas para regalos.':'Diseña, prueba y activa los avisos de tu LIVE.';}
   for(const b of sidebar.querySelectorAll('[data-section-nav]')){b.classList.toggle('active',b.dataset.sectionNav===activeKey);if(b.dataset.sectionNav===activeKey)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}
   const activeButton=sidebar.querySelector(`[data-section-nav="${activeKey}"]`);if(activeButton)activeButton.closest('details')?.setAttribute('open','');
   heading.textContent=destinationLabels.get(activeKey)||links.find(x=>x[1]===viewKey)?.[0]||'';document.body.classList.remove('menu-open');toggle.setAttribute('aria-expanded','false');
@@ -325,7 +275,7 @@ window.Shell=(()=>{
   if(viewKey==='history')document.getElementById('history-refresh').click();if(viewKey==='questions')document.getElementById('questions-refresh')?.click();
  }
  const originalShow=show;
- show=function(key){if(key.startsWith('creator-')){window.CreatorBridge?.open(key==='creator-suite'?'scenes':key.slice(8));originalShow('creator-suite');heading.textContent=destinationLabels.get(key)||'Estudio del creador';for(const b of sidebar.querySelectorAll('[data-section-nav]'))if(b.dataset.sectionNav===key){b.classList.add('active');b.setAttribute('aria-current','page');requestAnimationFrame(()=>{b.scrollIntoView({block:'nearest',inline:'nearest',behavior:menuMotionAllowed()?'smooth':'auto'});window.dispatchEvent(new CustomEvent('tikreader:navigation-change',{detail:{key,label:heading.textContent}}));});}return;}originalShow(key);};
+ show=function(key){if(key.startsWith('creator-')){window.CreatorBridge?.open(key==='creator-suite'?'scenes':key.slice(8));originalShow('creator-suite');heading.textContent=destinationLabels.get(key)||'Preparar';for(const b of sidebar.querySelectorAll('[data-section-nav]'))if(b.dataset.sectionNav===key){b.classList.add('active');b.setAttribute('aria-current','page');requestAnimationFrame(()=>{b.scrollIntoView({block:'nearest',inline:'nearest',behavior:menuMotionAllowed()?'smooth':'auto'});window.dispatchEvent(new CustomEvent('tikreader:navigation-change',{detail:{key,label:heading.textContent}}));});}return;}originalShow(key);};
  show('live');if(location.hash.slice(1))show(location.hash.slice(1));
  const api={show,registerView};window.dispatchEvent(new CustomEvent('tikreader:shell-ready',{detail:api}));return api;
 })();

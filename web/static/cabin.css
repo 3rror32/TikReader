@@ -44,7 +44,11 @@ body[data-live-state=connecting] .session-panel::after,body[data-live-state=reco
 #session-channel{font-size:13px;margin-top:6px}.session-clock>span,.stat-value{font-family:var(--font-data);font-variant-numeric:tabular-nums}.session-clock>span{font-size:24px}.session-clock small{font:400 8px/1.4 var(--font-data);text-transform:uppercase;letter-spacing:.5px}
 .session-activity{padding:9px 0}.activity-dot{border-radius:2px;transform:rotate(45deg)}
 .session-panel .controls{gap:8px}.input-wrap{min-width:260px}.session-panel #username-input{height:42px;border-radius:7px;background:var(--console-deep);border-color:#314558;padding-left:31px}
-.session-panel .btn{min-height:42px;border-radius:7px;padding:10px 18px}.btn-primary{background:var(--signal);color:#09251d;box-shadow:none;font-weight:700}.btn-primary:hover{background:#8eebcb;box-shadow:none;transform:none}
+.session-panel .btn{min-height:42px;border-radius:7px;padding:10px 18px}.btn-primary{background:var(--signal);color:#09251d;box-shadow:none;font-weight:700}.btn-primary:hover{background:#8eebcb}
+.session-panel #btn-connect{position:relative;isolation:isolate;transition:scale var(--motion-base) var(--motion-spring)}
+.session-panel #btn-connect:not(:disabled):not([aria-disabled="true"]):hover{scale:1.015}
+.session-panel #btn-connect:not(:disabled):not([aria-disabled="true"]):active{scale:.985}
+@media(prefers-reduced-motion:reduce){.session-panel #btn-connect:not(:disabled):not([aria-disabled="true"]):is(:hover,:active){scale:none!important}}
 .btn-stop{background:var(--live-soft);border-color:#72414a;color:#ff9ca7}
 .session-panel .stats-bar{grid-template-columns:1.35fr repeat(3,1fr);gap:0;margin:10px 0 0;border:1px solid #293c4e;border-radius:8px;overflow:hidden}
 .session-panel .stat-card{border:0;border-right:1px solid #293c4e;border-radius:0!important;background:transparent;padding:10px 14px}.session-panel .stat-card:last-child{border-right:0}

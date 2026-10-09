@@ -32,3 +32,13 @@ Las preferencias habituales se cambian desde la interfaz. Apariencia, distribuci
 El instalador crea `.env` en la carpeta de datos únicamente si no existe. Es para puerto, modo de red y diagnóstico interno; no necesita edición para el uso habitual. No incluye claves personales.
 
 **Acerca de → Exportar diagnóstico** descarga un JSON con versión, plataforma, estado, contadores y códigos recientes de error. Excluye nombres, comentarios, perfiles, claves, rutas y registros en bruto. Los registros diarios y respaldos completos son otros archivos y pueden contener información privada.
+
+## Construcción y validación
+
+El desarrollador ejecuta `tools/build_release.py`, seguido del compilador Inno Setup con `packaging/TikReader.iss`. El archivo `release/payload-sha256.json` registra el contenido del paquete. Python se descarga de Python.org y se verifica contra su SHA-256 publicado; las dependencias proceden de PyPI. Las licencias de dependencias se conservan en sus paquetes y las de las voces en `docs/licenses`.
+
+`tools/validate_release.py` prueba inicio con Python incluido, almacenamiento externo, cierre y reapertura. `tools/qa_release.cjs` prueba la interfaz con red externa bloqueada y tamaños de escritorio/móvil. Estas verificaciones usan el equipo de desarrollo: **no equivalen a una computadora limpia**.
+
+Para Windows limpio, abre el archivo `.wsb` generado en `release` si Windows Sandbox está disponible, o usa una máquina virtual/equipo separado. No se habilita ni modifica Windows Sandbox automáticamente.
+
+Antes de distribuir públicamente, consultar el registro archivado [`VALIDACION_BETA_LIMPIA.md`](../archivado/documentos/VALIDACION_BETA_LIMPIA.md). El instalador de esta preparación no tiene firma digital del autor.

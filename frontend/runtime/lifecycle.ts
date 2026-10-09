@@ -32,12 +32,64 @@ export class OverlayLifecycle {
 
   interval(callback: () => void, delay: number): Cleanup {
     let timer = 0;
-    const stop = () => window.clearInterval(timer);
+    const stop = () => {
+      window.clearInterval(timer);
+      timer = 0;
+    };
     const start = () => {
       stop();
       if (!this.paused) timer = window.setInterval(callback, delay);
     };
     const removePause = this.onPause(start);
+    return this.own(() => {
+      removePause();
+      stop();
+    });
+  }
+
+  timeout(callback: () => void, delay: number): Cleanup {
+    let timer = 0;
+    let startedAt = 0;
+    let remaining = delay;
+    const stop = () => {
+      window.clearTimeout(timer);
+      timer = 0;
+    };
+    const start = () => {
+      stop();
+      if (this.paused || remaining <= 0) return;
+      startedAt = performance.now();
+      timer = window.setTimeout(() => {
+        timer = 0;
+        remaining = 0;
+        callback();
+      }, remaining);
+    };
+    const removePause = this.onPause(paused => {
+      if (paused && timer) remaining = Math.max(0, remaining - (performance.now() - startedAt));
+      start();
+    });
+    return this.own(() => {
+      removePause();
+      stop();
+    });
+  }
+
+  frame(callback: (time: number) => void): Cleanup {
+    let frame = 0;
+    const tick = (time: number) => {
+      if (this.paused || this.disposed) return;
+      callback(time);
+      frame = requestAnimationFrame(tick);
+    };
+    const stop = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+    };
+    const removePause = this.onPause(paused => {
+      stop();
+      if (!paused) frame = requestAnimationFrame(tick);
+    });
     return this.own(() => {
       removePause();
       stop();

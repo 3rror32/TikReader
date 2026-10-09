@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -14,9 +15,18 @@ test('basic mode exposes one short daily workflow', () => {
   assert.deepEqual(destinations, [
     'live', 'voice', 'microphone-captions',
     'overlay-gallery', 'overlay-animations', 'overlay-effects', 'overlay-tools',
-    'overlay-goals', 'overlay-favorites', 'overlay-my-animations',
-    'about',
+    'overlay-goals', 'overlay-favorites', 'overlay-custom', 'overlay-my-animations',
+    'alerts', 'about', 'workspace',
   ]);
+});
+
+test('sessions is advanced, about is always last, and configuration is the only fixed action', () => {
+  const shell = read('web/static/shell.js');
+  const sidebar = read('web/static/sidebar.js');
+  assert.match(shell, /const trailingItems=\[\["Sesiones","history"\],\["Acerca de","about"\]\]/);
+  assert.match(shell, /const utilityItems=\[\["Configuración","workspace"\]\]/);
+  assert.doesNotMatch(sidebar.match(/const basicDestinations = new Set\(\[([^\]]+)\]\)/)[1], /'history'/);
+  assert.match(sidebar, /'about'/);
 });
 
 test('basic mode stays focused and advanced voice controls remain optional', () => {
@@ -35,11 +45,11 @@ test('operator interface has no remote font dependency', () => {
   assert.match(read('web/static/basic_mode.css'), /Cascadia Mono/);
 });
 
-test('menu keeps live controls fixed and safety only in the top bar', () => {
+test('menu uses one direct section and keeps safety only in the top bar', () => {
   const sidebar = read('web/static/sidebar.js');
   const shell = read('web/static/shell.js');
-  assert.match(sidebar, /critical\.className = 'sidebar-critical'/);
-  assert.match(sidebar, /\['live', 'voice'\]/);
+  assert.doesNotMatch(sidebar, /critical\.className = 'sidebar-critical'|AL AIRE/);
+  assert.match(shell, /"Directo"/);
   assert.doesNotMatch(sidebar, /sidebarEmergency|sidebar-emergency/);
   assert.match(shell, /panic\.id='emergency-button'/);
   assert.match(shell, /scrollIntoView\(\{block:'nearest'/);
@@ -55,11 +65,15 @@ test('menu avoids shortcut cards and keeps useful collapsed tooltips', () => {
   assert.match(styles, /\.sidebar-tooltip/);
 });
 
-test('session empty-data context is plain text without a colored container', () => {
+test('session omits the empty-data context while preserving connection and metric status', () => {
   const styles = read('web/static/live_refinement.css');
-  const context = styles.match(/\.session-panel #session-data-context\s*\{([^}]*)\}/);
-  assert.ok(context, 'session data context style must exist');
-  assert.doesNotMatch(context[1], /background|border-radius|padding/);
+  const presence = read('web/static/live_presence.js');
+  assert.doesNotMatch(styles, /session-data-context/);
+  assert.doesNotMatch(presence, /session-data-context|Sin datos todavía|dataContext|syncDataContext/);
+  assert.doesNotMatch(read('web/templates/index.html'), /session-data-context/);
+  assert.match(presence, /document\.body\.dataset\.liveState = mode/);
+  assert.match(presence, /syncLiveLight\(mode === 'live'\)/);
+  assert.match(presence, /card\.dataset\.valueState = state/);
 });
 
 test('chat voice exposes Homero as a direct local AI selection', () => {
@@ -72,20 +86,42 @@ test('chat voice exposes Homero as a direct local AI selection', () => {
   assert.match(voice, /tikreader\.rvcResourceConsent','true'/);
 });
 
-test('the donation button remains visible in basic mode', () => {
+test('project support stays available in both the Live header and About', () => {
   const styles = read('web/static/basic_mode.css');
   const presence = read('web/static/live_presence.js');
   assert.match(presence, /donate\.id = 'donation-button'/);
+  assert.match(presence, /headerActions\.append\(donate\)/);
+  assert.match(presence, /document\.querySelector\('\.creator-actions'\)\?\.append\(aboutDonate\)/);
   assert.doesNotMatch(styles, /body\.basic-mode\s+#donation-button/);
 });
 
-test('menu motion is optional and honors the operating system preference', () => {
+test('the primary Live connection action emits a normalized start request', () => {
+  const source = read('web/static/core_ui.js');
+  const start = source.indexOf('function startLive() {');
+  const end = source.indexOf('\n}', start) + 2;
+  assert.ok(start >= 0 && end > start, 'the Live connection action must be available');
+  const emitted = [];
+  const context = {
+    document: { getElementById: id => id === 'btn-connect' ? { disabled: false } : { value: ' @Creator ' } },
+    socket: { connected: true, emit: (...args) => emitted.push(args) },
+    hideError() {}, setStatus() {}, setConnectPending() {}, setButtons() {},
+  };
+  vm.runInNewContext(source.slice(start, end), context);
+  context.startLive();
+  assert.equal(JSON.stringify(emitted), JSON.stringify([['start_live', { username: 'Creator' }]]));
+});
+
+test('interface motion has three levels and honors the operating system preference', () => {
   const template = read('web/templates/index.html');
   const sidebar = read('web/static/sidebar.js');
   const styles = read('web/static/sidebar.css');
-  assert.match(template, /id="menu-motion-toggle"/);
+  assert.match(template, /id="motion-level-select"/);
+  assert.match(template, /value="reduced"/);
+  assert.match(template, /value="subtle" selected/);
+  assert.match(template, /value="expressive"/);
   assert.match(sidebar, /prefers-reduced-motion: reduce/);
   assert.match(sidebar, /tikreader\.menuMotion/);
+  assert.match(sidebar, /dataset\.motionLevel/);
   assert.match(styles, /body\.menu-motion-reduced/);
   assert.match(styles, /@media\(prefers-reduced-motion:reduce\)/);
 });

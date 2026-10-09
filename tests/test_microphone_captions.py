@@ -19,6 +19,20 @@ class FakeSocket:
         self.events.append((name, payload))
 
 
+class FakeCredentials:
+    def __init__(self):
+        self.values = {}
+
+    def get(self, name):
+        return dict(self.values.get(name, {}))
+
+    def save(self, name, values):
+        self.values[name] = dict(values)
+
+    def delete(self, name):
+        self.values.pop(name, None)
+
+
 class MicrophoneCaptionTests(unittest.TestCase):
     def setUp(self):
         root = Path(__file__).resolve().parents[1]
@@ -27,6 +41,7 @@ class MicrophoneCaptionTests(unittest.TestCase):
             archive=None,
             socketio=FakeSocket(),
             production=SimpleNamespace(settings={'emergency': False, 'scene': 'talk'}),
+            platform_credentials=FakeCredentials(),
         )
         self.captions = MicrophoneCaptions(self.app, self.runtime)
         self.client = self.app.test_client()
@@ -45,6 +60,55 @@ class MicrophoneCaptionTests(unittest.TestCase):
         expanded = validate_settings({'font_family': 'futuristic', 'animation': 'flip'})
         self.assertEqual(expanded['font_family'], 'futuristic')
         self.assertEqual(expanded['animation'], 'flip')
+        processing = validate_settings({
+            'noise_suppression': False,
+            'echo_cancellation': False,
+            'auto_gain_control': False,
+        })
+        self.assertFalse(processing['noise_suppression'])
+        self.assertFalse(processing['echo_cancellation'])
+        self.assertFalse(processing['auto_gain_control'])
+        with self.assertRaisesRegex(ValueError, 'Opción'):
+            validate_settings({'noise_suppression': 'false'})
+        ai = validate_settings({
+            'ai_enabled': True,
+            'ai_endpoint': 'http://127.0.0.1:11434/v1/',
+            'ai_model': 'local-caption-model',
+            'ai_instruction': 'Corrige el texto.',
+        })
+        self.assertEqual(ai['ai_endpoint'], 'http://127.0.0.1:11434/v1')
+        with self.assertRaisesRegex(ValueError, 'nombre del modelo'):
+            validate_settings({'ai_enabled': True})
+        with self.assertRaisesRegex(ValueError, 'HTTPS'):
+            validate_settings({'ai_endpoint': 'http://example.com/v1'})
+
+    def test_external_ai_configuration_is_private_and_can_refine_text(self):
+        config = {
+            'ai_enabled': True,
+            'ai_endpoint': 'https://models.example.test/v1',
+            'ai_model': 'caption-editor',
+            'ai_instruction': 'Corrige la frase sin cambiar su sentido.',
+            'api_key': 'private-caption-key',
+        }
+        with patch.object(self.captions, 'call_external_model', return_value='OK') as external:
+            tested = self.client.post('/microphone-captions/ai', json={**config, 'test': True})
+        self.assertEqual(tested.status_code, 200)
+        external.assert_called_once()
+
+        saved = self.client.post('/microphone-captions/ai', json=config)
+        self.assertEqual(saved.status_code, 200)
+        self.assertTrue(saved.json['ai_key_configured'])
+        self.assertEqual(self.runtime.platform_credentials.get('caption_ai')['api_key'], 'private-caption-key')
+        self.assertNotIn('api_key', str(saved.json))
+
+        with patch.object(self.captions, 'call_external_model', return_value='Hola, mundo.'):
+            refined = self.client.post('/microphone-captions/ai/refine', json={'text': 'hola mundo'})
+        self.assertEqual(refined.json['text'], 'Hola, mundo.')
+
+        public = self.client.get('/broadcast/microphone-captions').json
+        self.assertNotIn('ai_endpoint', public['settings'])
+        self.assertNotIn('ai_model', public['settings'])
+        self.assertNotIn('ai_key_configured', public)
 
     def test_local_engine_is_explicitly_spanish_and_receives_mexican_locale(self):
         spanish = self.client.get('/microphone-captions/engine?language=es-MX').json

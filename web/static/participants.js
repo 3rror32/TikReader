@@ -37,8 +37,8 @@
   }
   ready=true;data=next;draw();
  }
- window.ChatExtras.bindAutoToggle(auto,'tts-greetings-enabled','lectura automática');
- window.ChatExtras.bindAutoToggle(document.getElementById('gift-auto-toggle'),'tts-gifts-enabled','lectura automática');
+ window.ChatExtras.bindAutoToggle(auto,'tts-greetings-enabled','saludos automáticos a participantes','Saludar participantes');
+ window.ChatExtras.bindAutoToggle(document.getElementById('gift-auto-toggle'),'tts-gifts-enabled','lectura automática de regalos','Leer regalos');
  present.onclick=()=>{mode='participants';draw()};joined.onclick=()=>{mode='joins';draw()};
  window.Participants={render};window.addEventListener('tikreader:participants',e=>render(e.detail));draw();
 })();

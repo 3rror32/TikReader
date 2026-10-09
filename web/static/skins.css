@@ -129,7 +129,9 @@ html[data-skin="cute"] .setting-card{outline:1px dashed #ffad9166;outline-offset
 html[data-skin="cute"] .settings-order{border-radius:12px;background:#ffad91;color:#442830;border:0;transform:rotate(-3deg)}
 html[data-skin="cute"] .sidebar-brand{font-family:'Trebuchet MS',sans-serif;text-transform:none}
 
-@media(min-width:901px){html[data-skin="kawai"] .app,html[data-skin="cute"] .app{margin-left:230px;width:calc(100% - 230px);padding:20px 26px}html[data-skin="kawai"] .app-sidebar,html[data-skin="cute"] .app-sidebar{width:230px}html[data-skin="dark"] .app{margin-left:205px;width:calc(100% - 205px);padding:12px 16px}html[data-skin="dark"] .app-sidebar{width:205px}}
+/* Los skins sólo cambian el acabado y el aire interior. El ancho de la barra y
+   el margen del espacio de trabajo pertenecen al contrato común de sidebar.css. */
+@media(min-width:901px){html[data-skin="kawai"] .app,html[data-skin="cute"] .app{padding:20px 26px}html[data-skin="dark"] .app{padding:12px 16px}}
 @media(max-width:700px){.profile-fields{grid-template-columns:1fr}.settings-group-title{gap:10px}.settings-heading h2{font-size:24px!important}}
 
 /* Los estados funcionales conservan el mismo significado en las cuatro paletas. */
@@ -161,3 +163,160 @@ html[data-skin="light"] .app-sidebar button.active{color:#164d49}
 html[data-skin="light"] .feed-title,html[data-skin="light"] .comment-text,html[data-skin="light"] .session-identity h2{color:#17313b!important}
 html[data-skin="light"] .session-panel::after{color:#58707a}
 html[data-skin="light"] #donation-button{background:#fff5ec;color:#784a25;border-color:#c78c58;box-shadow:inset 3px 0 #d39b69}
+
+/* TikReader principal signature theme */
+html:root[data-skin="original"] {
+  --skin-bg: #03070d;
+  --skin-surface: #08111b;
+  --skin-raised: #0d1a27;
+  --skin-border: #203345;
+  --skin-text: #edf7ff;
+  --skin-muted: #7890a4;
+  --skin-accent: #06e4ff;
+  --skin-accent-2: #ff1493;
+  --skin-accent-ink: #03070d;
+  --skin-danger: #ff6f91;
+  --skin-warning: #ffd166;
+  --skin-wash: #102535;
+  --skin-shadow: #0009;
+  --bg-deep: #03070d;
+  --bg-card: #08111b;
+  --bg-glass: #0d1a27;
+  --border: #203345;
+  --text-main: #edf7ff;
+  --text-muted: #7890a4;
+  --teal: #06e4ff;
+  --pink: #ff1493;
+  --purple: #b983ff;
+  --gold: #ffd166;
+  --ink: #03070d;
+  --console: #08111b;
+  --console-raised: #0d1a27;
+  --console-deep: #03070d;
+  --signal: #06e4ff;
+  --signal-soft: #0b2934;
+  --live: #ff1493;
+  --live-soft: #321326;
+  --telemetry: #7890a4;
+  --paper: #edf7ff;
+  --line: #203345;
+  --warning: #ffd166;
+  color-scheme: dark;
+}
+
+html:root[data-skin="original"] body {
+  color: #edf7ff;
+  background: #03070d;
+}
+
+html:root[data-skin="original"] body::before {
+  opacity: 1;
+  mask-image: none;
+  background:
+    radial-gradient(ellipse at 5% 0%, #06e4ff18, transparent 38%),
+    radial-gradient(ellipse at 100% 100%, #ff149316, transparent 42%);
+}
+
+html:root[data-skin="original"]::after {
+  content: "";
+  position: fixed;
+  inset: 4px;
+  z-index: 10010;
+  padding: 1px;
+  border-radius: 16px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 0% 0%, #06e4ff42, transparent 24%),
+    radial-gradient(ellipse at 100% 100%, #ff149338, transparent 26%),
+    linear-gradient(to bottom right, #06e4ff 0%, #06e4ff92 10%, #06e4ff32 28%, #26313e 49%, #3e2b3a 61%, #ff149350 72%, #ff149394 90%, #ff1493 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 9px #06e4ff16) drop-shadow(0 0 9px #ff149316);
+}
+
+html:root[data-skin="original"] body .app-sidebar {
+  color: #edf7ff;
+  background: linear-gradient(155deg, #061521 0%, #050d16 62%, #090b14 100%);
+  border-right: 1px solid #1b3344;
+  box-shadow: 12px 0 32px #0008;
+}
+
+html:root[data-skin="original"] body .sidebar-brand {
+  min-height: 48px;
+  padding: 5px 8px 10px;
+  border: 0;
+  background: transparent;
+  color: #edf7ff;
+  font-family: var(--font-data);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-shadow: none;
+  box-shadow: none;
+}
+
+html:root[data-skin="original"] body :is(.btn-primary, .primary-action, .timer-actions .primary, #skin-apply, #custom-voice-save, #custom-voice-test, #overlay-save, #overlay-copy):not(:disabled):not([aria-disabled="true"]):not(.panic-button):not(.btn-stop):not(.danger-lite):not(.platform-remove):not(#emergency-button):not(#voice-model-delete):not(#profile-delete):not(.recording) {
+  --control-bg: var(--skin-raised);
+  --control-ink: var(--skin-text);
+  --control-line: var(--skin-accent);
+  background: var(--skin-raised) !important;
+  color: var(--skin-text) !important;
+  border-color: var(--skin-border) !important;
+  border-left-color: var(--skin-accent) !important;
+  border-bottom-color: var(--skin-accent-2) !important;
+  box-shadow: inset 2px 0 var(--skin-accent), inset 0 -2px var(--skin-accent-2) !important;
+}
+
+html:root[data-skin="original"] body :is(button, #skin-apply):is(.active, .selected, .enabled, [data-selected="true"], [aria-pressed="true"], [aria-selected="true"]):not(:disabled):not([aria-disabled="true"]):not(.panic-button):not(.btn-stop):not(.danger-lite):not(.platform-remove):not(#emergency-button):not(#voice-model-delete):not(#profile-delete):not(.recording) {
+  --control-bg: var(--skin-raised);
+  --control-ink: var(--skin-text);
+  --control-line: var(--skin-accent-2);
+  background: var(--skin-raised) !important;
+  color: var(--skin-text) !important;
+  border-left-color: var(--skin-accent) !important;
+  border-bottom-color: var(--skin-accent-2) !important;
+  box-shadow: inset 2px 0 var(--skin-accent), inset 0 -2px var(--skin-accent-2) !important;
+}
+
+html:root[data-skin="original"] body :is(button, [role="button"], input[type="button"], input[type="submit"], .tool-buttons > a, .overlay-actions > a):hover:not(:disabled):not([aria-disabled="true"]):not(.panic-button):not(.btn-stop):not(.danger-lite):not(.platform-remove):not(#emergency-button):not(#voice-model-delete):not(#profile-delete):not(.recording) {
+  border-bottom-color: var(--skin-accent-2) !important;
+}
+
+html:root[data-skin="original"] body :is(.panel, .feed-wrap, .gifts-column, .participants-bar, .config-content, .setting-card) {
+  color: #edf7ff;
+  background: #08111b;
+  border-color: #203345;
+  box-shadow: 0 10px 28px #0005;
+}
+
+html:root[data-skin="original"] body :is(.app-sidebar button, button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid #06e4ff !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 4px #06e4ff24;
+}
+
+@media (max-width: 700px) {
+  html:root[data-skin="original"] body .sidebar-brand {
+    min-height: 42px;
+    padding: 4px 6px 8px;
+    font-size: clamp(18px, 5vw, 20px);
+  }
+
+  html:root[data-skin="original"]::after {
+    border-radius: 12px;
+  }
+
+  html:root[data-skin="original"] body::before {
+    background:
+      radial-gradient(ellipse at 0% 0%, #06e4ff12, transparent 34%),
+      radial-gradient(ellipse at 100% 100%, #ff149310, transparent 38%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:root[data-skin="original"] {
+    scroll-behavior: auto;
+  }
+}

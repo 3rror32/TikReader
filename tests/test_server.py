@@ -100,6 +100,15 @@ class LiveLifecycleTests(unittest.TestCase):
             self.assertEqual(client.post('/widget-settings/chat',json={**payload,'background':'red'}).status_code,400)
             self.assertEqual(client.get('/widget-settings/unknown').status_code,404)
             self.assertEqual(client.delete('/widget-settings/chat').get_json()['settings']['font_size'],18)
+            timer=client.post('/widget-settings/timer',json={**payload,'timer_title':'Iniciamos en','timer_format':'ms','timer_show_label':True,'timer_show_state':False,'timer_warning_seconds':45,'timer_digit_animation':'slide','timer_animation_speed':680,'timer_glow':False})
+            self.assertEqual(timer.status_code,200);self.assertEqual(timer.get_json()['settings']['timer_format'],'ms')
+            self.assertEqual(timer.get_json()['settings']['timer_warning_seconds'],45)
+            self.assertEqual(timer.get_json()['settings']['timer_digit_animation'],'slide')
+            self.assertEqual(timer.get_json()['settings']['timer_animation_speed'],680)
+            self.assertFalse(timer.get_json()['settings']['timer_glow'])
+            self.assertEqual(client.post('/widget-settings/timer',json={**payload,'timer_format':'frames'}).status_code,400)
+            self.assertEqual(client.post('/widget-settings/timer',json={**payload,'timer_digit_animation':'spin'}).status_code,400)
+            self.assertEqual(client.post('/widget-settings/timer',json={**payload,'timer_show_state':'yes'}).status_code,400)
 
     def test_participants_track_join_and_activity(self):
         from types import SimpleNamespace as S

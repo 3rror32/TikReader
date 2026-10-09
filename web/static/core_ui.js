@@ -54,7 +54,9 @@ function applyStats(data) {
   if (data.revision < statsRevision) return;
   statsRevision = data.revision ?? statsRevision;
   animateStat('stat-comments', data.comments);
-  animateStat('stat-likes', data.likes_known || data.like_events ? data.likes : '—');
+  // Each session starts at zero. TikTok may report the room total a little
+  // later; when it does, the following snapshot replaces this value.
+  animateStat('stat-likes', Number(data.likes) || 0);
   animateStat('stat-gifts', data.gifts);
   // A viewer count that TikTok has not reported yet is still an empty room,
   // not a missing/invalid value. Keep the counter useful from connection start.
@@ -151,8 +153,21 @@ function showLiveBadge(visible) {
   document.getElementById('live-badge').classList.toggle('visible', visible);
 }
 
+function setConnectPending(pending) {
+  const button = document.getElementById('btn-connect');
+  button.classList.toggle('is-connecting', pending);
+  button.setAttribute('aria-busy', String(pending));
+  button.querySelector('.connect-button__icon').hidden = pending;
+  button.querySelector('.connect-button__label').hidden = pending;
+  button.querySelector('.connect-button__pending').hidden = !pending;
+  button.disabled = pending || button.dataset.connected === 'true' || document.body.classList.contains('simulation-active');
+  document.getElementById('btn-stop').style.display = pending || button.dataset.connected === 'true' ? 'inline-flex' : 'none';
+}
+
 function setButtons(connected) {
-  document.getElementById('btn-connect').disabled = connected || document.body.classList.contains('simulation-active');
+  const button = document.getElementById('btn-connect');
+  button.dataset.connected = String(connected);
+  setConnectPending(false);
   document.getElementById('btn-stop').style.display = connected ? 'inline-flex' : 'none';
 }
 
@@ -267,8 +282,8 @@ function startLive() {
   const u = document.getElementById('username-input').value.trim().replace(/^@/, '');
   if (!u) { setStatus('⚠️ Ingresa un nombre de usuario.', 'err'); return; }
   setStatus(`Conectando a @${u}…`);
+  setConnectPending(true);
   socket.emit('start_live', { username: u });
-  setButtons(true);
 }
 
 
@@ -331,7 +346,7 @@ socket.on('connect', () => {
 socket.on('reconnecting', ({username, attempt, delay, maximum}) => {
   hideError();
   showLiveBadge(false);
-  setButtons(true);
+  setConnectPending(true);
   setStatus(`⏳ Reconectando a @${username}: intento ${attempt}/${maximum} en ${delay} s…`);
 });
 
@@ -343,7 +358,7 @@ socket.on('disconnect', () => {
 
 socket.on('connecting', ({ username }) => {
   hideError();
-  setButtons(true);
+  setConnectPending(true);
   setStatus(`⏳ Conectando al live de @${username}…`);
 });
 
@@ -394,7 +409,8 @@ socket.on('status', (s) => {
       ? `⏳ Reconectando a @${s.username}: intento ${s.retry_count}…`
       : `Conectando a @${s.username}…`);
     showLiveBadge(s.connected);
-    setButtons(true);
+    if (s.connected) setButtons(true);
+    else setConnectPending(true);
   } else {
     showLiveBadge(false);
     setButtons(false);

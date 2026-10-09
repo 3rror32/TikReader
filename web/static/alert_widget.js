@@ -11,5 +11,7 @@
     cursor=d.serial;
   }catch(_){queue.clear();root.replaceChildren();}finally{clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,livePush?5000:1000);}}
   window.addEventListener('tikreader:runtime-ready',event=>{livePush=true;event.detail?.onData?.(()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,0);});});
+  async function heartbeat(){try{await fetch('/broadcast/alerts/heartbeat',{method:'POST',cache:'no-store',signal:AbortSignal.timeout(4000)});}catch(_){}finally{setTimeout(heartbeat,4000);}}
+  heartbeat();
   refresh();
 })();

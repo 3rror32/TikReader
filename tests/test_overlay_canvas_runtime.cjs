@@ -25,3 +25,15 @@ test('every configurable public overlay loads the canvas runtime',()=>{
  }
  assert.match(fs.readFileSync('web/static/seasonal_overlay.js','utf8'),/canvas\.getBoundingClientRect\(\)/);
 });
+
+test('continuous overlays pause work and use push with recovery polling',()=>{
+ for(const name of ['seasonal_widget.html','stream_buddies.html','emoji_widget.html','user_info_widget.html']){
+  assert.match(fs.readFileSync('web/templates/'+name,'utf8'),/static\/build\/runtime\.js/,name);
+ }
+ for(const name of ['seasonal_overlay.js','stream_buddies.js','chat_emojis.js','user_info_overlay.js']){
+  const source=fs.readFileSync('web/static/'+name,'utf8');
+  assert.match(source,/visibilitychange/,name);
+  assert.match(source,/runtime-ready/,name);
+  assert.match(source,/paused/,name);
+ }
+});

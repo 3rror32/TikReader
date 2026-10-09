@@ -1,7 +1,7 @@
 /* Visual overlay directory. These rules style the catalog, not broadcast artwork. */
 html body .overlay-gallery {max-width:1320px; --catalog-line:var(--skin-border,#34465a)}
 html body .overlay-gallery :is(#overlay-catalog, #overlay-editor)[hidden] {display:none !important}
-html body .overlay-gallery :is(#overlay-categories, .overlay-browse-title, .overlay-favorites, .overlay-results-heading, #overlay-grid)[hidden] {display:none !important}
+html body .overlay-gallery :is(.overlay-favorites, .overlay-results-heading, #overlay-grid)[hidden] {display:none !important}
 html body .overlay-gallery .overlay-gallery-hero {align-items:center; margin-bottom:24px}
 html body .overlay-gallery .overlay-gallery-hero p {margin-top:8px; line-height:1.5}
 html body .overlay-gallery .overlay-section-heading {display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px}
@@ -11,15 +11,7 @@ html body .overlay-gallery .overlay-favorites {padding:20px; border:1px solid va
 html body .overlay-gallery .overlay-favorites-empty {grid-column:1/-1; display:flex; align-items:center; gap:14px; padding:16px; border:1px dashed var(--catalog-line); border-radius:10px}
 html body .overlay-gallery .overlay-favorites-empty svg {width:28px; height:28px; flex-shrink:0; color:var(--skin-accent)}
 html body .overlay-gallery .overlay-favorites-empty p {margin:0; color:var(--skin-muted)}
-html body .overlay-gallery .overlay-browse-title {margin:0 0 14px}
-html body .overlay-gallery .overlay-categories {display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; overflow:visible; padding:0; border:0}
-html body .overlay-gallery .overlay-categories .overlay-category {display:grid; grid-template-columns:30px minmax(0,1fr) auto; align-items:start; gap:12px; padding:16px !important; border-radius:12px !important; text-align:left; white-space:normal; min-width:0; height:100%}
-html body .overlay-gallery .overlay-category > svg {width:28px; height:28px; color:var(--skin-accent)}
-html body .overlay-gallery .overlay-category-copy {display:grid; gap:6px; min-width:0}
-html body .overlay-gallery .overlay-category-copy > strong {font-size:var(--ui-type-body,14px); line-height:1.4}
-html body .overlay-gallery .overlay-category-copy > span {color:var(--skin-muted); font-size:var(--ui-type-caption,12px); font-weight:400; line-height:1.5}
-html body .overlay-gallery .overlay-category-count {font-size:var(--ui-type-caption,12px); color:var(--skin-muted); font-variant-numeric:tabular-nums}
-html body .overlay-gallery .overlay-results-heading {padding-top:28px; margin-top:24px; border-top:1px solid var(--catalog-line)}
+html body .overlay-gallery .overlay-results-heading {padding-top:0; margin-top:0; border-top:0}
 html body .overlay-gallery .overlay-results-heading p {margin:6px 0 0; color:var(--skin-muted)}
 html body .overlay-gallery .overlay-grid {display:block; margin:0}
 html body .overlay-gallery .overlay-result-group + .overlay-result-group {margin-top:28px}
@@ -60,11 +52,10 @@ html body .overlay-gallery .overlay-variant-controls select {width:100%; max-wid
 html body .overlay-gallery .overlay-variant-controls p {margin:10px 0 0; font-size:13px; line-height:1.5}
 html body .overlay-gallery .overlay-variant-controls[hidden] {display:none}
 @media (max-width:1100px) {
-  html body .overlay-gallery :is(.overlay-categories,.overlay-card-grid) {grid-template-columns:repeat(2,minmax(0,1fr))}
+  html body .overlay-gallery .overlay-card-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:600px) {
-  html body .overlay-gallery :is(.overlay-categories,.overlay-card-grid) {grid-template-columns:minmax(0,1fr)}
+  html body .overlay-gallery .overlay-card-grid {grid-template-columns:minmax(0,1fr)}
   html body .overlay-gallery .overlay-favorites {padding:14px}
-  html body .overlay-gallery .overlay-category {min-height:88px}
   html body .overlay-gallery .overlay-editor-heading {display:flex; flex-direction:column}
 }

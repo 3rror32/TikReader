@@ -49,6 +49,19 @@ class SeasonalTests(unittest.TestCase):
         for value in ('red', '#12345g', 123):
             self.assertEqual(self.client.post('/seasonal-overlays/stars', json={'primary_color':value}).status_code, 400)
 
+    def test_fog_presets_and_clear_zone_are_saved_and_validated(self):
+        self.assertEqual(self.overlay.settings['fog']['size'], 45)
+        self.assertEqual(self.overlay.settings['fog']['wind'], 0)
+        response = self.client.post('/seasonal-overlays/fog', json={
+            'fog_style': 'cinematic', 'fog_clear_zone': 'left'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.overlay.restore()
+        self.assertEqual(self.overlay.settings['fog']['fog_style'], 'cinematic')
+        self.assertEqual(self.overlay.settings['fog']['fog_clear_zone'], 'left')
+        for data in ({'fog_style':'clouds'}, {'fog_clear_zone':'top'}):
+            self.assertEqual(self.client.post('/seasonal-overlays/fog', json=data).status_code, 400)
+
     def test_rain_controls_restore_and_validation(self):
         values = dict(density=140, speed=100, thickness=0.4, glass_count=0, glass_speed=12)
         response = self.client.post('/seasonal-overlays/rain', json=values)

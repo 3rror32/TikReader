@@ -5,10 +5,14 @@ import hmac
 import secrets
 import time
 import re
+import threading
 import unicodedata
 from collections import OrderedDict
 from flask import jsonify, request, render_template
 from app_paths import data_dir
+from studio_routes import build_studio_state
+
+MAX_REMOTE_REQUEST_IPS = 1000
 
 
 def redact(text):
@@ -37,6 +41,7 @@ class Production:
         self.seen = set()
         self.view_token_path = data_dir() / '.lan-view-token'
         self.view_token = self._load_view_token(app.config.get('SECRET_KEY', ''))
+        self.remote_access_lock = threading.Lock()
         self.remote_readers = OrderedDict()
         self.remote_requests = {}
         self.register(app)
@@ -63,9 +68,10 @@ class Production:
         temporary = self.view_token_path.with_suffix('.tmp')
         temporary.write_text(token, encoding='ascii')
         temporary.replace(self.view_token_path)
-        self.view_token = token
-        self.remote_readers.clear()
-        self.remote_requests.clear()
+        with self.remote_access_lock:
+            self.view_token = token
+            self.remote_readers.clear()
+            self.remote_requests.clear()
         return token
 
     def local(self):
@@ -73,29 +79,43 @@ class Production:
 
     def valid_view_access(self):
         supplied = request.args.get('access', '') or request.cookies.get('tikreader_lan_view', '')
-        return bool(supplied) and secrets.compare_digest(supplied, self.view_token)
+        with self.remote_access_lock:
+            view_token = self.view_token
+        return bool(supplied) and secrets.compare_digest(supplied, view_token)
 
     def lan_access(self):
         config = getattr(self.r, 'runtime_config_value', None)
-        return {'enabled': bool(config and config.lan_enabled), 'token': self.view_token,
+        with self.remote_access_lock:
+            view_token = self.view_token
+            readers = list(self.remote_readers.values())
+        return {'enabled': bool(config and config.lan_enabled), 'token': view_token,
                 'port': getattr(config, 'port', 5000),
-                'fingerprint': hashlib.sha256(self.view_token.encode()).hexdigest()[:8],
-                'readers': list(self.remote_readers.values()),
+                'fingerprint': hashlib.sha256(view_token.encode()).hexdigest()[:8],
+                'readers': readers,
                 'scope': 'Clave de solo lectura para overlays y datos visibles de la transmisión.'}
 
     def allow_remote_read(self):
         address = str(request.remote_addr or 'desconocido')[:64]
         now = time.time()
-        recent = [stamp for stamp in self.remote_requests.get(address, []) if now - stamp < 60]
-        if len(recent) >= 300:
-            return False
-        recent.append(now)
-        self.remote_requests[address] = recent
-        masked = address if ':' not in address else address.split(':')[0] + ':…'
-        self.remote_readers[address] = {'address': masked, 'last_seen': int(now)}
-        while len(self.remote_readers) > 20:
-            self.remote_readers.popitem(last=False)
-        return True
+        with self.remote_access_lock:
+            for known_address, stamps in list(self.remote_requests.items()):
+                recent_stamps = [stamp for stamp in stamps if now - stamp < 60]
+                if recent_stamps:
+                    self.remote_requests[known_address] = recent_stamps
+                else:
+                    del self.remote_requests[known_address]
+            if address not in self.remote_requests and len(self.remote_requests) >= MAX_REMOTE_REQUEST_IPS:
+                del self.remote_requests[next(iter(self.remote_requests))]
+            recent = [stamp for stamp in self.remote_requests.get(address, []) if now - stamp < 60]
+            if len(recent) >= 300:
+                return False
+            recent.append(now)
+            self.remote_requests[address] = recent
+            masked = address if ':' not in address else address.split(':')[0] + ':…'
+            self.remote_readers[address] = {'address': masked, 'last_seen': int(now)}
+            while len(self.remote_readers) > 20:
+                self.remote_readers.popitem(last=False)
+            return True
 
     def reset_session(self):
         if self.session != self.r.feed_session:
@@ -182,7 +202,9 @@ class Production:
             if request.path.startswith(('/production/', '/remote/', '/broadcast/')):
                 response.headers['Cache-Control'] = 'no-store'
             if not self.local() and request.args.get('access') and self.valid_view_access():
-                response.set_cookie('tikreader_lan_view', self.view_token, max_age=8 * 3600,
+                with self.remote_access_lock:
+                    view_token = self.view_token
+                response.set_cookie('tikreader_lan_view', view_token, max_age=8 * 3600,
                                     httponly=True, samesite='Strict')
             return response
 
@@ -312,7 +334,7 @@ class Production:
         @app.route('/broadcast/state')
         def broadcast_state():
             with self.r.feed_lock:
-                data = self.r.studio_api().get_json()
+                data = build_studio_state(self.r)
                 data['production'] = self.snapshot()
                 if self.settings['emergency'] or self.settings['scene'] != 'talk':
                     data['highlight'] = None; data['ranking'] = []; data['donor_ranking'] = []; data['like_ranking'] = []

@@ -119,8 +119,9 @@ y [Twitch IRC](https://dev.twitch.tv/docs/chat/irc/).
 
 ### Likes y regalos
 
-- Likes muestra `—` hasta recibir datos de la sala o un evento; el panel indica
-  cuántos eventos llegaron y la hora de la última actualización.
+- Likes inicia en `0` con cada conexión y toma el valor informado en cuanto
+  llega un dato de la sala o un evento; el panel indica cuántos eventos llegaron
+  y la hora de la última actualización.
 - Regalos suma unidades. Las rachas con identificador de grupo actualizan
   una sola fila sin volver a sumar las unidades anteriores; sin identificador
   de grupo se espera el mensaje final de la racha.
@@ -164,8 +165,9 @@ y [Twitch IRC](https://dev.twitch.tv/docs/chat/irc/).
 - Cada comentario permite destacar, marcar respondido y leer individualmente.
 - Ranking por unidades regaladas o diamantes informados durante la sesión,
   no por valor monetario. Si TikTok no informa diamantes se indica sin datos.
-- Alertas de regalos con sonido y animación, filtro de nombre y cantidad mínima.
-  Se activan manualmente; el botón de prueba no agrega eventos ni contadores.
+- Alertas para regalos, likes, seguidores, compartidos y suscripciones, con
+  animación, audio, filtros y prueba directa en la fuente de transmisión.
+  Se activan manualmente; la prueba no agrega eventos ni contadores.
 - Alt+P pausa/reanuda voz, Alt+N salta lectura y Alt+D destaca el último comentario
   visible. No se ejecutan mientras escribes en un campo.
 - Preferencias locales en el navegador; voz y alertas requieren activación después
@@ -621,12 +623,12 @@ Este panel no aparece como recorrido obligatorio al abrir la aplicación.
 
 ## Estudio de alertas visuales
 
-En **Stream → Abrir estudio de alertas** puedes crear alertas de texto con PNG, JPG, GIF, WebP o MP4, cambiar el color, tamaño, posición, duración y entrada. Esta primera versión compone una imagen o video y un texto; no es un editor de múltiples capas ni una línea de tiempo.
+En **Alertas** puedes crear alertas de texto con PNG, JPG, GIF, WebP, MP4 o WebM, cambiar el color, tamaño, posición, duración y movimiento. También puedes usar los tonos incluidos, subir un sonido MP3 o WAV, ajustar su volumen o reproducir el audio del video. El editor compone una imagen o video y un texto; no es un editor de múltiples capas ni una línea de tiempo.
 
-Usa `{usuario}`, `{regalo}` y `{cantidad}` en el texto. Elige un regalo o `Cualquier regalo`, una cantidad mínima y una espera entre alertas. Las plantillas de agradecimiento, regalo destacado y racha son puntos de partida editables. La vista previa es privada, con datos inventados, y nunca publica una alerta.
+Usa `{usuario}`, `{evento}`, `{regalo}`, `{cantidad}` y `{diamantes}` en el texto. Puedes responder a regalos, likes, nuevos seguidores, compartidos o suscripciones. Los regalos admiten nombre, cantidad y valor mínimo en diamantes; los likes admiten cantidad mínima. Las plantillas son puntos de partida editables. La vista previa es privada y usa datos inventados.
 
-Pulsa **Guardar desactivada**, revisa la lista y después **Activar para LIVE**. Las alertas se desactivan al reiniciar. Sólo se dispara una vez por racha, se respetan los límites y la emergencia. El video se reproduce sin audio. Los archivos se guardan localmente (máximo 20 MB cada uno, 100 MB en total); no se admiten HTML ni SVG. Un archivo usado por una alerta no se puede eliminar.
+Pulsa **Guardar desactivada**, revisa la lista y después **Activar para LIVE**, o usa **Activar todas para este LIVE**. Las alertas se desactivan al reiniciar. Los regalos se disparan una vez por racha; todos los eventos respetan la espera y la pausa de seguridad. Los archivos se guardan localmente (máximo 20 MB cada uno, 100 MB en total); no se admiten HTML ni SVG. Un archivo usado por una alerta no se puede eliminar.
 
-Agrega `http://localhost:5000/widget/alerts` como fuente Navegador de 1080 × 1920 en tu programa de streaming. También puedes copiar la URL desde el editor. La fuente debe estar abierta antes de recibir regalos: no reproduce eventos antiguos al abrirla. Las alertas se encolan con hasta 10 pendientes; las que llevan más de 30 segundos esperando se descartan.
+Agrega `http://localhost:5000/widget/alerts` como fuente Navegador de 1080 × 1920 en tu programa de streaming. El bloque **Preparación de la transmisión** distingue la conexión al LIVE, la recepción de la fuente y las alertas activadas. **Enviar prueba a la transmisión** verifica el recorrido completo y sólo funciona cuando la fuente está abierta. La fuente no reproduce eventos antiguos al abrirla. Las alertas se encolan con hasta 10 pendientes; las que llevan más de 30 segundos esperando se descartan.
 
 Verificación sin tocar la configuración real: `python tools/qa_studio.py` abre un entorno temporal en `http://127.0.0.1:5001`, con un juego y un regalo ficticios y un receptor de teclas simulado. Ciérralo con Ctrl+C. Para comprobar la recepción de regalos reales y la compatibilidad física del juego sí hace falta la prueba final durante un LIVE.

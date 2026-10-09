@@ -75,7 +75,8 @@ class PlatformCredentialStore:
     """Store only connector credentials, never session-specific channel data."""
 
     ALLOWED = {"youtube": {"api_key"}, "twitch": {"nickname", "token"},
-               "kick": {"client_id", "client_secret", "webhook_secret"}}
+               "kick": {"client_id", "client_secret", "webhook_secret"},
+               "caption_ai": {"api_key"}}
 
     def __init__(self, path: Path | None = None, protect=None, unprotect=None):
         self.path = Path(path or data_dir() / "platform-credentials.bin")
@@ -147,7 +148,7 @@ class PlatformCredentialStore:
     def public_status(self, platform: str) -> dict:
         platform = str(platform or "").casefold()
         values = self.get(platform)
-        configured = (bool(values.get("api_key")) if platform == "youtube" else
+        configured = (bool(values.get("api_key")) if platform in {"youtube", "caption_ai"} else
                       bool(values.get("nickname") and values.get("token")) if platform == "twitch" else
                       bool(values.get("client_id") and values.get("client_secret") and values.get("webhook_secret")))
         result = {"platform": platform, "configured": configured}

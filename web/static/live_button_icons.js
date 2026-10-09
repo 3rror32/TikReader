@@ -51,7 +51,7 @@
   }
   const ownLabels = new WeakSet();
   function decorate(control) {
-    if (!control.closest(scope)) return;
+    if (!control.closest(scope) || control.matches('.empty-state-action')) return;
     const text = (window.I18n?.sourceText(control) ?? control.textContent).trim();
     const label = control.getAttribute('aria-label') || text;
     if (!control.hasAttribute('aria-label') || ownLabels.has(control)) {

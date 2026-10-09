@@ -21,7 +21,7 @@
   <script>
     (() => {
       const root = document.documentElement;
-      const skins = ['original', 'kawai', 'dark', 'light', 'cute', 'dracula', 'ice', 'one-dark-pro', 'github-dark', 'monokai', 'glass', 'aetheria', 'cloudfoam', 'monolith', 'chromapulse'];
+      const skins = ['original', 'broadcast-console', 'creator-pop', 'studio-rundown', 'terminal-crt', 'cyber-neumorph', 'swiss-brutalist', 'tactile-scrapbook', 'kawai', 'dark', 'light', 'cute', 'dracula', 'ice', 'one-dark-pro', 'github-dark', 'monokai', 'glass', 'aetheria', 'cloudfoam', 'monolith', 'chromapulse'];
       try {
         const saved = localStorage.getItem('tikreader.skin');
         root.dataset.skin = skins.includes(saved) ? saved : 'original';
@@ -561,31 +561,31 @@
   </style>
   <link rel="stylesheet" href="/static/studio.css">
   <link rel="stylesheet" href="/static/shell.css">
-  <link rel="stylesheet" href="/static/live_presence.css?v=5">
+  <link rel="stylesheet" href="/static/live_presence.css?v=6">
   <link rel="stylesheet" href="/static/cabin.css">
   <link rel="stylesheet" href="/static/custom_voice.css?v=compact-3">
   <link rel="stylesheet" href="/static/custom_voice_library.css?v=compact-3">
   <link rel="stylesheet" href="/static/custom_voice_simple.css?v=homero-quick-select-4">
-    <link rel="stylesheet" href="/static/microphone_captions.css?v=9">
-<script src="/static/translations.js?v=bubble-colors-3"></script><script src="/static/i18n.js?v=1"></script><link rel="stylesheet" href="/static/i18n.css?v=1">
+    <link rel="stylesheet" href="/static/microphone_captions.css?v=13">
+<script src="/static/translations.js?v=20261002-alerts"></script><script src="/static/i18n.js?v=1"></script><link rel="stylesheet" href="/static/i18n.css?v=1">
   <!-- Load every layout stylesheet before the first render; preserve cascade order. -->
   <link rel="stylesheet" href="/static/notifications.css">
   <link rel="stylesheet" href="/static/voice_structure.css?v=chat-organized-6">
   <link rel="stylesheet" href="/static/chat_extras.css">
-  <link rel="stylesheet" href="/static/overlay_gallery.css?v=vertical-frame-1">
-  <link rel="stylesheet" href="/static/live_games.css?v=7">
-  <link rel="stylesheet" href="/static/alerts.css?v=20260924-status-placement">
+  <link rel="stylesheet" href="/static/overlay_gallery.css?v=point-drop-6">
+  <link rel="stylesheet" href="/static/live_games.css?v=unified-timer-1">
+  <link rel="stylesheet" href="/static/alerts.css?v=20261002-readiness-audio">
   <link rel="stylesheet" href="/static/skins.css?v=20260908-scrollbars">
-  <link rel="stylesheet" href="/static/sidebar.css?v=menu-flat-3">
-  <link rel="stylesheet" href="/static/about.css?v=20260905-theme">
-  <link rel="stylesheet" href="/static/live_columns.css?v=7">
+  <link rel="stylesheet" href="/static/sidebar.css?v=menu-copy-3">
+  <link rel="stylesheet" href="/static/about.css?v=20261005-support-header">
+  <link rel="stylesheet" href="/static/live_columns.css?v=speaker-state-1">
   <link rel="stylesheet" href="/static/platform_integrations.css?v=1">
   <link rel="stylesheet" href="/static/control_center.css?v=1">
   <link rel="stylesheet" href="/static/control_center_refinement.css?v=1">
-  <link rel="stylesheet" href="/static/live_refinement.css?v=stats-plain-context-3">
+  <link rel="stylesheet" href="/static/live_refinement.css?v=usability-1">
   <link rel="stylesheet" href="/static/skin_components.css?v=5">
-<link rel="stylesheet" href="/static/donation_jar.css?v=7"><link rel="stylesheet" href="/static/simulation.css?v=1">
-<link rel="stylesheet" href="/static/ui_foundation.css?v=1"><link rel="stylesheet" href="/static/skins_extra.css?v=glass-2"><link rel="stylesheet" href="/static/overlay_catalog.css?v=overlay-menu-1"><link rel="stylesheet" href="/static/ui_typography.css?v=2"><link rel="stylesheet" href="/static/basic_mode.css?v=donation-restored-2"><script src="/static/overlay_url.js?v=2"></script></head>
+<link rel="stylesheet" href="/static/donation_jar.css?v=7"><link rel="stylesheet" href="/static/simulation.css?v=chat-bubble-icon-3">
+<link rel="stylesheet" href="/static/ui_foundation.css?v=1"><link rel="stylesheet" href="/static/skins_extra.css?v=glass-2"><link rel="stylesheet" href="/static/overlay_catalog.css?v=direct-sections-2"><link rel="stylesheet" href="/static/custom_overlays.css?v=1"><link rel="stylesheet" href="/static/ui_typography.css?v=2"><link rel="stylesheet" href="/static/basic_mode.css?v=usability-1"><link rel="stylesheet" href="/static/visual_refresh.css?v=20261005-responsive-settings"><link rel="stylesheet" href="/static/theme_personalities.css?v=2"><link rel="stylesheet" href="/static/theme_signature_collection.css?v=menu-copy-2"><link rel="stylesheet" href="/static/motion_system.css?v=1"><link rel="stylesheet" href="/static/form_controls.css?v=2"><link rel="stylesheet" href="/static/theme_accessibility.css?v=4"><link rel="stylesheet" href="/static/theme_layout_safety.css?v=1"><script src="/static/overlay_url.js?v=2"></script></head>
 <body class="basic-mode" data-app-version="{{ app_version | default('1.0.0.8', true) }}" data-lan-enabled="{{ 'true' if lan_enabled else 'false' }}" data-lan-view-token="{{ lan_view_token | default('', true) }}">
 
 <div class="app">
@@ -609,6 +609,7 @@
   <div class="panel">
     <div class="controls">
       <div class="input-wrap">
+        <label class="connection-field-label" for="username-input">Usuario de TikTok</label>
         <span class="at">@</span>
         <input id="username-input"
                type="text"
@@ -616,8 +617,13 @@
                maxlength="50"
                autocomplete="off" />
       </div>
-      <button class="btn btn-primary" id="btn-connect" onclick="startLive()">
-        Conectar transmisión
+      <button class="btn btn-primary" id="btn-connect" onclick="startLive()" aria-live="polite" aria-busy="false">
+        <svg class="connect-button__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 3v5m6-5v5M7 8h10v4a5 5 0 0 1-10 0V8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M12 17v1a4 4 0 0 0 4 4h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="connect-button__label">Conectar</span>
+        <span class="connect-button__pending" role="status" hidden><span class="connect-button__spinner" aria-hidden="true"></span>Conectando…</span>
       </button>
       <button class="btn btn-stop" id="btn-stop" onclick="stopLive()">
         ⏹ Detener
@@ -664,7 +670,7 @@
           <p class="platform-help"><span>Recibe chat, suscripciones y KICKs mediante webhooks oficiales.</span><button type="button" data-platform-settings="kick">Configurar Kick</button></p>
         </article>
       </div>
-      <p id="platform-privacy-note"><span aria-hidden="true">🔒</span><span><strong>Credenciales fuera del LIVE.</strong> Se administran en Configuración › Canales externos y no se guardan en el historial.</span></p>
+      <p id="platform-privacy-note"><span aria-hidden="true">🔒</span><span><strong>Credenciales fuera del LIVE.</strong> Usa “Configurar” debajo de cada canal; no se guardan en el historial.</span></p>
     </details>
 
     <div class="stats-bar">
@@ -726,7 +732,7 @@
         <button class="feed-btn" onclick="clearFeed()">🗑 Limpiar</button>
       </div>
     </div>
-    <div class="voice-dock live-reading-controls" role="group" aria-label="Controles rápidos de lectura"><button id="voice-toggle" class="auto-reading-toggle" type="button" aria-pressed="false">Activar lectura automática</button><button id="voice-pause" type="button" aria-label="Pausar lectura" aria-pressed="false">Pausar</button><button id="voice-next" type="button" title="Saltar la lectura actual y pasar a la siguiente">Saltar</button></div>
+    <div class="voice-dock live-reading-controls" role="group" aria-label="Controles rápidos de lectura"><button id="voice-toggle" class="auto-reading-toggle" type="button" aria-pressed="false">Leer comentarios</button><button id="voice-pause" type="button" aria-label="Pausar lectura" aria-pressed="false">Pausar</button><button id="voice-next" type="button" title="Saltar la lectura actual y pasar a la siguiente">Saltar</button></div>
     <div id="voice-visible" role="status">Voz apagada</div>
     <div class="chat-tools"><input id="chat-search" placeholder="Buscar usuario o comentario" aria-label="Buscar comentarios">
       <label><input type="checkbox" id="questions-only"> Solo preguntas</label></div>
@@ -746,7 +752,7 @@
     </nav>
     <div data-pane="gifts" class="studio-pane">
     <h2 id="gift-heading">Regalos</h2>
-    <div class="live-reading-controls" role="group" aria-label="Lectura de regalos"><button id="gift-auto-toggle" type="button" class="auto-reading-toggle" aria-pressed="true">Desactivar lectura automática</button></div>
+    <div class="live-reading-controls" role="group" aria-label="Lectura de regalos"><button id="gift-auto-toggle" type="button" class="auto-reading-toggle" aria-pressed="true">Leer regalos</button></div>
     <p id="gift-empty">Aún no se han recibido regalos en esta conexión.</p>
     <div class="gift-scroll">
       <table id="gift-table" hidden style="width:100%;border-collapse:collapse;text-align:left">
@@ -785,7 +791,7 @@
       <label><input id="no-emoji" type="checkbox" checked> No leer emojis</label>
       <p>Estos filtros afectan esta pantalla y la voz; no moderan la cuenta de TikTok.</p>
       <h2>Aviso local de regalos</h2>
-      <p class="alert-local-intro">Muestra un mensaje y reproduce un sonido en esta computadora cuando llega un regalo. Para mostrar alertas en tu transmisión, usa el apartado de diseño de esta misma página.</p>
+      <p class="alert-local-intro">Recibe aquí un aviso cuando llegue un regalo.</p>
       <div class="alert-local-card">
         <label class="alert-local-toggle"><input id="alerts-enabled" type="checkbox" aria-describedby="alert-local-status"><span><strong>Activar aviso local</strong><small>Se muestra como máximo uno cada 5 segundos.</small></span></label>
         <div id="alert-local-options">
@@ -807,40 +813,51 @@
       <p>El historial contiene comentarios y perfiles públicos recibidos. Solo se guarda en este equipo.</p>
     </div>
     <div data-pane="workspace" class="studio-pane" hidden>
-      <div class="settings-heading"><span>PERSONALIZACIÓN</span><h2>Configura tu cabina</h2><p>Empieza por la apariencia, ajusta el espacio de trabajo y guarda perfiles sólo si necesitas reutilizar una combinación.</p></div>
+      <div class="settings-heading"><span>CONFIGURACIÓN</span><h2>Ajusta tu espacio de trabajo</h2><p>La apariencia y la distribución se aplican al instante. Las herramientas ocasionales están agrupadas al final.</p></div>
       <div class="settings-stack">
         <section class="setting-card settings-group skin-settings" aria-labelledby="skin-settings-title">
-          <div class="settings-group-title"><span class="settings-order">01</span><div class="skin-settings-copy"><h3 id="skin-settings-title">Apariencia</h3><p>Cambia el carácter visual de toda la cabina. Se conserva en este navegador.</p></div></div>
-          <div class="skin-picker"><label for="skin-select">Skin <select id="skin-select"><option value="original">Original</option><option value="kawai">Kawai</option><option value="dark">Dark</option><option value="light">Light</option><option value="cute">Cute</option><option value="dracula">Dracula</option><option value="ice">Ice</option><option value="one-dark-pro">One Dark Pro</option><option value="github-dark">GitHub Dark</option><option value="monokai">Monokai</option><option value="glass">Glass</option><option value="aetheria">Aetheria · Cristal</option><option value="cloudfoam">Cloudfoam · Suave</option><option value="monolith">Monolith · Minimal</option><option value="chromapulse">ChromaPulse · Neón</option></select></label><button id="skin-apply" type="button">Cambiar skin</button></div>
-          <label class="menu-motion-setting"><input id="menu-motion-toggle" type="checkbox" checked> Movimiento suave del menú</label>
-          <p id="menu-motion-status" class="settings-inline-status" role="status">Transiciones breves y desplazamiento guiado.</p>
+          <div class="settings-group-title"><div class="skin-settings-copy"><h3 id="skin-settings-title">Apariencia e interfaz</h3><p>Elige cómo se ve y cuánto se mueve la cabina. Ambos cambios se guardan automáticamente.</p></div></div>
+          <div class="skin-recommendations" role="group" aria-label="Temas recomendados">
+            <button type="button" data-skin-choice="original"><strong>TikReader</strong><small>Máximo contraste para operar un LIVE.</small></button>
+            <button type="button" data-skin-choice="light"><strong>Luz de estudio</strong><small>Superficie clara para espacios iluminados.</small></button>
+            <button type="button" data-skin-choice="cute"><strong>Creativo</strong><small>Color suave para una cabina más expresiva.</small></button>
+          </div>
+          <details class="skin-more settings-disclosure">
+            <summary><span><strong>Ver todos los temas</strong><small>Explora las cabinas de personalidad y los estilos heredados.</small></span></summary>
+            <div class="skin-picker settings-disclosure-body"><label for="skin-select">Tema de la cabina <select id="skin-select"><optgroup label="Cabinas recomendadas"><option value="original">TikReader</option><option value="light">Luz de estudio</option><option value="cute">Creativo</option></optgroup><optgroup label="Temas con personalidad"><option value="broadcast-console">Consola Broadcast</option><option value="creator-pop">Creator Pop</option><option value="studio-rundown">Guion de Estudio</option><option value="terminal-crt">Terminal Retro · CRT</option><option value="cyber-neumorph">Neumorfismo Cyberpunk</option><option value="swiss-brutalist">Brutalismo Suizo</option><option value="tactile-scrapbook">Scrapbook Táctil</option></optgroup><optgroup label="Más temas"><option value="kawai">Kawai</option><option value="dark">Dark</option><option value="dracula">Dracula</option><option value="ice">Ice</option><option value="one-dark-pro">One Dark Pro</option><option value="github-dark">GitHub Dark</option><option value="monokai">Monokai</option><option value="glass">Glass</option><option value="aetheria">Aetheria · Cristal</option><option value="cloudfoam">Cloudfoam · Suave</option><option value="monolith">Monolith · Minimal</option><option value="chromapulse">ChromaPulse · Neón</option></optgroup></select></label></div>
+          </details>
+          <label class="menu-motion-setting" for="motion-level-select"><span>Movimiento de la interfaz</span><select id="motion-level-select"><option value="reduced">Reducido</option><option value="subtle" selected>Sutil</option><option value="expressive">Expresivo</option></select></label>
+          <p id="menu-motion-status" class="settings-inline-status" role="status">Transiciones breves y reacciones suaves.</p>
           <div class="skin-swatches" aria-hidden="true"><i></i><i></i><i></i><i></i></div><p id="skin-status" role="status"></p>
         </section>
         <section class="setting-card settings-group layout-settings" aria-labelledby="layout-settings-title">
-          <div class="settings-group-title"><span class="settings-order">02</span><div><h3 id="layout-settings-title">Distribución del panel</h3><p>Ajusta cuánto espacio ocupa el chat o activa una vista limpia para presentar.</p></div></div>
-          <label>Ancho del chat <input id="layout-split" type="range" min="40" max="70" value="58"></label>
+          <div class="settings-group-title"><div><h3 id="layout-settings-title">Espacio de trabajo</h3><p>Ajusta cuánto espacio ocupa el chat o activa una vista limpia para presentar.</p></div></div>
+          <label class="layout-range"><span>Ancho del chat</span><input id="layout-split" type="range" min="40" max="70" value="58" aria-describedby="layout-split-value"><output id="layout-split-value" for="layout-split">58% chat · 42% panel</output></label>
           <div class="tool-buttons"><button id="presenter-toggle">Activar modo presentador</button></div>
         </section>
+        <section class="setting-card settings-group output-settings" aria-labelledby="streaming-windows-title">
+          <div class="settings-group-title"><div><h3 id="streaming-windows-title">Salidas para streaming</h3><p>Copia la URL del panel que quieras añadir como fuente de navegador. Usa Vista previa para comprobarlo antes.</p></div></div>
+          <div id="obs-widget-notice" class="settings-inline-status" role="status"></div><div id="widget-links" class="widget-link-list"></div>
+        </section>
         <section class="setting-card settings-group profile-settings" aria-labelledby="profile-settings-title" data-basic-advanced>
-          <div class="settings-group-title"><span class="settings-order">03</span><div><h3 id="profile-settings-title">Perfiles guardados</h3><p>Guarda una combinación completa para entrevistas, juegos u otros tipos de transmisión.</p></div></div>
-          <div class="profile-fields"><label>Perfil <select id="profile-select"><option value="">Selecciona un perfil</option></select></label><label>Nombre <input id="profile-name" maxlength="60" placeholder="Entrevistas, juegos…"></label></div>
-          <div class="tool-buttons profile-actions"><button id="profile-save">Guardar perfil</button><button id="profile-load">Cargar perfil</button><button id="profile-delete">Eliminar perfil</button></div>
+          <div class="settings-group-title"><div><h3 id="profile-settings-title">Perfiles de transmisión</h3><p>Úsalos sólo si alternas entre configuraciones completas, por ejemplo entrevistas y juegos.</p></div></div>
+          <div class="profile-task"><label>Guardar la configuración actual como <input id="profile-name" maxlength="60" placeholder="Ej. Entrevista"></label><button id="profile-save">Guardar nuevo perfil</button></div>
+          <div class="profile-task profile-existing"><label>Perfil guardado <select id="profile-select"><option value="">Selecciona un perfil</option></select></label><div class="tool-buttons profile-actions"><button id="profile-load" disabled>Cargar seleccionado</button><button id="profile-delete" disabled>Eliminar seleccionado</button></div></div>
+          <div id="profile-file-actions" class="tool-buttons profile-file-actions"></div>
           <p id="workspace-notice" role="status"></p>
         </section>
-        <section class="setting-card settings-group" aria-labelledby="installation-title">
-          <div class="settings-group-title"><span class="settings-order">04</span><div><h3 id="installation-title">Datos y voces adicionales</h3><p>Conserva tus ajustes en este equipo y agrega voces cuando las necesites.</p></div></div>
-          <div class="tool-buttons"><button id="settings-save-device" type="button">Guardar ajustes en este equipo</button><button id="settings-open-data" type="button">Abrir carpeta de datos</button></div>
-          <p id="settings-save-status" role="status">Los cambios se guardan automáticamente en este equipo.</p>
-          <h4>Voces locales Kokoro · opcionales</h4>
-          <p>354 MB de modelos más el motor y sus dependencias. Reserva 2 GB libres. Después de instalarlas, funcionan sin internet.</p>
-          <p>La instalación básica utiliza las voces disponibles en tu equipo. Los modelos personalizados RVC se administran desde Voz.</p>
-          <div class="tool-buttons"><button id="settings-install-voices" type="button">Descargar e instalar voces</button><button id="settings-cancel-voices" type="button" hidden>Detener descarga</button></div>
-          <progress id="settings-voice-progress" max="353746785" value="0" hidden aria-label="Descarga de modelos"></progress>
-          <p id="settings-voice-status" role="status"></p>
+        <section class="setting-card settings-group system-settings" aria-labelledby="installation-title">
+          <div class="settings-group-title"><div><h3 id="installation-title">Sistema y almacenamiento</h3><p>Consulta los datos locales o instala componentes opcionales.</p></div></div>
+          <div class="settings-system-row"><div><strong>Datos de TikReader</strong><p id="settings-save-status" role="status">Los ajustes se respaldan automáticamente en esta instalación.</p></div><button id="settings-open-data" type="button">Abrir carpeta de datos</button></div>
+          <details class="settings-disclosure">
+            <summary><span><strong>Voces locales Kokoro</strong><small>Opcional · descarga de 354 MB</small></span></summary>
+            <div class="settings-disclosure-body"><p>Reserva 2 GB libres. Después de instalarlas, funcionan sin internet. La instalación básica seguirá usando las voces disponibles en tu equipo.</p><p>Los modelos personalizados RVC se administran desde Voz.</p>
+            <div class="tool-buttons"><button id="settings-install-voices" type="button">Descargar e instalar voces</button><button id="settings-cancel-voices" type="button" hidden>Detener descarga</button></div>
+            <progress id="settings-voice-progress" max="353746785" value="0" hidden aria-label="Descarga de modelos"></progress>
+            <p id="settings-voice-status" role="status"></p></div>
+          </details>
         </section>
       </div>
-      <h2>Ventanas para programas de streaming</h2><p>Cada panel tiene una URL independiente con fondo transparente. Agrégala como fuente de navegador en tu programa de streaming.</p>
-      <div id="obs-widget-notice" role="status"></div><div id="widget-links"></div><p>Usa Chat en 480 × 800, Contadores en 600 × 260 y Metas en 480 × 280. Separar abre una ventana para revisarla; Copiar URL prepara la dirección para tu programa de streaming.</p>
     </div>
     <div data-pane="diagnostics" class="studio-pane" hidden><h2>Estado de la conexión</h2><div id="connection-diagnostics" aria-live="polite"></div><p>Que no lleguen comentarios o regalos puede ser normal. Los avisos de antigüedad no prueban una desconexión. Los likes de la API pueden diferir de la aplicación TikTok.</p></div>
   </section>
@@ -855,9 +872,8 @@
         <div class="overlay-section-heading"><h3 id="overlay-favorites-title" tabindex="-1">Tus favoritos</h3><span id="overlay-favorites-count"></span></div>
         <div id="overlay-favorites-grid" class="overlay-card-grid"></div>
       </section>
-      <h3 class="overlay-browse-title">¿Qué quieres mostrar?</h3>
-      <nav id="overlay-categories" class="overlay-categories" aria-label="Categorías de overlays"></nav>
       <div class="overlay-section-heading overlay-results-heading"><div><h3 id="overlay-results-title" tabindex="-1"></h3><p id="overlay-results-description"></p></div><span id="overlay-results-count"></span></div>
+      <label class="overlay-search" for="overlay-search"><span>Buscar en esta sección</span><input id="overlay-search" type="search" placeholder="Ej. regalos, chat, ranking…" autocomplete="off"></label>
       <div id="overlay-grid" class="overlay-grid" aria-labelledby="overlay-results-title"></div>
       <p id="overlay-catalog-status" class="overlay-catalog-status" role="status"></p>
     </div>
@@ -869,13 +885,52 @@
           <div class="overlay-stage-bar"><span><i></i> ESCENA DE PRUEBA</span><b>16:9 · ZONA SEGURA</b></div>
           <label class="overlay-preview-background">Fondo de vista previa <select id="overlay-preview-background"><option value="transparent">Transparente (vista oscura)</option><option value="dark">Oscuro</option><option value="light">Claro</option></select></label>
           <div class="overlay-screen"><div class="overlay-safe-area" aria-hidden="true"></div><iframe id="overlay-preview" title="Vista previa con datos de ejemplo" sandbox="allow-scripts allow-same-origin"></iframe></div>
-          <div class="overlay-actions"><a id="overlay-open" target="_blank" rel="noopener">Abrir overlay</a><button id="overlay-copy" type="button">Copiar URL para streaming</button></div>
+          <div class="overlay-actions"><a id="overlay-open" target="_blank" rel="noopener">Pantalla completa</a><button id="overlay-test-event" type="button">Repetir</button><button id="overlay-copy" type="button">Copiar URL</button></div>
           <code id="overlay-selected-url"></code>
           <p id="overlay-source-resolution" class="overlay-source-resolution"></p>
         </div>
         <form id="overlay-style-form" class="overlay-style-form"><div id="overlay-style-controls"></div><div class="overlay-savebar"><button id="overlay-reset" type="button">Restaurar</button><button id="overlay-save" type="submit">Guardar estilo</button></div></form>
       </div>
       <p id="overlay-gallery-status" role="status"></p>
+    </section>
+  </section>
+
+  <section data-section="custom-overlays" class="custom-overlays" aria-labelledby="custom-overlays-title">
+    <header class="custom-overlays-hero">
+      <div class="custom-overlays-title"><span>PAQUETES LOCALES</span><h2 id="custom-overlays-title">Mis overlays</h2><p>Instala diseños hechos por ti. Cada paquete conserva sus controles, archivos y una dirección estable para OBS.</p></div>
+      <ol class="custom-overlay-route" aria-label="Recorrido del paquete"><li><b>ZIP</b><span>Tu diseño</span></li><li><b>JSON</b><span>Sus controles</span></li><li><b>OBS</b><span>En directo</span></li></ol>
+    </header>
+    <div id="custom-overlay-library">
+      <form id="custom-overlay-import" class="custom-overlay-import">
+        <div><strong>Instalar un paquete</strong><p>Incluye <code>overlay.json</code>, un archivo HTML y todos sus recursos. Máximo 50 MB.</p></div>
+        <label class="custom-overlay-file"><span>Elegir ZIP</span><input id="custom-overlay-file" name="file" type="file" accept=".zip,application/zip" required><small id="custom-overlay-file-name">Ningún archivo elegido</small></label>
+        <button id="custom-overlay-install" type="submit" disabled>Instalar overlay</button>
+        <a href="/custom-overlays/template" download>Descargar paquete de ejemplo</a>
+      </form>
+      <div class="custom-overlay-library-heading"><div><span>BIBLIOTECA</span><h3>Tus paquetes</h3></div><b id="custom-overlay-count">0 / 100</b></div>
+      <div id="custom-overlay-grid" class="custom-overlay-grid"></div>
+      <div id="custom-overlay-empty" class="custom-overlay-empty" hidden><strong>Tu primer overlay empieza con un ZIP</strong><p>Usa la plantilla para ver la estructura y modifica el HTML, CSS, JavaScript y los controles a tu gusto.</p></div>
+      <p id="custom-overlay-status" role="status"></p>
+    </div>
+    <section id="custom-overlay-editor" class="custom-overlay-editor" hidden aria-labelledby="custom-overlay-name">
+      <button id="custom-overlay-back" class="custom-overlay-back" type="button">← Volver a Mis overlays</button>
+      <header><div><span id="custom-overlay-author">PAQUETE LOCAL</span><h3 id="custom-overlay-name"></h3><p id="custom-overlay-description"></p></div><div class="custom-overlay-version"><small>VERSIÓN</small><b id="custom-overlay-version"></b></div></header>
+      <div class="custom-overlay-bench">
+        <div id="custom-overlay-stage" class="custom-overlay-stage" data-canvas-format="horizontal">
+          <div class="custom-overlay-stage-bar"><span><i></i>BANCO DE PRUEBAS</span><b id="custom-overlay-stage-format">16:9</b></div>
+          <div class="custom-overlay-screen"><iframe id="custom-overlay-preview" title="Vista previa del overlay" sandbox="allow-scripts allow-same-origin"></iframe></div>
+          <div class="custom-overlay-actions"><button id="custom-overlay-replay" type="button">Probar evento</button><a id="custom-overlay-open" target="_blank" rel="noopener">Abrir overlay</a><button id="custom-overlay-copy" type="button">Copiar URL</button></div>
+          <code id="custom-overlay-url"></code>
+          <p id="custom-overlay-resolution"></p>
+        </div>
+        <form id="custom-overlay-settings" class="custom-overlay-settings">
+          <div class="custom-overlay-settings-heading"><div><span>CONTROLES DEL PAQUETE</span><h4>Configuración</h4></div><span id="custom-overlay-events"></span></div>
+          <div id="custom-overlay-fields" class="custom-overlay-fields"></div>
+          <div class="custom-overlay-savebar"><button type="submit">Guardar configuración</button></div>
+        </form>
+      </div>
+      <footer class="custom-overlay-package-actions"><a id="custom-overlay-export" download>Exportar ZIP</a><button id="custom-overlay-duplicate" type="button">Duplicar</button><button id="custom-overlay-delete" class="danger-lite" type="button">Eliminar</button></footer>
+      <p id="custom-overlay-editor-status" role="status"></p>
     </section>
   </section>
 
@@ -1015,11 +1070,13 @@
           <small>CREADO POR</small>
           <h3 id="creator-title">3rror32</h3>
           <p>Soy ingeniero en tecnología y educador. Mis días se dividen entre el desarrollo de software y la gestión de infraestructura de sistemas. Fuera del trabajo, encuentro el equilibrio combinando la paciencia del ajedrez, el mundo inmersivo del cine y la energía de los videojuegos.</p>
-          <a class="tiktok-button" href="https://www.tiktok.com/@3error32" target="_blank" rel="noopener noreferrer" aria-label="Seguir a 3error32 en TikTok (abre en una pestaña nueva)">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3c.3 2.6 1.8 4.1 4.5 4.3v3.2a9.2 9.2 0 0 1-4.5-1.4v6.2A6.3 6.3 0 1 1 10 9.1v3.3a3.1 3.1 0 1 0 2.2 3V3h3.3Z"/></svg>
-            Sígueme en TikTok
-            <span aria-hidden="true">↗</span>
-          </a>
+          <div class="creator-actions">
+            <a class="tiktok-button" href="https://www.tiktok.com/@3error32" target="_blank" rel="noopener noreferrer" aria-label="Seguir a 3error32 en TikTok (abre en una pestaña nueva)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3c.3 2.6 1.8 4.1 4.5 4.3v3.2a9.2 9.2 0 0 1-4.5-1.4v6.2A6.3 6.3 0 1 1 10 9.1v3.3a3.1 3.1 0 1 0 2.2 3V3h3.3Z"/></svg>
+              Sígueme en TikTok
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
           <span class="creator-thanks">Gracias por usar y apoyar esta herramienta.</span>
         </div>
       </article>
@@ -1052,54 +1109,56 @@
 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <script src="/static/notifications.js"></script>
 <script src="/static/voice_personality.js?v=1"></script>
-<script src="/static/studio.js?v=verified-gifts-1"></script>
-<script src="/static/chat_extras.js"></script>
-<script src="/static/workspace.js?v=20260912-live-links"></script>
-<script src="/static/overlay_animation_defaults.js?v=welcome-message-1"></script>
-<script src="/static/overlay_canvas_controls.js?v=vertical-frame-1"></script>
-<script src="/static/overlay_animation_controls.js?v=20260924-variable-help-3"></script>
+<script src="/static/studio.js?v=20261002-alert-status"></script>
+<script src="/static/chat_extras.js?v=speaker-state-1"></script>
+<script src="/static/workspace.js?v=speaker-state-1"></script>
+<script src="/static/overlay_animation_defaults.js?v=scenes-1"></script>
+<script src="/static/overlay_canvas_controls.js?v=point-drop-6"></script>
+<script src="/static/overlay_animation_controls.js?v=scenes-1"></script>
 <script src="/static/stream_buddies_controls.js?v=5"></script>
-<script src="/static/seasonal_controls.js?v=bubble-colors-3"></script>
+<script src="/static/seasonal_controls.js?v=fog-controls-1"></script>
 <script src="/static/emoji_controls.js?v=2"></script>
 <script src="/static/user_info_controls.js?v=2"></script>
-<script src="/static/overlay_gallery.js?v=menu-favorites-2"></script>
-<script src="/static/widget_customizer.js"></script>
+<script src="/static/overlay_gallery.js?v=point-drop-6"></script>
+<script src="/static/custom_overlays.js?v=1"></script>
 {% include 'production.html' %}
 <script src="/static/effect_queue.js?v=2"></script>
 <script src="/static/interactivity.js?v=20260912-live-links"></script>
 <script src="/static/game_hotkeys.js"></script>
 <script src="/static/points.js"></script>
 <script src="/static/wheel_motion.js?v=1"></script>
-<script src="/static/bank_shapes.js?v=1"></script><script src="/static/piggy_physics.js?v=2"></script><script src="/static/piggy_bank.js?v=15"></script>
-<script src="/static/live_games.js?v=20260912-live-sync"></script>
-<script src="/static/bank_editor.js?v=1"></script>
+<script src="/static/bank_shapes.js?v=1"></script><script src="/static/piggy_physics.js?v=2"></script><script src="/static/piggy_bank.js?v=point-drop-6"></script>
+<script src="/static/live_games.js?v=point-drop-6"></script>
+<script src="/static/bank_editor.js?v=point-drop-6"></script>
 <script src="/static/live_integrations.js?v=1"></script>
 <script src="/static/minecraft.js"></script>
 <script type="module" src="/static/build/controlCenter.js"></script>
-<script src="/static/participants.js"></script>
-<script src="/static/alert_renderer.js?v=2"></script>
-<script src="/static/animation_studio.js?v=20260924-variable-help"></script>
+<script src="/static/participants.js?v=usability-1"></script>
+<script src="/static/alert_renderer.js?v=20261002-audio"></script>
+<script src="/static/animation_studio.js?v=20261005-usability"></script>
 <script src="/static/kokoro_voices.js?v=1"></script>
 <script src="/static/custom_voice.js?v=homero-quick-select-2"></script>
 <script src="/static/voice_gpu.js?v=voice-unload-1"></script>
-<script src="/static/simulation.js?v=1"></script>
+<script src="/static/simulation.js?v=chat-bubble-icon-3"></script>
 <script src="/static/creator_bridge.js?v=1"></script>
-<script src="/static/microphone_captions.js?v=10"></script>
-<script src="/static/shell.js?v=menu-motion-4"></script>
-<script src="/static/skins.js?v=glass-2"></script>
-<script src="/static/production.js?v=safety-icon-1"></script>
+<script src="/static/microphone_captions.js?v=14"></script>
+<script src="/static/shell.js?v=menu-copy-3"></script>
+<script src="/static/skins.js?v=usability-1"></script>
+<script src="/static/production.js?v=usability-1"></script>
 <script src="/static/advanced.js"></script>
 <script src="/static/improvements.js"></script>
 <script src="/static/voice_layout.js?v=1"></script>
 <script src="/static/operator.js?v=3"></script>
-<script src="/static/live_presence.js?v=safety-header-1"></script>
+<script src="/static/live_presence.js?v=20261005-support-header"></script>
 <script src="/static/chat_navigation.js"></script>
 <script src="/static/live_experience.js"></script>
 <script src="/static/core_ui.js?v=verified-gifts-1"></script>
 <script type="module" src="/static/build/platformConnectors.js"></script>
-<script src="/static/sidebar.js?v=menu-flat-3"></script>
+<script src="/static/sidebar.js?v=menu-copy-3"></script>
 <script src="/static/navigation_help.js?v=overlay-menu-1"></script>
-<script src="/static/live_button_icons.js?v=3"></script>
+<script src="/static/live_button_icons.js?v=usability-1"></script>
+<script src="/static/visual_refresh.js?v=usability-1"></script>
+<script src="/static/motion_system.js?v=1"></script>
 </body>
 </html>
 

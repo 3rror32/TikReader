@@ -13,9 +13,9 @@ class OverlayAnimations:
     def __init__(self, app, runtime):
         self.r = runtime
         self.lock = threading.RLock()
-        self.settings = {key: dict(enabled=False, trigger=trigger, duration=8 if key=='cannon' else 5, size=48,
+        self.settings = {key: dict(enabled=False, trigger=trigger, duration=8 if key=='cannon' else 5, size=48,
             cooldown=10, amount=1, gift='', sound='none', volume=30, asset='', goal='goal-likes', motion='full',
-            canvas_format='horizontal')
+            canvas_format='horizontal', scenes=['talk'])
             for key, trigger in KINDS.items()}
         self.settings['energy-ring'].update(size=80, accent='#647cff', secondary='#bc62ff', tertiary='#35efff', speed=5, glow=65, show_avatar=True, show_name=True)
         self.settings['fountain'].update(cooldown=0, color='#ff75b5', position='center', show_avatar=True)
@@ -43,6 +43,10 @@ class OverlayAnimations:
         out = {**self.settings[key], **{k: v for k, v in data.items() if k in self.settings[key]}}
 
         if out['canvas_format'] not in ('horizontal','vertical'): raise ValueError('Formato de lienzo inválido')
+        scenes = out.get('scenes', ['talk'])
+        if not isinstance(scenes, list) or not scenes or any(scene not in ('talk','start','pause','end') for scene in scenes):
+            raise ValueError('Escenas inválidas')
+        out['scenes'] = list(dict.fromkeys(scenes))
         for field, low, high in [('duration',2,30), ('size',20,120), ('cooldown',0 if key=='fountain' else 1,3600), ('amount',1,100000), ('volume',0,100)]:
             try: out[field] = int(out[field])
             except (ValueError, TypeError, OverflowError): raise ValueError('Número inválido: '+field)
@@ -93,17 +97,20 @@ class OverlayAnimations:
             try: self.settings[key] = self.validate(key, saved.get(key, {}))
             except (ValueError, TypeError): pass
 
-    def muted(self):
-        p = self.r.production.settings
-        return p['emergency'] or p['scene'] != 'talk'
+    def muted(self, config=None):
+        p = self.r.production.settings
+        if p['emergency']:
+            return True
+        return config is not None and p['scene'] not in config.get('scenes', ['talk'])
 
     def event(self, kind, record, event_id):
-        with self.lock:
-            self.ensure()
-            if self.muted(): return
-            now = time.monotonic()
-            for key, config in self.settings.items():
-                if not config['enabled'] or config['trigger'] != kind: continue
+        with self.lock:
+            self.ensure()
+            if self.muted(): return
+            now = time.monotonic()
+            for key, config in self.settings.items():
+                if not config['enabled'] or config['trigger'] != kind: continue
+                if self.muted(config): continue
                 if kind == 'goal' and record.get('goal') != config['goal']: continue
                 if kind == 'gift' and config['gift'] and config['gift'].strip().casefold() != str(record.get('gift','')).strip().casefold(): continue
                 if kind in ('gift','like') and record.get('count',1) < config['amount']: continue
@@ -159,10 +166,10 @@ class OverlayAnimations:
         def animation_events(key):
             if key not in KINDS: return jsonify(error='Animación desconocida'),404
             self.check_goals()
-            with self.lock:
-                self.ensure()
-                muted = self.muted() or not self.settings[key]['enabled']
-                if self.muted(): self.events.clear()
+            with self.lock:
+                self.ensure()
+                muted = self.muted(self.settings[key]) or not self.settings[key]['enabled']
+                if self.muted(): self.events.clear()
                 events = [] if muted else [e for e in self.events if e['key']==key and time.time()-e['at']<12]
                 return jsonify(epoch=self.epoch, serial=self.serial, muted=muted,
                     events=self.r.production.sanitize(events))

@@ -1,5 +1,6 @@
 """Bounded Minecraft Java RCON connector with named, allowlisted commands."""
 import ipaddress
+import logging
 import queue
 import socket
 import struct
@@ -7,6 +8,7 @@ import threading
 import time
 from flask import jsonify, request
 
+logger = logging.getLogger(__name__)
 
 class MinecraftConnector:
     def __init__(self, app, runtime):
@@ -127,6 +129,7 @@ class MinecraftConnector:
                     response = self.execute(command)
                     self.note(f'Minecraft aceptó {alias}: {response or "sin respuesta"}')
             except Exception as exc:
+                logger.exception('Minecraft RCON execution failed for alias %s', alias)
                 self.note(f'Minecraft no confirmó {alias}: {type(exc).__name__}')
 
     def worker(self):

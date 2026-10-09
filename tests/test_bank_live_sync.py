@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 import unittest
 from interactivity import Interactivity
+import bank_storage
 
 
 def bank():
@@ -19,7 +20,9 @@ def bank():
     i.trace = deque()
     i.poll = None
     i.overlay_serial = 0
-    i.overlay_games = {'drop': dict(score=0, events=[], contents=[], epoch='test', shapes={})}
+    i.overlay_games = {'drop': dict(score=0, events=[], contents=[], epoch='test', shapes={},
+                                    custom_bank_asset=None, bank_position={'x': 50.0, 'y': 50.0},
+                                    bank_scale=100.0, entry_point={'x': 50.0, 'y': 16.0})}
     i.last = {}
     i.usage = {}
     i.pending = []
@@ -29,11 +32,30 @@ def bank():
 
 
 class BankLiveSyncTests(unittest.TestCase):
+    def test_legacy_bank_scale_migrates_only_to_selected_bank_and_validates_ids(self):
+        restored = bank_storage.normalize_custom_bank_fields({'bank': 'pato', 'bank_scale': 137})
+        self.assertEqual(restored['bank_scale'], 137)
+        self.assertEqual(restored['bank_scales']['pato'], 137)
+        self.assertEqual(restored['bank_scales']['cochito'], 100)
+        self.assertNotIn('../outside', restored['bank_scales'])
+
+    def test_bank_scale_updates_selected_model_and_rejects_arbitrary_map_keys(self):
+        current = {'bank': 'pato', 'bank_scale': 137, 'bank_scales': {'pato': 137, 'custom': 85}}
+        updated = bank_storage.validate_custom_bank_fields({'bank': 'oso', 'bank_scale': 155}, current)
+        self.assertEqual(updated['bank_scale'], 155)
+        self.assertEqual(updated['bank_scales']['oso'], 155)
+        self.assertEqual(updated['bank_scales']['pato'], 137)
+        with self.assertRaises(ValueError):
+            bank_storage.validate_custom_bank_fields({'bank_scales': {'../outside': 100}}, current)
+
     def test_new_live_clears_bank_but_preserves_visual_configuration(self):
         i = bank()
         i.overlay_games['drop'].update(score=7, contents=[{'id': 1}], events=[{'id': 1}],
                                        event={'id': 1}, source_counts={'gift': 7},
-                                       shapes={'cochito': {'points': [], 'slot': [50, 10]}})
+                                       shapes={'cochito': {'points': [], 'slot': [50, 10]}},
+                                       custom_bank_asset='a'*32+'.png',
+                                       bank_position={'x': 24.0, 'y': 76.0}, bank_scale=125.0,
+                                       entry_point={'x': 52.0, 'y': 18.0})
         old_epoch = i.overlay_games['drop']['epoch']
         i.reset_live_session()
         state = i.overlay_games['drop']
@@ -42,6 +64,10 @@ class BankLiveSyncTests(unittest.TestCase):
         self.assertEqual(state['source_counts'], {})
         self.assertNotEqual(state['epoch'], old_epoch)
         self.assertIn('cochito', state['shapes'])
+        self.assertEqual(state['custom_bank_asset'], 'a'*32+'.png')
+        self.assertEqual(state['bank_position'], {'x': 24.0, 'y': 76.0})
+        self.assertEqual(state['bank_scale'], 125.0)
+        self.assertEqual(state['entry_point'], {'x': 52.0, 'y': 18.0})
         i.r.archive.set_setting.assert_called_once()
 
     def test_combo_deltas_duplicates_and_other_gifts(self):

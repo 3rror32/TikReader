@@ -18,6 +18,7 @@
 .overlay-style-form[hidden]{display:none}
 
 .overlay-control-grid>label[hidden]{display:none!important}
+.piggy-editor .bank-editor-placement>label[hidden]{display:none!important}
 
 .animation-controls>p{font-size:12px;line-height:1.6;opacity:.8}.animation-controls .overlay-savebar{gap:8px;flex-wrap:wrap}
 .overlay-variable-field{grid-column:1/-1}.overlay-variable-help{display:block;margin-top:2px;padding:7px 8px;border-left:2px solid var(--deck-signal);background:#0b171c;color:#b7cbc7;font:10px/1.45 var(--font-data);overflow-wrap:anywhere}.overlay-variable-help::before{content:'{ }';margin-right:6px;color:var(--deck-signal);font-weight:800}
@@ -57,3 +58,24 @@
 .overlay-screen[data-canvas-format="horizontal"]{width:100%;height:auto;min-height:0;aspect-ratio:16/9}
 .overlay-screen[data-canvas-format] iframe{position:absolute;inset:0;width:100%;height:100%;display:block}
 .overlay-source-resolution{margin:9px 2px 0;color:#9fb1ba;font:12px/1.5 Inter,sans-serif}
+
+/* The editor behaves like a compact production desk: the scene and final
+   actions stay reachable while long control groups scroll past them. */
+.overlay-search{display:grid!important;grid-template-columns:auto minmax(220px,380px);align-items:center;justify-content:end;gap:10px;margin:12px 0!important;color:#8ea1aa;font:11px var(--font-data)}
+.overlay-search input{width:100%;min-height:40px;padding:8px 12px;border:1px solid #2b424c;background:#091218;color:#edf7f5}
+.overlay-grid[data-empty="true"]{min-height:120px;border:1px dashed #29404a;background:#0a131966}
+.overlay-workbench>.overlay-stage{position:sticky;top:14px;align-self:start}
+.overlay-savebar{position:sticky;bottom:0;z-index:4;margin:14px -12px -12px;padding:12px;background:linear-gradient(180deg,#0c171d00,#0c171d 24%);border-top:1px solid #263942}
+.overlay-editor>#overlay-gallery-status{margin:10px 0 0;padding:9px 12px;background:#09151adf;border-left:3px solid var(--deck-signal);backdrop-filter:blur(10px)}
+.overlay-editor>#overlay-gallery-status:empty{display:none!important}
+.overlay-scene-field select{min-height:104px}
+@media(max-width:1100px){.overlay-workbench>.overlay-stage{position:static}.overlay-search{grid-template-columns:1fr;justify-content:stretch}.overlay-search span{font-size:10px}}
+
+/* Keep preview actions and bank-editor controls legible in the narrow workbench. */
+.overlay-editor .overlay-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+.overlay-editor .overlay-actions a,.overlay-editor .overlay-actions button{min-width:0;min-height:42px;padding:8px;line-height:1.2;white-space:normal;text-align:center}
+.bank-editor-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #263942}
+.bank-editor-actions button{min-width:0;min-height:42px;padding:8px;line-height:1.2;white-space:normal}
+.bank-editor-actions button:focus-visible,.overlay-editor .overlay-actions :is(a,button):focus-visible{outline:2px solid var(--deck-signal);outline-offset:2px}
+@media(max-width:650px){.overlay-editor .overlay-actions{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}.bank-editor-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:380px){.bank-editor-actions{grid-template-columns:1fr}}

@@ -50,7 +50,6 @@
         if (busy) voiceTimer = setTimeout(voices, 2000);
       } catch (_) { $('settings-voice-status').textContent = 'No se pudo consultar el estado de las voces.'; }
     }
-    $('settings-save-device').onclick = () => save(true);
     $('settings-open-data').onclick = async () => {
       try { await api('/system/open-data', {}); }
       catch (error) { $('settings-save-status').textContent = error.message; }

@@ -633,8 +633,6 @@ class MainWindow(QMainWindow):
         stats = snapshot.get("stats") or {}
         for key in self.stats:
             value = stats.get(key, 0)
-            if key == "likes" and not stats.get("likes_known") and not stats.get("like_events"):
-                value = "—"
             self.stats[key].set_value(value)
         if "gifts" in snapshot:
             self.populate_gifts(snapshot.get("gifts") or [])
@@ -784,7 +782,7 @@ class MainWindow(QMainWindow):
         event.accept()
 
 
-def run(base_url: str) -> int:
+def run(base_url: str, startup_splash=None) -> int:
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("TikReader")
     app.setApplicationDisplayName("TikReader")
@@ -792,6 +790,23 @@ def run(base_url: str) -> int:
     icon = ROOT / "assets" / "icons" / "tikreader.ico"
     if icon.is_file():
         app.setWindowIcon(QIcon(str(icon)))
+    if startup_splash is not None:
+        startup_splash.pump()
     window = MainWindow(base_url)
+    if startup_splash is not None:
+        startup_splash.pump()
+    if startup_splash is not None:
+        revealed = False
+
+        def reveal_when_ready(loaded: bool) -> None:
+            nonlocal revealed
+            if loaded and not revealed:
+                revealed = True
+                startup_splash.set_status("Estudio listo")
+                startup_splash.finish(window)
+
+        window.studio.loadFinished.connect(reveal_when_ready)
+        QTimer.singleShot(0, lambda: reveal_when_ready(window.studio._loaded_once))
+        QTimer.singleShot(12000, lambda: startup_splash.finish(window))
     window.show()
     return app.exec()

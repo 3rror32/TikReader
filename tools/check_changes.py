@@ -16,6 +16,9 @@ def run():
     commands=[[sys.executable,'-m','unittest','discover','-s','tests','-p','test_*.py'],['node','--test','--test-timeout=30000',*[str(p) for p in (ROOT/'tests').glob('test_*.cjs')]]]
     commands += [['node','--check',str(p)] for p in (ROOT/'web'/'static').glob('*.js')]
     commands += [['npm.cmd' if os.name == 'nt' else 'npm','run','build:overlays']]
+    if os.name == 'nt':
+        commands += [['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',
+                      str(ROOT/'packaging'/'build_installer.ps1'),'-CheckOnly']]
     if importlib.util.find_spec('ruff'):
         commands.append([sys.executable, '-m', 'ruff', 'check', '.'])
     else:
@@ -33,7 +36,7 @@ def run():
     return int(any(results))
 
 def snapshot():
-    return {str(p):p.stat().st_mtime_ns for pattern in ('app/*.py','tools/*.py','tests/*.py','tests/*.cjs','web/static/*.js','web/static/*.css','web/templates/*.html') for p in ROOT.glob(pattern)}
+    return {str(p):p.stat().st_mtime_ns for pattern in ('app/*.py','tools/*.py','tests/*.py','tests/*.cjs','frontend/**/*.ts','web/static/*.js','web/static/*.css','web/templates/*.html') for p in ROOT.glob(pattern)}
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--watch',action='store_true');args=parser.parse_args()

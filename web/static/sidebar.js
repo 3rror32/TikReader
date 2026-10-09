@@ -15,11 +15,9 @@
     'overlay-tools': 'M4 7h16M7 4v6m10 2v8m-3-5h6M4 15h6m-3-3v6',
     'overlay-goals': 'M20 12a8 8 0 1 1-8-8m0 4a4 4 0 1 0 4 4m-4 0 9-9',
     'overlay-favorites': 'm12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3',
+    'overlay-custom': 'M4 4h16v16H4V4m4 0v4H4m16 4h-4v8m-8-5 3-3 3 3m-3-3v7',
     'overlay-my-animations': 'M3 7h18v14H3V7m0 0 17-5 1 5M8 6l-2-3m8 1-2-3m-2 10 6 3-6 3v-6',
     'control-center': 'M5 3v5m0 4v9m7-18v10m0 4v4m7-18v2m0 4v12M2 8h6v4H2V8m7 5h6v4H9v-4m7-8h6v4h-6V5',
-    'timer-control': 'M12 7v5l3 2m4-2a7 7 0 1 1-7-7m-3-3h6m-3 0v3',
-    'timer-settings': 'M4 8h10m4 0h2M4 16h2m4 0h10M14 5v6M6 13v6',
-    'timer-shortcuts': 'M4 6h16v12H4V6m3 4h.01m4 0h.01m4 0h.01m-8 4h10',
     'fortune-wheel': 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18m0 0v9l7 3M12 12l-6 7',
     'point-drop': 'M12 3v10m-4-4 4 4 4-4M5 16h14v5H5v-5',
     'game-hotkeys': 'M3 6h18v13H3V6m3 4h1m3 0h1m3 0h1m3 0h.01M6 13h1m3 0h1m3 0h4M7 16h10',
@@ -54,6 +52,8 @@
     'creator-community': 'M9 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6m-7 18v-3a7 6 0 0 1 14 0v3H2M17 4a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v3h-3',
     'creator-battles': 'M3 3l5 1 12 12-4 4L4 8 3 3m12 14 5-5M4 20l3-3m14-14-5 1-4 4m-4 4-4 4 4 4 4-4m-8-4 5 5m8 0 3 3',
     'creator-games': 'M5 3h14l2 2v14l-2 2H5l-2-2V5l2-2m2 4h.01m10 0h.01m-5 5h.01m-5 5h.01m10 0h.01',
+    'creator-suite': 'M4 3h16v18H4V3m4 4h8m-8 5h3m3 0h2m-8 5h8',
+    'platform-integrations': 'M7 7h-1a4 4 0 0 0 0 8h3m8-8h1a4 4 0 0 1 0 8h-3M8 12h8',
     'category-chat': 'M4 3h16v13H9l-5 4V3m4 6h.01m4 0h.01m4 0h.01',
     'category-scene': 'M3 8h18v13H3V8m0 0V3h18v5M7 3l3 5m4-5 3 5m-8 4 6 3-6 3v-6',
     'category-media': 'M3 7h12v12H3V7m12 4 6-3v10l-6-3M7 3v8m0 0a2 2 0 1 1-2-2',
@@ -99,25 +99,33 @@
   backdrop.setAttribute('aria-hidden', 'true');
   document.body.append(backdrop);
   const systemReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  const motionToggle = document.getElementById('menu-motion-toggle');
+  const motionSelect = document.getElementById('motion-level-select');
   const motionStatus = document.getElementById('menu-motion-status');
-  function storedMotionEnabled() {
-    try { return localStorage.getItem('tikreader.menuMotion') !== 'off'; }
-    catch (_) { return true; }
+  function storedMotionLevel() {
+    try {
+      const saved = localStorage.getItem('tikreader.menuMotion');
+      if (saved === 'off') return 'reduced';
+      if (saved === 'on' || !['reduced', 'subtle', 'expressive'].includes(saved)) return 'subtle';
+      return saved;
+    } catch (_) { return 'subtle'; }
   }
-  function motionAllowed() { return storedMotionEnabled() && !systemReducedMotion.matches; }
+  function motionAllowed() { return storedMotionLevel() !== 'reduced' && !systemReducedMotion.matches; }
   function applyMotionPreference() {
-    const enabled = storedMotionEnabled();
-    document.body.classList.toggle('menu-motion-reduced', !enabled || systemReducedMotion.matches);
-    if (motionToggle) motionToggle.checked = enabled;
+    const selected = storedMotionLevel();
+    const effective = systemReducedMotion.matches ? 'reduced' : selected;
+    document.documentElement.dataset.motionLevel = effective;
+    document.body.classList.toggle('menu-motion-reduced', effective === 'reduced');
+    if (motionSelect) motionSelect.value = selected;
     if (motionStatus) {
       motionStatus.textContent = systemReducedMotion.matches
         ? 'Windows solicita movimiento reducido; TikReader lo respetará.'
-        : enabled ? 'Transiciones breves y desplazamiento guiado.' : 'Movimiento del menú desactivado.';
+        : selected === 'reduced' ? 'Movimiento reducido en toda la interfaz.'
+          : selected === 'expressive' ? 'Movimiento más visible, sin animación decorativa constante.'
+            : 'Transiciones breves y reacciones suaves.';
     }
   }
-  if (motionToggle) motionToggle.addEventListener('change', () => {
-    try { localStorage.setItem('tikreader.menuMotion', motionToggle.checked ? 'on' : 'off'); } catch (_) {}
+  if (motionSelect) motionSelect.addEventListener('change', () => {
+    try { localStorage.setItem('tikreader.menuMotion', motionSelect.value); } catch (_) {}
     applyMotionPreference();
   });
   systemReducedMotion.addEventListener('change', applyMotionPreference);
@@ -128,8 +136,8 @@
   const basicDestinations = new Set([
     'live', 'voice', 'microphone-captions',
     'overlay-gallery', 'overlay-animations', 'overlay-effects', 'overlay-tools',
-    'overlay-goals', 'overlay-favorites', 'overlay-my-animations',
-    'about',
+    'overlay-goals', 'overlay-favorites', 'overlay-custom', 'overlay-my-animations',
+    'alerts', 'about', 'workspace',
   ]);
   for (const button of sidebar.querySelectorAll('[data-section-nav]')) {
     if (!basicDestinations.has(button.dataset.sectionNav)) button.dataset.advancedOnly = 'true';
@@ -141,79 +149,203 @@
   }
   for (const label of sidebar.querySelectorAll('.nav-section-label')) {
     const groups = [];
-    for (let next = label.nextElementSibling; next && !next.classList.contains('nav-section-label'); next = next.nextElementSibling) groups.push(next);
+    for (let next = label.nextElementSibling; next && !next.classList.contains('nav-section-label') && !next.classList.contains('nav-tail-item'); next = next.nextElementSibling) groups.push(next);
     if (groups.length && groups.every(group => group.dataset.advancedOnly === 'true')) label.dataset.advancedOnly = 'true';
   }
-  // The on-air rail never scrolls away. Safety remains in the top bar, where it
-  // is always visible without duplicating controls in the navigation.
-  const critical = document.createElement('div');
-  critical.className = 'sidebar-critical';
-  critical.setAttribute('role', 'navigation');
-  critical.setAttribute('aria-label', 'Controles al aire');
-  const criticalLabel = document.createElement('span');
-  criticalLabel.className = 'nav-section-label';
-  criticalLabel.textContent = 'AL AIRE';
-  critical.append(criticalLabel);
-  for (const key of ['live', 'voice']) {
-    const item = sidebar.querySelector(`[data-section-nav="${key}"]`)?.closest('.nav-group');
-    if (item) critical.append(item);
-  }
-  sidebar.querySelector('nav').before(critical);
   // Advanced sections start closed; everyday destinations remain direct links.
   const advancedSections = [];
   for (const label of [...sidebar.querySelectorAll('.nav-section-label[data-advanced-only]')]) {
-    const section = document.createElement('details'); section.className = 'nav-advanced-section'; section.setAttribute('name', 'advanced-navigation'); section.dataset.advancedOnly = 'true';
+    const section = document.createElement('details'); section.className = 'nav-advanced-section'; section.dataset.advancedOnly = 'true';
     const heading = document.createElement('summary'); heading.title = label.textContent;
-    const text = document.createElement('span'); text.textContent = label.textContent;
+    const text = document.createElement('span'); text.className = 'nav-category-label'; text.textContent = label.textContent;
+    const current = document.createElement('span'); current.className = 'nav-current-label'; current.hidden = true;
+    const copy = document.createElement('span'); copy.className = 'nav-category-copy'; copy.append(text, current);
     const content = document.createElement('div'); content.className = 'sidebar-disclosure-content';
-    const categoryIcons={'Chat':'category-chat','Escena':'category-scene','Audio y video':'category-media','Juegos':'category-games','Automatizaciones':'category-automation','Pruebas':'category-tests'};
-    heading.append(icon(icons[categoryIcons[label.textContent]] || icons.workspace), text); section.append(heading, content);
-    for (let next = label.nextElementSibling; next && !next.classList.contains('nav-section-label');) {
+    const categoryIcons={'Chat':'category-chat','Producción':'category-scene','Multimedia':'category-media','Juegos':'category-games','Interactividad':'category-automation','Diagnóstico':'category-tests'};
+    heading.append(icon(icons[categoryIcons[label.textContent]] || icons.workspace), copy); section.append(heading, content);
+    for (let next = label.nextElementSibling; next && !next.classList.contains('nav-section-label') && !next.classList.contains('nav-tail-item');) {
       const following = next.nextElementSibling; content.append(next); next = following;
     }
     label.replaceWith(section); advancedSections.push(section);
   }
-  function enhanceDisclosure(details, content) {
+  const navigation = sidebar.querySelector('nav');
+  function syncAdvancedOpenState() {
+    sidebar.classList.toggle('has-open-advanced', advancedSections.some(section => section.dataset.targetOpen === 'true'));
+  }
+  function revealAdvancedSection(section) {
+    const navRect = navigation.getBoundingClientRect();
+    const sectionRect = section.getBoundingClientRect();
+    let offset = 0;
+    if (sectionRect.height >= navRect.height) offset = sectionRect.top - navRect.top;
+    else if (sectionRect.bottom > navRect.bottom) offset = sectionRect.bottom - navRect.bottom + 6;
+    else if (sectionRect.top < navRect.top) offset = sectionRect.top - navRect.top - 6;
+    if (Math.abs(offset) > 1) navigation.scrollBy({top:offset,behavior:motionAllowed()?'smooth':'auto'});
+  }
+  function enhanceDisclosure(details, content, beforeOpen) {
     const summary = details.querySelector(':scope > summary');
     if (!summary || !content) return;
     let animation = null;
+    let targetOpen = details.open;
+    const syncExpanded = () => {
+      targetOpen = details.open;
+      details.dataset.targetOpen = String(targetOpen);
+      summary.setAttribute('aria-expanded', String(details.open));
+      if (details.open) beforeOpen?.(details);
+      syncAdvancedOpenState();
+      if (details.open && details.classList.contains('nav-advanced-section') && !animation) requestAnimationFrame(() => revealAdvancedSection(details));
+    };
+    const clearAnimationStyles = () => {
+      content.style.removeProperty('overflow');
+      content.style.removeProperty('pointer-events');
+      content.style.removeProperty('will-change');
+    };
+    syncExpanded();
+    details.addEventListener('toggle', syncExpanded);
     summary.addEventListener('click', event => {
+      const opening = !targetOpen;
+      targetOpen = opening;
+      details.dataset.targetOpen = String(targetOpen);
+      if (opening) beforeOpen?.(details);
+      syncAdvancedOpenState();
       if (!motionAllowed() || typeof content.animate !== 'function') return;
       event.preventDefault();
-      if (animation) animation.finish();
-      const opening = !details.open;
+      if (animation) {
+        const previous = animation;
+        animation = null;
+        previous.cancel();
+        clearAnimationStyles();
+      }
       if (opening) details.open = true;
-      const height = content.getBoundingClientRect().height || content.scrollHeight;
+      const height = Math.max(content.getBoundingClientRect().height, content.scrollHeight);
+      const duration = Math.min(300, 180 + Math.sqrt(height) * 5);
       content.style.overflow = 'hidden';
-      animation = content.animate(
+      content.style.pointerEvents = 'none';
+      content.style.willChange = 'height, opacity, transform, clip-path';
+      const current = content.animate(
         opening
-          ? [{ height: '0px', opacity: 0 }, { height: `${content.scrollHeight}px`, opacity: 1 }]
-          : [{ height: `${height}px`, opacity: 1 }, { height: '0px', opacity: 0 }],
-        { duration: 190, easing: 'cubic-bezier(.2,.8,.2,1)' },
+          ? [
+              { height: '0px', opacity: 0, transform: 'translateY(-6px)', clipPath: 'inset(0 0 100% 0)' },
+              { height: `${height}px`, opacity: 1, transform: 'translateY(0)', clipPath: 'inset(0)' },
+            ]
+          : [
+              { height: `${height}px`, opacity: 1, transform: 'translateY(0)', clipPath: 'inset(0)' },
+              { height: '0px', opacity: 0, transform: 'translateY(-6px)', clipPath: 'inset(0 0 100% 0)' },
+            ],
+        { duration, easing: 'cubic-bezier(.22,.72,.24,1)' },
       );
-      animation.onfinish = () => {
+      animation = current;
+      current.onfinish = () => {
+        if (animation !== current) return;
         if (!opening) details.open = false;
-        content.style.removeProperty('overflow');
+        summary.setAttribute('aria-expanded', String(details.open));
+        clearAnimationStyles();
+        animation = null;
+        if (opening && details.classList.contains('nav-advanced-section')) requestAnimationFrame(() => revealAdvancedSection(details));
+      };
+      current.oncancel = () => {
+        if (animation !== current) return;
+        clearAnimationStyles();
         animation = null;
       };
     });
   }
-  for (const section of advancedSections) enhanceDisclosure(section, section.querySelector(':scope > .sidebar-disclosure-content'));
-  for (const details of sidebar.querySelectorAll('.nav-group > details')) enhanceDisclosure(details, details.querySelector(':scope > .nav-submenu'));
-  // Personal destinations have their own stationary area outside the tools scroll.
-  const personalLabel = [...sidebar.querySelectorAll('.nav-section-label')].find(label => label.textContent === 'TU ESPACIO');
-  const personal = document.createElement('div'); personal.className = 'sidebar-personal';
-  personal.setAttribute('role', 'navigation'); personal.setAttribute('aria-label', 'Tu espacio');
-  if (personalLabel) {
-    for (let next = personalLabel.nextElementSibling; next;) { const following = next.nextElementSibling; personal.append(next); next = following; }
-    personal.prepend(personalLabel); sidebar.querySelector('nav').after(personal);
+  function closeOtherAdvancedSections(current) {
+    for (const section of advancedSections) {
+      if (section === current || section.dataset.targetOpen !== 'true') continue;
+      section.querySelector(':scope > summary')?.click();
+    }
   }
+  for (const section of advancedSections) enhanceDisclosure(section, section.querySelector(':scope > .sidebar-disclosure-content'), closeOtherAdvancedSections);
+  for (const details of sidebar.querySelectorAll('.nav-group > details')) enhanceDisclosure(details, details.querySelector(':scope > .nav-submenu'));
+  syncAdvancedOpenState();
+  const searchBox = document.createElement('div'); searchBox.className = 'sidebar-search'; searchBox.dataset.advancedOnly = 'true';
+  const searchToggle = document.createElement('button'); searchToggle.type = 'button'; searchToggle.className = 'sidebar-search-toggle'; searchToggle.setAttribute('aria-label', 'Buscar herramienta'); searchToggle.title = 'Buscar herramienta';
+  searchToggle.append(icon('M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13m5 11 5 5'));
+  const searchInput = document.createElement('input'); searchInput.type = 'search'; searchInput.id = 'sidebar-search-input'; searchInput.placeholder = 'Buscar herramienta…'; searchInput.autocomplete = 'off'; searchInput.setAttribute('aria-label', 'Buscar herramienta');
+  const searchResults = document.createElement('div'); searchResults.className = 'sidebar-search-results'; searchResults.setAttribute('role', 'navigation'); searchResults.setAttribute('aria-label', 'Resultados de herramientas'); searchResults.hidden = true;
+  const searchEmpty = document.createElement('p'); searchEmpty.className = 'sidebar-search-empty'; searchEmpty.textContent = 'No se encontraron herramientas.'; searchEmpty.hidden = true;
+  searchBox.append(searchToggle, searchInput, searchResults, searchEmpty); navigation.before(searchBox);
+  const searchableDestinations = [...sidebar.querySelectorAll('[data-section-nav]')];
+  function normalizeSearch(value) { return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+  function destinationLabel(source) { return source.querySelector('.sidebar-label')?.textContent.trim() || source.getAttribute('aria-label') || source.textContent.trim(); }
+  function destinationCategory(source) {
+    const advanced = source.closest('.nav-advanced-section');
+    if (advanced) return advanced.querySelector('.nav-category-label')?.textContent.trim() || '';
+    const grouped = source.closest('[data-section-group]');
+    if (grouped) return grouped.querySelector(':scope > summary .sidebar-label')?.textContent.trim() || 'Overlays';
+    if (source.closest('.sidebar-utility')) return 'Accesos rápidos';
+    return 'Directo';
+  }
+  function closeSearch({focusToggle = false} = {}) {
+    searchInput.value = '';
+    searchResults.replaceChildren();
+    searchResults.hidden = true;
+    searchEmpty.hidden = true;
+    searchBox.classList.remove('has-query', 'is-popover');
+    sidebar.classList.remove('is-searching', 'search-popover');
+    if (focusToggle && document.body.classList.contains('sidebar-collapsed')) searchToggle.focus();
+  }
+  function renderSearch() {
+    const query = normalizeSearch(searchInput.value);
+    searchResults.replaceChildren();
+    searchBox.classList.toggle('has-query', !!query);
+    sidebar.classList.toggle('is-searching', !!query);
+    searchResults.hidden = !query;
+    searchEmpty.hidden = true;
+    if (!query) return;
+    const matches = searchableDestinations.map(source => {
+      const label = destinationLabel(source), category = destinationCategory(source);
+      const normalizedLabel = normalizeSearch(label), normalizedCategory = normalizeSearch(category);
+      let score = 4;
+      if (normalizedLabel.startsWith(query)) score = 0;
+      else if (normalizedLabel.includes(query)) score = 1;
+      else if (normalizedCategory.startsWith(query)) score = 2;
+      else if (normalizedCategory.includes(query)) score = 3;
+      return {source,label,category,score};
+    }).filter(item => item.score < 4).sort((a,b) => a.score - b.score || a.label.localeCompare(b.label)).slice(0,10);
+    for (const match of matches) {
+      const result = document.createElement('button'); result.type = 'button'; result.className = 'sidebar-search-result';
+      const resultIcon = match.source.querySelector('.sidebar-icon')?.cloneNode(true);
+      const resultCopy = document.createElement('span'); resultCopy.className = 'sidebar-search-result-copy';
+      const resultLabel = document.createElement('strong'); resultLabel.textContent = match.label;
+      const resultCategory = document.createElement('small'); resultCategory.textContent = match.category;
+      resultCopy.append(resultLabel, resultCategory); if (resultIcon) result.append(resultIcon); result.append(resultCopy);
+      result.onclick = () => { match.source.click(); closeSearch(); };
+      searchResults.append(result);
+    }
+    searchEmpty.hidden = matches.length > 0;
+  }
+  searchInput.addEventListener('input', renderSearch);
+  searchInput.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeSearch({focusToggle:true}); }
+    if (event.key === 'ArrowDown') { const first = searchResults.querySelector('button'); if (first) { event.preventDefault(); first.focus(); } }
+  });
+  searchResults.addEventListener('keydown', event => {
+    if (!['ArrowDown','ArrowUp','Escape'].includes(event.key)) return;
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeSearch({focusToggle:true}); return; }
+    const items = [...searchResults.querySelectorAll('button')], index = items.indexOf(document.activeElement);
+    if (!items.length) return;
+    event.preventDefault(); items[(index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+  });
+  searchToggle.onclick = () => {
+    const popover = document.body.classList.contains('sidebar-collapsed') && !mobile.matches;
+    searchBox.classList.toggle('is-popover', popover);
+    sidebar.classList.toggle('search-popover', popover);
+    searchInput.focus();
+  };
+  document.addEventListener('pointerdown', event => {
+    if (searchBox.classList.contains('is-popover') && !searchBox.contains(event.target)) closeSearch();
+  });
   function markActiveGroup() {
     for (const section of advancedSections) {
       const summary = section.querySelector(':scope > summary');
       const active = section.querySelector('[aria-current="page"]');
-      const label = summary.querySelector('span').textContent;
-      summary.setAttribute('aria-label', active ? `${label}. Página actual: ${active.textContent.trim()}` : label);
+      const label = summary.querySelector('.nav-category-label').textContent;
+      const current = summary.querySelector('.nav-current-label');
+      const activeLabel = active?.querySelector('.sidebar-label')?.textContent.trim() || active?.textContent.trim() || '';
+      current.textContent = activeLabel;
+      current.hidden = !active;
+      summary.setAttribute('aria-label', active ? `${label}. Página actual: ${activeLabel}` : label);
       section.classList.toggle('has-current-page', !!active);
     }
   }
@@ -221,6 +353,7 @@
   markActiveGroup();
   const modeBox = document.createElement('div'); modeBox.className = 'interface-mode';
   const mode = document.createElement('button'); mode.type = 'button'; mode.id = 'interface-mode-toggle';
+  const modeLabel = document.createElement('span'); modeLabel.className = 'interface-mode-label';
   const modeIcons = {
     basic: 'M4 4h6v6H4V4m10 0h6v6h-6V4M4 14h6v6H4v-6m10 0h6v6h-6v-6',
     advanced: 'M4 7h5m4 0h7M4 17h9m4 0h3M9 4v6m4 4v6'
@@ -234,17 +367,18 @@
   }
   function applyMode(value, persist = false) {
     const next = value === 'advanced' ? 'advanced' : 'basic';
+    if (next === 'basic') closeSearch();
     mode.dataset.mode = next;
-    mode.replaceChildren(icon(modeIcons[next]));
-    const label = next === 'basic' ? 'Básico' : 'Avanzado';
-    mode.title = `Menú ${label} · cambiar a ${next === 'basic' ? 'Avanzado' : 'Básico'}`;
-    mode.setAttribute('aria-label', next === 'advanced' ? 'Modo avanzado activado' : 'Modo básico activado');
+    const label = next === 'basic' ? 'Básico' : 'Completo';
+    modeLabel.textContent = label;
+    mode.replaceChildren(icon(modeIcons[next]), modeLabel);
+    mode.title = `Menú ${label} · cambiar a ${next === 'basic' ? 'Completo' : 'Básico'}`;
+    mode.setAttribute('aria-label', `Menú ${label}. Cambiar a ${next === 'basic' ? 'Completo' : 'Básico'}`);
     mode.setAttribute('aria-pressed', String(next === 'advanced'));
     if (next === 'advanced') { advancedSections.forEach(section => { section.open = false; }); }
     const active = sidebar.querySelector('[data-section-nav].active');
     document.body.classList.toggle('basic-mode', next === 'basic');
     note.textContent = next === 'basic' ? 'Lo esencial para tu directo.' : 'Todas las herramientas disponibles.';
-    if (next === 'basic' && active && !basicDestinations.has(active.dataset.sectionNav)) window.Shell?.show('live');
     if (persist) {
       try { localStorage.setItem('tikreader.interfaceMode', JSON.stringify(next)); }
       catch (_) { note.textContent += ' No se pudo guardar la preferencia.'; }
@@ -264,6 +398,7 @@
     if (!compact && typeof tooltip !== 'undefined') tooltip.hidden = true;
   }
   function closeMobile() {
+    closeSearch();
     document.body.classList.remove('menu-open');
     sync();
     toggle.focus();
@@ -303,6 +438,7 @@
     if (mobile.matches) document.body.classList.toggle('menu-open');
     else {
       collapsed = !collapsed;
+      if (collapsed) closeSearch();
       try { localStorage.setItem('tikreader.sidebarCollapsed', String(collapsed)); } catch (_) {}
     }
     sync();

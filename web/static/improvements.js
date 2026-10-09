@@ -1,6 +1,6 @@
 (()=>{
  const $=id=>document.getElementById(id), el=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
- $('stat-likes').textContent='—';$('stat-viewers').textContent='—';
+ $('stat-likes').textContent='0';$('stat-viewers').textContent='0';
  function button(text,fn){const b=el('button',text);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){status.textContent=e.message;}finally{b.disabled=false;}};return b;}
  async function api(url,options={}){const r=await fetch(url,{...options,signal:AbortSignal.timeout(30000)}),data=await r.json();if(!r.ok)throw Error(data.error||'Error al procesar la solicitud');return data;}
  const box=el('article');box.className='setting-card';box.append(el('h3','Recuperación y espacio del historial'));

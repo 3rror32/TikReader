@@ -1,8 +1,9 @@
 (()=>{
  'use strict';
  const config=JSON.parse(document.getElementById('buddies-config').textContent),stage=document.getElementById('buddies');
- const preview=new URLSearchParams(location.search).get('preview')==='1',actors=new Map();
- let settings=config.settings,session=null,last=0,demoTick=0,staleAt=performance.now(),demoOrder=[];
+ const params=new URLSearchParams(location.search),preview=params.get('preview')==='1',catalog=params.has('catalog'),actors=new Map();
+ const later=globalThis.setTimeout||globalThis.setInterval,clearLater=globalThis.clearTimeout||globalThis.clearInterval||(()=>{}),cancelFrame=globalThis.cancelAnimationFrame||(()=>{});
+ let settings=config.settings,session=null,last=0,demoTick=0,staleAt=performance.now(),demoOrder=[],paused=document.hidden,frameId=0,pollTimer=0,demoTimer=0,livePush=false,renderedCatalog=false;
  function pool(){return config.characters.filter(c=>settings.theme==='todos'||c.theme===settings.theme);}
  function demo(){const chars=pool();if(!demoOrder.length)demoOrder=[...chars].sort(()=>Math.random()-.5);return Array.from({length:Math.min(settings.max_friends,10)},(_,i)=>({id:'demo-'+i,sprite_seed:i,character_id:demoOrder[i%demoOrder.length].id,user:['Luna','Carlos','Sofi','Alex','Dani','Milo','Nora','Leo','Ana','Max'][i],coins:Math.round((settings.coins_to_max||1000)*(1-i/10)),comment:i===demoTick%10?'¡Me encanta mi personaje! ✨':'',comment_id:'demo-'+demoTick}));}
  function draw(members,reset=false){
@@ -22,17 +23,22 @@
    a.seen=m.comment_id;if(!settings.bubbles||!m.comment)a.until=0;
   });
  }
- function animate(now){const frameTime=actors.size>20?1000/30:1000/60;if(last&&now>=last&&now-last<frameTime){requestAnimationFrame(animate);return;}const dt=last&&now>=last?Math.min((now-last)/1000,.05):0;last=now;const stageWidth=stage.clientWidth;
+ function scheduleFrame(){cancelFrame(frameId);if(!paused&&!renderedCatalog)frameId=requestAnimationFrame(animate);}
+ function animate(now){const frameTime=actors.size>20?1000/30:1000/60;if(last&&now>=last&&now-last<frameTime){scheduleFrame();return;}const dt=last&&now>=last?Math.min((now-last)/1000,.05):0;last=now;const stageWidth=stage.clientWidth;
   for(const a of actors.values()){
    const limit=Math.max(0,stageWidth-a.size);a.x=Math.max(0,Math.min(limit,a.x));const before=a.x;const walkSpeed=Math.min(settings.speed,a.size*a.stride*1.8);a.x+=a.dir*walkSpeed*dt;if(a.x>=limit){a.x=limit;a.dir=-1;}if(a.x<=0){a.x=0;a.dir=1;}
    a.el.style.transform=`translate3d(${a.x}px,0,0)`;a.art.style.transform=`scaleX(${a.dir})`;a.walkPhase=(a.walkPhase+Math.abs(a.x-before)/Math.max(1,a.size*a.stride))%1;const frame=settings.speed>0?Math.floor(a.walkPhase*a.frames):0;a.img.style.transform=`translate3d(${-frame*100/a.frames}%,0,0)`;a.art.dataset.frame=String(frame);a.speech.hidden=now>=a.until;
    if(!a.speech.hidden){const w=a.speechWidth||(a.speechWidth=a.speech.offsetWidth);const center=a.x+a.size/2;a.speech.style.left=(Math.max(w/2,Math.min(stageWidth-w/2,center))-a.x-w/2)+'px';}
   }
-  requestAnimationFrame(animate);
+  if(catalog)renderedCatalog=true;scheduleFrame();
  }
- async function poll(){try{const r=await fetch('/broadcast/stream-buddies',{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();settings=d.settings;draw(d.muted?[]:d.members,session!==d.session);session=d.session;staleAt=performance.now();}catch(_){if(performance.now()-staleAt>5000)draw([]);}setTimeout(poll,1000);}
- if(preview){draw(demo());setInterval(()=>{demoTick++;draw(demo());},5000);
-  addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='buddies-preview')return;const changed=e.data.settings.theme&&e.data.settings.theme!==settings.theme;if(changed)demoOrder=[];settings={...settings,...e.data.settings};demoTick++;draw(demo(),Boolean(changed));});
- }else poll();
- requestAnimationFrame(animate);
+ function queuePoll(delay=0){clearLater(pollTimer);if(!paused&&!preview)pollTimer=later(poll,delay);}
+ async function poll(){if(paused||preview)return;try{const r=await fetch('/broadcast/stream-buddies',{cache:'no-store',signal:AbortSignal.timeout(4500)});if(!r.ok)throw Error();const d=await r.json();settings=d.settings;draw(d.muted?[]:d.members,session!==d.session);session=d.session;staleAt=performance.now();}catch(_){if(performance.now()-staleAt>5000)draw([]);}finally{queuePoll(livePush?5000:1000);}}
+ function queueDemo(delay=5000){clearLater(demoTimer);if(!paused&&preview&&!catalog)demoTimer=later(()=>{demoTick++;draw(demo());queueDemo();},delay);}
+ if(preview){draw(demo());queueDemo();}else queuePoll();
+ function setPaused(value){paused=!!value;clearLater(pollTimer);clearLater(demoTimer);cancelFrame(frameId);if(!paused){last=performance.now();renderedCatalog=false;scheduleFrame();if(preview)queueDemo(600);else queuePoll(0);}}
+ addEventListener('visibilitychange',()=>setPaused(document.hidden));addEventListener('pagehide',()=>setPaused(true),{once:true});
+ addEventListener('tikreader:runtime-ready',event=>{livePush=true;event.detail?.onData?.(()=>queuePoll(0));event.detail?.lifecycle?.onPause?.(setPaused);});
+ if(preview)addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='buddies-preview')return;const changed=e.data.settings.theme&&e.data.settings.theme!==settings.theme;if(changed)demoOrder=[];settings={...settings,...e.data.settings};demoTick++;draw(demo(),Boolean(changed));});
+ scheduleFrame();
 })();

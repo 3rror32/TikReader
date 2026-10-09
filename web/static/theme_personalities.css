@@ -1,0 +1,584 @@
+/* Three authored TikReader themes.
+ * They share the same interaction map, but each theme owns its typography,
+ * component geometry, density, surface treatment and motion language.
+ */
+
+/* --------------------------------------------------------------------------
+   CONSOLA BROADCAST — patch bays, tally lights and dense production hardware
+   -------------------------------------------------------------------------- */
+html[data-skin="broadcast-console"] {
+  --skin-bg: #07090b;
+  --skin-surface: #10161a;
+  --skin-raised: #1a2329;
+  --skin-border: #3b474d;
+  --skin-text: #f4f1e8;
+  --skin-muted: #9aa8ad;
+  --skin-accent: #ffb000;
+  --skin-accent-2: #36d7e8;
+  --skin-accent-ink: #171006;
+  --skin-danger: #ff4f5e;
+  --skin-warning: #ffca4b;
+  --skin-wash: #252e32;
+  --skin-shadow: #000b;
+  --tr-display: Bahnschrift, "Arial Narrow", "Segoe UI", sans-serif;
+  --tr-body: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --tr-data: "Cascadia Mono", Consolas, monospace;
+  --control-field-radius: 2px;
+  --control-field-height: 38px;
+  color-scheme: dark;
+}
+
+html[data-skin="broadcast-console"] body {
+  background-color: var(--skin-bg);
+  background-image:
+    linear-gradient(#eaf6ff08 1px, transparent 1px),
+    linear-gradient(90deg, #eaf6ff08 1px, transparent 1px),
+    radial-gradient(circle at 72% -12%, #36d7e813, transparent 36%);
+  background-size: 32px 32px, 32px 32px, auto;
+}
+
+html[data-skin="broadcast-console"] body::before {
+  opacity: .38;
+  background: repeating-linear-gradient(135deg, transparent 0 12px, #ffb0000b 12px 13px);
+}
+
+html[data-skin="broadcast-console"] body :is(h1, h2, h3, .sidebar-brand, .feed-title, #gift-heading) {
+  font-family: var(--tr-display) !important;
+  font-weight: 650 !important;
+  letter-spacing: .045em !important;
+  text-transform: uppercase;
+}
+
+html[data-skin="broadcast-console"] body .app-sidebar {
+  background: #0c1114 !important;
+  border-right: 1px solid #3b474d !important;
+  box-shadow: 8px 0 0 #050607 !important;
+}
+
+html[data-skin="broadcast-console"] body .sidebar-brand {
+  padding-bottom: 12px;
+  border-bottom: 4px solid var(--skin-accent);
+  color: var(--skin-text);
+}
+
+html[data-skin="broadcast-console"] body .app-sidebar [data-section-nav] {
+  font-family: var(--tr-data);
+  font-size: 11px;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+html[data-skin="broadcast-console"] body .app-sidebar [data-section-nav].active {
+  border-bottom-color: var(--skin-accent) !important;
+  color: var(--skin-accent) !important;
+  box-shadow: inset 3px 0 var(--skin-accent) !important;
+}
+
+html[data-skin="broadcast-console"] body .app > header {
+  border-bottom: 3px double #3b474d;
+}
+
+html[data-skin="broadcast-console"] body :is(
+  .app > .session-panel,
+  .live-columns > .feed-wrap,
+  .live-columns > .participants-bar,
+  .live-columns > .gifts-column,
+  .config-content,
+  .setting-card,
+  .voice-summary,
+  dialog
+) {
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="broadcast-console"] body .app > .session-panel {
+  border: 1px solid #465158 !important;
+  border-top: 5px solid var(--skin-accent) !important;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 7px, #ffffff05 7px 8px),
+    #10161a !important;
+}
+
+html[data-skin="broadcast-console"] body .session-panel .session-identity h2 {
+  color: var(--skin-accent);
+  font-size: 24px !important;
+}
+
+html[data-skin="broadcast-console"] body .signal-route {
+  padding: 8px;
+  border: 1px solid #354047;
+  background: #090d10;
+}
+
+html[data-skin="broadcast-console"] body .signal-stage {
+  grid-template-columns: 25px minmax(0, 1fr);
+  padding-block: 5px;
+  border-right: 1px solid #2f383d;
+}
+
+html[data-skin="broadcast-console"] body .signal-stage:last-child { border-right: 0; }
+html[data-skin="broadcast-console"] body .signal-stage:not(:last-child)::after { display: none; }
+
+html[data-skin="broadcast-console"] body .signal-stage-dot {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 2px #ffffff16, 0 0 0 1px var(--stage-color);
+}
+
+html[data-skin="broadcast-console"] body .signal-stage strong {
+  font-family: var(--tr-data);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+html[data-skin="broadcast-console"] body .session-panel .stat-card {
+  padding: 8px 12px;
+  border: 1px solid #303a40 !important;
+  background: #0b1013 !important;
+}
+
+html[data-skin="broadcast-console"] body .session-panel .stat-card::before { inset: 0 auto 0 0; border-radius: 0; width: 3px; }
+
+html[data-skin="broadcast-console"] body .live-columns :is(.feed-header, .participants-head, #gift-heading) {
+  border-bottom: 3px double #364148;
+  background: #161e23;
+}
+
+html[data-skin="broadcast-console"] body .live-columns .comment-card {
+  border-bottom-style: dashed !important;
+  padding-block: 9px;
+}
+
+html[data-skin="broadcast-console"] body :is(button, summary, .tool-buttons > a) {
+  border-radius: 2px !important;
+  text-transform: uppercase;
+  letter-spacing: .025em;
+}
+
+html[data-skin="broadcast-console"] body .mobile-command-dock {
+  border-radius: 2px;
+  background: #0b1013f2;
+}
+
+/* --------------------------------------------------------------------------
+   CREATOR POP — soft studio lighting, sticker-like controls and chat bubbles
+   -------------------------------------------------------------------------- */
+html[data-skin="creator-pop"] {
+  --skin-bg: #201a32;
+  --skin-surface: #302744;
+  --skin-raised: #44375e;
+  --skin-border: #735f8e;
+  --skin-text: #fff7fc;
+  --skin-muted: #d4c5df;
+  --skin-accent: #70e6d4;
+  --skin-accent-2: #ff78b7;
+  --skin-accent-ink: #15332f;
+  --skin-danger: #ff7190;
+  --skin-warning: #ffd47d;
+  --skin-wash: #51436c;
+  --skin-shadow: #120d205e;
+  --tr-display: "Trebuchet MS", "Segoe UI Variable Display", sans-serif;
+  --tr-body: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --tr-data: "Cascadia Mono", Consolas, monospace;
+  --control-field-radius: 15px;
+  --control-field-height: 44px;
+  color-scheme: dark;
+}
+
+html[data-skin="creator-pop"] body {
+  background:
+    radial-gradient(circle at 85% 8%, #ff78b72b 0 8%, transparent 31%),
+    radial-gradient(circle at 14% 88%, #70e6d422 0 10%, transparent 34%),
+    linear-gradient(145deg, #1e1930, #2c2041 55%, #1c243f);
+}
+
+html[data-skin="creator-pop"] body::before {
+  opacity: .75;
+  background:
+    radial-gradient(circle, #fff3 1.5px, transparent 2px),
+    radial-gradient(circle, #70e6d42b 2px, transparent 2.5px);
+  background-position: 0 0, 19px 18px;
+  background-size: 42px 42px;
+  mask-image: linear-gradient(130deg, #000, transparent 72%);
+}
+
+html[data-skin="creator-pop"] body :is(h1, h2, h3, .sidebar-brand, .feed-title, #gift-heading) {
+  font-family: var(--tr-display) !important;
+  font-weight: 750 !important;
+  letter-spacing: -.035em !important;
+  text-transform: none;
+}
+
+html[data-skin="creator-pop"] body .app-sidebar {
+  background: linear-gradient(180deg, #382d4d, #261e38) !important;
+  border-right: 2px solid #ff78b766 !important;
+  border-radius: 0 28px 28px 0 !important;
+  box-shadow: 14px 0 40px #130d2055 !important;
+}
+
+html[data-skin="creator-pop"] body .sidebar-brand {
+  color: #fff;
+  text-shadow: 0 3px 0 #ff78b755;
+}
+
+html[data-skin="creator-pop"] body .app-sidebar [data-section-nav] {
+  margin-block: 1px;
+  border-radius: 13px !important;
+}
+
+html[data-skin="creator-pop"] body .app-sidebar [data-section-nav].active {
+  border-color: transparent !important;
+  background: linear-gradient(100deg, #70e6d426, #ff78b71c) !important;
+  color: #8ff3e4 !important;
+  box-shadow: inset 0 0 0 1px #70e6d447 !important;
+}
+
+html[data-skin="creator-pop"] body :is(
+  .app > .session-panel,
+  .live-columns > .feed-wrap,
+  .live-columns > .participants-bar,
+  .live-columns > .gifts-column,
+  .setting-card,
+  .voice-summary,
+  dialog
+) {
+  border-radius: 24px !important;
+  border-color: #796491aa !important;
+  box-shadow: 0 16px 34px #120d2038 !important;
+}
+
+html[data-skin="creator-pop"] body .app > .session-panel {
+  padding: 22px 24px !important;
+  background:
+    radial-gradient(circle at 100% 0, #ff78b71d, transparent 34%),
+    radial-gradient(circle at 0 100%, #70e6d417, transparent 38%),
+    #302744 !important;
+}
+
+html[data-skin="creator-pop"] body .session-panel .session-identity h2 {
+  font-size: 28px !important;
+  color: #fff;
+}
+
+html[data-skin="creator-pop"] body .signal-route {
+  gap: 9px;
+  padding: 12px;
+  border: 0;
+  border-radius: 18px;
+  background: #211a32a6;
+}
+
+html[data-skin="creator-pop"] body .signal-stage {
+  padding: 9px 11px;
+  border: 1px solid #78638e7d;
+  border-radius: 14px;
+  background: #44375e99;
+}
+
+html[data-skin="creator-pop"] body .signal-stage:not(:last-child)::after { display: none; }
+
+html[data-skin="creator-pop"] body .signal-stage-dot {
+  width: 12px;
+  height: 12px;
+  border-width: 3px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--stage-color) 38%, transparent);
+}
+
+html[data-skin="creator-pop"] body .signal-stage[data-state="active"] {
+  transform: translateY(-2px) rotate(-.35deg);
+  border-color: #70e6d4a6;
+  background: linear-gradient(120deg, #70e6d41e, #ff78b714);
+}
+
+html[data-skin="creator-pop"] body .session-panel .stats-bar { gap: 8px; }
+
+html[data-skin="creator-pop"] body .session-panel .stat-card {
+  padding: 10px 13px;
+  border-radius: 15px !important;
+  background: #251d38a3 !important;
+}
+
+html[data-skin="creator-pop"] body .session-panel .stat-card::before {
+  inset: 9px auto 9px 0;
+  width: 4px;
+  border-radius: 99px;
+}
+
+html[data-skin="creator-pop"] body .live-columns :is(.feed-header, .participants-head, #gift-heading) {
+  background: linear-gradient(100deg, #44375e99, #352a4e66);
+}
+
+html[data-skin="creator-pop"] body .live-columns .comment-card {
+  margin: 8px 0;
+  padding: 13px 15px;
+  border: 1px solid #6d5b827a !important;
+  border-radius: 18px 18px 18px 5px;
+  background: #3b3052c2 !important;
+}
+
+html[data-skin="creator-pop"] body .live-columns .comment-card:nth-child(even) {
+  border-radius: 18px 18px 5px 18px;
+  background: #352d50c7 !important;
+}
+
+html[data-skin="creator-pop"] body :is(button, summary, .tool-buttons > a) {
+  border-radius: 14px !important;
+}
+
+html[data-skin="creator-pop"] body :is(button, .comment-card, .signal-stage) {
+  transition: transform .2s cubic-bezier(.2, .9, .25, 1.3), border-color .18s, background-color .18s;
+}
+
+@media (hover: hover) {
+  html[data-skin="creator-pop"] body button:hover:enabled { transform: translateY(-2px); }
+}
+
+html[data-skin="creator-pop"] body .mobile-command-dock {
+  border-radius: 22px;
+  background: #302744f0;
+  box-shadow: 0 14px 34px #120d207a;
+}
+
+/* --------------------------------------------------------------------------
+   GUION DE ESTUDIO — a production rundown with cues, rules and timecode ink
+   -------------------------------------------------------------------------- */
+html[data-skin="studio-rundown"] {
+  --skin-bg: #eeeae0;
+  --skin-surface: #fffdf7;
+  --skin-raised: #e9e4d8;
+  --skin-border: #aaa597;
+  --skin-text: #20272b;
+  --skin-muted: #646b6d;
+  --skin-accent: #356f8c;
+  --skin-accent-2: #c54437;
+  --skin-accent-ink: #ffffff;
+  --skin-danger: #b83b32;
+  --skin-warning: #91651e;
+  --skin-wash: #e0ddd3;
+  --skin-shadow: #1b242b1c;
+  --tr-display: Georgia, "Times New Roman", serif;
+  --tr-body: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --tr-data: "Cascadia Mono", Consolas, monospace;
+  --control-field-radius: 0px;
+  --control-field-height: 42px;
+  color-scheme: light;
+}
+
+html[data-skin="studio-rundown"] body {
+  background-color: #eeeae0;
+  background-image:
+    linear-gradient(90deg, transparent 0 71px, #c5443730 72px, transparent 73px),
+    repeating-linear-gradient(0deg, transparent 0 31px, #356f8c13 31px 32px);
+}
+
+html[data-skin="studio-rundown"] body::before {
+  opacity: .6;
+  background: radial-gradient(circle at 90% 4%, #356f8c12, transparent 34%);
+}
+
+html[data-skin="studio-rundown"] body :is(h1, h2, h3, .sidebar-brand, .feed-title, #gift-heading) {
+  font-family: var(--tr-display) !important;
+  font-weight: 700 !important;
+  letter-spacing: -.035em !important;
+  text-transform: none;
+}
+
+html[data-skin="studio-rundown"] body .app-sidebar {
+  --nav-surface: #20272b;
+  --nav-raised: #2a3338;
+  --nav-ink: #fffdf7;
+  --nav-muted: #d7dedd;
+  --nav-line: #59666b;
+  --nav-accent: #f1c1bb;
+  --nav-wash: #303a3f;
+  background: #20272b !important;
+  border-right: 6px solid #c54437 !important;
+  box-shadow: 8px 0 0 #fffdf7, 10px 0 0 #aaa597 !important;
+}
+
+html[data-skin="studio-rundown"] body .sidebar-brand { color: #fffdf7; }
+html[data-skin="studio-rundown"] body .app-sidebar > small,
+html[data-skin="studio-rundown"] body .app-sidebar .nav-section-label { color: #aeb8ba; }
+html[data-skin="studio-rundown"] body .app-sidebar [data-section-nav] { color: #d7dedd; }
+
+html[data-skin="studio-rundown"] body .app-sidebar [data-section-nav].active {
+  border-bottom-color: #f1c1bb !important;
+  color: #fff !important;
+  box-shadow: inset 4px 0 #c54437 !important;
+}
+
+html[data-skin="studio-rundown"] body #app-sidebar [data-section-nav]:is(:hover, :focus-visible),
+html[data-skin="studio-rundown"] body #app-sidebar :is(.nav-group > details, .nav-advanced-section) > summary:is(:hover, :focus-visible) {
+  border-bottom-color: #879396 !important;
+  background: #ffffff0b !important;
+  color: #fffdf7 !important;
+}
+
+html[data-skin="studio-rundown"] body #app-sidebar [data-section-nav].active:is(:hover, :focus-visible),
+html[data-skin="studio-rundown"] body #app-sidebar :is(.nav-group > details, .nav-advanced-section):has([aria-current="page"]) > summary:is(:hover, :focus-visible) {
+  border-bottom-color: #f1c1bb !important;
+  background: #c544371c !important;
+  color: #fff !important;
+}
+
+html[data-skin="studio-rundown"] body #app-sidebar :is([data-section-nav], summary):is(:hover, :focus-visible) .sidebar-icon {
+  color: currentColor !important;
+}
+
+html[data-skin="studio-rundown"] body .app > header {
+  border-bottom: 2px solid #20272b;
+}
+
+html[data-skin="studio-rundown"] body .app > header #section-title { color: #4b5558; }
+
+html[data-skin="studio-rundown"] body :is(
+  .app > .session-panel,
+  .live-columns > .feed-wrap,
+  .live-columns > .participants-bar,
+  .live-columns > .gifts-column,
+  .config-content,
+  .setting-card,
+  .voice-summary,
+  dialog
+) {
+  border-radius: 0 !important;
+  box-shadow: 5px 5px 0 #20272b12 !important;
+}
+
+html[data-skin="studio-rundown"] body .app > .session-panel {
+  position: relative;
+  padding: 24px 24px 20px 34px !important;
+  border: 1px solid #8f8b81 !important;
+  border-left: 5px solid #c54437 !important;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 31px, #356f8c0d 31px 32px),
+    #fffdf7 !important;
+}
+
+html[data-skin="studio-rundown"] body .app > .session-panel::before {
+  content: "RUN OF SHOW";
+  position: absolute;
+  top: -12px;
+  right: 18px;
+  padding: 4px 8px;
+  border: 1px solid #c54437;
+  background: #fffdf7;
+  color: #c54437;
+  font: 700 9px/1 var(--tr-data);
+  letter-spacing: .14em;
+  transform: rotate(-1deg);
+}
+
+html[data-skin="studio-rundown"] body .session-panel .session-identity h2 {
+  color: #20272b;
+  font-size: 28px !important;
+}
+
+html[data-skin="studio-rundown"] body .signal-route {
+  padding: 0;
+  border-block: 2px solid #20272b;
+  background: #fffdf7;
+}
+
+html[data-skin="studio-rundown"] body .signal-stage {
+  min-height: 54px;
+  padding: 8px 12px 8px 10px;
+  border-right: 1px solid #aaa597;
+}
+
+html[data-skin="studio-rundown"] body .signal-stage:last-child { border-right: 0; }
+html[data-skin="studio-rundown"] body .signal-stage:not(:last-child)::after { display: none; }
+
+html[data-skin="studio-rundown"] body .signal-stage::before {
+  content: attr(data-stage);
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  color: #7c817f;
+  font: 500 7px/1 var(--tr-data);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+html[data-skin="studio-rundown"] body .signal-stage-dot {
+  border-color: #fffdf7;
+  box-shadow: 0 0 0 1px var(--stage-color);
+}
+
+html[data-skin="studio-rundown"] body .signal-stage strong { color: #20272b; }
+
+html[data-skin="studio-rundown"] body .session-panel .stats-bar {
+  gap: 0;
+  border-top: 1px solid #aaa597;
+}
+
+html[data-skin="studio-rundown"] body .session-panel .stat-card {
+  min-height: 46px;
+  padding: 8px 14px;
+  border-right: 1px solid #aaa597 !important;
+}
+
+html[data-skin="studio-rundown"] body .session-panel .stat-card:last-child { border-right: 0 !important; }
+html[data-skin="studio-rundown"] body .session-panel .stat-card::before { display: none; }
+
+html[data-skin="studio-rundown"] body .live-columns :is(.feed-header, .participants-head, #gift-heading) {
+  border-bottom: 2px solid #20272b;
+  background: #f2eee5;
+}
+
+html[data-skin="studio-rundown"] body .live-columns .comment-card {
+  position: relative;
+  padding: 13px 12px 13px 28px;
+  border-bottom-color: #aaa597 !important;
+  background: transparent !important;
+}
+
+html[data-skin="studio-rundown"] body .live-columns .comment-card::before {
+  content: "CUE";
+  position: absolute;
+  top: 17px;
+  left: 0;
+  color: #c54437;
+  font: 700 8px/1 var(--tr-data);
+  letter-spacing: .08em;
+}
+
+html[data-skin="studio-rundown"] body .live-columns .comment-user { color: #356f8c; }
+
+html[data-skin="studio-rundown"] body :is(button, summary, .tool-buttons > a) {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-skin="studio-rundown"] body :is(.settings-heading, .settings-stack > .setting-card) {
+  border-color: #8f8b81 !important;
+}
+
+html[data-skin="studio-rundown"] body .settings-order {
+  border: 0 !important;
+  border-bottom: 2px solid #c54437 !important;
+  color: #c54437 !important;
+  font-weight: 700;
+}
+
+html[data-skin="studio-rundown"] body .mobile-command-dock {
+  border: 2px solid #20272b;
+  border-radius: 0;
+  background: #fffdf7f2;
+}
+
+@media (max-width: 760px) {
+  html[data-skin="broadcast-console"] body .signal-stage { border-right: 0; border-bottom: 1px solid #2f383d; }
+  html[data-skin="creator-pop"] body .signal-route { gap: 6px; padding: 8px; }
+  html[data-skin="creator-pop"] body .signal-stage { padding: 8px; }
+  html[data-skin="studio-rundown"] body .app > .session-panel { padding-inline: 20px 14px !important; }
+  html[data-skin="studio-rundown"] body .signal-stage { border-right: 0; border-bottom: 1px solid #aaa597; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="creator-pop"] body :is(button, .comment-card, .signal-stage) { transition: none !important; transform: none !important; }
+}

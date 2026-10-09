@@ -1,11 +1,12 @@
 (()=>{
- const key=document.body.dataset.effect,root=document.getElementById('effect-stage'),preview=new URLSearchParams(location.search).get('preview')==='1',queue=new EffectQueue({limit:key==='cannon'?30:4,maxAge:key==='cannon'?Infinity:12000});let livePush=false,refreshTimer=0;
+ const key=document.body.dataset.effect,root=document.getElementById('effect-stage'),params=new URLSearchParams(location.search),preview=params.get('preview')==='1',catalog=params.has('catalog'),queue=new EffectQueue({limit:key==='cannon'?30:4,maxAge:key==='cannon'?Infinity:12000});let livePush=false,refreshTimer=0,paused=document.hidden;
  let epoch=null,cursor=0;
  const sample={user:'TikReader',gift:'Rosa',count:10,title:'¡Lo logramos!'};
  if(preview){
   let sampleSettings={...window.OverlayAnimationDefaults(key),sound:'none'};
   const demo=sample;
   const submit=()=>{const captured={...sampleSettings};const run=()=>OverlayAnimationRenderer.render(root,key,captured,demo,true);run.units=demo.count;queue.submit(run);};
+  if(catalog){if(window.OverlayStudio)submit();else window.addEventListener('tikreader:studio-ready',submit,{once:true});return;}
   if(key==='cannon'){
    document.body.classList.add('cannon-preview');const tools=document.createElement('aside');tools.className='cannon-queue-controls';
    const count=document.createElement('span'),retry=document.createElement('button'),pause=document.createElement('button'),clear=document.createElement('button');
@@ -23,7 +24,7 @@
   });
   if(window.OverlayStudio)submit();else window.addEventListener('tikreader:studio-ready',submit,{once:true});return;
  }
- async function refresh(){try{
+ async function refresh(){if(paused)return;try{
   const r=await fetch('/broadcast/animations/'+key,{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();
   if(epoch!==d.epoch){queue.clear();epoch=d.epoch;cursor=d.serial;}
   if(d.muted){queue.clear();if(key==='cannon')root.replaceChildren();}else for(const e of d.events)if(e.id>cursor){
@@ -35,7 +36,9 @@
    queue.submit(()=>OverlayAnimationRenderer.render(root,key,e.settings,e.record));
   }
   cursor=d.serial;
- }catch(_){if(key!=='cannon')queue.clear();}finally{clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,livePush?5000:800);}}
- window.addEventListener('tikreader:runtime-ready',event=>{livePush=true;event.detail?.onData?.(()=>{clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,0);});});
+ }catch(_){if(key!=='cannon')queue.clear();}finally{clearTimeout(refreshTimer);if(!paused)refreshTimer=setTimeout(refresh,livePush?5000:800);}}
+ function setPaused(value){paused=!!value;clearTimeout(refreshTimer);if(paused)queue.clear();else refreshTimer=setTimeout(refresh,0);}
+ window.addEventListener('visibilitychange',()=>setPaused(document.hidden));window.addEventListener('pagehide',()=>setPaused(true),{once:true});
+ window.addEventListener('tikreader:runtime-ready',event=>{livePush=true;event.detail?.onData?.(()=>{clearTimeout(refreshTimer);if(!paused)refreshTimer=setTimeout(refresh,0);});event.detail?.lifecycle?.onPause?.(setPaused);});
  if(window.OverlayStudio)refresh();else window.addEventListener('tikreader:studio-ready',refresh,{once:true});
 })();

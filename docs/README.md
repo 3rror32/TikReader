@@ -1,81 +1,85 @@
 # TikReader
 
-**TikReader es una cabina local para preparar y operar transmisiones en vivo.** Reúne comentarios y actividad de TikTok Live —y, de forma opcional, YouTube Live y Twitch— con herramientas de voz, moderación, overlays e historial.
+Consulta [ESTRUCTURA.md](ESTRUCTURA.md) para localizar el código, los recursos y las herramientas.
 
-> Diseñado para trabajar primero en el equipo local: la conexión de red local es opcional y debe habilitarse deliberadamente.
+Consulta [Estudio y comunidad](ESTUDIO_Y_COMUNIDAD.md) para el editor de escenas,
+analítica, batallas, calendario, perfiles y nuevos juegos del chat.
 
-| A primera vista | Detalle |
-|---|---|
-| 📡 Fuentes | TikTok Live; YouTube Live y Twitch opcionales |
-| 🖥️ Acceso predeterminado | `http://127.0.0.1:5000` en tu equipo |
-| 🌐 Idiomas de interfaz | Español (Latinoamérica), English y Français |
-| 🔐 Datos externos | Las claves y tokens de YouTube y Twitch se mantienen en memoria |
+Panel local para leer y administrar comentarios, regalos, participantes y elementos de producción de TikTok Live.
 
-## Contenido
+También puede reunir en la misma cabina los chats de **YouTube Live** y **Twitch**.
+Abre **Conectar también YouTube o Twitch** debajo de la conexión principal. Cada
+comentario conserva su plataforma y utiliza los mismos filtros, voz, puntos,
+juegos, automatizaciones e historial. Las claves externas permanecen solo en
+memoria hasta desconectar o cerrar TikReader.
 
-- [Inicio rápido](#inicio-rápido)
-- [Qué puedes hacer](#qué-puedes-hacer)
-- [Configuración y privacidad](#configuración-y-privacidad)
-- [Desarrollo y validación](#desarrollo-y-validación)
-- [Documentación](#documentación)
-- [Solución de problemas](#solución-de-problemas)
+## Inicio rápido
 
-## 🚀 Inicio rápido
-
-En Windows, desde la carpeta del proyecto:
-
-1. Ejecuta `tools/Instalar TikReader.cmd` una vez. Requiere Python disponible mediante `py -3` y conexión a Internet para crear `.venv` e instalar `requirements.txt`.
+1. Ejecuta `tools/Instalar TikReader.cmd` una sola vez.
 2. Ejecuta `Iniciar TikReader.cmd`.
-3. Abre `http://127.0.0.1:5000` si la interfaz no aparece automáticamente. Ingresa el usuario de una transmisión activa y pulsa **Conectar**.
+3. Abre `http://127.0.0.1:5000` si el navegador no se abre automáticamente.
 
-El lanzador comprueba dependencias y puede reutilizar un servidor ya activo. No instala dependencias por sí solo. Para revisar requisitos de arranque sin iniciar la interfaz, ejecuta `python app/launcher.py --check`.
+La interfaz inicia en **Básico**: una ruta de tres pasos para indicar la cuenta,
+probar la voz y preparar los overlays. Integraciones externas, colas, audiencia y
+diagnósticos avanzados permanecen fuera de esa ruta; cambia a **Avanzado** cuando
+necesites operarlos.
 
-## ✨ Qué puedes hacer
+El instalador crea un acceso directo **TikReader** en el escritorio con el icono TR. Si ya tienes el programa instalado, ejecuta `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\create_shortcut.ps1` desde esta carpeta para crear el acceso directo sin reinstalar dependencias. Los iconos del navegador, de Windows y de instalación web están en `assets/icons/`.
 
-- **Leer y organizar el chat:** conectar TikTok Live; añadir YouTube Live o Twitch; aplicar filtros; gestionar voz, preguntas y moderación.
-- **Preparar la transmisión:** configurar escenas, overlays, alertas y ventanas de producción para el programa de streaming.
-- **Usar funciones interactivas:** puntos y niveles, juegos del chat y conectores locales opcionales, como Minecraft.
-- **Consultar y cuidar los datos:** revisar sesiones, crear respaldos y usar herramientas de diagnóstico, operación y recuperación.
-- **Trabajar en varios idiomas:** la interfaz ofrece Español (Latinoamérica), English y Français. Esto no traduce los mensajes recibidos.
+Por seguridad, el servidor escucha únicamente en este equipo. Para habilitar deliberadamente el panel remoto en la red local, define `TIKREADER_LAN=1` antes de iniciar. Los controles completos siguen restringidos al equipo local; el moderador remoto requiere una clave temporal.
 
-Consulta la [guía de operación](INSTRUCCIONES.md) para los pasos, límites y detalles de cada función.
+Al habilitar la red local, TikReader añade una clave de solo lectura a las URLs
+de overlays que copia desde el panel. Vuelve a copiar las URLs después de esta
+actualización: las direcciones antiguas sin clave ya no abren overlays desde otro
+equipo. La clave no permite cambiar ajustes ni controlar la transmisión.
 
-## 🔒 Configuración y privacidad
+En **Centro de control** puedes revisar, antes de salir al aire, el espacio libre,
+el historial, los overlays, el motor de TikTok y los componentes opcionales. La
+sección **Componentes locales** muestra cuánto ocupa cada motor y permite retirar
+Kokoro o RVC con una confirmación escrita; el historial y los modelos personales
+no se eliminan desde esa pantalla.
 
-- De forma predeterminada, la interfaz escucha solo en este equipo (`127.0.0.1`) en el puerto `5000`. `TIKREADER_PORT` permite cambiar el puerto; `TIKREADER_LOG_LEVEL` cambia el nivel de registro.
-- Para habilitar escucha en la red local, establece `TIKREADER_LAN=1` antes de iniciar. No expongas el panel a Internet: consulta las condiciones del [moderador remoto](INSTRUCCIONES.md#moderador-limitado-y-seguridad). Las claves de acceso por HTTP no están cifradas.
-- Las claves y tokens de YouTube y Twitch se mantienen en memoria y no se guardan en la base de datos, respaldos, diagnósticos ni almacenamiento del navegador; tendrás que ingresarlos de nuevo tras reiniciar.
-- Los comentarios y regalos se guardan localmente en el historial. Los respaldos pueden incluir nombres y comentarios: protégelos como información privada. Ocultar datos en una vista pública no elimina los originales del historial.
-- Las voces y otros componentes opcionales pueden requerir descargas adicionales. Revisa sus [dependencias y licencias](LOCAL_TTS_LICENSES.md) antes de instalarlos.
+Variables disponibles: `TIKREADER_PORT`, `TIKREADER_LAN` y `TIKREADER_LOG_LEVEL`.
 
-## 🧪 Desarrollo y validación
+## Idiomas de la interfaz
 
-Para instalar dependencias de desarrollo, ejecuta `python -m pip install -r requirements-dev.txt`. La comprobación del proyecto es:
+El selector **Idioma**, en la cabecera, permite cambiar entre **Español (Latinoamérica)** (`es-419`, predeterminado), **English** y **Français** sin recargar. La elección se conserva en este navegador y se sincroniza entre pestañas del mismo origen. El panel de moderación también incluye el selector. Si el almacenamiento no está disponible, el cambio funciona durante la visita actual.
+
+Los catálogos, iconos, estilos y tipografías se sirven localmente, sin Google
+Fonts ni servicios de traducción externos. La interfaz usa las tipografías del
+sistema y continúa funcionando sin Internet; la conexión solo es necesaria para
+las plataformas en vivo o para instalar componentes opcionales. El idioma de la
+interfaz no cambia los comentarios recibidos ni el idioma configurado para la
+lectura o traducción del chat. Los mensajes sin traducción disponible conservan
+su texto original.
+
+Para ampliar las traducciones, agrega una fila `texto original|inglés|francés` en `web/static/translations.js`. `web/static/i18n.js` adapta los textos y atributos de la interfaz existente después de su inicialización, conserva los valores de las opciones y observa los controles dinámicos. Usa `translate="no"` para contenido de usuarios; no uses etiquetas traducidas como identificadores de acciones. Los mensajes nuevos con parámetros pueden usar `window.I18n.t('Texto {count}', {count: 2})` y actualizarse con el evento `tikreader:localechange`.
+
+Pruebas de internacionalización: `node --test tests/test_i18n.cjs`.
+
+## Validación
 
 ```powershell
 python tools/check_changes.py
 ```
 
-También puedes ejecutar una prueba individual del navegador con `node --test tests/test_i18n.cjs`. Para validar hardware, audio y el programa de streaming, sigue la [validación física](VALIDACION_FISICA.md); las pruebas automatizadas no sustituyen esa comprobación.
+El comando ejecuta las pruebas Python, las pruebas del navegador, la compilación
+TypeScript/Vite, Ruff, cobertura y la comprobación del instalador. La aplicación conserva registros
+técnicos rotativos durante 30 días en `data/logs`; la salida redirigida del proceso
+se limita a 2 MB por archivo con cuatro copias. El tráfico HTTP normal no se
+registra línea por línea y los registros no deben contener comentarios ni nombres
+de participantes.
 
-## 📚 Documentación
+Para habilitar cobertura, Ruff y el muestreo opcional de memoria:
 
-| Guía | Para qué sirve |
-|---|---|
-| [Instrucciones](INSTRUCCIONES.md) | Operación, conexiones, voz, moderación, overlays, historial y herramientas. |
-| [Estructura](ESTRUCTURA.md) | Organización del código y recursos. |
-| [Estudio y comunidad](ESTUDIO_Y_COMUNIDAD.md) | Escenas, comunidad, batallas, calendario, perfiles y juegos. |
-| [Overlays visuales](OVERLAYS_VISUALES.md) | Arquitectura y desarrollo de overlays para OBS. |
-| [Modo simulación](SIMULACION.md) | Alcance y validación del modo de simulación. |
-| [Recuperación](RECUPERACION.md) | Respaldo y recuperación de datos. |
-| [Instalación beta](BETA_INSTALACION.md) | Notas de instalación de la versión beta. |
-| [Voces locales](LOCAL_TTS_LICENSES.md) | Motores de voz, dependencias y licencias. |
+```powershell
+python -m pip install -r requirements-dev.txt
+```
 
-## 🛠️ Solución de problemas
+Antes de una transmisión ejecuta `python app/launcher.py --check`. Para una prueba prolongada de cuatro horas usa `python tools/soak_test.py --seconds 14400 --pid PID`; el reporte se guarda en `data/diagnostics`. La comprobación de audio, el programa de streaming y red física está en [VALIDACION_FISICA.md](VALIDACION_FISICA.md).
 
-- **No inicia:** revisa el mensaje de la consola y ejecuta `python app/launcher.py --check` para detectar dependencias faltantes o un puerto ocupado.
-- **No conecta o no aparecen mensajes:** verifica que la transmisión esté activa y que el chat esté habilitado. Solo se muestran eventos recibidos durante la conexión; los tiempos de espera también pueden depender de TikTok o la red.
-- **No se escucha la voz en la transmisión:** incluye el audio de la ventana/panel de TikReader en la mezcla de audio del programa de streaming y verifica la salida seleccionada.
-- **Necesitas recuperar datos:** cierra TikReader y sigue [Recuperación completa](RECUPERACION.md).
+Las voces RVC funcionan en un entorno aislado y consumen más GPU/CPU. Los modelos se guardan en `assets/voice_models`; instala el motor oficial con `python tools/setup_rvc.py` y reinicia TikReader. Usa solamente modelos que tengas autorización para ejecutar.
 
-Para límites conocidos y diagnósticos adicionales, consulta [Diagnóstico en las instrucciones](INSTRUCCIONES.md#diagnóstico).
+Consulta [INSTRUCCIONES.md](INSTRUCCIONES.md) para operación, el programa de streaming, moderación y recuperación.
+
+El chat y la lista de participantes muestran las insignias que TikTok proporcione; si no llegan datos, no se inventan niveles. El botón «👋 Saludar» reproduce un saludo por voz local usando los controles de Voz (incluidas pausas y silencio de emergencia). No publica mensajes en TikTok; para que se escuche en el LIVE, el audio del panel debe estar incluido en tu transmisión.

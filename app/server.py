@@ -30,6 +30,7 @@ from collections import deque, OrderedDict
 from uuid import uuid4
 from urllib.parse import urlsplit
 from importlib.metadata import version as package_version
+from importlib.util import find_spec
 from flask import Flask, send_from_directory
 from history_store import HistoryStore
 from automatic_backups import AutomaticBackups
@@ -45,23 +46,65 @@ from observability import RuntimeMetrics, configure_logging
 from runtime_state import RuntimeState
 
 # ── TikTokLive imports ──────────────────────────────────────────────────────
-TIKTOKLIVE_AVAILABLE = False
-TIKTOKLIVE_VERSION = "desconocida"
-
+TIKTOKLIVE_AVAILABLE = find_spec("TikTokLive") is not None
 try:
-    from TikTokLive import TikTokLiveClient
-    from TikTokLive.events import CommentEvent, ConnectEvent, DisconnectEvent, LikeEvent, GiftEvent, RoomUserSeqEvent, JoinEvent
-    try:
-        from TikTokLive.events import EmoteChatEvent
-    except ImportError:
-        EmoteChatEvent = None
-    TIKTOKLIVE_AVAILABLE = True
+    TIKTOKLIVE_VERSION = package_version("TikTokLive") if TIKTOKLIVE_AVAILABLE else "desconocida"
+except Exception:
+    TIKTOKLIVE_VERSION = "desconocida"
 
-    TIKTOKLIVE_VERSION = package_version("TikTokLive")
+_TIKTOKLIVE_LOADED = False
+_TIKTOKLIVE_IMPORT_ERROR = None
+_TIKTOKLIVE_IMPORT_LOCK = threading.Lock()
+_TIKTOKLIVE_OBJECTS = {}
+_TIKTOKLIVE_EXPORTS = {
+    "TikTokLiveClient", "CommentEvent", "ConnectEvent", "DisconnectEvent", "LikeEvent",
+    "GiftEvent", "RoomUserSeqEvent", "JoinEvent", "EmoteChatEvent",
+}
 
-    print(f"[INFO] TikTokLive {TIKTOKLIVE_VERSION} cargada correctamente.")
-except ImportError as e:
-    print(f"[WARN] TikTokLive no disponible ({e}).")
+
+def _load_tiktoklive():
+    """Load the LIVE client on first use instead of delaying the whole application."""
+    global TIKTOKLIVE_AVAILABLE, _TIKTOKLIVE_LOADED, _TIKTOKLIVE_IMPORT_ERROR
+    if _TIKTOKLIVE_LOADED:
+        return True
+    if not TIKTOKLIVE_AVAILABLE:
+        return False
+    with _TIKTOKLIVE_IMPORT_LOCK:
+        if _TIKTOKLIVE_LOADED:
+            return True
+        try:
+            from TikTokLive import TikTokLiveClient as client_class
+            from TikTokLive.events import (
+                CommentEvent as comment_event, ConnectEvent as connect_event,
+                DisconnectEvent as disconnect_event, LikeEvent as like_event,
+                GiftEvent as gift_event, RoomUserSeqEvent as room_user_event,
+                JoinEvent as join_event,
+            )
+            try:
+                from TikTokLive.events import EmoteChatEvent as emote_event
+            except ImportError:
+                emote_event = None
+        except ImportError as exc:
+            TIKTOKLIVE_AVAILABLE = False
+            _TIKTOKLIVE_IMPORT_ERROR = exc
+            print(f"[WARN] TikTokLive no disponible ({exc}).")
+            return False
+        _TIKTOKLIVE_OBJECTS.update(
+            TikTokLiveClient=client_class, CommentEvent=comment_event, ConnectEvent=connect_event,
+            DisconnectEvent=disconnect_event, LikeEvent=like_event, GiftEvent=gift_event,
+            RoomUserSeqEvent=room_user_event, JoinEvent=join_event, EmoteChatEvent=emote_event,
+        )
+        globals().update(_TIKTOKLIVE_OBJECTS)
+        _TIKTOKLIVE_LOADED = True
+        print(f"[INFO] TikTokLive {TIKTOKLIVE_VERSION} cargada correctamente.")
+        return True
+
+
+def __getattr__(name):
+    """Keep event classes available to integrations without eager importing them."""
+    if name in _TIKTOKLIVE_EXPORTS and _load_tiktoklive():
+        return _TIKTOKLIVE_OBJECTS[name]
+    raise AttributeError(name)
 
 # ── App setup ───────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -356,6 +399,7 @@ def handle_like_event(event):
         like_ranking.event(feed_session,like_record,count)
         interactive.event("like",like_record,event_key)
         points.event("like",like_record,event_key,max(1,count))
+        animation_studio.event('like', {**like_record, 'count':max(1,count)}, event_key)
         overlay_animations.event('like', {**like_record, 'count':max(1,count)}, event_key)
         print(f"[Likes] cantidad={count}, total={total}, mostrado={state['like_count']}")
         publish_stats()
@@ -768,6 +812,9 @@ def run_tiktok_live(username: str):
     global tiktok_client, tiktok_loop, tiktok_task
     failure = None
 
+    if not _load_tiktoklive():
+        return "LIBRARY_ERROR"
+
     def report_error(error):
         nonlocal failure
         failure = error["code"]
@@ -878,14 +925,15 @@ def run_tiktok_live(username: str):
             event_type=getattr(extra_events,event_name,None)
             if event_type:
                 async def on_extra(event, kind=kind):
-                    message_id=getattr(getattr(event,'common',None),'msg_id',0)
-                    if message_id:
-                        extra_record={"user":getattr(getattr(event,"user",None),"unique_id",None), "avatar_url":avatar_url(getattr(event,"user",None))}
-                        live_counters.event(kind,message_id,extra_record)
-                        interactive.event(kind,extra_record,message_id)
-                        points.event(kind,extra_record,message_id)
-                        overlay_animations.event(kind,extra_record,message_id)
-                        publish_stats()
+                    message_id=getattr(getattr(event,'common',None),'msg_id',0) or uuid4().hex
+                    extra_record={"user":getattr(getattr(event,"user",None),"unique_id",None), "avatar_url":avatar_url(getattr(event,"user",None))}
+                    live_counters.event(kind,message_id,extra_record)
+                    interactive.event(kind,extra_record,message_id)
+                    points.event(kind,extra_record,message_id)
+                    animation_studio.event(kind,extra_record,message_id)
+                    overlay_animations.event(kind,extra_record,message_id)
+                    socketio.emit("overlay_event", {"type": kind, "data": extra_record})
+                    publish_stats()
                 client.on(event_type)(on_extra)
 
         # ── Correr cliente con timeout de conexión y mejor manejo de errores ──
@@ -1031,6 +1079,7 @@ def run_tiktok_session(username):
 from history_routes import register_history_routes
 from studio_routes import register_studio_routes
 import widget_routes
+import bank_assets
 from diagnostics_routes import register_diagnostics_routes
 
 WIDGET_DEFAULTS = widget_routes.WIDGET_DEFAULTS
@@ -1040,6 +1089,7 @@ validate_widget_settings = widget_routes.validate_widget_settings
 register_history_routes(app, sys.modules[__name__])
 register_studio_routes(app, sys.modules[__name__])
 widget_routes.register_widget_routes(app, sys.modules[__name__])
+bank_assets.register_routes(app)
 register_diagnostics_routes(app, sys.modules[__name__])
 
 
@@ -1132,7 +1182,7 @@ def start_connection(username):
             "detail": "Ingresa el usuario de TikTok, no una URL ni el nombre visible.",
             "suggestion": "Usa de 2 a 24 letras, números, puntos o guiones bajos.",
         }
-    if not TIKTOKLIVE_AVAILABLE:
+    if not _load_tiktoklive():
         return {
             "code": "LIBRARY_ERROR", "title": "TikTokLive no disponible",
             "detail": "No se pudo cargar la librería de conexión.",
@@ -1250,6 +1300,7 @@ def handle_stop_platform(data):
 from runtime_bootstrap import register_runtime_services
 _services = register_runtime_services(app, sys.modules[__name__], PROJECT_ROOT, runtime_config_value, runtime_metrics)
 production = _services.production
+custom_overlays = _services.custom_overlays
 microphone_captions = _services.microphone_captions
 points = _services.points
 live_counters = _services.live_counters

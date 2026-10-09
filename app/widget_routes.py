@@ -36,7 +36,7 @@ def validate_widget_settings(data, panel=None):
             result[key] = str(data[key])
     if result["theme"] not in ("dark", "light", "neon", "minimal", "custom"):
         raise ValueError("Tema inválido")
-    if result["font_family"] not in ("Arial", "Verdana", "Georgia", "Trebuchet MS", "Courier New", "Segoe UI", "system-ui"):
+    if result["font_family"] not in ("Inter", "Arial", "Verdana", "Georgia", "Trebuchet MS", "Courier New", "Segoe UI", "system-ui"):
         raise ValueError("Fuente inválida")
     if result["alignment"] not in ("left", "center", "right") or result["layout"] not in ("stack", "grid"):
         raise ValueError("Distribución inválida")
@@ -55,6 +55,21 @@ def validate_widget_settings(data, panel=None):
         if key in data and type(data[key]) is not bool:
             raise ValueError("Opción inválida")
         result[key] = data.get(key, result[key]) is True
+    if panel == "timer":
+        title = str(data.get("timer_title", result["timer_title"])).strip()
+        result["timer_title"] = title[:40] or "TIEMPO RESTANTE"
+        result["timer_format"] = str(data.get("timer_format", result["timer_format"]))
+        if result["timer_format"] not in ("auto", "hms", "ms"):
+            raise ValueError("Formato de temporizador inválido")
+        result["timer_digit_animation"] = str(data.get("timer_digit_animation", result["timer_digit_animation"]))
+        if result["timer_digit_animation"] not in ("none", "pulse", "slide", "flip"):
+            raise ValueError("Animación del temporizador inválida")
+        for key in ("timer_show_label", "timer_show_state", "timer_glow"):
+            if key in data and type(data[key]) is not bool:
+                raise ValueError("Opción de temporizador inválida")
+            result[key] = data.get(key, result[key]) is True
+        result["timer_animation_speed"] = max(120, min(1400, int(data.get("timer_animation_speed", result["timer_animation_speed"]))))
+        result["timer_warning_seconds"] = max(0, min(3600, int(data.get("timer_warning_seconds", result["timer_warning_seconds"]))))
     return result
 
 

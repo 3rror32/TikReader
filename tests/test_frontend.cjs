@@ -5,6 +5,15 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const script = fs.readFileSync(`${__dirname}/../web/static/core_ui.js`, 'utf8');
 
+test('TikTok connecting indicator has an animated, reduced-motion-safe mark', () => {
+  const html = fs.readFileSync(`${__dirname}/../web/templates/index.html`, 'utf8');
+  const css = fs.readFileSync(`${__dirname}/../web/static/live_presence.css`, 'utf8');
+  assert.match(html, /class="connect-button__spinner" aria-hidden="true"/);
+  assert.match(css, /#btn-connect\.is-connecting \.connect-button__spinner/);
+  assert.match(css, /connect-orbit/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce[\s\S]*?connect-button__spinner[\s\S]*?animation:\s*none/);
+});
+
 function setup() {
   const feed = {
     children: [], scrollTop: 0,
@@ -58,6 +67,33 @@ test('chat extras render safe badges and greet through local manual voice only',
   assert.match(button.title,/no envía/);
   button.events.click();
   assert.deepEqual(spoken,['¡Hola, Carlos! Gracias por acompañarnos.']);
+});
+
+test('automatic reading toggles keep a fixed label and expose state through aria', () => {
+  function element() {
+    const events={}, attributes={}, classes=new Set();
+    return {
+      checked:false, textContent:'', events,
+      addEventListener(name,fn){events[name]=fn;},
+      dispatchEvent(event){events[event.type]?.(event);},
+      setAttribute(name,value){attributes[name]=value;},
+      getAttribute(name){return attributes[name];},
+      classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)},
+    };
+  }
+  const setting=element(), button=element(), state=element();
+  const window={};
+  vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/chat_extras.js`,'utf8'), {
+    window, URL, Event, MutationObserver:class {observe(){}},
+    document:{createElement:element,getElementById:id=>id==='tts-gifts-enabled'?setting:state},
+  });
+  window.ChatExtras.bindAutoToggle(button,'tts-gifts-enabled','lectura automática de regalos','Leer regalos');
+  assert.equal(button.textContent,'Leer regalos');
+  assert.equal(button.getAttribute('aria-pressed'),'false');
+  button.events.click();
+  assert.equal(button.textContent,'Leer regalos');
+  assert.equal(button.getAttribute('aria-pressed'),'true');
+  assert.equal(button.classList.contains('enabled'),true);
 });
 
 test('manual greetings work with automatic voice off and respect emergency mute', () => {
@@ -260,6 +296,14 @@ test('gift voice priority ignores initial history and repeated streak snapshots'
   assert.equal(spoken[0].text,'sender regaló Rosa, cantidad 2');
 });
 
+test('local alert test reports emergency mute instead of a false success', () => {
+  const {studio,element}=setupStudio();
+  studio.mute(true);
+  element('alert-test').onclick();
+  assert.match(element('alert-local-status').textContent,/silenciada/);
+  assert.doesNotMatch(element('alert-local-status').textContent,/Prueba enviada/);
+});
+
 test('known zero likes and one viewer render as numbers, not missing data', () => {
   const {context,document}=setup();
   context.applyStats({session:'A',revision:1,comments:0,likes:0,gifts:0,viewers:1,likes_known:true,viewers_known:true,likes_source:'room',like_events:0});
@@ -340,11 +384,11 @@ test('gift panel rejects activity rankings that are not verified gifts', () => {
   assert.equal(document.getElementById('gift-empty').hidden,false);
 });
 
-test('unknown viewers display zero while likes wait for data, and stale snapshots are rejected', () => {
+test('new sessions display zero until likes and viewers are updated, and stale snapshots are rejected', () => {
   const {context, document} = setup();
   const initial={session:'A',revision:1,comments:0,gifts:0,likes:0,viewers:0,likes_known:false,viewers_known:false};
   context.applyStats(initial);
-  assert.equal(document.getElementById('stat-likes').textContent,'—');
+  assert.equal(document.getElementById('stat-likes').textContent,'0');
   assert.equal(document.getElementById('stat-viewers').textContent,'0');
   context.applyStats({...initial,revision:2,likes_known:true,viewers_known:true});
   assert.equal(document.getElementById('stat-likes').textContent,'0');
