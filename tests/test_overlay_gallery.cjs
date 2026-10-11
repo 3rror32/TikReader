@@ -47,8 +47,25 @@ test('overlay control selection clears stale status without intro notices',()=>{
 test('overlay navigation exposes the built-in and user package destinations',()=>{
  for(const label of ['Animaciones','Efectos','Herramientas','Metas','Favoritos','Mis overlays','Mis animaciones'])assert.match(shell,new RegExp(`"${label}"`));
  for(const key of ['animations','effects','tools','goals'])assert.match(gallery,new RegExp(`key:'${key}'`));
- assert.match(shell,/key==='overlay-my-animations'\)viewKey='alerts'/);
- assert.match(shell,/key==='overlay-custom'\)viewKey='custom-overlays'/);
+ const start=shell.indexOf(' const overlaySections='),end=shell.indexOf(' function focusDestination');
+ assert.ok(start>=0&&end>start,'the authored route resolver must be present');
+ const resolveRoute=vm.runInNewContext(`${shell.slice(start,end)};resolveRoute`,{
+  views:new Map(['overlay-gallery','alerts','custom-overlays'].map(key=>[key,{}])),destinationLabels:new Map()
+ });
+ for(const [key,viewKey,activeKey,section] of [
+  ['overlay-gallery','overlay-gallery','overlay-favorites','favorites'],
+  ...['favorites','animations','effects','tools','goals'].map(section=>[`overlay-${section}`,'overlay-gallery',`overlay-${section}`,section]),
+  ['overlay-custom','custom-overlays','overlay-custom',''],
+  ['overlay-my-animations','alerts','overlay-my-animations',''],
+  ['animation-studio','alerts','overlay-my-animations','']
+ ]){
+  const route=resolveRoute(key);
+  assert.ok(route,`${key} is a known destination`);
+  assert.equal(route.key,key,'aliases retain their URL identity');
+  assert.equal(route.viewKey,viewKey,key);
+  assert.equal(route.activeKey,activeKey,key);
+  assert.equal(route.overlaySection,section,key);
+ }
  assert.match(gallery,/section==='favorites'\)renderFavoritesView/);
 });
 
