@@ -31,6 +31,12 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
       - name: Instalar dependencias web
         run: npm ci
+      - name: Install pinned operator test browser
+        run: npx playwright install chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/runtime/playwright-browsers
+      - name: Verify operator browser contracts
+        run: npm run test:operator
       - name: Validar programa, interfaz e instalador
         run: python tools/check_changes.py
       - name: Conservar reporte de cobertura
@@ -40,4 +46,12 @@ jobs:
           name: reporte-calidad-${{ github.run_number }}
           path: runtime/.coverage
           if-no-files-found: error
+          retention-days: 14
+      - name: Preserve operator browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operator-browser-${{ github.run_number }}
+          path: runtime/operator-browser
+          if-no-files-found: ignore
           retention-days: 14

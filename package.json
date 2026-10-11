@@ -3,9 +3,12 @@
   "scripts": {
     "dev:overlays": "vite",
     "build:overlays": "tsc --noEmit && vite build",
-    "check:overlays": "tsc --noEmit"
+    "check:overlays": "tsc --noEmit",
+    "test:operator": "playwright test -c playwright.config.cjs",
+    "test:operator:update": "playwright test -c playwright.config.cjs"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/matter-js": "^0.20.2",
     "@types/node": "^26.6.2",
