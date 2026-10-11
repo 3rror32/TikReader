@@ -103,13 +103,14 @@ test('keyboard navigation restores history and destination focus without initial
 
 test('all 22 themes retain named controls, focus, and reload-persistent preferences', async ({ operator }) => {
   test.setTimeout(120000);
-  const { page } = operator;
+  const { page, signalBackendReady } = operator;
   expect(await page.locator('#skin-select option').evaluateAll(nodes => nodes.map(node => node.value).sort())).toEqual([...themes].sort());
   for (const theme of themes) {
     await test.step(theme, async () => {
       await chooseTheme(page, theme);
       await expect(page.getByRole('combobox', { name: 'Tema de la cabina' })).toHaveValue(theme);
       await page.reload();
+      await signalBackendReady();
       await expect(page.locator('html')).toHaveAttribute('data-skin', theme);
       await navigate(page, 'live');
       const input = page.getByRole('textbox', { name: 'Usuario de TikTok', exact: true });
@@ -185,8 +186,9 @@ test('changed reduced-motion preference cancels active motion and survives reloa
 });
 
 test('mobile keyboard navigation closes the menu without replacing destination focus', async ({ operator }) => {
-  const { page } = operator;
+  const { page, signalBackendReady } = operator;
   await page.setViewportSize({ width: 360, height: 640 });
+  await signalBackendReady();
   await navigate(page, 'workspace', true);
   await expect(page.locator('body')).not.toHaveClass(/menu-open/);
   await expect(page.locator('#menu-toggle')).toHaveAttribute('aria-expanded', 'false');

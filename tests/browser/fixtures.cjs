@@ -49,6 +49,7 @@ const socketScript = `(() => {
     off(event, callback) { listeners.set(event, (listeners.get(event) || []).filter(row => row !== callback)); return this; },
     emit(event, payload) { this.sent.push({event, payload}); return this; },
     receive(event, payload) { for (const callback of listeners.get(event) || []) callback(payload); },
+    listenerCount(event) { return (listeners.get(event) || []).length; },
   };
   window.__operatorSocket = socket;
   window.io = () => socket;
@@ -69,6 +70,7 @@ function apiResponse(url) {
 }
 
 const test = base.extend({
+  operatorStartupScenario: [{}, { option: true }],
   origin: [async ({}, use) => {
     const types = { '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
       '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
@@ -84,7 +86,7 @@ const test = base.extend({
     await use(`http://127.0.0.1:${server.address().port}`);
     await new Promise(resolve => server.close(resolve));
   }, { scope: 'worker' }],
-  operator: async ({ origin }, use, testInfo) => {
+  operator: async ({ origin, operatorStartupScenario }, use, testInfo) => {
     const extension = path.join(__dirname, 'zoom-extension');
     const profiles = path.join(root, 'runtime/playwright-browsers/profiles');
     fs.mkdirSync(profiles, { recursive: true });
@@ -95,7 +97,8 @@ const test = base.extend({
       args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
     });
     const preferences = Object.fromEntries(Object.entries(seed).filter(([key]) => preferenceKeys.includes(key)));
-    const blocked = [], requests = [], errors = [], assetResponses = [];
+    const blocked = [], requests = [], errors = [], assetResponses = [], assetTransfers = [];
+    const startupScenario = { ...operatorStartupScenario };
     const assetTypes = { '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
       '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
     // Context-level routing protects frames and new pages as well as the main tab.
@@ -107,16 +110,30 @@ const test = base.extend({
         await route.fulfill({ contentType: 'text/html', body: template(preferences) }); return;
       }
       if (url.pathname === '/static/vendor/socket.io/socket.io.min.js') {
-        await route.fulfill({ contentType: 'text/javascript', body: socketScript }); return;
+        const start = process.hrtime.bigint();
+        await route.fulfill({ contentType: 'text/javascript', body: socketScript });
+        assetTransfers.push({ pathname: url.pathname, status: 200, bytes: Buffer.byteLength(socketScript), elapsedMs: Number(process.hrtime.bigint() - start) / 1e6 });
+        return;
       }
       if (url.pathname.startsWith('/static/')) {
         const asset = resolveStaticAsset(url.pathname);
         if (!asset) {
           await route.fulfill({ status: 404, body: 'Fixture asset not found.' }); return;
         }
+        const start = process.hrtime.bigint();
+        if (startupScenario.delayPath === url.pathname && startupScenario.delayMs) {
+          await new Promise(resolve => setTimeout(resolve, startupScenario.delayMs));
+        }
+        if (startupScenario.failOncePath === url.pathname) {
+          startupScenario.failOncePath = null;
+          assetTransfers.push({ pathname: url.pathname, status: 503, bytes: 0, elapsedMs: Number(process.hrtime.bigint() - start) / 1e6 });
+          await route.fulfill({ status: 503, body: 'Deterministic startup fixture failure.' }); return;
+        }
+        const body = fs.readFileSync(asset);
         assetResponses.push({ pathname: url.pathname, file: asset, status: 200 });
-        await route.fulfill({ contentType: assetTypes[path.extname(asset)] || 'application/octet-stream',
-          body: fs.readFileSync(asset) }); return;
+        await route.fulfill({ contentType: assetTypes[path.extname(asset)] || 'application/octet-stream', body });
+        assetTransfers.push({ pathname: url.pathname, status: 200, bytes: body.byteLength, elapsedMs: Number(process.hrtime.bigint() - start) / 1e6 });
+        return;
       }
       requests.push({ path: url.pathname, method: request.method(), body: request.postDataJSON() });
       if (url.pathname === '/system/preferences' && request.method() === 'POST') {
@@ -146,20 +163,33 @@ const test = base.extend({
     }, seed);
     const page = context.pages()[0];
     page.on('pageerror', error => errors.push(error.stack || error.message));
-    await page.goto(origin);
-    await expect(page.locator('html')).not.toHaveAttribute('data-ui-loading');
-    await expect(page.locator('#btn-connect')).toBeVisible();
-    await expect(page.locator('html')).toHaveAttribute('data-skin', 'original');
-    await page.evaluate(() => window.__operatorSocket.receive('connect'));
-    await expect(page.locator('.app-sidebar')).toBeAttached();
-    const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
-    const zoom = factor => worker.evaluate(({ url, factor }) => globalThis.operatorZoom(url, factor), { url: page.url(), factor });
+    let navigation;
+    const start = () => navigation ||= page.goto(origin);
+    const signalBackendReady = async () => {
+      await page.evaluate(() => window.__operatorSocket?.receive('connect'));
+      await expect(page.locator('html')).toHaveAttribute('data-operator-boot-state', 'backend-ready');
+    };
+    if (!startupScenario.deferNavigation) {
+      await start();
+      await expect(page.locator('#operator-boot-status')).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-operator-boot-state', 'shell-ready');
+      await expect(page.locator('#btn-connect')).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-skin', 'original');
+      await expect(page.locator('.app-sidebar')).toBeAttached();
+      await signalBackendReady();
+      await expect(page.locator('#operator-boot-status')).toBeHidden();
+    }
+    const zoom = async factor => {
+      const worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
+      return worker.evaluate(({ url, factor }) => globalThis.operatorZoom(url, factor), { url: page.url(), factor });
+    };
     const captureOptions = () => ({ animations: 'disabled',
       mask: [page.locator('input[type="password"], #kick-client-id, #kick-webhook-path, #twitch-nickname')],
       maskColor: '#182330', caret: 'hide' });
-    try { await use({ page, context, preferences, blocked, requests, errors, assetResponses, zoom, captureOptions }); }
+    try { await use({ page, context, preferences, blocked, requests, errors, assetResponses, assetTransfers,
+      start, signalBackendReady, zoom, captureOptions }); }
     finally {
-      await testInfo.attach('fixture-requests', { body: JSON.stringify({ requests: requests.map(({path, method}) => ({path, method})), blocked, errors }, null, 2), contentType: 'application/json' });
+      await testInfo.attach('fixture-requests', { body: JSON.stringify({ requests: requests.map(({path, method}) => ({path, method})), blocked, errors, assetTransfers }, null, 2), contentType: 'application/json' });
       await context.close();
       // Delete only this fixture's generated profile inside the authorized cache.
       if (!path.resolve(profile).startsWith(path.resolve(profiles) + path.sep)) {

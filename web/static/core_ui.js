@@ -360,10 +360,12 @@ function recoverConnection() {
 socket.on('connect_error', () => {
   setStatus('No se pudo conectar al servidor. Comprueba que siga ejecutándose.', 'err');
   setButtons(false);
+  window.OperatorBoot?.backendLost();
 });
 
 socket.on('connect', () => {
   syncFeed();
+  window.OperatorBoot?.backendReady();
 });
 
 socket.on('reconnecting', ({username, attempt, delay, maximum}) => {
@@ -377,6 +379,7 @@ socket.on('disconnect', () => {
   setStatus('🔌 Desconectado del servidor.', 'err');
   showLiveBadge(false);
   setButtons(false);
+  window.OperatorBoot?.backendLost();
 });
 
 socket.on('connecting', ({ username }) => {
@@ -390,9 +393,11 @@ socket.on('connected', ({ username }) => {
   setStatus(`🟢 Conectado a @${username}`, 'ok');
   showLiveBadge(true);
   setButtons(true);
+  window.OperatorBoot?.tiktokLive();
 });
 
 socket.on('disconnected', ({ reason }) => {
+  window.OperatorBoot?.tiktokOffline();
   if (reason === 'Cerrando conexión') { setStatus('Cerrando conexión…'); return; }
   if (document.getElementById('status-bar').dataset.errorKind !== 'classified') {
     if (stopIntent === 'cancelled' || document.body.dataset.liveState === 'cancelled') setStatus('Conexión cancelada.');
@@ -412,6 +417,7 @@ socket.on('error', ({ message }) => {
 
 // Error clasificado de TikTok
 socket.on('tiktok_error', (err) => {
+  window.OperatorBoot?.tiktokOffline();
   setStatus(`❌ ${err.title}`, 'err');
   showLiveBadge(false);
   setButtons(false);          // re-habilita Conectar

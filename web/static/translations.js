@@ -1,6 +1,18 @@
 /* Spanish (Latin America) source | English | French. Keep placeholders identical. */
 window.TikReaderTranslations = (() => {
   const rows = `
+Estructura visible|Useful interface structure is visible|La structure utile de l’interface est visible
+Preparando el menú y la conexión local…|Preparing the menu and local connection…|Préparation du menu et de la connexion locale…
+Menú listo|Menu ready|Menu prêt
+Conectando con el servicio local…|Connecting to the local service…|Connexion au service local…
+Servicio local listo|Local service ready|Service local prêt
+TikTok todavía no está conectado.|TikTok is not connected yet.|TikTok n’est pas encore connecté.
+Conexión de TikTok confirmada.|TikTok connection confirmed.|Connexion à TikTok confirmée.
+No se pudo completar el inicio.|Startup could not be completed.|Le démarrage n’a pas pu aboutir.
+El inicio no respondió. Puedes reintentar sin cerrar el estudio.|Startup did not respond. You can retry without closing the studio.|Le démarrage n’a pas répondu. Vous pouvez réessayer sans fermer le studio.
+TikReader sigue mostrando la interfaz. Reintenta el inicio para recuperar las funciones.|TikReader is still showing the interface. Retry startup to restore controls.|TikReader affiche toujours l’interface. Réessayez le démarrage pour restaurer les commandes.
+Reintentar|Retry|Réessayer
+JavaScript está desactivado. La estructura del estudio permanece visible, pero las funciones interactivas requieren JavaScript.|JavaScript is disabled. The studio layout remains visible, but interactive features require JavaScript.|JavaScript est désactivé. La structure du studio reste visible, mais les fonctions interactives nécessitent JavaScript.
 Conexión cancelada|Connection cancelled|Connexion annulée
 Revisar conexión|Review connection|Vérifier la connexion
 Revisa el usuario y la conexión antes de reintentar.|Check the username and connection before retrying.|Vérifiez le nom d’utilisateur et la connexion avant de réessayer.

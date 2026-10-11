@@ -63,6 +63,23 @@ are Windows/Chromium captures; a different OS, font installation or rendering
 environment can legitimately change pixels and requires deliberate review, not
 automatic acceptance.
 
+## Startup readiness and recovery
+
+The static operator shell is visible before application scripts finish. Its
+controls remain inert until both the navigation shell and local backend/socket
+are ready. `document-structure-ready`, `shell-ready`, `backend-ready`, and
+`tiktok-live` are separate states; a healthy backend does not claim an active
+TikTok connection. If a critical script fails or startup stalls, the visible
+status panel offers a retry; retry reloads the page rather than rebinding app
+listeners in place. The no-JavaScript markup explains that controls require
+JavaScript while retaining the static shell.
+
+The deterministic startup browser tests attach observed cold/warm static asset
+request counts and response bytes, DOMContentLoaded and first-contentful-paint
+milestones, boot-controller timings, and injected critical-script failure
+evidence. These are fixture measurements for comparison, not performance
+budgets or measurements of a live production service.
+
 ## Keyboard, motion and real zoom
 
 The suite operates real keyboard events, checks destination heading focus,

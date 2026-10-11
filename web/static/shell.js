@@ -318,5 +318,5 @@ window.Shell=(()=>{
  }
  window.addEventListener('popstate',restoreRoute);window.addEventListener('hashchange',restoreRoute);
  show(location.hash.slice(1)||'live',{history:'replace',focus:false});
- const api={show,registerView};window.dispatchEvent(new CustomEvent('tikreader:shell-ready',{detail:api}));return api;
+ const api={show,registerView};window.dispatchEvent(new CustomEvent('tikreader:shell-ready',{detail:api}));window.OperatorBoot?.shellReady();return api;
 })();

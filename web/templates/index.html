@@ -13,11 +13,12 @@
   <link rel="manifest" href="/static/manifest.webmanifest">
   <meta name="theme-color" content="#0a0a0f">
   <link rel="stylesheet" href="/static/moderator-production.css">
+  <link rel="stylesheet" href="/static/operator_boot.css?v=ux5">
+  <script src="/static/operator_boot.js?v=ux5"></script>
   <meta name="description" content="Lee comentarios de TikTok Live en tiempo real con una interfaz moderna y atractiva." />
 
 
-  <!-- Keep the initial DOM rearrangement out of the first visible frame. -->
-  <style>html[data-ui-loading] body { opacity: 0 !important; pointer-events: none !important; }</style>
+  <!-- Select the saved theme before the first visible frame. -->
   <script>
     (() => {
       const root = document.documentElement;
@@ -26,17 +27,9 @@
         const saved = localStorage.getItem('tikreader.skin');
         root.dataset.skin = skins.includes(saved) ? saved : 'original';
       } catch (_) { root.dataset.skin = 'original'; }
-      root.setAttribute('data-ui-loading', '');
       document.addEventListener('DOMContentLoaded', () => {
         try { document.body.classList.toggle('basic-mode', JSON.parse(localStorage.getItem('tikreader.interfaceMode')) !== 'advanced'); }
         catch (_) { document.body.classList.add('basic-mode'); }
-      }, { once: true });
-      const reveal = () => root.removeAttribute('data-ui-loading');
-      // Recover even if an external script stalls. With JS disabled nothing is hidden.
-      const fallback = setTimeout(reveal, 8000);
-      document.addEventListener('DOMContentLoaded', () => {
-        clearTimeout(fallback);
-        reveal();
       }, { once: true });
     })();
   </script>
@@ -592,7 +585,18 @@
 <link rel="stylesheet" href="/static/ui_foundation.css?v=1"><link rel="stylesheet" href="/static/skins_extra.css?v=glass-2"><link rel="stylesheet" href="/static/overlay_catalog.css?v=direct-sections-2"><link rel="stylesheet" href="/static/custom_overlays.css?v=1"><link rel="stylesheet" href="/static/ui_typography.css?v=2"><link rel="stylesheet" href="/static/basic_mode.css?v=usability-1"><link rel="stylesheet" href="/static/visual_refresh.css?v=20261005-responsive-settings"><link rel="stylesheet" href="/static/theme_personalities.css?v=2"><link rel="stylesheet" href="/static/theme_signature_collection.css?v=menu-copy-2"><link rel="stylesheet" href="/static/motion_system.css?v=1"><link rel="stylesheet" href="/static/form_controls.css?v=2"><link rel="stylesheet" href="/static/theme_accessibility.css?v=4"><link rel="stylesheet" href="/static/theme_layout_safety.css?v=1"><script src="/static/overlay_url.js?v=2"></script></head>
 <body class="basic-mode" data-app-version="{{ app_version | default('1.0.0.8', true) }}" data-lan-enabled="{{ 'true' if lan_enabled else 'false' }}" data-lan-view-token="{{ lan_view_token | default('', true) }}">
 
-<div class="app">
+<section id="operator-boot-status" class="operator-boot-status" data-state="document-structure-ready"
+  aria-live="polite" aria-atomic="true" aria-labelledby="operator-boot-title">
+  <span class="operator-boot-mark" aria-hidden="true">TR</span>
+  <div class="operator-boot-copy">
+    <strong id="operator-boot-title" data-boot-message>Estructura visible</strong>
+    <p data-boot-detail>Preparando el menú y la conexión local…</p>
+  </div>
+  <button id="operator-boot-retry" type="button" hidden>Reintentar</button>
+  <noscript><p class="operator-boot-noscript">JavaScript está desactivado. La estructura del estudio permanece visible, pero las funciones interactivas requieren JavaScript.</p></noscript>
+</section>
+
+<div class="app" inert aria-busy="true">
 
   <!-- HEADER -->
   <header>
