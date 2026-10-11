@@ -66,3 +66,19 @@ test('loading an enabled profile keeps voice and local alerts paused after reloa
   }));
   expect(reactivated).toEqual({voice:'true',alerts:true});
 });
+
+test('UX-6 dynamic outcome templates translate and interpolate their runtime values', async ({ operator }) => {
+  const translated = await operator.page.evaluate(() => {
+    window.I18n.setLocale('en');
+    return [
+      window.I18n.t('No se completó. {error}', {error:'fixture failure'}),
+      window.I18n.t('Aplicado localmente · {notice}', {notice:'profile applied'}),
+      window.I18n.t('¿Activar “{name}”? Los eventos reales coincidentes podrán mostrarla en la transmisión.', {name:'Friday alert'}),
+    ];
+  });
+  expect(translated).toEqual([
+    'Could not complete. fixture failure',
+    'Applied locally · profile applied',
+    'Enable “Friday alert”? Matching real events may show it on stream.',
+  ]);
+});

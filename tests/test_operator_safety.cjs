@@ -38,3 +38,20 @@ test('consequential profile and alert requests are guarded against duplicate sub
   assert.ok(/button\('Activar todas',[\s\S]*?if\(!\(window\.I18n\?\.confirm/.test(alerts), 'alert activation is confirmed');
   assert.ok(/b\.disabled=true;try\{await fn\(\)/.test(reliability), 'reliability actions disable while pending');
 });
+
+test('UX-6 dynamic outcomes translate with explicit interpolated values', () => {
+  const templates = read('web/static/translations.js');
+  const requirements = [
+    ['web/static/animation_studio.js', 'No se completó. {error}'],
+    ['web/static/animation_studio.js', 'La prueba no se envió. {error}'],
+    ['web/static/animation_studio.js', '¿Activar “{name}”? Los eventos reales coincidentes podrán mostrarla en la transmisión.'],
+    ['web/static/creator.js', 'Aplicado localmente · {notice}'],
+    ['web/static/overlay_gallery.js', 'No se aplicó el cambio. {error}'],
+    ['web/static/reliability.js', 'No se completó. {error}'],
+  ];
+  for (const [path, key] of requirements) {
+    const source = read(path);
+    assert.ok(source.includes(`window.I18n?.t?.('${key}'`), `${path} translates the template with runtime values`);
+    assert.ok(templates.includes(key + '|'), `translation catalog contains ${key}`);
+  }
+});
