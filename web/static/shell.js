@@ -20,7 +20,10 @@ window.Shell=(()=>{
  function registerView(key,node){
   if(!key||!node)return null;
   const previous=views.get(key);if(previous&&previous!==node)previous.remove();
-  return add(key,node);
+  add(key,node);
+  if(pendingRoute?.viewKey===key)show(pendingRoute.key,{history:'none',focus:pendingRoute.focus});
+  else if(currentRoute?.viewKey===key)show(currentRoute.key,{history:'none',focus:false});
+  return node;
  }
  const panes={};for(const pane of document.querySelectorAll('[data-pane]'))panes[pane.dataset.pane]=pane;
  document.querySelector('.studio-tabs').remove();
@@ -254,28 +257,66 @@ window.Shell=(()=>{
  safety.append(panic,status);document.querySelector('.app > header').append(safety);document.body.prepend(sidebar);
  const toggle=document.createElement('button');toggle.id='menu-toggle';toggle.textContent='Menú';toggle.setAttribute('aria-expanded','false');toggle.onclick=()=>{const open=document.body.classList.toggle('menu-open');toggle.setAttribute('aria-expanded',String(open));};document.querySelector('header').prepend(toggle);
  const heading=document.createElement('span');heading.id='section-title';document.querySelector('header').append(heading);
+ heading.setAttribute('role','heading');heading.setAttribute('aria-level','2');heading.setAttribute('tabindex','-1');
+ const overlaySections=new Set(['favorites','animations','effects','tools','goals']);
+ const creatorTabs=new Set(['scenes','community','battles','calendar','profiles','library','games']);
+ let currentRoute=null,pendingRoute=null,navigationSerial=0;
  function menuMotionAllowed(){return !document.body.classList.contains('menu-motion-reduced')&&!matchMedia('(prefers-reduced-motion: reduce)').matches;}
- function show(key){
-  let activeKey=key,viewKey=key,overlaySection='';
-  if(key==='fortune-wheel'||key==='point-drop'){const game=key;activeKey='overlay-tools';viewKey='overlay-gallery';overlaySection='tools';requestAnimationFrame(()=>window.dispatchEvent(new CustomEvent('tikreader:open-overlay',{detail:{key:game}})));}
+ function resolveRoute(key){
+  let activeKey=key,viewKey=key,overlaySection='',creatorTab='',game='';
+  if(key==='fortune-wheel'||key==='point-drop'){game=key;activeKey='overlay-tools';viewKey='overlay-gallery';overlaySection='tools';}
   else if(key==='overlay-gallery'){activeKey='overlay-favorites';viewKey='overlay-gallery';overlaySection='favorites';}
-  else if(key.startsWith('overlay-')){
-   if(key==='overlay-my-animations')viewKey='alerts';
-   else if(key==='overlay-custom')viewKey='custom-overlays';
-   else{viewKey='overlay-gallery';overlaySection=key.slice(8);}
+  else if(key==='overlay-my-animations'||key==='animation-studio'){activeKey='overlay-my-animations';viewKey='alerts';}
+  else if(key==='overlay-custom')viewKey='custom-overlays';
+  else if(overlaySections.has(key.slice(8))&&key.startsWith('overlay-')){viewKey='overlay-gallery';overlaySection=key.slice(8);}
+  else if(key==='creator-suite'||(key.startsWith('creator-')&&creatorTabs.has(key.slice(8)))){
+   activeKey='creator-suite';viewKey='creator-suite';creatorTab=key==='creator-suite'?'scenes':key.slice(8);
   }
-  if(key==='animation-studio'){activeKey='overlay-my-animations';viewKey='alerts';}
+  else if(key!=='live'&&!views.has(key)&&!destinationLabels.has(key))return null;
+  return {key,activeKey,viewKey,overlaySection,creatorTab,game};
+ }
+ function focusDestination(viewKey){
+  const root=viewKey==='live'?live:views.get(viewKey);
+  const target=[...(root?.querySelectorAll('h1,h2,h3')||[])].find(node=>node.getClientRects().length)||heading;
+  target.setAttribute('tabindex','-1');target.focus();
+ }
+ function show(key,{history:historyMode='push',focus=true}={}){
+  const requested=resolveRoute(typeof key==='string'?key:'');
+  const route=requested||resolveRoute('live');
+  const hash='#'+route.key;
+  if(location.hash!==hash){
+   const replace=!requested||historyMode!=='push';
+   const method=replace?'replaceState':'pushState';
+   history[method](null,'',location.pathname+location.search+hash);
+  }
+  currentRoute=route;
+  pendingRoute=route.viewKey!=='live'&&!views.has(route.viewKey)?{...route,focus}:null;
+  // Declared async destinations keep their URL and show Live until registration completes.
+  const {activeKey,viewKey,overlaySection,creatorTab,game}=pendingRoute?resolveRoute('live'):route;
+  const serial=++navigationSerial;
+  if(creatorTab)window.CreatorBridge?.open(creatorTab);
   const isLive=viewKey==='live';document.body.classList.toggle('config-view',!isLive);config.hidden=isLive;live.hidden=!isLive;for(const [name,node] of views)node.hidden=name!==viewKey;
   if(viewKey==='alerts'&&alertStudio){const custom=activeKey==='overlay-my-animations',title=alertStudio.querySelector('.alerts-page-header h2, :scope > h2'),intro=alertStudio.querySelector('.alerts-page-intro');if(title)title.textContent=custom?'Mis animaciones':'Alertas';if(intro)intro.textContent=custom?'Crea, prueba y activa tus animaciones personalizadas para regalos.':'Diseña, prueba y activa los avisos de tu LIVE.';}
   for(const b of sidebar.querySelectorAll('[data-section-nav]')){b.classList.toggle('active',b.dataset.sectionNav===activeKey);if(b.dataset.sectionNav===activeKey)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}
   const activeButton=sidebar.querySelector(`[data-section-nav="${activeKey}"]`);if(activeButton)activeButton.closest('details')?.setAttribute('open','');
   heading.textContent=destinationLabels.get(activeKey)||links.find(x=>x[1]===viewKey)?.[0]||'';document.body.classList.remove('menu-open');toggle.setAttribute('aria-expanded','false');
-  requestAnimationFrame(()=>{activeButton?.scrollIntoView({block:'nearest',inline:'nearest',behavior:menuMotionAllowed()?'smooth':'auto'});window.dispatchEvent(new CustomEvent('tikreader:navigation-change',{detail:{key:activeKey,label:heading.textContent}}));});
-  if(overlaySection)requestAnimationFrame(()=>window.dispatchEvent(new CustomEvent('tikreader:open-overlay-section',{detail:{section:overlaySection}})));
+  requestAnimationFrame(()=>{
+   if(serial!==navigationSerial)return;
+   activeButton?.scrollIntoView({block:'nearest',inline:'nearest',behavior:menuMotionAllowed()?'smooth':'auto'});
+   window.dispatchEvent(new CustomEvent('tikreader:navigation-change',{detail:{key:activeKey,label:heading.textContent}}));
+   if(overlaySection)window.dispatchEvent(new CustomEvent('tikreader:open-overlay-section',{detail:{section:overlaySection}}));
+   if(game)window.dispatchEvent(new CustomEvent('tikreader:open-overlay',{detail:{key:game}}));
+   if(focus)focusDestination(viewKey);
+  });
   if(viewKey==='history')document.getElementById('history-refresh').click();if(viewKey==='questions')document.getElementById('questions-refresh')?.click();
  }
- const originalShow=show;
- show=function(key){if(key.startsWith('creator-')){window.CreatorBridge?.open(key==='creator-suite'?'scenes':key.slice(8));originalShow('creator-suite');heading.textContent=destinationLabels.get(key)||'Preparar';for(const b of sidebar.querySelectorAll('[data-section-nav]'))if(b.dataset.sectionNav===key){b.classList.add('active');b.setAttribute('aria-current','page');requestAnimationFrame(()=>{b.scrollIntoView({block:'nearest',inline:'nearest',behavior:menuMotionAllowed()?'smooth':'auto'});window.dispatchEvent(new CustomEvent('tikreader:navigation-change',{detail:{key,label:heading.textContent}}));});}return;}originalShow(key);};
- show('live');if(location.hash.slice(1))show(location.hash.slice(1));
+ function restoreRoute(){
+  const key=location.hash.slice(1)||'live';
+  // Browsers can emit both events for one history traversal.
+  if(currentRoute?.key===key&&location.hash==='#'+key)return;
+  show(key,{history:'none',focus:true});
+ }
+ window.addEventListener('popstate',restoreRoute);window.addEventListener('hashchange',restoreRoute);
+ show(location.hash.slice(1)||'live',{history:'replace',focus:false});
  const api={show,registerView};window.dispatchEvent(new CustomEvent('tikreader:shell-ready',{detail:api}));return api;
 })();

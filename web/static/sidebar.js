@@ -447,7 +447,7 @@
   sidebar.addEventListener('click', event => {
     if (event.target.closest('[data-section-nav]')) {
       sync();
-      if (mobile.matches) toggle.focus();
+      // Shell owns destination focus; only dismissing the menu restores its toggle.
     }
   });
   document.addEventListener('keydown', event => {
