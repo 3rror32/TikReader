@@ -15,6 +15,122 @@ from unittest.mock import Mock, patch
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _mock_starter_launch(scenario):
+    """Run only the authored PowerShell command, never the CMD build or real EXE."""
+    assert os.name == "nt", "Process-image validation is Windows-specific."
+    starter = (ROOT / "Iniciar TikReader.cmd").read_text(encoding="utf-8")
+    launch_line = next(line for line in starter.splitlines() if "Start-Process" in line)
+    command = launch_line.partition('-Command "')[2].rsplit('"', 1)[0]
+    assert command, "The authored PowerShell launch command must be present"
+    mock = r"""
+$script:startCalls=0; $script:sleepCalls=0
+$script:fake=[pscustomobject]@{Id=4242; Path=$null; HasExited=$false; RefreshCount=0}
+if ($env:STARTER_TEST_SCENARIO -eq 'correct') { $script:fake.Path=$env:TIKREADER_SOURCE_LAUNCHER }
+if ($env:STARTER_TEST_SCENARIO -eq 'wrong') { $script:fake.Path=Join-Path $env:TIKREADER_SOURCE_ROOT 'Other.exe' }
+$script:fake | Add-Member -MemberType ScriptMethod -Name Refresh -Value {
+    $this.RefreshCount++
+    if ($env:STARTER_TEST_SCENARIO -eq 'null' -or
+        ($env:STARTER_TEST_SCENARIO -eq 'delayed' -and $this.RefreshCount -ge 3)) {
+        $this.Path=$env:TIKREADER_SOURCE_LAUNCHER
+    }
+    if ($env:STARTER_TEST_SCENARIO -eq 'exited') { $this.HasExited=$true }
+}
+function Start-Process {
+    param($FilePath, $WorkingDirectory, [switch]$PassThru, [switch]$Wait, $ErrorAction)
+    $script:startCalls++
+    if ($Wait) { throw 'The starter must not wait for GUI exit' }
+    if ($env:STARTER_TEST_SCENARIO -eq 'launch-failure') { throw 'mock launch failure' }
+    if ($FilePath -ne $env:TIKREADER_SOURCE_LAUNCHER) { throw 'unexpected configured path' }
+    return $script:fake
+}
+function Start-Sleep {
+    param($Milliseconds)
+    if ($Milliseconds -ne 50) { throw 'Metadata retry delay must be 50 ms' }
+    $script:sleepCalls++
+}
+"""
+    script = mock + "\ntry {\n" + command + "\n} finally {\n" + (
+        "Write-Output ('MOCK_COUNTS:'+$script:startCalls+','+"
+        "$script:fake.RefreshCount+','+$script:sleepCalls)\n}"
+    )
+    work_parent = ROOT / "runtime" / "source-launcher-work"
+    work_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=work_parent) as temporary:
+        folder = Path(temporary)
+        environment = {
+            **os.environ,
+            "STARTER_TEST_SCENARIO": scenario,
+            "TIKREADER_SOURCE_ROOT": str(folder),
+            "TIKREADER_SOURCE_LAUNCHER": str(folder / "TikReader.exe"),
+            "TIKREADER_STARTER_LOG": str(folder / "launcher.log"),
+        }
+        if scenario == "invalid-path":
+            environment["TIKREADER_SOURCE_LAUNCHER"] = '"invalid.exe"'
+        completed = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+            env=environment, capture_output=True, text=True, timeout=15,
+        )
+        counts = re.search(r"MOCK_COUNTS:(\d+),(\d+),(\d+)", completed.stdout)
+        assert counts, completed.stdout + completed.stderr
+        log = folder / "launcher.log"
+        log_text = log.read_text() if log.exists() else ""
+        return completed, tuple(map(int, counts.groups())), log_text
+
+
+def test_starter_accepts_known_image_without_retry_delay():
+    completed, counts, log = _mock_starter_launch("correct")
+    assert completed.returncode == 0, completed.stderr + log
+    assert counts == (1, 1, 0)
+    assert "Started TikReader.exe PID 4242" in log
+
+
+def test_starter_refreshes_initially_null_process_image():
+    completed, counts, log = _mock_starter_launch("null")
+    assert completed.returncode == 0, completed.stderr + log
+    assert counts == (1, 1, 0)
+    assert "Started TikReader.exe PID 4242" in log
+
+
+def test_starter_retries_delayed_image_without_waiting_for_gui_exit():
+    completed, counts, log = _mock_starter_launch("delayed")
+    assert completed.returncode == 0, completed.stderr + log
+    assert counts == (1, 3, 2)
+    assert "Started TikReader.exe PID 4242" in log
+
+
+def test_starter_bounds_persistently_unavailable_image_retries():
+    completed, counts, log = _mock_starter_launch("unavailable")
+    assert completed.returncode != 0
+    assert counts == (1, 20, 19)
+    assert "Process image unavailable" in log
+    assert "Started TikReader.exe" not in log
+
+
+def test_starter_reports_process_exit_before_image_validation():
+    completed, counts, log = _mock_starter_launch("exited")
+    assert completed.returncode != 0
+    assert counts == (1, 1, 0)
+    assert "Process exited before image validation" in log
+
+
+def test_starter_rejects_wrong_image_and_reports_launch_failures():
+    for scenario, diagnostic in [("wrong", "Unexpected process image"),
+                                 ("launch-failure", "Launch failure")]:
+        completed, counts, log = _mock_starter_launch(scenario)
+        assert completed.returncode != 0
+        assert counts[0] == 1
+        assert counts[2] == 0, "Known wrong images and launch failures must not be retried"
+        assert diagnostic in log
+        assert "Started TikReader.exe" not in log
+
+
+def test_starter_validates_configured_path_before_launch():
+    completed, counts, log = _mock_starter_launch("invalid-path")
+    assert completed.returncode != 0
+    assert counts == (0, 0, 0)
+    assert "Invalid source launcher path" in log
+
+
 def test_source_starter_uses_branded_executable_without_python_ui_fallback():
     starter = (ROOT / "Iniciar TikReader.cmd").read_text(encoding="utf-8")
     normalized = starter.lower()
