@@ -12,7 +12,7 @@ if (!accepting && process.argv.some(arg => arg.startsWith('--update-snapshots'))
 
 module.exports = defineConfig({
   testDir: './tests/browser',
-  testMatch: ['operator.spec.cjs', 'startup.spec.cjs'],
+  testMatch: ['operator.spec.cjs', 'startup.spec.cjs', 'safety.spec.cjs'],
   workers: 1,
   fullyParallel: false,
   timeout: 45000,

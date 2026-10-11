@@ -56,6 +56,10 @@ const socketScript = `(() => {
 })();`;
 
 function apiResponse(url) {
+  if (url === '/animation-studio') return { templates: [], connected: false, source_online: false, enabled_count: 0, muted: false };
+  if (url === '/animation-studio/status') return { connected: false, source_online: false, enabled_count: 0, muted: false };
+  if (url === '/animation-studio/media') return { files: [] };
+  if (url === '/gift-catalog') return { gifts: [] };
   if (url === '/system/platform-credentials') return { storage: 'memory', platforms: [] };
   if (url === '/feed') return { comments: [], gifts: [], stats: { comments: 0, likes: 0, gifts: 0, viewers: 0, viewers_known: false } };
   if (url === '/system/voices') return { status: 'idle', ready: false, available: false };
