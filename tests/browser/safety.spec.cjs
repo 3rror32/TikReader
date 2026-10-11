@@ -92,22 +92,20 @@ credentialTest('Kick webhook paths stay private unless intentionally revealed or
   const path = page.locator('#kick-webhook-path');
   const reveal = page.locator('#kick-reveal-webhook');
   const copy = page.locator('#kick-copy-webhook');
-  await expect(path).toHaveText('/kick/webhook/fixture-secret-alpha');
+  await expect(path).toHaveText('••••••••••••');
+  expect(await page.locator('#kick-webhook-secret-source').evaluate(node => node.content.textContent))
+    .toBe('/kick/webhook/fixture-secret-alpha');
   await expect(path).toHaveAttribute('aria-hidden', 'true');
   await expect(reveal).toHaveAttribute('aria-pressed', 'false');
   await expect(reveal).toBeVisible();
   await expect(copy).toBeVisible();
   await expect(page.locator('#kick-webhook-warning')).toContainText('No la compartas');
 
-  const captureBounds = await path.boundingBox();
-  const captureOptions = {animations:'disabled', mask:[path], maskColor:'#182330', clip:captureBounds};
-  const captureA = await page.screenshot(captureOptions);
-  await path.evaluate(node => { node.textContent = '/kick/webhook/fixture-secret-bravo'; });
-  const captureB = await page.screenshot(captureOptions);
-  expect(captureB.equals(captureA)).toBe(true);
-  await path.evaluate(node => { node.textContent = '/kick/webhook/fixture-secret-alpha'; });
-
   await page.context().grantPermissions(['clipboard-read','clipboard-write'], {origin:new URL(page.url()).origin});
+  await copy.click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('/kick/webhook/fixture-secret-alpha');
+  await expect(reveal).toHaveAttribute('aria-pressed','false');
+  await expect(path).toHaveAttribute('aria-hidden','true');
   await reveal.focus();
   await page.keyboard.press('Enter');
   await expect(reveal).toHaveAttribute('aria-pressed', 'true');
@@ -146,4 +144,23 @@ credentialTest('Kick webhook paths stay private unless intentionally revealed or
   await page.locator('[data-platform-delete="kick"]').click();
   expect(confirmation).toContain('Eliminar la credencial guardada de Kick');
   expect(operator.requests.filter(request => request.path === '/system/platform-credentials' && request.method === 'DELETE')).toEqual([]);
+});
+
+credentialTest('concealed Kick webhook pixels stay invariant in forced-colors mode', async ({ operator }) => {
+  const {page} = operator;
+  await page.evaluate(() => window.Shell.show('platform-integrations'));
+  const path = page.locator('#kick-webhook-path');
+  const panel = page.locator('.platform-integration-card:has(#kick-webhook-path)');
+  for (const forcedColors of ['none','active']) {
+    await page.emulateMedia({forcedColors});
+    const captures = [];
+    for (const secret of ['/kick/webhook/fixture-secret-alpha', '/kick/webhook/fixture-secret-bravo', '/k/x']) {
+      await path.evaluate((node, value) => { node.textContent = value; }, secret);
+      await expect(path).toHaveText('••••••••••••');
+      await expect(path).toHaveAttribute('aria-hidden','true');
+      captures.push(await panel.screenshot({animations:'disabled'}));
+    }
+    expect(captures[1].equals(captures[0])).toBe(true);
+    expect(captures[2].equals(captures[0])).toBe(true);
+  }
 });

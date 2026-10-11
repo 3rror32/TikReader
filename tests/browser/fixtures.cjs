@@ -191,7 +191,7 @@ const test = base.extend({
       return worker.evaluate(({ url, factor }) => globalThis.operatorZoom(url, factor), { url: page.url(), factor });
     };
     const captureOptions = () => ({ animations: 'disabled',
-      mask: [page.locator('input[type="password"], #kick-client-id, #kick-webhook-path, #twitch-nickname')],
+      mask: [page.locator('input[type="password"], #kick-client-id, #twitch-nickname')],
       maskColor: '#182330', caret: 'hide' });
     try { await use({ page, context, preferences, blocked, requests, errors, assetResponses, assetTransfers,
       start, signalBackendReady, zoom, captureOptions }); }

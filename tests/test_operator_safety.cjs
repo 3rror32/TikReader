@@ -64,11 +64,15 @@ test('Kick webhook secret visibility is opt-in and never persisted', () => {
   assert.match(html, /id="kick-webhook-warning"[^>]*>[^<]*No la compartas/);
   assert.match(html, /id="kick-reveal-webhook"[^>]*aria-pressed="false"/);
   assert.match(html, /id="kick-webhook-path"[^>]*aria-hidden="true"/);
-  assert.match(styles, /#kick-webhook-path[\s\S]*?color:\s*transparent/);
+  assert.match(html, /<template id="kick-webhook-secret-source"/);
+  assert.match(html, /id="kick-webhook-path"[^>]*>••••••••••••<\/code>/);
+  assert.doesNotMatch(styles, /#kick-webhook-path[\s\S]*?color:\s*transparent/);
   assert.match(styles, /#kick-webhook-path\[data-secret-revealed="true"\]/);
   assert.match(workspace, /kick-reveal-webhook/);
-  assert.match(workspace, /navigator\.clipboard\.writeText\(kickWebhookPath\.textContent/);
-  assert.match(fixtures, /mask:[^\n]*#kick-webhook-path/);
+  assert.match(workspace, /Object\.defineProperty\(kickWebhookPath,'textContent'/);
+  assert.match(workspace, /navigator\.clipboard\.writeText\(textContent\.get\.call\(kickSecretSource\.content\)/);
+  assert.match(fixtures, /mask:[^\n]*#kick-client-id/);
+  assert.doesNotMatch(fixtures, /mask:[^\n]*#kick-webhook-path/);
   assert.match(fixtures, /operatorCredentialScenario/);
   const translations = read('web/static/translations.js');
   for (const source of [

@@ -102,13 +102,12 @@ the editable values available and report failure rather than application.
 Platform credentials use the local-only credential routes and the protected
 credential store; Windows persistence remains user-protected, while unsupported
 protection falls back to memory-only storage. The Kick webhook path is a
-secret-bearing value: its characters are visually suppressed and excluded from
-accessible text until an operator intentionally reveals it. Reveal is
-reversible and resets on reload. Copy writes the real path without revealing it
-and reports only whether the copy succeeded. The browser fixture masks the path
-in screenshots, and distinct synthetic secrets are checked against browser
-storage and capture output. Credential deletion remains confirmation-gated; a
-dismissed confirmation sends no mutation.
+secret-bearing value: while concealed, its real value is held in a non-rendered
+template and the visible code element contains only a constant mask. This keeps
+the concealed UI safe even when forced-colors overrides CSS colors. Reveal is
+reversible and resets on reload. Copy reads the non-rendered value without
+revealing it and reports only whether the copy succeeded. Credential deletion
+remains confirmation-gated; a dismissed confirmation sends no mutation.
 
 ## Keyboard, motion and real zoom
 
@@ -130,11 +129,11 @@ complete accessibility certification, or perceptual review of every theme.
 ## Capture privacy
 
 Use the fixture's `captureOptions()` for every screenshot assertion/capture. It
-masks password inputs, client IDs, stored nicknames and the Kick webhook path.
-Synthetic secret tests compare pixels with different input values and verify
-secrets are absent from local storage and recorded preference state after reload.
-That proves capture redaction, not that every product secret-bearing surface is
-already hidden; default webhook visibility is a separately scoped product task.
+masks password inputs, client IDs and stored nicknames, but deliberately does
+not mask the Kick webhook element. Synthetic secret tests compare unmasked
+pixels across different secret lengths in normal and forced-colors modes, then
+verify secrets are absent from local storage and recorded preference state
+after reload.
 
 Only synthetic fixture values are allowed. Tracing is intentionally disabled:
 DOM snapshots and request bodies can disclose typed secrets even when screenshot
