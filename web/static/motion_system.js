@@ -1,60 +1,61 @@
 (() => {
   'use strict';
 
-  const reduced = () => document.body.classList.contains('menu-motion-reduced')
-    || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const media = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduced = () => media.matches
+    || document.body.classList.contains('menu-motion-reduced')
+    || document.documentElement.dataset.motionLevel === 'reduced';
+  let preferenceRevision = 0;
 
-  function replay(node, className) {
-    if (!node || reduced()) return;
-    node.classList.remove(className);
+  function steadyLiveTally() {
+    // Presence owns the tally state; motion must not make a confirmed LIVE
+    // signal blink away or bypass a changed accessibility preference.
+    for (const dot of document.querySelectorAll('.session-live-dot')) {
+      for (const animation of dot.getAnimations?.() || []) animation.cancel();
+    }
+  }
+
+  function syncMotion() {
+    steadyLiveTally();
+    if (!reduced()) return;
+    preferenceRevision++;
+    for (const node of document.querySelectorAll('.motion-details-open')) {
+      node.classList.remove('motion-details-open');
+    }
+    // CSS covers future effects; Web Animations already running need stopping.
+    // Limit this to console chrome, not independent overlay documents.
+    for (const animation of document.getAnimations?.() || []) {
+      if (animation.effect?.target?.closest('.app, .app-sidebar, .mobile-command-dock')) {
+        animation.cancel();
+      }
+    }
+  }
+
+  function replayDisclosure(node) {
+    if (reduced()) return;
+    const revision = preferenceRevision;
+    node.classList.remove('motion-details-open');
     requestAnimationFrame(() => {
-      node.classList.add(className);
-      node.addEventListener('animationend', () => node.classList.remove(className), { once: true });
+      if (reduced() || revision !== preferenceRevision || !node.open) return;
+      node.classList.add('motion-details-open');
+      node.addEventListener('animationend', () => node.classList.remove('motion-details-open'), { once: true });
     });
   }
 
-  function visibleView() {
-    if (!document.body.classList.contains('config-view')) {
-      return document.querySelector('.live-columns');
-    }
-    return [...document.querySelectorAll('.settings-view:not([hidden]), .studio-pane:not([hidden])')]
-      .find(node => node.getClientRects().length) || document.querySelector('.config-content');
-  }
-
-  window.addEventListener('tikreader:navigation-change', () => replay(visibleView(), 'motion-view-enter'));
-
-  const feed = document.getElementById('comment-feed');
-  if (feed) {
-    new MutationObserver(records => {
-      for (const record of records) for (const node of record.addedNodes) {
-        if (!(node instanceof Element)) continue;
-        if (node.matches('.comment-card')) replay(node, 'motion-comment-arrival');
-        for (const card of node.querySelectorAll?.('.comment-card') || []) replay(card, 'motion-comment-arrival');
-      }
-    }).observe(feed, { childList: true, subtree: true });
-  }
-
-  for (const metric of document.querySelectorAll('.stat-value')) {
-    let previous = metric.textContent;
-    new MutationObserver(() => {
-      if (metric.textContent === previous) return;
-      previous = metric.textContent;
-      replay(metric, 'motion-metric-update');
-    }).observe(metric, { childList: true, characterData: true, subtree: true });
-  }
-
-  const stageObserver = new MutationObserver(records => {
-    for (const record of records) replay(record.target, 'motion-stage-update');
-  });
-  for (const stage of document.querySelectorAll('.signal-stage')) {
-    stageObserver.observe(stage, { attributes: true, attributeFilter: ['data-state'] });
-  }
-
+  // Chat and telemetry remain readable at their final positions. Only a
+  // deliberate disclosure gets a short effect; connection has its own orbit.
   document.addEventListener('toggle', event => {
     const details = event.target;
     if (!(details instanceof HTMLDetailsElement) || !details.open) return;
-    replay(details, 'motion-details-open');
+    replayDisclosure(details);
   }, true);
 
-  requestAnimationFrame(() => document.documentElement.classList.add('motion-system-ready'));
+  media.addEventListener('change', syncMotion);
+  new MutationObserver(syncMotion).observe(document.body, {
+    attributes: true, attributeFilter: ['class', 'data-live-state'],
+  });
+  new MutationObserver(syncMotion).observe(document.documentElement, {
+    attributes: true, attributeFilter: ['data-motion-level'],
+  });
+  syncMotion();
 })();

@@ -35,6 +35,11 @@ test('the disconnected desk has no colored metric pipes', () => {
   assert.match(presence, /const state = mode !== 'live' \? 'inactive' : pending \? 'pending'/);
 });
 
+test('warnings stay quieter than classified errors across the legacy skin cascade', () => {
+  assert.match(css, /html\[data-skin\] body \.session-panel :is\(#status-bar\.warn, \.session-warning\)\s*\{[^}]*border-color: var\(--tr-divider\) !important[^}]*color: var\(--skin-text, var\(--tr-day\)\) !important/s);
+  assert.match(css, /#error-panel\s*\{[^}]*var\(--skin-danger/s);
+});
+
 test('the refresh omits the four-stage signal strip while retaining live empty-state updates', () => {
   assert.doesNotMatch(js, /signal-route|signal-stage|stageDefinitions|stageNodes|syncSignalRoute|signalObserver|voiceIsOn/);
   assert.doesNotMatch(css, /\.signal-route|\.signal-stage|tr-signal-flow/);

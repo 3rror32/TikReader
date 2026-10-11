@@ -149,13 +149,11 @@ html body .session-panel #btn-connect.btn-primary {
   font-size: 13px; font-weight: 750; letter-spacing: .1px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--skin-accent-ink) 12%, transparent),
     0 3px 10px color-mix(in srgb, var(--skin-accent) 24%, transparent) !important;
-  transition: background-position .24s ease, box-shadow .18s ease, transform 100ms ease;
+  transition: background-position .24s ease, box-shadow .18s ease;
 }
 html body:not([data-live-state="live"]) .session-panel #btn-connect { display: inline-flex; }
 .session-panel #btn-connect::before {
-  content: ''; position: absolute; z-index: 0; inset: 0 auto 0 -70%; width: 55%;
-  background: linear-gradient(112deg, transparent, rgb(255 255 255 / .34), transparent);
-  transform: skewX(-18deg); pointer-events: none; animation: connect-shimmer 6.5s ease-in-out infinite;
+  display: none;
 }
 .session-panel #btn-connect .connect-button__icon { width: 18px; height: 18px; flex: 0 0 18px; }
 .session-panel #btn-connect .connect-button__pending { display: inline-flex; align-items: center; gap: 9px; }
@@ -163,13 +161,9 @@ html body:not([data-live-state="live"]) .session-panel #btn-connect { display: i
 .session-panel #btn-connect [hidden] { display: none; }
 .session-panel #btn-connect .connect-button__spinner {
   width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent;
-  border-radius: 50%; animation: connect-spin .7s linear infinite;
+  border-radius: 50%; animation: connect-spin 1.1s linear infinite;
 }
 html body .session-panel #btn-connect > :not([hidden]) { position: relative; z-index: 1; }
-@keyframes connect-shimmer {
-  0%, 76%, 100% { transform: translateX(0) skewX(-18deg); }
-  88% { transform: translateX(340%) skewX(-18deg); }
-}
 @keyframes connect-spin { to { transform: rotate(360deg); } }
 html body .session-panel #btn-connect.is-connecting { animation: none; cursor: progress; }
 html body .session-panel #btn-connect[aria-busy="true"] {
@@ -183,10 +177,9 @@ html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not
     var(--skin-accent) 78%) !important;
   background-size: 220% 100% !important; background-position: 88% 50% !important;
   border-color: var(--skin-accent) !important;
-  transform: scale(1.03) !important;
-  box-shadow: 0 0 15px color-mix(in srgb, #25f4ee 32%, transparent),
-    0 0 20px color-mix(in srgb, #fe2c55 26%, transparent),
-    0 5px 15px color-mix(in srgb, var(--skin-accent) 34%, transparent) !important;
+  transform: none !important;
+  box-shadow: inset 2px 0 color-mix(in srgb, #25f4ee 60%, var(--skin-accent)),
+    inset -2px 0 color-mix(in srgb, #fe2c55 60%, var(--skin-accent)) !important;
 }
 html body .session-panel #btn-connect.btn-primary:focus-visible:not(:disabled):not([aria-disabled="true"]) {
   outline: 2px solid transparent !important; outline-offset: 3px;
@@ -198,7 +191,7 @@ html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([ari
     color-mix(in srgb, var(--skin-accent) 80%, var(--skin-accent-ink)) 48%,
     color-mix(in srgb, var(--skin-accent) 90%, var(--skin-accent-ink)) 78%) !important;
   background-size: 220% 100% !important; background-position: 50% 50% !important;
-  transform: scale(0.95) !important;
+  transform: none !important;
   box-shadow: inset 0 2px 5px color-mix(in srgb, var(--skin-accent-ink) 18%, transparent) !important;
 }
 html body .session-panel #btn-connect.btn-primary:disabled {

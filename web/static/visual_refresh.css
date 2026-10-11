@@ -196,7 +196,7 @@ html body .live-columns .comment-card {
   border-bottom: 1px solid var(--tr-divider) !important;
   border-radius: 0;
   background: transparent !important;
-  animation: tr-comment-in .22s var(--tr-ease) both;
+  animation: none;
 }
 
 html body .live-columns .comment-card:hover {
@@ -205,11 +205,6 @@ html body .live-columns .comment-card:hover {
 
 .live-columns .comment-user { color: var(--skin-accent, var(--tr-signal)); }
 .live-columns .comment-text { color: var(--skin-text, var(--tr-day)); }
-
-@keyframes tr-comment-in {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 /* Forms and settings: fewer boxes, stronger groups, predictable actions. */
 .config-content {
@@ -495,10 +490,15 @@ html body :is(#profile-delete, .platform-remove, .danger-lite) {
 #gift-empty::before { content: "ACTIVIDAD"; }
 #ranking-empty::before { content: "CLASIFICACIÓN"; }
 
-#error-panel,
-.session-warning {
+#error-panel {
   border-color: color-mix(in srgb, var(--skin-danger, var(--tr-live)) 52%, var(--tr-divider)) !important;
   background: color-mix(in srgb, var(--skin-danger, var(--tr-live)) 8%, var(--skin-surface, var(--tr-console))) !important;
+}
+
+html[data-skin] body .session-panel :is(#status-bar.warn, .session-warning) {
+  border-color: var(--tr-divider) !important;
+  background: var(--skin-surface, var(--tr-console)) !important;
+  color: var(--skin-text, var(--tr-day)) !important;
 }
 
 /* Mobile dock: the four frequent destinations stay one thumb away. */

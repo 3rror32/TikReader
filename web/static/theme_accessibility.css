@@ -129,3 +129,83 @@ html[data-skin] body :is(
     max-width: 100% !important;
   }
 }
+
+/* Operator hierarchy uses semantic theme tokens, not a second palette. */
+html[data-skin] body .session-panel #error-panel {
+  border-inline-start: 3px solid var(--skin-danger);
+  color: var(--skin-text);
+}
+html[data-skin] body #error-panel :is(#err-title, #err-detail, #err-suggestion) {
+  color: var(--skin-text) !important;
+  line-height: 1.5;
+}
+html[data-skin] body #error-panel #error-recovery {
+  background: var(--skin-accent) !important;
+  color: var(--skin-accent-ink) !important;
+  border-color: var(--skin-accent) !important;
+  font-weight: 700;
+}
+html[data-skin] body #error-panel .err-btn-close {
+  background: transparent !important;
+  color: var(--skin-text) !important;
+  border-color: var(--skin-border) !important;
+}
+html[data-skin] body .session-panel #btn-stop {
+  background: transparent !important;
+  color: var(--skin-text) !important;
+  border-color: var(--skin-border) !important;
+  border-inline-start: 2px solid var(--skin-danger) !important;
+  box-shadow: none !important;
+}
+html[data-skin] body .session-panel #btn-connect.btn-primary[aria-busy="true"] {
+  opacity: 1 !important;
+  filter: none !important;
+  cursor: progress !important;
+}
+html[data-skin] body:is([data-live-state="connecting"], [data-live-state="reconnecting"]) .session-panel .controls {
+  border-inline-start: 3px solid var(--skin-warning);
+}
+
+/* The actual focused control, not only its enclosing group, stays identifiable. */
+html[data-skin] body .app :is(button, input, select, textarea, summary, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--skin-text) !important;
+  outline-offset: 3px;
+  scroll-margin-block: 12px 90px;
+}
+html[data-skin] body .session-panel .controls #username-input:focus-visible {
+  outline: 2px solid var(--skin-text) !important;
+  outline-offset: -3px !important;
+}
+html[data-skin] body .session-panel #btn-connect.btn-primary:focus-visible:not(:disabled):not([aria-disabled="true"]) {
+  outline: 2px solid var(--skin-text) !important;
+}
+
+html[data-skin] body :is(.session-identity, .session-hero, .session-persistent-label, #error-panel > div, .comment-text, .comment-user) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html[data-skin] body .session-panel #btn-connect {
+  height: auto;
+  white-space: normal;
+}
+html[data-skin] body .session-panel #btn-connect :is(.connect-button__idle, .connect-button__pending) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html[data-skin] body #error-panel .err-actions { flex-wrap: wrap; }
+html[data-skin] body { scroll-padding-block: 12px 90px; }
+
+@media (max-width: 430px) {
+  html[data-skin] body #error-panel.visible { flex-wrap: wrap; }
+  html[data-skin] body .session-panel .controls .input-wrap { min-width: 0; }
+  html[data-skin] body .app > header #session-persistent { max-width: 100%; }
+  html[data-skin] body .app > header .header-session-actions { flex-wrap: wrap; }
+}
+
+/* Short desktop windows must scroll instead of cropping the connection desk. */
+@media (max-height: 700px) {
+  html[data-skin], html[data-skin] body { height: auto !important; overflow: auto !important; }
+  html[data-skin] body:not(.config-view) .app { height: auto !important; min-height: 100vh; }
+  html[data-skin] body .live-columns { overflow: visible; }
+  html[data-skin] body #empty-state { padding-block: 20px; }
+}

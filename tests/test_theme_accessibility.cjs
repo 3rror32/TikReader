@@ -60,3 +60,18 @@ test('light signature themes use readable warning and navigation colors', () => 
   assert.match(signatures, /data-skin="tactile-scrapbook"[\s\S]*--nav-muted: #fff8e9/);
   assert.match(signatures, /#8a5e3b !important/);
 });
+
+test('operator focus uses visible ink and error recovery beats secondary actions', () => {
+  assert.match(css, /:focus-visible\s*\{[^}]*outline: 2px solid var\(--skin-text\) !important/s);
+  assert.match(css, /#error-recovery\s*\{[^}]*background: var\(--skin-accent\) !important/s);
+  assert.match(css, /#error-panel \.err-btn-close\s*\{[^}]*background: transparent !important/s);
+  assert.match(css, /#error-panel\s*\{[^}]*border-inline-start: 3px solid var\(--skin-danger\)/s);
+  assert.match(css, /#username-input:focus-visible\s*\{[^}]*outline: 2px solid var\(--skin-text\) !important/s);
+});
+
+test('operator content can wrap in narrow and short windows', () => {
+  assert.match(css, /\.session-identity[^}]*overflow-wrap: anywhere/s);
+  assert.match(css, /@media \(max-width: 430px\)[\s\S]*#error-panel\.visible[^}]*flex-wrap: wrap/s);
+  assert.match(css, /@media \(max-height: 700px\)[\s\S]*html\[data-skin\] body[^}]*overflow: auto !important/s);
+  assert.match(css, /scroll-padding-block: 12px 90px/);
+});

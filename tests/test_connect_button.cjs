@@ -36,7 +36,7 @@ test('Connect declarations beat the shared important control cascade', () => {
 
   const hover = rule('html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])');
   assert.match(hover, /background-position: 88% 50%/);
-  assert.match(hover, /transform: scale\(1\.03\) !important/);
+  assert.match(hover, /transform: none !important/);
   for (const property of ['background', 'background-size', 'background-position', 'border-color', 'box-shadow']) {
     assert.equal(hasImportant(hover, property), true, `${property} preserves the Connect hover/focus signature`);
   }
@@ -47,7 +47,7 @@ test('Connect declarations beat the shared important control cascade', () => {
   assert.equal(hasImportant(focus, 'box-shadow'), true);
 
   const active = rule('html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([aria-disabled="true"])');
-  assert.match(active, /transform: scale\(0\.95\) !important/);
+  assert.match(active, /transform: none !important/);
   for (const property of ['background', 'background-size', 'background-position', 'transform', 'box-shadow']) {
     assert.equal(hasImportant(active, property), true, `${property} preserves the Connect active state`);
   }
@@ -80,17 +80,18 @@ test('Connect uses an accessible inline connection icon and synchronous pending 
   assert.match(coreUi, /function setConnectPending\(/);
 });
 
-test('Connect motion, TikTok glow, shimmer, and reduced motion are explicit', () => {
+test('Connect reserves motion for its pending orbit rather than idle shimmer', () => {
   const base = rule('html body .session-panel #btn-connect.btn-primary');
   const hover = rule('html body .session-panel #btn-connect.btn-primary:is(:hover, :focus-visible):not(:disabled):not([aria-disabled="true"])');
   const active = rule('html body .session-panel #btn-connect.btn-primary:active:not(:disabled):not([aria-disabled="true"])');
 
-  assert.match(rule('.session-panel #btn-connect::before'), /animation: connect-shimmer 6\.5s/);
-  assert.match(base, /transform 100ms ease/);
-  assert.match(hover, /scale\(1\.03\)/);
+  assert.match(rule('.session-panel #btn-connect::before'), /display: none/);
+  assert.doesNotMatch(base, /transform 100ms ease/);
+  assert.match(hover, /transform: none/);
   assert.match(hover, /#25f4ee/i);
   assert.match(hover, /#fe2c55/i);
-  assert.match(active, /scale\(0\.95\)/);
+  assert.match(active, /transform: none/);
+  assert.match(rule('.session-panel #btn-connect .connect-button__spinner'), /animation: connect-spin 1\.1s linear infinite/);
   assert.match(liveRefinement, /prefers-reduced-motion: reduce[\s\S]*#btn-connect\.btn-primary::before[\s\S]*animation: none !important/);
 });
 
