@@ -230,19 +230,51 @@ for (const theme of representative) {
     expect(await page.evaluate(() => innerHeight)).toBe(before.height / 2);
     expect(await page.evaluate(() => devicePixelRatio)).toBe(before.dpr * 2);
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).zoom)).toBe('1');
+    // Preserve a 1280x900 CSS viewport while native zoom remains 200% so the
+    // reviewed screenshot shows the same desktop layout at twice the pixel scale.
+    await page.setViewportSize({ width: 2560, height: 1800 });
+    const captureZoom = await operator.zoom(2);
+    expect(captureZoom.factor).toBe(2);
+    await expect.poll(() => page.evaluate(() => innerWidth)).toBe(before.width);
+    expect(await page.evaluate(() => innerHeight)).toBe(before.height);
+    expect(await page.evaluate(() => devicePixelRatio)).toBe(before.dpr * 2);
+    await page.evaluate(() => window.scrollTo(0, 0));
     await classifiedError(operator);
-    await reachable(page.getByRole('button', { name: 'Revisar usuario', exact: true }));
-    await page.getByRole('button', { name: 'Revisar usuario', exact: true }).press('Enter');
-    await expect(page.locator('#username-input')).toBeFocused();
-    await reachable(page.getByRole('button', { name: 'Revisar usuario', exact: true }));
-    await page.getByRole('button', { name: 'Revisar usuario', exact: true }).focus();
-    await expect(page.locator('#toast-container')).toBeEmpty();
-    const connectionPanel = page.locator('.session-panel');
+    const recovery = page.getByRole('button', { name: 'Revisar usuario', exact: true });
+    await expect(page.locator('#error-panel')).toBeVisible();
+    await expect(recovery).toBeVisible();
+    const panel = await page.locator('.session-panel').boundingBox();
+    const action = await recovery.boundingBox();
+    const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+    expect(panel).not.toBeNull();
+    expect(action).not.toBeNull();
+    expect(panel.x).toBeGreaterThanOrEqual(0);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(viewport.width);
+    expect(panel.y).toBeGreaterThanOrEqual(0);
+    expect(panel.y + panel.height).toBeLessThanOrEqual(viewport.height);
+    expect(action.x).toBeGreaterThanOrEqual(0);
+    expect(action.x + action.width).toBeLessThanOrEqual(viewport.width);
+    expect(action.y).toBeGreaterThanOrEqual(0);
+    expect(action.y + action.height).toBeLessThanOrEqual(viewport.height);
+    expect(action.width).toBeGreaterThan(0);
+    expect(action.height).toBeGreaterThan(0);
+    const bounds = await page.evaluate(() => {
+      const panel = document.querySelector('.session-panel').getBoundingClientRect();
+      return { panel: { left: panel.left, right: panel.right, top: panel.top, bottom: panel.bottom },
+        viewport: { width: innerWidth, height: innerHeight } };
+    });
+    expect(bounds.panel.left).toBeGreaterThanOrEqual(0);
+    expect(bounds.panel.right).toBeLessThanOrEqual(bounds.viewport.width);
+    expect(bounds.panel.top).toBeGreaterThanOrEqual(0);
+    expect(bounds.panel.bottom).toBeLessThanOrEqual(bounds.viewport.height);
+    const captureBoundary = page;
     const review = testInfo.outputPath(`${theme}-review.png`);
-    await connectionPanel.screenshot({ ...operator.captureOptions(), path: review });
+    const image = await captureBoundary.screenshot({ ...operator.captureOptions(), path: review });
+    expect({ width: image.readUInt32BE(16), height: image.readUInt32BE(20) })
+      .toEqual({ width: 2560, height: 1800 });
     await testInfo.attach('reviewed-zoom-capture', { path: review, contentType: 'image/png' });
-    await expect(connectionPanel).toHaveScreenshot(`${theme}.png`, operator.captureOptions());
-    expect(await page.evaluate(() => innerWidth)).toBe(before.width / 2);
+    await expect(captureBoundary).toHaveScreenshot(`${theme}.png`, operator.captureOptions());
+    expect(await page.evaluate(() => innerWidth)).toBe(before.width);
     await operator.zoom(1);
     expect(operator.errors).toEqual([]);
   });

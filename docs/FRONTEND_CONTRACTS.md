@@ -48,10 +48,15 @@ direct `--update-snapshots` outside that explicit npm lifecycle.
 All 22 theme options receive structural checks for named controls, keyboard focus,
 legibility and reload persistence. Pixel baselines cover only TikReader (`original`),
 light, dark, broadcast-console, creator-pop, swiss-brutalist and tactile-scrapbook.
-They capture the complete connection panel, including classified-error recovery,
-at genuine 200% browser zoom
-after real navigation. Each run saves a masked review capture to its runtime result
-directory before the baseline assertion. Baselines
+Each baseline captures the full browser viewport in a visible classified-error state,
+including the complete connection panel, error copy and enabled “Revisar usuario”
+recovery action. The test asserts that the panel and the action's complete hit area
+fit inside the viewport before taking the screenshot. At native 200% zoom the
+physical test viewport is 2560x1800 so the effective CSS layout remains 1280x900;
+the extension API still reports 2x zoom and the page reports doubled device pixel
+ratio. The viewport PNG dimensions are asserted to prevent element-crop regressions.
+Each run saves a masked review capture to its runtime result directory before the
+baseline assertion. Baselines
 are Windows/Chromium captures; a different OS, font installation or rendering
 environment can legitimately change pixels and requires deliberate review, not
 automatic acceptance.
