@@ -19,12 +19,22 @@
     const empty = document.getElementById('empty-state');
     if (!empty) return;
     const paragraph = empty.querySelector('p');
-    const isLive = connectionState() === 'live';
-    if (paragraph && !paragraph.querySelector('strong')) {
-      const heading = create('strong', '', translate(isLive ? 'Conexión lista' : 'Tu chat aparecerá aquí'));
-      const copy = document.createTextNode(translate(isLive
-        ? 'Los próximos comentarios se mostrarán en cuanto lleguen.'
-        : 'Conecta un LIVE para ver y escuchar la conversación.'));
+    const state = connectionState(), isLive = state === 'live';
+    const messages = {
+      connecting: ['Conectando', 'Esperando confirmación de TikTok…'],
+      reconnecting: ['Reconectando', 'Intentando recuperar la conexión a TikTok…'],
+      failed: ['No se pudo conectar', 'Revisa el usuario y la conexión antes de reintentar.'],
+      cancelled: ['Conexión cancelada', 'Puedes revisar el usuario e intentar de nuevo.'],
+      offline: ['Sin conexión', 'La conexión terminó. Revisa el usuario antes de volver a conectar.'],
+      live: ['Conexión lista', 'Los próximos comentarios se mostrarán en cuanto lleguen.'],
+      idle: ['Tu chat aparecerá aquí', 'Conecta un LIVE para ver y escuchar la conversación.'],
+    };
+    const presentation = state + ':' + (window.I18n?.locale || 'es-419');
+    if (paragraph && (!paragraph.querySelector('strong') || empty.dataset.presentation !== presentation)) {
+      empty.dataset.presentation = presentation;
+      const [title, description] = messages[state] || messages.idle;
+      const heading = create('strong', '', translate(title));
+      const copy = document.createTextNode(translate(description));
       paragraph.replaceChildren(heading, document.createElement('br'), copy);
     }
     let action = empty.querySelector('.empty-state-action');
@@ -38,7 +48,9 @@
       });
       empty.append(action);
     }
-    action.hidden = isLive;
+    const actionLabel = translate(state === 'failed' ? 'Revisar conexión' : 'Conectar un LIVE');
+    if (action.textContent !== actionLabel) action.textContent = actionLabel;
+    action.hidden = isLive || ['connecting','reconnecting'].includes(state);
   }
 
   const feed = document.getElementById('comment-feed');
@@ -54,14 +66,15 @@
   const status = document.getElementById('status-bar');
   function syncStatusTone() {
     if (!status) return;
-    const text = status.textContent.toLocaleLowerCase();
-    status.dataset.tone = status.classList.contains('err') || /error|no se pudo|sin conexión/.test(text)
+    const state = connectionState();
+    status.dataset.tone = status.classList.contains('err') || ['failed','offline'].includes(state)
       ? 'error'
-      : /conectando|esperando|reintent/.test(text) ? 'pending'
-        : /conectado|listo|activo/.test(text) ? 'success' : 'neutral';
+      : ['connecting','reconnecting'].includes(state) ? 'pending'
+        : state === 'live' ? 'success' : 'neutral';
   }
   if (status) {
     new MutationObserver(syncStatusTone).observe(status, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(syncStatusTone).observe(body, { attributes: true, attributeFilter: ['data-live-state'] });
     syncStatusTone();
   }
 

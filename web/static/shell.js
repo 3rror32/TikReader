@@ -49,7 +49,7 @@ window.Shell=(()=>{
  }
  add('voice',panes.tools);add('filters',filters);add('alerts',alertStudio||alerts);add('history',panes.history);add('workspace',panes.workspace);add('diagnostics',panes.diagnostics);add('obs',obs);
  for(const node of document.querySelectorAll('[data-section]')){if(node===alertStudio)continue;add(node.dataset.section,node);}
- const links=[['Simulador','simulation'],['Chatbot','chatbot'],['Escenas','obs-direct'],['Eventos','event-diagnostics'],['Spotify','spotify'],['Encuestas','chat-poll'],['Streamer.bot','streamerbot'],['Sonidos','sound-library'],['Videos','video-library'],['Reglas','interactive'],['En vivo','live'],['Preguntas','questions'],['Atajos','game-hotkeys'],['Minecraft','minecraft'],['Puntos','points'],['Automatizaciones','control-center'],['Lectura','voice'],['Personaje','custom-voice'],['Filtros','filters'],['Emisión','production'],['Alertas','alerts'],['Overlays','overlay-gallery'],['Fuentes','obs'],['Sesiones','history'],['Moderación','moderator'],['Revisión','preflight'],['Conexión','diagnostics'],['Configuración','workspace'],['Acerca de','about']];
+ const links=[['Simulador','simulation'],['Chatbot','chatbot'],['Escenas','obs-direct'],['Eventos','event-diagnostics'],['Spotify','spotify'],['Encuestas','chat-poll'],['Streamer.bot','streamerbot'],['Sonidos','sound-library'],['Videos','video-library'],['Reglas','interactive'],['En vivo','live'],['Preguntas','questions'],['Atajos','game-hotkeys'],['Minecraft','minecraft'],['Puntos','points'],['Centro de control','control-center'],['Lectura','voice'],['Personaje','custom-voice'],['Filtros','filters'],['Emisión','production'],['Alertas','alerts'],['Overlays','overlay-gallery'],['Fuentes','obs'],['Sesiones','history'],['Moderación','moderator'],['Revisión','preflight'],['Conexión','diagnostics'],['Configuración','workspace'],['Acerca de','about']];
  // Each category contains destinations directly: no duplicated parent link.
  const groups=[
   [
@@ -195,7 +195,7 @@ window.Shell=(()=>{
     "Interactividad",
     [
       [
-        "Automatizaciones",
+        "Centro de control",
         "control-center"
       ],
       [

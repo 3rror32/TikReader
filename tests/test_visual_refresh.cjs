@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -18,7 +19,7 @@ test('the studio loads the visual refresh while keeping the shared form contract
   assert.match(template, /visual_refresh\.css\?v=20261005-responsive-settings/);
   assert.match(template, /theme_personalities\.css\?v=2/);
   assert.match(template, /theme_signature_collection\.css\?v=menu-copy-2/);
-  assert.match(template, /visual_refresh\.js\?v=usability-1/);
+  assert.match(template, /visual_refresh\.js\?v=operator-state-1/);
   assert(template.indexOf('visual_refresh.css') < template.indexOf('form_controls.css'));
   assert(template.indexOf('theme_personalities.css') < template.indexOf('form_controls.css'));
   assert(template.indexOf('theme_signature_collection.css') < template.indexOf('form_controls.css'));
@@ -117,4 +118,44 @@ test('settings respond to their usable panel width without collapsing headings',
   assert.match(css, /\.skin-settings\s*\{\s*grid-template-columns: minmax\(280px, \.7fr\) minmax\(0, 1\.3fr\)/);
   assert.match(css, /@container settings-stack \(max-width: 860px\)[\s\S]*\.skin-settings\s*\{[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
   assert.match(css, /\.settings-group-title :is\(h3, p\)[^}]*word-break: normal/);
+});
+
+test('empty-state actions follow confirmed connection state and preserve recovery context', () => {
+  const body = {dataset: {liveState: 'idle'}}, children = [];
+  const paragraph = {children: [], querySelector: () => paragraph.children.find(node => node.tag === 'strong'),
+    replaceChildren(...nodes) { this.children = nodes; }};
+  const empty = {dataset: {}, querySelector: selector => selector === 'p' ? paragraph : children[0],
+    append: node => children.push(node)};
+  let focused = false, actionWrites = 0;
+  const document = {getElementById: id => id === 'empty-state' ? empty : {scrollIntoView() {}, focus() { focused = true; }},
+    createTextNode: textContent => ({textContent}), createElement: tag => ({tag})};
+  const context = vm.createContext({body, document, window: {}, translate: value => value,
+    matchMedia: () => ({matches: true}),
+    create: (tag, className, text) => ({tag, className,
+      get textContent() { return text; },
+      set textContent(value) { text = value; if (className === 'empty-state-action') actionWrites++; },
+      addEventListener(_, fn) { this.click = fn; }})});
+  vm.runInContext(js.slice(js.indexOf('  function connectionState()'), js.indexOf('  const feed =')), context);
+  for (const [state, title, hidden] of [
+    ['connecting','Conectando',true], ['reconnecting','Reconectando',true],
+    ['live','Conexión lista',true], ['failed','No se pudo conectar',false],
+    ['cancelled','Conexión cancelada',false], ['offline','Sin conexión',false],
+  ]) {
+    body.dataset.liveState = state; context.enhanceEmptyState();
+    assert.equal(paragraph.children[0].textContent, title);
+    assert.equal(children[0].hidden, hidden);
+  }
+  children[0].click(); assert.equal(focused, true);
+  const before = actionWrites;
+  context.enhanceEmptyState(); context.enhanceEmptyState();
+  assert.equal(actionWrites, before, 'observer-driven presentation must converge without rewriting unchanged content');
+});
+
+test('status tone uses confirmed state rather than localized success-like substrings', () => {
+  const body = {dataset: {}}, status = {dataset: {}, textContent: 'Desconectado.', classList: {contains: () => false}};
+  const context = vm.createContext({status, connectionState: () => body.dataset.liveState});
+  vm.runInContext(js.slice(js.indexOf('  function syncStatusTone()'), js.indexOf('  if (status) {')), context);
+  for (const [state, expected] of [['idle','neutral'], ['cancelled','neutral'], ['connecting','pending'], ['reconnecting','pending'], ['live','success'], ['failed','error'], ['offline','error']]) {
+    body.dataset.liveState = state; context.syncStatusTone(); assert.equal(status.dataset.tone, expected, state);
+  }
 });

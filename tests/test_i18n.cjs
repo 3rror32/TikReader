@@ -67,6 +67,22 @@ test('Latin American Spanish is default regardless of browser language; invalid 
   }
 });
 
+test('operator recovery and pending telemetry copy translate consistently', () => {
+  const app = setup(); app.start();
+  for (const [source, en, fr] of [
+    ['Centro de control', 'Control center', 'Centre de contrôle'],
+    ['Conexión cancelada', 'Connection cancelled', 'Connexion annulée'],
+    ['No se pudo conectar', 'Could not connect', 'Impossible de se connecter'],
+    ['Revisar usuario', 'Review username', 'Vérifier le nom d’utilisateur'],
+    ['Reintentar conexión', 'Retry connection', 'Réessayer la connexion'],
+    ['Esperando datos de TikTok', 'Waiting for TikTok data', 'En attente de données TikTok'],
+  ]) {
+    app.window.I18n.setLocale('en'); assert.equal(app.window.I18n.t(source), en);
+    app.window.I18n.setLocale('fr'); assert.equal(app.window.I18n.t(source), fr);
+    app.window.I18n.setLocale('es-419'); assert.equal(app.window.I18n.t(source), source);
+  }
+});
+
 test('switches es → en → fr → es without losing original labels, attributes or child elements', () => {
   const app = setup(), button = new Element('button', ' Guardar ', {title:'Guardar perfil'});
   const icon = new Element('svg'); button.append(icon); app.body.append(button); app.start();

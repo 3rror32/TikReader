@@ -384,12 +384,12 @@ test('gift panel rejects activity rankings that are not verified gifts', () => {
   assert.equal(document.getElementById('gift-empty').hidden,false);
 });
 
-test('new sessions display zero until likes and viewers are updated, and stale snapshots are rejected', () => {
+test('new sessions distinguish pending viewers from known zero and reject stale snapshots', () => {
   const {context, document} = setup();
   const initial={session:'A',revision:1,comments:0,gifts:0,likes:0,viewers:0,likes_known:false,viewers_known:false};
   context.applyStats(initial);
   assert.equal(document.getElementById('stat-likes').textContent,'0');
-  assert.equal(document.getElementById('stat-viewers').textContent,'0');
+  assert.equal(document.getElementById('stat-viewers').textContent,'—');
   context.applyStats({...initial,revision:2,likes_known:true,viewers_known:true});
   assert.equal(document.getElementById('stat-likes').textContent,'0');
   assert.equal(document.getElementById('stat-viewers').textContent,'0');

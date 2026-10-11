@@ -1,6 +1,25 @@
 /* Spanish (Latin America) source | English | French. Keep placeholders identical. */
 window.TikReaderTranslations = (() => {
   const rows = `
+Conexión cancelada|Connection cancelled|Connexion annulée
+Revisar conexión|Review connection|Vérifier la connexion
+Revisa el usuario y la conexión antes de reintentar.|Check the username and connection before retrying.|Vérifiez le nom d’utilisateur et la connexion avant de réessayer.
+Puedes revisar el usuario e intentar de nuevo.|You can review the username and try again.|Vous pouvez vérifier le nom d’utilisateur et réessayer.
+La conexión terminó. Revisa el usuario antes de volver a conectar.|The connection ended. Review the username before connecting again.|La connexion est terminée. Vérifiez le nom d’utilisateur avant de vous reconnecter.
+Conexión cancelada.|Connection cancelled.|Connexion annulée.
+No se pudo conectar|Could not connect|Impossible de se connecter
+Revisar usuario|Review username|Vérifier le nom d’utilisateur
+Reintentar conexión|Retry connection|Réessayer la connexion
+Esperando datos de TikTok|Waiting for TikTok data|En attente de données TikTok
+Espectadores: sin datos recibidos|Viewers: no data received|Spectateurs : aucune donnée reçue
+Cancelando conexión…|Cancelling connection…|Annulation de la connexion…
+Desconectando…|Disconnecting…|Déconnexion…
+Cerrando conexión…|Closing connection…|Fermeture de la connexion…
+Desconectado.|Disconnected.|Déconnecté.
+Conectado a @{username}|Connected to @{username}|Connecté à @{username}
+Conectando a @{username}|Connecting to @{username}|Connexion à @{username}
+Reconectando a @{username}|Reconnecting to @{username}|Reconnexion à @{username}
+Centro de control: revisa y controla las automatizaciones conectadas a tu directo.|Control center: review and control automations connected to your live stream.|Centre de contrôle : vérifiez et gérez les automatisations connectées à votre direct.
 Control en directo|Live controls|Contrôle en direct
 Apariencia del overlay|Overlay appearance|Apparence de l’overlay
 Movimiento de la interfaz|Interface motion|Mouvement de l’interface

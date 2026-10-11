@@ -1,6 +1,7 @@
 /* Connection presentation: Socket.IO confirms connection; silence is not failure. */
 window.LivePresence = (() => {
   const $ = id => document.getElementById(id);
+  const translate = value => window.I18n?.t?.(value) || value;
   const panel = document.querySelector('.app > .panel');
   panel.classList.add('session-panel');
   // Keep routine technical messages available without crowding the live view.
@@ -49,12 +50,14 @@ window.LivePresence = (() => {
   function syncWarning() {
     const status = $('status-bar');
     const detailedErrorVisible = $('error-panel').classList.contains('visible');
-    const message = status.classList.contains('err') && !detailedErrorVisible ? status.textContent : '';
+    const message = status.classList.contains('err') && status.dataset.errorKind !== 'classified' && !detailedErrorVisible ? status.textContent : '';
     if (message && window.LiveExperience) {
-      window.LiveExperience.notify(message);
+      if (warning.dataset.message !== message) window.LiveExperience.notify(message);
+      warning.dataset.message = message;
       warning.hidden = true;
       return;
     }
+    warning.dataset.message = message;
     if (warning.textContent !== message) warning.textContent = message;
     warning.hidden = !message;
   }
@@ -122,21 +125,24 @@ window.LivePresence = (() => {
   $('username-input').setAttribute('aria-label', 'Usuario de TikTok');
   $('username-input').setAttribute('aria-describedby', 'connection-inline-status');
   let mode = 'idle', username = '', since = 0, lastComment = 0, lastEvent = 0, pulseTimer, retryAt = 0;
-  let latestStats = null;
+  let latestStats = null, stopTarget = null;
   function stats(data) {
     latestStats = data;
     for (const [key, label] of [['likes','Likes'],['viewers','Espectadores'],['comments','Comentarios'],['gifts','Regalos']]) {
       const value = $('stat-' + key), card = value.closest('.stat-card');
-      const pending = key === 'likes' ? !(data.likes_known || data.like_events) : key === 'viewers' ? !(data.viewers_known || data.viewers > 0) : false;
+      const pending = key === 'likes' ? !(data.likes_known || data.like_events) : key === 'viewers' ? !(Number.isFinite(data.viewers) && data.viewers >= 0 && (data.viewers_known || data.viewers > 0)) : false;
       const recovered = key === 'likes' && data.likes_source === 'recovered';
       const state = mode !== 'live' ? 'inactive' : pending ? 'pending' : recovered ? 'recovered' : 'current';
       card.dataset.valueState = state;
-      const note = state === 'inactive' ? 'Sin conexión activa; se actualizará al conectar' : pending ? 'En cero; esperando actualización de TikTok' : recovered ? 'Total recuperado; pendiente de actualización en vivo' : 'Datos de la conexión actual';
-      card.title = `${label}: ${note}`;
-      value.setAttribute('aria-label', `${label}: ${value.textContent}. ${note}`);
+      const note = translate(pending ? 'Esperando datos de TikTok' : state === 'inactive' ? 'Último valor observado; sin conexión activa' : recovered ? 'Total recuperado; pendiente de actualización en vivo' : 'Datos de la conexión actual');
+      card.title = `${translate(label)}: ${note}`;
+      const observed = key === 'viewers' && pending ? translate('Sin datos recibidos') : value.textContent;
+      const accessible = `${translate(label)}: ${observed}. ${note}`;
+      if (value.getAttribute('aria-label') !== accessible) value.setAttribute('aria-label', accessible);
     }
   }
-  const titles = {idle:'Listo para conectar', connecting:'CONECTANDO', reconnecting:'RECONECTANDO', live:'EN VIVO', offline:'SIN CONEXIÓN'};
+  const titles = {idle:'Listo para conectar', connecting:'CONECTANDO', reconnecting:'RECONECTANDO', live:'EN VIVO', offline:'SIN CONEXIÓN', cancelled:'Conexión cancelada', failed:'No se pudo conectar'};
+  function requestStop() { stopTarget = ['connecting','reconnecting'].includes(mode) ? 'cancelled' : 'offline'; }
   function tick() {
     const elapsed = since ? Math.max(0, Math.floor((Date.now() - since) / 1000)) : 0;
     $('session-clock').textContent = [Math.floor(elapsed / 3600), Math.floor(elapsed / 60) % 60, elapsed % 60].map(n => String(n).padStart(2, '0')).join(':');
@@ -146,6 +152,10 @@ window.LivePresence = (() => {
       : mode === 'reconnecting' ? retryAt > Date.now() ? `Próximo intento en ${Math.ceil((retryAt-Date.now())/1000)} s` : 'Intentando recuperar la conexión a TikTok…' : mode === 'connecting' ? 'Esperando confirmación de TikTok…' : 'Sin conexión a TikTok';
   }
   function set(next, user) {
+    if (next === 'connecting' && mode !== 'connecting') {
+      latestStats = {...latestStats, viewers: null, viewers_known: false};
+      $('stat-viewers').textContent = '—';
+    }
     if (user) username = String(user).replace(/^@/, '');
     if (next === 'live' && mode !== 'live') since = Date.now();
     if (next !== 'live') { since = 0; lastComment = 0; lastEvent = 0; }
@@ -155,12 +165,16 @@ window.LivePresence = (() => {
     document.body.dataset.liveState = mode;
     syncLiveLight(mode === 'live');
     if (latestStats) stats(latestStats);
-    $('session-heading').textContent = titles[mode];
+    const title = translate(titles[mode]);
+    if ($('session-heading').textContent !== title) $('session-heading').textContent = title;
     $('session-channel').textContent = username && ['live','connecting','reconnecting'].includes(mode) ? `@${username}` : 'Conecta un canal para seguir su directo.';
     hero.querySelector('.session-avatar').textContent = username ? username.slice(0, 2).toUpperCase() : 'TR';
     persistentLabel.textContent = 'LIVE';
-    const connectionLabel = mode === 'live' ? `Conectado a @${username}` : mode === 'connecting' ? `Conectando a @${username}` : mode === 'reconnecting' ? `Reconectando a @${username}` : 'TikTok sin conexión';
-    persistent.setAttribute('aria-label', connectionLabel);
+    const connectionSource = mode === 'live' ? 'Conectado a @{username}' : mode === 'connecting' ? 'Conectando a @{username}' : mode === 'reconnecting' ? 'Reconectando a @{username}' : titles[mode];
+    const connectionLabel = window.I18n?.t?.(connectionSource, {username}) || connectionSource.replace('{username}', username);
+    // Errors have their own announcement path; routine clocks and metrics are not live regions.
+    persistent.setAttribute('aria-live', ['failed','offline'].includes(mode) ? 'off' : 'polite');
+    if (persistent.getAttribute('aria-label') !== connectionLabel) persistent.setAttribute('aria-label', connectionLabel);
     persistent.title = connectionLabel;
     // Restore the empty feed's message when a connection ends.
     const empty = $('empty-state')?.querySelector('p');
@@ -178,11 +192,24 @@ window.LivePresence = (() => {
     tick();
   }
   function attach(socket) {
-  socket.on('connected', data => set('live', data.username));
-  socket.on('connecting', data => set('connecting', data.username));
+  socket.on('connected', data => {stopTarget = null;set('live', data.username);});
+  socket.on('connecting', data => {stopTarget = null;set('connecting', data.username);});
   socket.on('reconnecting', data => {retryAt = Date.now() + Math.max(0, Number(data.delay)||0)*1000;set('reconnecting', data.username);});
-  socket.on('status', data => {retryAt = Date.now() + Math.max(0, Number(data.retry_in)||0)*1000;set(data.connected ? 'live' : data.connecting ? data.retry_count ? 'reconnecting' : 'connecting' : 'idle', data.username);});
-  for (const name of ['disconnect','connect_error','disconnected','error','tiktok_error']) socket.on(name, () => set('offline'));
+  socket.on('status', data => {
+    retryAt = Date.now() + Math.max(0, Number(data.retry_in)||0)*1000;
+    const terminal = stopTarget || (['failed','cancelled','offline'].includes(mode) ? mode : mode === 'live' ? 'offline' : 'idle');
+    if (!data.connected && !data.connecting) stopTarget = null;
+    set(data.connected ? 'live' : data.connecting ? data.retry_count ? 'reconnecting' : 'connecting' : terminal, data.username);
+  });
+  socket.on('disconnected', data => {
+    if (data.reason === 'Cerrando conexión') return;
+    const userCancelled = data.reason === 'Detenido por el usuario' && ['connecting','reconnecting'].includes(mode);
+    const next = ['failed','cancelled'].includes(mode) ? mode : stopTarget || (userCancelled ? 'cancelled' : 'offline');
+    stopTarget = null;
+    set(next);
+  });
+  for (const name of ['error','tiktok_error']) socket.on(name, () => {stopTarget = null;set('failed');});
+  for (const name of ['disconnect','connect_error']) socket.on(name, () => {stopTarget = null;set('offline');});
   socket.on('new_comment', () => event(Date.now(), true));
   }
   // Diagnostic timestamps distinguish real activity from periodic snapshots.
@@ -210,5 +237,6 @@ window.LivePresence = (() => {
     });
   }
   setInterval(tick, 1000);
-  return {diagnostics, attach, stats};
+  window.addEventListener('tikreader:localechange', () => set(mode));
+  return {diagnostics, attach, stats, requestStop};
 })();

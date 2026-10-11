@@ -15,6 +15,7 @@ let giftVersion = -1;
 let statsRevision = -1;
 let syncTimer;
 const statTimers = new Map();
+let stopIntent = null;
 
 function receiveComment(data, live = true) {
   if (data.session !== feedSession) {
@@ -58,9 +59,9 @@ function applyStats(data) {
   // later; when it does, the following snapshot replaces this value.
   animateStat('stat-likes', Number(data.likes) || 0);
   animateStat('stat-gifts', data.gifts);
-  // A viewer count that TikTok has not reported yet is still an empty room,
-  // not a missing/invalid value. Keep the counter useful from connection start.
-  animateStat('stat-viewers', data.viewers_known || data.viewers > 0 ? data.viewers : 0);
+  // No viewer report is not proof of an empty room; confirmed zero is numeric.
+  const viewersKnown = Number.isFinite(data.viewers) && data.viewers >= 0 && (data.viewers_known || data.viewers > 0);
+  animateStat('stat-viewers', viewersKnown ? data.viewers : '—');
   window.LivePresence?.stats(data);
 }
 
@@ -135,6 +136,7 @@ function setStatus(msg, type = '') {
   const el = document.getElementById('status-bar');
   el.textContent = msg;
   el.className = type;
+  el.dataset.errorKind = '';
 }
 
 function animateStat(id, value) {
@@ -165,10 +167,12 @@ function setConnectPending(pending) {
 }
 
 function setButtons(connected) {
+  if (!connected) stopIntent = null;
   const button = document.getElementById('btn-connect');
   button.dataset.connected = String(connected);
   setConnectPending(false);
   document.getElementById('btn-stop').style.display = connected ? 'inline-flex' : 'none';
+  document.getElementById('btn-stop').disabled = Boolean(stopIntent);
 }
 
 function showToast(msg) {
@@ -282,16 +286,19 @@ function startLive() {
   const u = document.getElementById('username-input').value.trim().replace(/^@/, '');
   if (!u) { setStatus('⚠️ Ingresa un nombre de usuario.', 'err'); return; }
   setStatus(`Conectando a @${u}…`);
+  stopIntent = null;
   setConnectPending(true);
   socket.emit('start_live', { username: u });
 }
 
 
 function stopLive() {
+  if (!socket.connected || stopIntent) return;
+  stopIntent = document.getElementById('btn-connect').classList.contains('is-connecting') ? 'cancelled' : 'offline';
+  window.LivePresence?.requestStop();
+  document.getElementById('btn-stop').disabled = true;
+  setStatus(stopIntent === 'cancelled' ? 'Cancelando conexión…' : 'Desconectando…');
   socket.emit('stop_live');
-  setButtons(false);
-  showLiveBadge(false);
-  setStatus('Detenido.');
 }
 
 function clearFeed() {
@@ -322,15 +329,31 @@ document.getElementById('username-input').addEventListener('keydown', e => {
 });
 
 /* ── Error panel helpers ─────────────────────────────────── */
-function showError({ title, detail, suggestion }) {
+function showError({ code, title, detail, suggestion }) {
   document.getElementById('err-title').textContent      = title      || 'Error';
   document.getElementById('err-detail').textContent     = detail     || '';
   document.getElementById('err-suggestion').textContent = suggestion ? '💡 ' + suggestion : '';
-  document.getElementById('error-panel').classList.add('visible');
+  const panel = document.getElementById('error-panel');
+  panel.dataset.code = code || '';
+  panel.classList.add('visible');
+  document.getElementById('status-bar').dataset.errorKind = 'classified';
+  document.getElementById('error-recovery').textContent = code === 'INVALID_USERNAME' ? 'Revisar usuario' : 'Reintentar conexión';
+  const announcement = document.getElementById('connection-error-announcement');
+  const message = [title || 'Error', detail, suggestion].filter(Boolean)
+    .map(text => window.I18n?.t?.(text) || text).join('. ');
+  if (announcement.textContent !== message) announcement.textContent = message;
 }
 
 function hideError() {
   document.getElementById('error-panel').classList.remove('visible');
+  document.getElementById('connection-error-announcement').textContent = '';
+}
+
+function recoverConnection() {
+  if (document.getElementById('error-panel').dataset.code === 'INVALID_USERNAME') {
+    const input = document.getElementById('username-input');
+    input.focus(); input.select();
+  } else startLive();
 }
 
 /* ── Socket events ───────────────────────────────────────── */
@@ -370,8 +393,11 @@ socket.on('connected', ({ username }) => {
 });
 
 socket.on('disconnected', ({ reason }) => {
-  if (!document.getElementById('error-panel').classList.contains('visible')) {
-    setStatus(`🔴 Desconectado: ${reason}`, 'err');
+  if (reason === 'Cerrando conexión') { setStatus('Cerrando conexión…'); return; }
+  if (document.getElementById('status-bar').dataset.errorKind !== 'classified') {
+    if (stopIntent === 'cancelled' || document.body.dataset.liveState === 'cancelled') setStatus('Conexión cancelada.');
+    else if (reason === 'Detenido por el usuario') setStatus('Desconectado.');
+    else setStatus(`🔴 Desconectado: ${reason}`, 'err');
   }
   showLiveBadge(false);
   setButtons(false);
@@ -412,9 +438,14 @@ socket.on('status', (s) => {
     if (s.connected) setButtons(true);
     else setConnectPending(true);
   } else {
+    const stopped = stopIntent;
     showLiveBadge(false);
     setButtons(false);
-    setStatus('Conectado al servidor. Ingresa un usuario para iniciar.');
+    if (stopped === 'cancelled') setStatus('Conexión cancelada.');
+    else if (stopped === 'offline') setStatus('Desconectado.');
+    else if (!['failed','cancelled','offline'].includes(document.body.dataset.liveState)) {
+      setStatus('Conectado al servidor. Ingresa un usuario para iniciar.');
+    }
   }
 });
 window.LivePresence?.attach(socket);

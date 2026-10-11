@@ -222,3 +222,171 @@ test('mobile navigation leaves destination focus alone while dismissal restores 
   const click = source.slice(source.indexOf("  sidebar.addEventListener('click'"), source.indexOf("  document.addEventListener('keydown'"));
   assert.doesNotMatch(click, /toggle\.focus\(\)/);
 });
+
+function connection() {
+  const elements = new Map(), handlers = new Map(), notifications = [], emitted = [];
+  let focused = null;
+  function element(id) {
+    if (elements.has(id)) return elements.get(id);
+    const attributes = new Map(), classes = new Set(), children = new Map();
+    const node = {
+      dataset: {}, style: {}, textContent: '', value: '', hidden: false, disabled: false,
+      classList: {
+        contains: name => classes.has(name), add: name => classes.add(name), remove: name => classes.delete(name),
+        toggle(name, force) { force ? classes.add(name) : classes.delete(name); },
+      },
+      set className(value) { classes.clear(); value.split(' ').filter(Boolean).forEach(name => classes.add(name)); },
+      setAttribute: (key, value) => attributes.set(key, String(value)),
+      getAttribute: key => attributes.get(key) ?? null,
+      querySelector(selector) { if (!children.has(selector)) children.set(selector, element(`${id}/${selector}`)); return children.get(selector); },
+      closest: () => element(`${id}/card`), addEventListener() {}, appendChild() {},
+      focus() { focused = node; }, select() { node.selected = true; },
+    };
+    elements.set(id, node); return node;
+  }
+  const document = {body: element('body'), getElementById: element, addEventListener() {},
+    querySelector: element, createElement: () => element('created'), hidden: false};
+  const socket = {connected: true, on(name, callback) {
+    if (!handlers.has(name)) handlers.set(name, []); handlers.get(name).push(callback);
+  }, emit: (...args) => emitted.push(args)};
+  const localeListeners = [];
+  const window = {LiveExperience: {notify: text => notifications.push(text), attach() {}},
+    addEventListener(name, callback) { if (name === 'tikreader:localechange') localeListeners.push(callback); }};
+  const context = vm.createContext({window, document, io: () => socket,
+    clearTimeout() {}, setTimeout() {}, setInterval() {}, URLSearchParams, AbortSignal});
+  vm.runInContext(read('web/static/translations.js'), context);
+  const presence = read('web/static/live_presence.js');
+  const warning = presence.slice(presence.indexOf('  function syncWarning()'), presence.indexOf('  new MutationObserver(syncWarning)'));
+  const state = presence.slice(presence.indexOf('  let mode ='), presence.indexOf('  // Preserve only collapsible'));
+  vm.runInContext(`const $=id=>document.getElementById(id); const translate=value=>window.I18n?.t?.(value)||value; const warning=$('connection-inline-status');
+    const hero=$('hero'),persistent=$('session-persistent'),persistentLabel=$('persistent-label'),activity=$('activity');
+    function syncLiveLight(){};${warning}\n${state}
+    window.LivePresence={attach,stats,requestStop:typeof requestStop==='function'?requestStop:undefined};`, context);
+  const localeStart = presence.indexOf("  window.addEventListener('tikreader:localechange'");
+  if (localeStart >= 0) vm.runInContext(presence.slice(localeStart, presence.indexOf('  return {diagnostics')), context);
+  vm.runInContext(read('web/static/core_ui.js'), context);
+  element('username-input').value = ' @Creator ';
+  return {window, context, element, notifications, emitted,
+    locale(locale) { window.I18n = {locale, t(source, values = {}) {
+      const translated = window.TikReaderTranslations[locale]?.[source] || source;
+      return translated.replace(/\{(\w+)\}/g, (match, name) => values[name] ?? match);
+    }}; localeListeners.forEach(callback => callback()); },
+    event(name, payload = {}) { for (const callback of handlers.get(name) || []) callback(payload); context.syncWarning(); },
+    get focused() { return focused; },
+  };
+}
+
+test('viewer telemetry stays unavailable until a valid measured count arrives', () => {
+  const app = connection(); app.event('connected', {username: 'Creator'});
+  const snapshot = {revision: 1, comments: 0, gifts: 0, likes: 0, viewers: 0, viewers_known: false};
+  app.event('stats_update', snapshot);
+  const value = app.element('stat-viewers');
+  assert.equal(value.textContent, '—');
+  assert.match(value.getAttribute('aria-label'), /[Ss]in datos|[Ee]sperando datos/);
+  assert.doesNotMatch(value.getAttribute('aria-label'), /En cero|Espectadores: 0/);
+  assert.equal(value.closest().dataset.valueState, 'pending');
+  app.event('stats_update', {...snapshot, revision: 2, viewers_known: true});
+  assert.equal(value.textContent, '0');
+  assert.equal(value.closest().dataset.valueState, 'current');
+  assert.match(value.getAttribute('aria-label'), /Espectadores: 0/);
+  app.event('stats_update', {...snapshot, revision: 3, viewers: 7});
+  assert.equal(value.textContent, '7', 'positive legacy counts remain measured data');
+  app.event('stats_update', {...snapshot, revision: 4, viewers: null, viewers_known: true});
+  assert.equal(value.textContent, '—', 'a known flag does not make an invalid value numeric');
+});
+
+test('stop and cancellation wait for confirmed backend closure', () => {
+  const app = connection(); app.event('connecting', {username: 'Creator'});
+  app.context.stopLive();
+  assert.equal(app.element('body').dataset.liveState, 'connecting');
+  assert.match(app.element('status-bar').textContent, /Cancelando/);
+  assert.deepEqual(app.emitted.map(args => args[0]), ['stop_live']);
+  app.event('disconnected', {reason: 'Cerrando conexión'});
+  assert.equal(app.element('body').dataset.liveState, 'connecting', 'closing is not closed');
+  app.event('disconnected', {reason: 'Detenido por el usuario'});
+  assert.equal(app.element('body').dataset.liveState, 'cancelled');
+  assert.match(app.element('session-heading').textContent, /cancelada/i);
+  app.event('status', {connected: false, connecting: false});
+  assert.equal(app.element('body').dataset.liveState, 'cancelled', 'idle snapshots preserve a confirmed terminal outcome');
+  app.event('disconnected', {reason: 'Conexión finalizada'});
+  assert.equal(app.element('body').dataset.liveState, 'cancelled', 'trailing closure events preserve cancellation');
+  app.event('connected', {username: 'Creator'}); app.context.stopLive();
+  assert.equal(app.element('body').dataset.liveState, 'live');
+  assert.equal(app.element('live-badge').classList.contains('visible'), true);
+  assert.match(app.element('status-bar').textContent, /Desconectando/);
+});
+
+test('classified errors announce once, offer recovery, and preserve the username', () => {
+  const app = connection(); app.event('connecting', {username: 'Creator'});
+  const error = {code: 'INVALID_USERNAME', title: 'Usuario inválido', detail: 'Usa el usuario, no una URL.', suggestion: 'Revisa el nombre.'};
+  app.event('tiktok_error', error);
+  assert.equal(app.element('body').dataset.liveState, 'failed');
+  const announcement = app.element('connection-error-announcement').textContent;
+  assert.match(announcement, /Usuario inválido/);
+  assert.match(announcement, /Revisa el nombre/);
+  assert.equal(app.notifications.length, 0, 'classified errors do not also create a notification');
+  assert.equal(app.element('error-recovery').textContent, 'Revisar usuario');
+  assert.equal(app.element('username-input').value, ' @Creator ');
+  app.context.recoverConnection();
+  assert.equal(app.focused, app.element('username-input'));
+  assert.equal(app.emitted.length, 0, 'invalid input needs review rather than a blind retry');
+  app.context.hideError(); app.context.syncWarning();
+  assert.equal(app.notifications.length, 0, 'closing the panel must not reannounce its error');
+  app.event('disconnected', {reason: 'Conexión finalizada'});
+  app.event('status', {connected: false, connecting: false});
+  assert.equal(app.element('body').dataset.liveState, 'failed');
+  app.event('tiktok_error', {...error, code: 'TIMEOUT'});
+  assert.equal(app.element('error-recovery').textContent, 'Reintentar conexión');
+  app.context.recoverConnection();
+  assert.equal(app.emitted.at(-1)[0], 'start_live');
+  assert.equal(app.emitted.at(-1)[1].username, 'Creator');
+});
+
+test('simple errors keep their existing single notification path and empty-state recovery', () => {
+  const app = connection(); app.event('connected', {username: 'Creator'});
+  assert.match(app.element('empty-state').querySelector('p').textContent, /Conexión lista/);
+  app.event('error', {message: 'Red no disponible'});
+  assert.equal(app.notifications.length, 1);
+  assert.match(app.notifications[0], /Red no disponible/);
+  assert.match(app.element('empty-state').querySelector('p').textContent, /Conecta/);
+  app.context.syncWarning();
+  assert.equal(app.notifications.length, 1, 'unchanged errors do not notify again');
+});
+
+test('classified error markup provides one dedicated live region and a keyboard recovery control', () => {
+  const template = read('web/templates/index.html');
+  assert.match(template, /id="connection-error-announcement"[^>]*role="alert"/);
+  assert.match(template, /id="error-panel"[^>]*aria-labelledby="err-title"/);
+  assert.match(template, /id="error-recovery"[^>]*type="button"/);
+});
+
+test('Control center uses the same vocabulary in navigation and contextual help', () => {
+  assert.match(read('web/static/shell.js'), /"Centro de control"\s*,\s*"control-center"/);
+  assert.doesNotMatch(read('web/static/shell.js'), /Automatizaciones[^\n]*control-center/);
+  assert.match(read('web/static/navigation_help.js'), /'control-center': 'Centro de control:/);
+});
+
+test('idle status can confirm cancellation and a new connection resets old viewer measurements', () => {
+  const app = connection(); app.event('connecting', {username: 'Creator'});
+  app.context.stopLive(); app.event('status', {connected: false, connecting: false});
+  assert.equal(app.element('body').dataset.liveState, 'cancelled');
+  assert.match(app.element('status-bar').textContent, /cancelada/);
+  app.event('connected', {username: 'Creator'});
+  app.event('stats_update', {revision: 1, viewers: 25, viewers_known: true});
+  app.event('connecting', {username: 'NextCreator'});
+  app.event('connected', {username: 'NextCreator'});
+  assert.equal(app.element('stat-viewers').textContent, '—');
+  assert.equal(app.element('stat-viewers').closest().dataset.valueState, 'pending');
+});
+
+test('connection names and metric availability remain localized without becoming live counters', () => {
+  const app = connection(); app.locale('en'); app.event('connected', {username: 'Creator'});
+  assert.equal(app.element('session-persistent').getAttribute('aria-label'), 'Connected to @Creator');
+  app.event('stats_update', {revision: 1, viewers: 0, viewers_known: false});
+  assert.match(app.element('stat-viewers').getAttribute('aria-label'), /Viewers: No data received/);
+  assert.equal(app.element('stat-viewers').getAttribute('aria-live'), null);
+  app.locale('fr');
+  assert.equal(app.element('session-persistent').getAttribute('aria-label'), 'Connecté à @Creator');
+  app.event('tiktok_error', {title: 'No se pudo conectar'});
+  assert.equal(app.element('session-persistent').getAttribute('aria-live'), 'off');
+});

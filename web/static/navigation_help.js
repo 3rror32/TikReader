@@ -34,7 +34,7 @@
     'creator-games': 'Prepara actividades y juegos para tu audiencia.',
     'creator-battles': 'Gestiona las batallas de tu comunidad.',
     'creator-community': 'Consulta y organiza tu comunidad.',
-    'control-center': 'Revisa y controla las automatizaciones conectadas a tu directo.',
+    'control-center': 'Centro de control: revisa y controla las automatizaciones conectadas a tu directo.',
     interactive: 'Define qué acciones se ejecutan al recibir eventos.',
     streamerbot: 'Conecta las acciones que tengas preparadas en Streamer.bot.',
     simulation: 'Envía eventos de prueba. Pueden ejecutar tus reglas y acciones reales.',
