@@ -14,5 +14,5 @@
  pane.append(form,el('h3','Clasificación'),button('Actualizar clasificación',load),table,el('h3','Ajuste manual'));
  const user=field('Usuario','manual_user','text'),amount=field('Cantidad positiva o negativa','manual_amount');pane.append(button('Aplicar ajuste',async()=>{await api('/points/adjust',{user:user.value,amount:Number(amount.value)});notice.textContent='Saldo actualizado.';await load()}),el('h3','Restablecer todos los puntos'));
  const confirm=field('Escribe RESTABLECER PUNTOS','reset_confirmation','text');pane.append(button('Restablecer puntos',async()=>{await api('/points/reset',{confirmation:confirm.value});confirm.value='';notice.textContent='Todos los puntos fueron restablecidos.';await load()}),notice);
- document.querySelector('.app').append(pane);load().catch(e=>notice.textContent=e.message);
+ window.OperatorViewRegistry.register(pane.dataset.section,pane);load().catch(e=>notice.textContent=e.message);
 })();

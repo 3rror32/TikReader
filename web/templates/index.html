@@ -828,7 +828,7 @@
     </div>
     </div>
     <div data-pane="ranking" class="studio-pane" hidden><h2>Regaladores de esta sesión</h2><label>Ordenar por <select id="ranking-sort"><option value="count">Unidades</option><option value="diamonds">Diamantes informados</option></select></label><ol id="ranking-list"></ol><p id="ranking-empty">Esperando regalos reales.</p></div>
-    <div data-pane="tools" class="studio-pane" hidden>
+    <div data-pane="tools" data-view-mount="voice" class="studio-pane" hidden>
       <h2>Lectura por voz</h2>
       <label><input id="tts-enabled" type="checkbox"> Leer comentarios nuevos</label>
       <label><input id="tts-read-name" type="checkbox" checked> Leer el nombre de quien comenta</label>
@@ -851,11 +851,14 @@
       <label>Usuarios prioritarios <input id="priority-users" placeholder="usuario1, usuario2"></label>
       <label>Espera máxima (s) <input id="tts-max-age" type="number" min="5" max="300" value="45"></label>
       <p>Se omiten lecturas demasiado antiguas. La preferencia de activación se recuerda; al abrir se solicita un clic para reactivar el audio.</p>
+      <section data-view-mount="filters" class="studio-pane">
       <h2>Filtros locales</h2>
       <label>Palabras bloqueadas <input id="blocked-words" placeholder="Separadas por comas"></label>
       <label><input id="antispam" type="checkbox" checked> Ocultar repetidos del mismo usuario (10 s)</label>
       <label><input id="no-emoji" type="checkbox" checked> No leer emojis</label>
       <p>Estos filtros afectan esta pantalla y la voz; no moderan la cuenta de TikTok.</p>
+      </section>
+      <section data-view-mount="alerts-local" class="studio-pane">
       <h2>Aviso local de regalos</h2>
       <p class="alert-local-intro">Recibe aquí un aviso cuando llegue un regalo.</p>
       <div class="alert-local-card">
@@ -869,8 +872,9 @@
         <p id="alert-local-status" class="alert-local-status" role="status"></p>
       </div>
       <p>Atajos fuera de los campos: Alt+P pausa voz · Alt+N salta · Alt+D destaca el primero.</p>
+      </section>
     </div>
-    <div data-pane="history" class="studio-pane" hidden>
+    <div data-pane="history" data-view-mount="history" class="studio-pane" hidden>
       <h2>Historial local</h2><button id="history-refresh">Actualizar sesiones</button>
       <label>Sesión <select id="history-session"></select></label>
       <div class="tool-buttons"><button id="history-view">Ver</button><a id="export-json" href="#">JSON</a><a id="export-csv" href="#">CSV</a></div>
@@ -878,7 +882,7 @@
       <button id="summary-load">Resumen de la sesión seleccionada</button><div id="session-summary" aria-live="polite"></div>
       <p>El historial contiene comentarios y perfiles públicos recibidos. Solo se guarda en este equipo.</p>
     </div>
-    <div data-pane="workspace" class="studio-pane" hidden>
+    <div data-pane="workspace" data-view-mount="workspace" class="studio-pane" hidden>
       <div class="settings-heading"><span>CONFIGURACIÓN</span><h2>Ajusta tu espacio de trabajo</h2><p>La apariencia y la distribución se aplican al instante. Las herramientas ocasionales están agrupadas al final.</p></div>
       <div class="settings-stack">
         <section class="setting-card settings-group skin-settings" aria-labelledby="skin-settings-title">
@@ -901,9 +905,11 @@
           <label class="layout-range"><span>Ancho del chat</span><input id="layout-split" type="range" min="40" max="70" value="58" aria-describedby="layout-split-value"><output id="layout-split-value" for="layout-split">58% chat · 42% panel</output></label>
           <div class="tool-buttons"><button id="presenter-toggle">Activar modo presentador</button></div>
         </section>
+        <section data-view-mount="obs" class="studio-pane">
         <section class="setting-card settings-group output-settings" aria-labelledby="streaming-windows-title">
           <div class="settings-group-title"><div><h3 id="streaming-windows-title">Salidas para streaming</h3><p>Copia la URL del panel que quieras añadir como fuente de navegador. Usa Vista previa para comprobarlo antes.</p></div></div>
           <div id="obs-widget-notice" class="settings-inline-status" role="status"></div><div id="widget-links" class="widget-link-list"></div>
+        </section>
         </section>
         <section class="setting-card settings-group profile-settings" aria-labelledby="profile-settings-title" data-basic-advanced>
           <div class="settings-group-title"><div><h3 id="profile-settings-title">Perfiles de transmisión</h3><p>Úsalos sólo si alternas entre configuraciones completas, por ejemplo entrevistas y juegos.</p></div></div>
@@ -925,7 +931,7 @@
         </section>
       </div>
     </div>
-    <div data-pane="diagnostics" class="studio-pane" hidden><h2>Estado de la conexión</h2><div id="connection-diagnostics" aria-live="polite"></div><p>Que no lleguen comentarios o regalos puede ser normal. Los avisos de antigüedad no prueban una desconexión. Los likes de la API pueden diferir de la aplicación TikTok.</p></div>
+    <div data-pane="diagnostics" data-view-mount="diagnostics" class="studio-pane" hidden><h2>Estado de la conexión</h2><div id="connection-diagnostics" aria-live="polite"></div><p>Que no lleguen comentarios o regalos puede ser normal. Los avisos de antigüedad no prueban una desconexión. Los likes de la API pueden diferir de la aplicación TikTok.</p></div>
   </section>
 
   <section data-section="overlay-gallery" class="overlay-gallery" aria-labelledby="overlay-gallery-title">
@@ -1172,10 +1178,38 @@
 
 </div>
 
+<div id="operator-dynamic-view-mount" data-view-mount="dynamic-integrations" hidden inert aria-hidden="true"></div>
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div><div id="gift-alert" hidden role="status"></div>
 
 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script id="operator-view-registry">
+  window.OperatorViewRegistry = (() => {
+    const pending = new Map();
+    const host = document.getElementById('operator-dynamic-view-mount');
+    let register = null;
+    return {
+      register(key, node) {
+        if (!key || !node) return null;
+        if (register) return register(key, node);
+        const previous = pending.get(key);
+        if (previous && previous !== node) previous.remove?.();
+        pending.set(key, node);
+        host?.append(node);
+        return node;
+      },
+      get(key) {
+        return pending.get(key) || null;
+      },
+      connect(callback) {
+        if (typeof callback !== 'function' || register) return;
+        register = callback;
+        for (const [key, node] of pending) register(key, node);
+        pending.clear();
+      },
+    };
+  })();
+</script>
 <script src="/static/notifications.js"></script>
 <script src="/static/voice_personality.js?v=1"></script>
 <script src="/static/studio.js?v=20261002-alert-status"></script>

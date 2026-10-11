@@ -1,7 +1,7 @@
 /* Keep the existing voice tab alive while preparing scenes and community. */
 (()=>{
  const pane=document.createElement('section');pane.dataset.section='creator-suite';pane.className='studio-pane';pane.style.cssText='padding:0;min-height:75vh';
- const frame=document.createElement('iframe');frame.title='Estudio, comunidad y calendario de TikReader';frame.style.cssText='display:block;width:100%;height:calc(100vh - 115px);min-height:550px;border:0;border-radius:12px';pane.append(frame);document.querySelector('.app').append(pane);
+ const frame=document.createElement('iframe');frame.title='Estudio, comunidad y calendario de TikReader';frame.style.cssText='display:block;width:100%;height:calc(100vh - 115px);min-height:550px;border:0;border-radius:12px';pane.append(frame);window.OperatorViewRegistry.register(pane.dataset.section,pane);
  const syncTheme=()=>frame.contentWindow?.postMessage({type:'creator-theme',skin:document.documentElement.dataset.skin||'original'},location.origin);
  frame.addEventListener('load',syncTheme);
  addEventListener('tikreader:skin',syncTheme);

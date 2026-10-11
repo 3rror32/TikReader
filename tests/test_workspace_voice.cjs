@@ -8,27 +8,30 @@ const script = fs.readFileSync(`${__dirname}/../web/static/workspace.js`, 'utf8'
 function setup(storage = new Map()) {
   const nodes = new Map(), timers = [], notices = [];
   let build = 'first', reloads = 0, changes = 0, alertChanges = 0;
+  class Node {}
+  Object.defineProperty(Node.prototype,'textContent',{configurable:true,get(){return this._textContent||'';},set(value){this._textContent=String(value??'');}});
   function element() {
     const listeners = {}, attributes = {}, classes = new Set();
-    return {
+    const node=Object.assign(Object.create(Node.prototype),{
       checked:false, value:'', textContent:'', style:{setProperty(){}},
-      parentElement:{after(){}}, append(){}, after(){}, replaceChildren(){},
+      dataset:{}, parentElement:{after(){}}, append(){}, after(){}, replaceChildren(){},
       setAttribute(key, value){attributes[key] = value;},
       getAttribute(key){return attributes[key];},
       classList:{toggle(key, on){if(on)classes.add(key);else classes.delete(key);}, contains:key=>classes.has(key)},
       addEventListener(type, fn){(listeners[type] ||= []).push(fn);},
       dispatchEvent(event){this[`on${event.type}`]?.(event);for(const fn of listeners[event.type] || [])fn(event);},
-    };
+    });
+    return node;
   }
   const get = id => {if(!nodes.has(id))nodes.set(id, element());return nodes.get(id);};
   get('tts-enabled').onchange = () => {changes++;get('tts-state').textContent = get('tts-enabled').checked?'Voz activa':'Voz apagada';};
   get('alerts-enabled').onchange = () => {alertChanges++;};
-  const window = {Notifications:{show:(text, options)=>notices.push({text, ...options})},dispatchEvent(){}};
+  const window = {Notifications:{show:(text, options)=>notices.push({text, ...options})},dispatchEvent(){},addEventListener(){}};
   window.location={origin:'http://localhost'};
   vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/overlay_url.js`, 'utf8')+'\n'+script, {
-    URL,
+    URL,Node,
     window, Studio:{audioDiagnostics:()=>({paused:false}),preferences:()=>({}),applyPreferences(){}}, Event,
-    document:{getElementById:get, createElement:element, body:element(), documentElement:element()},
+    document:{getElementById:get, createElement:element, body:element(), documentElement:element(),addEventListener(){}},
     localStorage:{getItem:key=>storage.get(key)??null, setItem:(key,value)=>storage.set(key,value)},
     MutationObserver:class {observe(){}},
     location:{origin:'http://localhost',reload(){reloads++;}},

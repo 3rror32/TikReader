@@ -27,10 +27,10 @@ window.Shell=(()=>{
  }
  const panes={};for(const pane of document.querySelectorAll('[data-pane]'))panes[pane.dataset.pane]=pane;
  document.querySelector('.studio-tabs').remove();
- // Split existing groups rather than duplicating controls or their event handlers.
- function cutAt(source,text){const start=[...source.querySelectorAll('h2')].find(h=>h.textContent.includes(text));const out=document.createElement('section');out.className='studio-pane';if(start){let n=start;while(n){const next=n.nextSibling;out.append(n);n=next;}}return out;}
- const obs=cutAt(panes.workspace,'Ventanas para programas de streaming');
- const alerts=cutAt(panes.tools,'Aviso local de regalos');const filters=cutAt(panes.tools,'Filtros locales');
+ // Static pane ownership comes from template-authored mount markers, never heading copy.
+ const mount=key=>document.querySelector('[data-view-mount="'+key+'"]');
+ const obs=mount('obs');
+ const alerts=mount('alerts-local'),filters=mount('filters');
  const extras=document.getElementById('voice-extras').content.cloneNode(true);panes.tools.append(extras);
  // Regalos already live beside the chat. Keep the optional ranking with them instead
  // of sending users to a separate page that looked like a second gift screen.
@@ -38,7 +38,7 @@ window.Shell=(()=>{
  const giftRankingSummary=document.createElement('summary');giftRankingSummary.textContent='Ver top de regaladores de esta sesión';
  panes.ranking.hidden=false;giftRanking.append(giftRankingSummary,panes.ranking);document.querySelector('.gifts-column').append(giftRanking);
  // Keep the visual editor as the page root so its preview follows page visibility.
- const alertStudio=document.querySelector('[data-section="animation-studio"]');
+ const alertStudio=document.querySelector('[data-section="animation-studio"]')||window.OperatorViewRegistry?.get('alerts');
  if(alertStudio){
   alerts.className='alerts-local-section';alerts.id='alerts-local';
   const oldHeading=alerts.querySelector('h2'),localHeading=document.createElement('h3');
@@ -47,8 +47,8 @@ window.Shell=(()=>{
   alertStudio.querySelector('.alerts-page-header, .alerts-destinations').after(alerts);alerts.hidden=true;
   alertStudio.classList.add('alerts-workspace');
  }
- add('voice',panes.tools);add('filters',filters);add('alerts',alertStudio||alerts);add('history',panes.history);add('workspace',panes.workspace);add('diagnostics',panes.diagnostics);add('obs',obs);
- for(const node of document.querySelectorAll('[data-section]')){if(node===alertStudio)continue;add(node.dataset.section,node);}
+ add('voice',mount('voice'));add('filters',filters);add('alerts',alertStudio||alerts);add('history',mount('history'));add('workspace',mount('workspace'));add('diagnostics',mount('diagnostics'));add('obs',obs);
+ for(const node of document.querySelectorAll('[data-section]')){if(node===alertStudio||node.closest('#operator-dynamic-view-mount'))continue;add(node.dataset.section,node);}
  const links=[['Simulador','simulation'],['Chatbot','chatbot'],['Escenas','obs-direct'],['Eventos','event-diagnostics'],['Spotify','spotify'],['Encuestas','chat-poll'],['Streamer.bot','streamerbot'],['Sonidos','sound-library'],['Videos','video-library'],['Reglas','interactive'],['En vivo','live'],['Preguntas','questions'],['Atajos','game-hotkeys'],['Minecraft','minecraft'],['Puntos','points'],['Centro de control','control-center'],['Lectura','voice'],['Personaje','custom-voice'],['Filtros','filters'],['Emisión','production'],['Alertas','alerts'],['Overlays','overlay-gallery'],['Fuentes','obs'],['Sesiones','history'],['Moderación','moderator'],['Revisión','preflight'],['Conexión','diagnostics'],['Configuración','workspace'],['Acerca de','about']];
  // Each category contains destinations directly: no duplicated parent link.
  const groups=[
@@ -261,6 +261,7 @@ window.Shell=(()=>{
  const overlaySections=new Set(['favorites','animations','effects','tools','goals']);
  const creatorTabs=new Set(['scenes','community','battles','calendar','profiles','library','games']);
  let currentRoute=null,pendingRoute=null,navigationSerial=0;
+ window.OperatorViewRegistry?.connect((key,node)=>views.get(key)===node?node:registerView(key,node));
  function menuMotionAllowed(){return !document.body.classList.contains('menu-motion-reduced')&&!matchMedia('(prefers-reduced-motion: reduce)').matches;}
  function resolveRoute(key){
   let activeKey=key,viewKey=key,overlaySection='',creatorTab='',game='';

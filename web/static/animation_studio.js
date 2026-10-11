@@ -69,7 +69,7 @@
   const setup=el('details');setup.className='alerts-stream-setup';setup.append(el('summary','Conectar con tu programa de streaming'),el('p','Usa la URL como fuente de navegador vertical (1080 × 1920).'),tools);
   const alertsContent=el('div');alertsContent.className='alerts-content';alertsContent.append(saved,grid);status.className='alerts-feedback';broadcast.append(readiness,status,alertsContent,setup);
   new MutationObserver(()=>{if(!pane.hidden&&!broadcast.hidden)play();else previewEffect?.cancel();}).observe(pane,{attributes:true,attributeFilter:['hidden']});
-  document.querySelector('.app').append(pane);
+  window.OperatorViewRegistry.register('alerts',pane);
   async function refreshReadiness(){try{updateReadiness(await api('/animation-studio/status'));}catch(_){}finally{setTimeout(refreshReadiness,4000);}}
   Promise.all([api('/animation-studio'),api('/animation-studio/media'),api('/gift-catalog')]).then(([d,a,g])=>{templates=d.templates;assets=a.files;catalog=g.gifts;initialized=true;edit();renderList();updateReadiness(d);status.textContent='';refreshReadiness();}).catch(e=>status.textContent=e.message);
 })();

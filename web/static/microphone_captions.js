@@ -218,7 +218,7 @@
         </div>
       </aside>
     </div>`;
-  app.append(section);
+  window.OperatorViewRegistry.register(section.dataset.section,section);
 
   const $ = id => document.getElementById(id);
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;

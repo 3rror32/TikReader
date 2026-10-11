@@ -77,6 +77,20 @@ appears. Retry reloads the page rather than rebinding app listeners in place.
 The no-JavaScript markup explains that controls require JavaScript while
 retaining the static shell.
 
+## View composition and lifetime
+
+Static operator screens use template-authored `data-view-mount` boundaries for
+voice, filters, local alerts, history, workspace, diagnostics, and OBS. Shell
+ownership follows those stable markers; heading text and translations are copy,
+not selectors. Legacy `data-pane` roots and IDs remain available to existing
+enhancements.
+
+Dynamic producers register each long-lived view through
+`OperatorViewRegistry.register(key, node)`. The registry queues registrations
+made before the shell loads, replaces a pending duplicate by key, and delegates
+late registrations to `Shell.registerView`. Navigation only toggles view
+visibility; it does not recreate creator frames or microphone/voice instances.
+
 The deterministic startup browser tests attach observed cold/warm static asset
 request counts and response bytes, DOMContentLoaded and first-contentful-paint
 milestones, boot-controller timings, and injected critical-script failure

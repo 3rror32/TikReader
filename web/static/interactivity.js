@@ -55,9 +55,9 @@
   if(['streamerbot','sound-library','video-library'].includes(key))section.append(button('Automatizaciones avanzadas',()=>window.Shell?.show('interactive')));
   const feedback=el('p');feedback.setAttribute('role','status');section.append(feedback);
   new MutationObserver(()=>{feedback.textContent=notice.textContent;}).observe(notice,{childList:true,characterData:true,subtree:true});
-  document.querySelector('.app').append(section);
+  window.OperatorViewRegistry.register(section.dataset.section,section);
  }
- const log=el('div');pane.append(el('h3','Registro de reglas'),log,notice);document.querySelector('.app').append(pane);
+ const log=el('div');pane.append(el('h3','Registro de reglas'),log,notice);window.OperatorViewRegistry.register(pane.dataset.section,pane);
  const effect=el('div');effect.id='interactive-effect';effect.hidden=true;document.body.append(effect);let hide,activeAudio,audioOwner=false,leaseBusy=false,leaseAt=0;const tabId=crypto.randomUUID();
  const ownership=el('p');ownership.setAttribute('role','status');pane.append(ownership);
  Studio.hold('audio-owner',true);

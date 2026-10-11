@@ -1,7 +1,7 @@
 (() => {
   const el=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
   async function api(path,data){const r=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(15000)});const d=await r.json();if(!r.ok)throw Error(d.error||'No se pudo completar la acción');return d;}
-  function page(key,title,copy){const p=el('section');p.className='studio-pane integration-page';p.dataset.section=key;p.append(el('h2',title),el('p',copy));document.querySelector('.app').append(p);const status=el('p');status.role='status';p.append(status);return {p,status};}
+  function page(key,title,copy){const p=el('section');p.className='studio-pane integration-page';p.dataset.section=key;p.append(el('h2',title),el('p',copy));window.OperatorViewRegistry.register(key,p);const status=el('p');status.role='status';p.append(status);return {p,status};}
   function field(p,text,type='text'){const label=el('label',text),input=el(type==='select'?'select':type==='textarea'?'textarea':'input');if(input.tagName==='INPUT')input.type=type;label.append(input);p.append(label);return input;}
   function button(p,text,fn,status){const b=el('button',text);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){status.textContent=e.message;}finally{b.disabled=false;}};p.append(b);return b;}
   function options(select,items){select.replaceChildren(...items.map(([value,text])=>{const o=el('option',text);o.value=value;return o;}));}

@@ -69,6 +69,35 @@ test('production template boots in isolation', async ({ operator }) => {
   await expect.poll(() => operator.assetResponses.some(asset => asset.pathname === '/static/icons/tikreader-192.png'
     && asset.file === productionLogo && asset.status === 200)).toBe(true);
   await expect(operator.page.getByRole('button', { name: 'Conectar', exact: true })).toBeVisible();
+  const { page } = operator;
+  const staticMounts = await page.evaluate(() => ['voice', 'filters', 'alerts-local', 'history', 'workspace', 'diagnostics', 'obs']
+    .map(key => [key, document.querySelectorAll(`[data-view-mount="${key}"]`).length]));
+  expect(staticMounts).toEqual(['voice', 'filters', 'alerts-local', 'history', 'workspace', 'diagnostics', 'obs']
+    .map(key => [key, 1]));
+  for (const route of ['voice', 'filters', 'alerts', 'history', 'workspace', 'diagnostics', 'obs']) {
+    await page.evaluate(key => window.Shell.show(key, { history: 'none', focus: false }), route);
+    expect(await page.locator('.config-content').evaluate(node => [...node.children].filter(child => !child.hidden).length), route)
+      .toBe(1);
+  }
+  await page.locator('[data-view-mount="filters"] h2').evaluate(node => { node.textContent = 'Copy changed without changing ownership'; });
+  await page.evaluate(() => window.Shell.show('filters', { history: 'none', focus: false }));
+  await expect(page.locator('.config-content > [data-view-mount="filters"]')).toBeVisible();
+  await expect(page.locator('[data-view-mount="filters"] h2')).toHaveText('Copy changed without changing ownership');
+  await page.evaluate(() => {
+    window.__creatorFrame = document.querySelector('[data-section="creator-suite"] iframe');
+    window.__microphoneRoot = document.querySelector('[data-section="microphone-captions"]');
+  });
+  await page.evaluate(() => window.Shell.show('creator-suite', { history: 'none', focus: false }));
+  await page.evaluate(() => window.Shell.show('live', { history: 'none', focus: false }));
+  await page.evaluate(() => window.Shell.show('creator-suite', { history: 'none', focus: false }));
+  await page.evaluate(() => window.Shell.show('microphone-captions', { history: 'none', focus: false }));
+  await page.evaluate(() => window.Shell.show('live', { history: 'none', focus: false }));
+  await page.evaluate(() => window.Shell.show('microphone-captions', { history: 'none', focus: false }));
+  expect(await page.evaluate(() => window.__creatorFrame === document.querySelector('[data-section="creator-suite"] iframe')
+    && document.querySelectorAll('[data-section="creator-suite"] iframe').length === 1
+    && window.__microphoneRoot === document.querySelector('[data-section="microphone-captions"]')
+    && document.querySelectorAll('[data-section="microphone-captions"]').length === 1)).toBe(true);
+  await page.evaluate(() => window.Shell.show('live', { history: 'none', focus: false }));
   // Compare loaded tags with the recursively rendered production template's order.
   const production = fs.readFileSync(path.resolve(__dirname, '../../web/templates/index.html'), 'utf8');
   const authored = [...production.matchAll(/<script[^>]+src="([^"]+)"/g)].map(match => match[1]);
@@ -277,6 +306,7 @@ for (const theme of representative) {
     expect(bounds.panel.top).toBeGreaterThanOrEqual(0);
     expect(bounds.panel.bottom).toBeLessThanOrEqual(bounds.viewport.height);
     const captureBoundary = page;
+    await page.locator('#sidebar-search-input').hover();
     const review = testInfo.outputPath(`${theme}-review.png`);
     const image = await captureBoundary.screenshot({ ...operator.captureOptions(), path: review });
     expect({ width: image.readUInt32BE(16), height: image.readUInt32BE(20) })
