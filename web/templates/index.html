@@ -14,6 +14,62 @@
   <meta name="theme-color" content="#0a0a0f">
   <link rel="stylesheet" href="/static/moderator-production.css">
   <link rel="stylesheet" href="/static/operator_boot.css?v=ux5">
+  <script data-boot-fallback>
+    (() => {
+      let failureReason = '';
+      let retrying = false;
+      let observer;
+
+      function showFailure() {
+        if (!failureReason || window.OperatorBoot) return;
+        window.__operatorBootRecoveryFailed = true;
+        document.documentElement.dataset.operatorBootState = 'initialization-error';
+        const app = document.querySelector('.app');
+        if (app) {
+          app.inert = true;
+          app.setAttribute('aria-busy', 'true');
+        }
+        const panel = document.getElementById('operator-boot-status');
+        if (!panel) return;
+        observer?.disconnect();
+        panel.hidden = false;
+        panel.dataset.state = 'initialization-error';
+        const message = panel.querySelector('[data-boot-message]');
+        const detail = panel.querySelector('[data-boot-detail]');
+        const retry = document.getElementById('operator-boot-retry');
+        if (message) message.textContent = failureReason === 'controller-load'
+          ? 'No se pudo cargar el inicio.'
+          : 'El inicio no respondió.';
+        if (detail) detail.textContent = failureReason === 'controller-load'
+          ? 'La interfaz permanece bloqueada porque no se cargó el controlador de inicio. Reintenta para volver a cargarla.'
+          : 'La interfaz permanece bloqueada porque el inicio no respondió. Reintenta para volver a cargarla.';
+        if (retry) retry.hidden = false;
+      }
+
+      function fail(reason) {
+        if (failureReason || window.OperatorBoot) return;
+        failureReason = reason;
+        showFailure();
+      }
+
+      document.addEventListener('click', event => {
+        if (!event.target?.closest?.('#operator-boot-retry') || !failureReason || retrying) return;
+        retrying = true;
+        const retry = document.getElementById('operator-boot-retry');
+        if (retry) retry.disabled = true;
+        window.location.reload();
+      }, true);
+      window.addEventListener('error', event => {
+        const source = event.target instanceof HTMLScriptElement ? event.target.src : '';
+        if (/\/static\/operator_boot\.js(?:\?|$)/.test(source)) fail('controller-load');
+      }, true);
+      observer = new MutationObserver(showFailure);
+      observer.observe(document.documentElement, {childList: true, subtree: true});
+      setTimeout(() => {
+        if (!window.OperatorBoot) fail('controller-stalled');
+      }, 11000);
+    })();
+  </script>
   <script src="/static/operator_boot.js?v=ux5"></script>
   <meta name="description" content="Lee comentarios de TikTok Live en tiempo real con una interfaz moderna y atractiva." />
 

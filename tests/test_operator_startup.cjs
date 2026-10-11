@@ -32,3 +32,18 @@ test('shell and socket signals describe readiness without implying TikTok is liv
   assert.match(core, /OperatorBoot\?\.tiktokLive\(\)/);
   assert.match(core, /OperatorBoot\?\.backendLost\(\)/);
 });
+
+test('independent fallback watches for a missing boot controller and gates retry', () => {
+  const html = read('web/templates/index.html');
+  const fallback = html.indexOf('data-boot-fallback');
+  const controller = html.indexOf('src="/static/operator_boot.js');
+  assert.ok(fallback >= 0 && fallback < controller, 'fallback must execute before the boot controller request');
+  const fallbackSource = html.slice(fallback, controller);
+  const boot = read('web/static/operator_boot.js');
+  assert.match(fallbackSource, /__operatorBootRecoveryFailed/);
+  assert.match(fallbackSource, /setTimeout/);
+  assert.match(fallbackSource, /location\.reload\(\)/);
+  assert.match(fallbackSource, /aria-busy/);
+  assert.match(fallbackSource, /observer\?\.disconnect\(\)/);
+  assert.match(boot, /if \(window\.__operatorBootRecoveryFailed\) return/);
+});

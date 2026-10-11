@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  if (window.__operatorBootRecoveryFailed) return;
 
   const failureDelayMs = 10000;
   const navigationStart = performance.getEntriesByType('navigation')[0]?.startTime;

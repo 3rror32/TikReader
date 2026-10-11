@@ -95,3 +95,41 @@ test.describe('operator startup recovery', () => {
     console.log(`operator-startup-failure-evidence ${JSON.stringify({ failedResponses: failureEvidence.failedAssetResponses.length, recoveredStage: failureEvidence.recoveredStage, connectionListenerCount: failureEvidence.connectionListenerCount, startLiveEmissions: failureEvidence.startLiveEmissions })}`);
   });
 });
+
+test.describe('operator boot-controller recovery', () => {
+  test.use({ operatorStartupScenario: { deferNavigation: true, failOncePath: '/static/operator_boot.js' } });
+
+  test('shows independent accessible retry after the boot controller itself fails', async ({ operator }, testInfo) => {
+    test.setTimeout(30000);
+    const { page, start, assetTransfers } = operator;
+    await start();
+    await page.waitForTimeout(11250);
+
+    const status = page.locator('#operator-boot-status');
+    await expect(status).toBeVisible();
+    await expect(status).toHaveAttribute('aria-live', 'polite');
+    await expect(page.locator('#operator-boot-retry')).toBeVisible();
+    await expect(page.locator('#operator-boot-title')).toHaveText('No se pudo cargar el inicio.');
+    await expect(page.locator('[data-boot-detail]')).toContainText('controlador de inicio');
+    await expect(page.locator('#operator-boot-retry')).toBeEnabled();
+    await expect(page.locator('.app')).toBeVisible();
+    await expect(page.locator('.app')).toHaveAttribute('inert', '');
+    await expect(page.locator('.app')).toHaveAttribute('aria-busy', 'true');
+    expect(await page.locator('html').getAttribute('data-operator-boot-state')).toBe('initialization-error');
+    expect(assetTransfers.filter(item => item.pathname === '/static/operator_boot.js' && item.status === 503)).toHaveLength(1);
+
+    const retryNavigation = page.waitForNavigation();
+    await page.locator('#operator-boot-retry').click();
+    await retryNavigation;
+    await expect(page.locator('html')).toHaveAttribute('data-operator-boot-state', 'shell-ready');
+    await expect(page.locator('.app')).toHaveAttribute('inert', '');
+    await operator.signalBackendReady();
+    await expect(page.locator('.app')).not.toHaveAttribute('inert', '');
+    await expect(page.locator('#operator-boot-status')).toBeHidden();
+    await testInfo.attach('operator-boot-controller-failure', {
+      body: JSON.stringify({ failedResponses: assetTransfers.filter(item => item.pathname === '/static/operator_boot.js' && item.status === 503),
+        recoveredStage: await page.locator('html').getAttribute('data-operator-boot-state') }, null, 2),
+      contentType: 'application/json',
+    });
+  });
+});

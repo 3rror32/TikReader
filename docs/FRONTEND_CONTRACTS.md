@@ -70,9 +70,12 @@ controls remain inert until both the navigation shell and local backend/socket
 are ready. `document-structure-ready`, `shell-ready`, `backend-ready`, and
 `tiktok-live` are separate states; a healthy backend does not claim an active
 TikTok connection. If a critical script fails or startup stalls, the visible
-status panel offers a retry; retry reloads the page rather than rebinding app
-listeners in place. The no-JavaScript markup explains that controls require
-JavaScript while retaining the static shell.
+status panel offers a retry. A small inline fallback runs before the boot
+controller request, so it can report that controller's own load failure; the
+fallback watchdog also locks the app and offers retry if the controller never
+appears. Retry reloads the page rather than rebinding app listeners in place.
+The no-JavaScript markup explains that controls require JavaScript while
+retaining the static shell.
 
 The deterministic startup browser tests attach observed cold/warm static asset
 request counts and response bytes, DOMContentLoaded and first-contentful-paint
