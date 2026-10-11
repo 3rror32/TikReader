@@ -55,6 +55,8 @@ fit inside the viewport before taking the screenshot. At native 200% zoom the
 physical test viewport is 2560x1800 so the effective CSS layout remains 1280x900;
 the extension API still reports 2x zoom and the page reports doubled device pixel
 ratio. The viewport PNG dimensions are asserted to prevent element-crop regressions.
+The browser fixture routes `/static/icons/` from the production `assets/icons/`
+directory and verifies that the TikReader logo request succeeds and renders.
 Each run saves a masked review capture to its runtime result directory before the
 baseline assertion. Baselines
 are Windows/Chromium captures; a different OS, font installation or rendering

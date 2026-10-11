@@ -61,6 +61,13 @@ async function reachable(locator) {
 }
 
 test('production template boots in isolation', async ({ operator }) => {
+  const logo = operator.page.locator('.logo-icon img');
+  const productionLogo = path.resolve(__dirname, '../../assets/icons/tikreader-192.png');
+  expect(fs.existsSync(productionLogo)).toBe(true);
+  await expect(logo).toHaveAttribute('src', '/static/icons/tikreader-192.png');
+  await expect.poll(() => logo.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+  await expect.poll(() => operator.assetResponses.some(asset => asset.pathname === '/static/icons/tikreader-192.png'
+    && asset.file === productionLogo && asset.status === 200)).toBe(true);
   await expect(operator.page.getByRole('button', { name: 'Conectar', exact: true })).toBeVisible();
   // Compare loaded tags with the recursively rendered production template's order.
   const production = fs.readFileSync(path.resolve(__dirname, '../../web/templates/index.html'), 'utf8');

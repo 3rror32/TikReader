@@ -12,6 +12,23 @@ const preferenceKeys = preferenceDeclaration[1].trim().split(/\s+/).sort();
 const seed = { 'tikreader.skin': 'original', 'tikreader.interfaceMode': '"advanced"',
   'tikreader.liveBadgeMotion': 'off' };
 
+function resolveStaticAsset(urlPath) {
+  let pathname;
+  try { pathname = decodeURIComponent(urlPath); }
+  catch { return null; }
+  if (!pathname.startsWith('/static/')) return null;
+  let relative = pathname.slice('/static/'.length);
+  const base = relative.startsWith('icons/')
+    ? path.join(root, 'assets/icons')
+    : path.join(root, 'web/static');
+  if (relative.startsWith('icons/')) relative = relative.slice('icons/'.length);
+  const file = path.resolve(base, relative);
+  const fromBase = path.relative(base, file);
+  if (!fromBase || fromBase === '..' || fromBase.startsWith(`..${path.sep}`) || path.isAbsolute(fromBase)) return null;
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return null;
+  return file;
+}
+
 function template(preferences) {
   const include = name => fs.readFileSync(path.join(root, 'web/templates', name), 'utf8')
     .replace(/{% include '([^']+)' %}/g, (_, nested) => include(nested));
@@ -56,10 +73,8 @@ const test = base.extend({
     const types = { '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
       '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
     const server = http.createServer((request, response) => {
-      const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
-      const file = path.resolve(root, 'web', '.' + pathname);
-      const staticRoot = path.join(root, 'web/static') + path.sep;
-      if (!file.startsWith(staticRoot) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      const file = resolveStaticAsset(new URL(request.url, 'http://localhost').pathname);
+      if (!file) {
         response.writeHead(404); response.end(); return;
       }
       response.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream');
@@ -80,7 +95,7 @@ const test = base.extend({
       args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
     });
     const preferences = Object.fromEntries(Object.entries(seed).filter(([key]) => preferenceKeys.includes(key)));
-    const blocked = [], requests = [], errors = [];
+    const blocked = [], requests = [], errors = [], assetResponses = [];
     const assetTypes = { '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
       '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
     // Context-level routing protects frames and new pages as well as the main tab.
@@ -95,11 +110,11 @@ const test = base.extend({
         await route.fulfill({ contentType: 'text/javascript', body: socketScript }); return;
       }
       if (url.pathname.startsWith('/static/')) {
-        const asset = path.resolve(root, 'web', '.' + decodeURIComponent(url.pathname));
-        const staticRoot = path.join(root, 'web/static') + path.sep;
-        if (!asset.startsWith(staticRoot) || !fs.existsSync(asset) || !fs.statSync(asset).isFile()) {
+        const asset = resolveStaticAsset(url.pathname);
+        if (!asset) {
           await route.fulfill({ status: 404, body: 'Fixture asset not found.' }); return;
         }
+        assetResponses.push({ pathname: url.pathname, file: asset, status: 200 });
         await route.fulfill({ contentType: assetTypes[path.extname(asset)] || 'application/octet-stream',
           body: fs.readFileSync(asset) }); return;
       }
@@ -142,7 +157,7 @@ const test = base.extend({
     const captureOptions = () => ({ animations: 'disabled',
       mask: [page.locator('input[type="password"], #kick-client-id, #kick-webhook-path, #twitch-nickname')],
       maskColor: '#182330', caret: 'hide' });
-    try { await use({ page, context, preferences, blocked, requests, errors, zoom, captureOptions }); }
+    try { await use({ page, context, preferences, blocked, requests, errors, assetResponses, zoom, captureOptions }); }
     finally {
       await testInfo.attach('fixture-requests', { body: JSON.stringify({ requests: requests.map(({path, method}) => ({path, method})), blocked, errors }, null, 2), contentType: 'application/json' });
       await context.close();
