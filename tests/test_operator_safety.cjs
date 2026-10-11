@@ -55,3 +55,26 @@ test('UX-6 dynamic outcomes translate with explicit interpolated values', () => 
     assert.ok(templates.includes(key + '|'), `translation catalog contains ${key}`);
   }
 });
+
+test('Kick webhook secret visibility is opt-in and never persisted', () => {
+  const html = read('web/templates/index.html');
+  const styles = read('web/static/platform_integrations.css');
+  const workspace = read('web/static/workspace.js');
+  const fixtures = read('tests/browser/fixtures.cjs');
+  assert.match(html, /id="kick-webhook-warning"[^>]*>[^<]*No la compartas/);
+  assert.match(html, /id="kick-reveal-webhook"[^>]*aria-pressed="false"/);
+  assert.match(html, /id="kick-webhook-path"[^>]*aria-hidden="true"/);
+  assert.match(styles, /#kick-webhook-path[\s\S]*?color:\s*transparent/);
+  assert.match(styles, /#kick-webhook-path\[data-secret-revealed="true"\]/);
+  assert.match(workspace, /kick-reveal-webhook/);
+  assert.match(workspace, /navigator\.clipboard\.writeText\(kickWebhookPath\.textContent/);
+  assert.match(fixtures, /mask:[^\n]*#kick-webhook-path/);
+  assert.match(fixtures, /operatorCredentialScenario/);
+  const translations = read('web/static/translations.js');
+  for (const source of [
+    'Esta ruta contiene un secreto. No la compartas ni la incluyas en capturas.',
+    'Mostrar ruta', 'Ocultar ruta',
+    'Ruta copiada. Añade tu dominio HTTPS público.',
+    'No se pudo copiar la ruta. Revisa los permisos del portapapeles e inténtalo de nuevo.',
+  ]) assert.ok(translations.includes(source + '|'), `Kick privacy copy has a translation: ${source}`);
+});

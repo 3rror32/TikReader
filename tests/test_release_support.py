@@ -113,9 +113,23 @@ class ReleaseTests(unittest.TestCase):
                 self.assertNotIn('oauth:', str(status))
                 self.assertNotIn('s' * 24, str(status))
                 self.assertEqual(store.get('twitch')['nickname'], 'carlos')
+                export = client.get('/diagnostics/export').get_data(as_text=True)
+                self.assertNotIn(store.get('kick')['client_secret'], export)
+                self.assertNotIn(store.get('kick')['webhook_secret'], export)
                 response = client.delete('/system/platform-credentials', json={'platform': 'youtube'})
                 self.assertEqual(response.status_code, 200)
                 self.assertFalse(store.public_status('youtube')['configured'])
+
+    def test_platform_credential_routes_are_local_only(self):
+        import server
+        client = server.app.test_client()
+        remote = {'REMOTE_ADDR': '10.0.0.2'}
+        self.assertEqual(client.get('/system/platform-credentials', environ_base=remote).status_code, 403)
+        self.assertEqual(client.post('/system/platform-credentials', json={
+            'platform': 'kick', 'credentials': {'client_id': 'kick-client-123', 'client_secret': 's' * 24}},
+            environ_base=remote).status_code, 403)
+        self.assertEqual(client.delete('/system/platform-credentials', json={'platform': 'kick'},
+                                       environ_base=remote).status_code, 403)
 
     def test_voice_download_requires_explicit_request(self):
         import server

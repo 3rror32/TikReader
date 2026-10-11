@@ -97,6 +97,19 @@ voice and alert values; separate user changes are required to reactivate them.
 Failed requests keep
 the editable values available and report failure rather than application.
 
+## Credential visibility
+
+Platform credentials use the local-only credential routes and the protected
+credential store; Windows persistence remains user-protected, while unsupported
+protection falls back to memory-only storage. The Kick webhook path is a
+secret-bearing value: its characters are visually suppressed and excluded from
+accessible text until an operator intentionally reveals it. Reveal is
+reversible and resets on reload. Copy writes the real path without revealing it
+and reports only whether the copy succeeded. The browser fixture masks the path
+in screenshots, and distinct synthetic secrets are checked against browser
+storage and capture output. Credential deletion remains confirmation-gated; a
+dismissed confirmation sends no mutation.
+
 ## Keyboard, motion and real zoom
 
 The suite operates real keyboard events, checks destination heading focus,

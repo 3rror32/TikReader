@@ -103,6 +103,23 @@
 .platform-integrations-footer p { margin: 0; color: var(--skin-muted, #9cafc0); font-size: 12px; }
 .platform-integrations-footer button { min-height: 38px; }
 
+#kick-webhook-path {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 2.4em;
+  overflow: auto;
+  white-space: nowrap;
+  user-select: none;
+  color: transparent;
+  text-shadow: none;
+}
+#kick-webhook-path::before { content: "••••••••••••"; color: var(--skin-muted, #9cafc0); }
+#kick-webhook-path[data-secret-revealed="true"] { color: var(--skin-text, #dfe9f2); user-select: text; }
+#kick-webhook-path[data-secret-revealed="true"]::before { content: none; }
+#kick-webhook-warning { color: var(--skin-muted, #9cafc0); }
+#kick-webhook-notice { min-height: 1.2em; }
+
 /* The live desk asks only for session-specific information. */
 .platform-connectors .youtube-fields,
 .platform-connectors .twitch-fields,

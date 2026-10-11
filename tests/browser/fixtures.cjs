@@ -55,12 +55,14 @@ const socketScript = `(() => {
   window.io = () => socket;
 })();`;
 
-function apiResponse(url) {
+function apiResponse(url, credentialScenario = {}) {
   if (url === '/animation-studio') return { templates: [], connected: false, source_online: false, enabled_count: 0, muted: false };
   if (url === '/animation-studio/status') return { connected: false, source_online: false, enabled_count: 0, muted: false };
   if (url === '/animation-studio/media') return { files: [] };
   if (url === '/gift-catalog') return { gifts: [] };
-  if (url === '/system/platform-credentials') return { storage: 'memory', platforms: [] };
+  if (url === '/system/platform-credentials') return { storage: 'memory', platforms: credentialScenario.kickWebhookSecret
+    ? [{ platform: 'kick', configured: true, webhook_path: `/kick/webhook/${credentialScenario.kickWebhookSecret}` }]
+    : [] };
   if (url === '/feed') return { comments: [], gifts: [], stats: { comments: 0, likes: 0, gifts: 0, viewers: 0, viewers_known: false } };
   if (url === '/system/voices') return { status: 'idle', ready: false, available: false };
   if (url === '/local-tts') return { available: false, voices: [], models: [] };
@@ -75,6 +77,7 @@ function apiResponse(url) {
 
 const test = base.extend({
   operatorStartupScenario: [{}, { option: true }],
+  operatorCredentialScenario: [{}, { option: true }],
   origin: [async ({}, use) => {
     const types = { '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
       '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
@@ -90,7 +93,7 @@ const test = base.extend({
     await use(`http://127.0.0.1:${server.address().port}`);
     await new Promise(resolve => server.close(resolve));
   }, { scope: 'worker' }],
-  operator: async ({ origin, operatorStartupScenario }, use, testInfo) => {
+  operator: async ({ origin, operatorStartupScenario, operatorCredentialScenario }, use, testInfo) => {
     const extension = path.join(__dirname, 'zoom-extension');
     const profiles = path.join(root, 'runtime/playwright-browsers/profiles');
     fs.mkdirSync(profiles, { recursive: true });
@@ -151,7 +154,7 @@ const test = base.extend({
         }
       }
       await route.fulfill({ json: url.pathname === '/system/preferences'
-        ? { values: preferences, keys: preferenceKeys } : apiResponse(url.pathname) });
+        ? { values: preferences, keys: preferenceKeys } : apiResponse(url.pathname, operatorCredentialScenario) });
     });
     await context.addInitScript(seed => {
       // Seed only once: reloading must not overwrite preferences changed through the UI.

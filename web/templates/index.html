@@ -1040,8 +1040,10 @@
         <form id="kick-credentials-form">
           <div class="platform-form-grid"><label for="kick-client-id">Client ID<input id="kick-client-id" type="text" maxlength="300" autocomplete="off" spellcheck="false"></label><label for="kick-client-secret">Client Secret<div class="platform-secret-field"><input id="kick-client-secret" type="password" maxlength="500" placeholder="Pega un secreto nuevo" autocomplete="off" spellcheck="false"><span aria-hidden="true">•••</span></div></label></div>
           <small>Kick requiere una URL HTTPS pública. Guarda estas credenciales y copia la ruta mostrada para completar la URL del webhook en tu aplicación de Kick.</small>
-          <code id="kick-webhook-path">Guarda Kick para generar la ruta segura del webhook.</code>
-          <div class="platform-config-actions"><button type="submit">Guardar Kick</button><button type="button" id="kick-copy-webhook" hidden>Copiar ruta</button><button type="button" class="platform-remove" data-platform-delete="kick" hidden>Eliminar credencial</button></div>
+          <small id="kick-webhook-warning">Esta ruta contiene un secreto. No la compartas ni la incluyas en capturas.</small>
+          <code id="kick-webhook-path" aria-hidden="true" data-secret-revealed="false">Guarda Kick para generar la ruta segura del webhook.</code>
+          <div class="platform-config-actions"><button type="submit">Guardar Kick</button><button type="button" id="kick-reveal-webhook" aria-pressed="false" hidden>Mostrar ruta</button><button type="button" id="kick-copy-webhook" hidden>Copiar ruta</button><button type="button" class="platform-remove" data-platform-delete="kick" hidden>Eliminar credencial</button></div>
+          <p class="platform-form-status" id="kick-webhook-notice" role="status" aria-live="polite"></p>
           <p class="platform-form-status" id="kick-credentials-status" role="status"></p>
         </form>
       </article>

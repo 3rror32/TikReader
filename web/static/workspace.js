@@ -1,5 +1,34 @@
 window.Workspace=(()=>{
   const $=id=>document.getElementById(id);
+  const kickWebhookPath=$('kick-webhook-path'),kickReveal=$('kick-reveal-webhook'),kickCopy=$('kick-copy-webhook'),kickNotice=$('kick-webhook-notice');
+  const kickMessage=(source)=>window.I18n?.t(source)??source;
+  function setKickWebhookRevealed(revealed){
+    if(!kickWebhookPath||!kickReveal)return;
+    kickWebhookPath.dataset.secretRevealed=String(revealed);
+    kickWebhookPath.setAttribute('aria-hidden',String(!revealed));
+    kickReveal.setAttribute('aria-pressed',String(revealed));
+    kickReveal.textContent=kickMessage(revealed?'Ocultar ruta':'Mostrar ruta');
+  }
+  function syncKickWebhookActions(){if(kickReveal&&kickCopy)kickReveal.hidden=kickCopy.hidden;}
+  if(kickWebhookPath&&kickReveal&&kickCopy){
+    setKickWebhookRevealed(false);syncKickWebhookActions();
+    kickReveal.addEventListener('click',()=>setKickWebhookRevealed(kickReveal.getAttribute('aria-pressed')!=='true'));
+    new MutationObserver(()=>{syncKickWebhookActions();setKickWebhookRevealed(false);})
+      .observe(kickWebhookPath,{childList:true,characterData:true,subtree:true});
+    new MutationObserver(syncKickWebhookActions).observe(kickCopy,{attributes:true,attributeFilter:['hidden']});
+    window.addEventListener('tikreader:localechange',()=>{
+      const revealed=kickReveal.getAttribute('aria-pressed')==='true';
+      kickReveal.textContent=kickMessage(revealed?'Ocultar ruta':'Mostrar ruta');
+    });
+    document.addEventListener('click',async event=>{
+      if(!event.target?.closest?.('#kick-copy-webhook'))return;
+      event.preventDefault();event.stopImmediatePropagation();
+      try{
+        await navigator.clipboard.writeText(kickWebhookPath.textContent||'');
+        kickNotice.textContent=kickMessage('Ruta copiada. Añade tu dominio HTTPS público.');
+      }catch(_){kickNotice.textContent=kickMessage('No se pudo copiar la ruta. Revisa los permisos del portapapeles e inténtalo de nuevo.');}
+    },true);
+  }
   const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch(_){return fallback;}};
   const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch(_){$('workspace-notice').textContent='No se pudo guardar: almacenamiento del navegador no disponible.';return false;}};
   let profiles=read('tikreader.profiles',{}), layout=read('tikreader.layout',{split:58,presenter:false}), lastState;

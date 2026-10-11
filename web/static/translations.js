@@ -3,6 +3,11 @@ window.TikReaderTranslations = (() => {
   const rows = `
 Estructura visible|Useful interface structure is visible|La structure utile de l’interface est visible
 Preparando el menú y la conexión local…|Preparing the menu and local connection…|Préparation du menu et de la connexion locale…
+Esta ruta contiene un secreto. No la compartas ni la incluyas en capturas.|This path contains a secret. Do not share it or include it in screenshots.|Cette adresse contient un secret. Ne la partagez pas et ne l’incluez pas dans des captures d’écran.
+Mostrar ruta|Reveal path|Afficher l’adresse
+Ocultar ruta|Hide path|Masquer l’adresse
+Ruta copiada. Añade tu dominio HTTPS público.|Path copied. Add your public HTTPS domain.|Adresse copiée. Ajoutez votre domaine HTTPS public.
+No se pudo copiar la ruta. Revisa los permisos del portapapeles e inténtalo de nuevo.|Could not copy the path. Check clipboard permissions and try again.|Impossible de copier l’adresse. Vérifiez les autorisations du presse-papiers et réessayez.
 Menú listo|Menu ready|Menu prêt
 Conectando con el servicio local…|Connecting to the local service…|Connexion au service local…
 Servicio local listo|Local service ready|Service local prêt
