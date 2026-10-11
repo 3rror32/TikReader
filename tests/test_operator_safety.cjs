@@ -21,12 +21,20 @@ test('operational changes explain their effect before the request and report onl
 
 test('consequential profile and alert requests are guarded against duplicate submissions', () => {
   const workspace = read('web/static/workspace.js');
+  const translations = read('web/static/translations.js');
   const alerts = read('web/static/animation_studio.js');
   const reliability = read('web/static/reliability.js');
 
   assert.ok(/profileLoadPending/.test(workspace), 'profile loading has a duplicate-submission guard');
-  assert.ok(/\$\('alerts-enabled'\)\.checked=false;\$\('alerts-enabled'\)\.onchange\(\)/.test(workspace), 'profile loading keeps local alerts paused');
+  assert.ok(/\$\('tts-enabled'\)\.checked=false;\$\('tts-enabled'\)\.dispatchEvent\(new Event\('change',\{bubbles:true\}\)\);\$\('alerts-enabled'\)\.checked=false;\$\('alerts-enabled'\)\.dispatchEvent\(new Event\('change',\{bubbles:true\}\)\)/.test(workspace), 'profile loading persists both pauses through registered change listeners');
+  assert.ok(!/wantsVoice=!!p\.voice;save\('tikreader\.voiceWanted',wantsVoice\)/.test(workspace), 'loading does not transiently restore profile voice');
   assert.ok(/¿Cargar este perfil en TikReader\?/.test(workspace), 'profile application consequences are confirmed');
+  for (const source of [
+    '¿Cargar este perfil en TikReader? Se actualizarán los ajustes locales; la voz y las alertas seguirán pausadas hasta que las reactives.',
+    'Perfil aplicado localmente. Revisa las reglas desactivadas; voz y alertas locales siguen pausadas hasta reactivarlas.',
+    'Borrador guardado · no se modificó la emisión.',
+    '¿Guardar este estilo? Actualizará la configuración que recibe tu programa de streaming.',
+  ]) assert.ok(translations.includes(source + '|'), `UX-6 consequence copy has a translation: ${source}`);
   assert.ok(/button\('Activar todas',[\s\S]*?if\(!\(window\.I18n\?\.confirm/.test(alerts), 'alert activation is confirmed');
   assert.ok(/b\.disabled=true;try\{await fn\(\)/.test(reliability), 'reliability actions disable while pending');
 });

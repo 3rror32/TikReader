@@ -92,7 +92,9 @@ Overlay appearance saves explicitly confirm that they update the configuration
 used by streaming sources. Alert previews and test events remain tests; activating
 alerts warns that real matching events may appear on stream. Applying starter
 profiles confirms that new rules stay disabled, and loading any profile keeps
-voice and local alerts paused until explicitly reactivated. Failed requests keep
+voice and local alerts paused across reload. The profile retains its intentional
+voice and alert values; separate user changes are required to reactivate them.
+Failed requests keep
 the editable values available and report failure rather than application.
 
 ## Keyboard, motion and real zoom

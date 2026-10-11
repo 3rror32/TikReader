@@ -7,7 +7,7 @@ const script = fs.readFileSync(`${__dirname}/../web/static/workspace.js`, 'utf8'
 
 function setup(storage = new Map()) {
   const nodes = new Map(), timers = [], notices = [];
-  let build = 'first', reloads = 0, changes = 0;
+  let build = 'first', reloads = 0, changes = 0, alertChanges = 0;
   function element() {
     const listeners = {}, attributes = {}, classes = new Set();
     return {
@@ -22,19 +22,21 @@ function setup(storage = new Map()) {
   }
   const get = id => {if(!nodes.has(id))nodes.set(id, element());return nodes.get(id);};
   get('tts-enabled').onchange = () => {changes++;get('tts-state').textContent = get('tts-enabled').checked?'Voz activa':'Voz apagada';};
-  const window = {Notifications:{show:(text, options)=>notices.push({text, ...options})}};
+  get('alerts-enabled').onchange = () => {alertChanges++;};
+  const window = {Notifications:{show:(text, options)=>notices.push({text, ...options})},dispatchEvent(){}};
   window.location={origin:'http://localhost'};
   vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/overlay_url.js`, 'utf8')+'\n'+script, {
     URL,
-    window, Studio:{audioDiagnostics:()=>({paused:false})}, Event,
+    window, Studio:{audioDiagnostics:()=>({paused:false}),preferences:()=>({}),applyPreferences(){}}, Event,
     document:{getElementById:get, createElement:element, body:element(), documentElement:element()},
     localStorage:{getItem:key=>storage.get(key)??null, setItem:(key,value)=>storage.set(key,value)},
     MutationObserver:class {observe(){}},
     location:{origin:'http://localhost',reload(){reloads++;}},
     fetch:async()=>({json:async()=>({build})}),
+    confirm:()=>true,
     setTimeout(fn){timers.push(fn);},
   });
-  return {get, notices, timers, setBuild:value=>{build=value;}, reloads:()=>reloads, changes:()=>changes};
+  return {get, notices, timers, setBuild:value=>{build=value;}, reloads:()=>reloads, changes:()=>changes, alertChanges:()=>alertChanges};
 }
 
 test('automatic comment voice retains enabled and disabled choices across reloads', () => {
@@ -74,4 +76,23 @@ test('invalid or unavailable stored preference defaults to voice off', () => {
     assert.equal(setup(new Map([['tikreader.voiceWanted', value]])).get('tts-enabled').checked, false);
   }
   assert.equal(setup({get(){throw Error('Unavailable');}}).get('tts-enabled').checked, false);
+});
+
+test('loading an enabled profile persists voice off before reload without rewriting the profile', async () => {
+  const profile = {voice:true, alerts:true, settings:{}, layout:{split:58,presenter:false}};
+  const storage = new Map([['tikreader.profiles', JSON.stringify({Enabled:profile})]]);
+  const page = setup(storage);
+  page.get('profile-select').value = 'Enabled';
+  page.get('profile-select').onchange();
+  await page.get('profile-load').onclick();
+  assert.equal(page.reloads(), 1);
+  assert.equal(page.changes(), 2, 'profile pause dispatches one change after initialization');
+  assert.equal(page.alertChanges(), 1, 'profile pause dispatches one local-alert change');
+  assert.equal(storage.get('tikreader.voiceWanted'), 'false');
+  assert.equal(page.get('tts-enabled').checked, false);
+  assert.deepEqual(JSON.parse(storage.get('tikreader.profiles')).Enabled, profile);
+  const reloaded = setup(storage);
+  assert.equal(reloaded.get('tts-enabled').checked, false, 'voice remains paused until a later user change');
+  reloaded.get('voice-toggle').onclick();
+  assert.equal(storage.get('tikreader.voiceWanted'), 'true', 'separate user activation remains available');
 });

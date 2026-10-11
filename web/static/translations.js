@@ -1492,6 +1492,35 @@ Superficie clara para espacios iluminados.|Light surface for bright rooms.|Surfa
 Color suave para una cabina más expresiva.|Soft color for a more expressive studio.|Couleurs douces pour un studio plus expressif.
 Ver todos los temas|View all themes|Voir tous les thèmes
 Explora las cabinas de personalidad y los estilos heredados.|Explore signature studios and legacy styles.|Explorez les studios de caractère et les styles hérités.
+No se completó. {error}|Could not complete. {error}|Impossible de terminer. {error}
+Alertas activadas en la configuración; la emisión sigue pausada.|Alerts enabled in configuration; broadcast remains paused.|Alertes activées dans la configuration ; la diffusion reste en pause.
+Listas para la transmisión · alertas activadas.|Ready for streaming · alerts enabled.|Prêtes pour la diffusion · alertes activées.
+Alertas activadas, pero falta abrir la fuente de streaming.|Alerts enabled, but the streaming source still needs to be opened.|Alertes activées, mais la source de diffusion doit encore être ouverte.
+¿Activar todas las alertas para este LIVE? Los eventos reales coincidentes podrán mostrarlas en la transmisión.|Enable all alerts for this LIVE? Matching real events may show them on stream.|Activer toutes les alertes pour ce LIVE ? Les événements réels correspondants pourront les afficher en direct.
+Prueba enviada a la fuente de transmisión; no se envió un regalo real.|Test sent to the streaming source; no real gift was sent.|Test envoyé à la source de diffusion ; aucun vrai cadeau n’a été envoyé.
+La prueba no se envió. {error}|The test was not sent. {error}|Le test n’a pas été envoyé. {error}
+Borrador guardado · desactivado. No aparecerá en la transmisión hasta que lo actives.|Draft saved · disabled. It will not appear on stream until you enable it.|Brouillon enregistré · désactivé. Il n’apparaîtra pas en direct tant que vous ne l’aurez pas activé.
+Activa|Active|Active
+¿Activar “{name}”? Los eventos reales coincidentes podrán mostrarla en la transmisión.|Enable “{name}”? Matching real events may show it on stream.|Activer « {name} » ? Les événements réels correspondants pourront l’afficher en direct.
+Alerta actualizada; la emisión sigue pausada.|Alert updated; broadcast remains paused.|Alerte actualisée ; la diffusion reste en pause.
+Alerta desactivada.|Alert disabled.|Alerte désactivée.
+Lista para la transmisión · alerta activada para este LIVE.|Ready for streaming · alert enabled for this LIVE.|Prête pour la diffusion · alerte activée pour ce LIVE.
+Alerta activada, pero falta abrir la fuente de streaming.|Alert enabled, but the streaming source still needs to be opened.|Alerte activée, mais la source de diffusion doit encore être ouverte.
+¿Publicar esta escena? Actualizará su enlace, que puede estar visible en tu programa de streaming.|Publish this scene? Its link will be updated and may be visible in your streaming program.|Publier cette scène ? Son lien sera mis à jour et pourra être visible dans votre logiciel de diffusion.
+Publicada · esta escena está disponible en su enlace para tu programa de streaming.|Published · this scene is available at its link for your streaming program.|Publiée · cette scène est disponible via son lien dans votre logiciel de diffusion.
+Vista previa · al añadirlo se crearán escenas y reglas iniciales desactivadas. No se publican escenas ni se inicia una transmisión.|Preview · adding it creates scenes and starter rules disabled. No scenes are published and no broadcast starts.|Aperçu · son ajout crée des scènes et des règles initiales désactivées. Aucune scène n’est publiée et aucune diffusion ne démarre.
+¿Añadir este perfil? Escenas y reglas iniciales se añadirán con las reglas desactivadas. No se publicará ninguna escena.|Add this profile? Scenes and starter rules will be added with rules disabled. No scene will be published.|Ajouter ce profil ? Des scènes et des règles initiales seront ajoutées avec les règles désactivées. Aucune scène ne sera publiée.
+Aplicado localmente · {notice}|Applied locally · {notice}|Appliqué localement · {notice}
+¿Guardar este objetivo? El cambio se aplicará al overlay usado por tu programa de streaming.|Save this goal? The change will apply to the overlay used by your streaming program.|Enregistrer cet objectif ? La modification s’appliquera à l’overlay utilisé par votre logiciel de diffusion.
+Aplicado al overlay · objetivo guardado para la transmisión.|Applied to overlay · goal saved for streaming.|Appliqué à l’overlay · objectif enregistré pour la diffusion.
+¿Guardar este estilo? Actualizará la configuración que recibe tu programa de streaming.|Save this style? It will update the configuration received by your streaming program.|Enregistrer ce style ? La configuration reçue par votre logiciel de diffusion sera mise à jour.
+Aplicado al overlay · el programa de streaming recibirá esta configuración.|Applied to overlay · the streaming program will receive this configuration.|Appliqué à l’overlay · le logiciel de diffusion recevra cette configuration.
+No se aplicó el cambio. {error}|The change was not applied. {error}|La modification n’a pas été appliquée. {error}
+Aplicado al overlay · estilo predeterminado restaurado para la transmisión.|Applied to overlay · default style restored for streaming.|Appliqué à l’overlay · style par défaut rétabli pour la diffusion.
+Borrador guardado · no se modificó la emisión.|Draft saved · the broadcast was not changed.|Brouillon enregistré · la diffusion n’a pas été modifiée.
+¿Cargar este perfil en TikReader? Se actualizarán los ajustes locales; la voz y las alertas seguirán pausadas hasta que las reactives.|Load this profile into TikReader? Local settings will be updated; voice and alerts remain paused until you reactivate them.|Charger ce profil dans TikReader ? Les réglages locaux seront mis à jour ; la voix et les alertes resteront en pause jusqu’à leur réactivation.
+Perfil incompatible o archivos ausentes; no se cargó.|Incompatible profile or missing files; nothing was loaded.|Profil incompatible ou fichiers manquants ; aucun chargement effectué.
+Perfil aplicado localmente. Revisa las reglas desactivadas; voz y alertas locales siguen pausadas hasta reactivarlas.|Profile applied locally. Review disabled rules; voice and local alerts remain paused until reactivated.|Profil appliqué localement. Vérifiez les règles désactivées ; la voix et les alertes locales restent en pause jusqu’à leur réactivation.
 `.trim().split('\n').map(line => line.split('|'));
   const en = Object.create(null), fr = Object.create(null);
   for (const [source, english, french] of rows) { en[source] = english; fr[source] = french; }
