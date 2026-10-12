@@ -191,7 +191,12 @@ def begin_session_metrics():
 
 
 def finish_session_metrics():
+    global participants_revision
     with feed_lock:
+        if participants:
+            participants.clear()
+            participants_revision += 1
+            socketio.emit("participants_update", participants_payload(time.time()))
         if not session_metrics or session_metrics['session'] != feed_session or session_metrics['finished']:
             return
         session_metrics['finished'] = True

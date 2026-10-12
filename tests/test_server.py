@@ -139,6 +139,31 @@ class LiveLifecycleTests(unittest.TestCase):
         self.assertEqual(expired['revision'],3)
         self.assertEqual(expired['joins'][0]['user'],'@Carlos')
 
+    def test_definitive_session_end_emits_empty_participant_snapshot(self):
+        from collections import OrderedDict, deque
+        from contextlib import ExitStack
+        participant={'user':'@Carlos','last_seen':1000,'joined_at':990,'source':'comment'}
+        join=dict(participant)
+        with ExitStack() as stack:
+            for name, value in (
+                ('feed_session','end-test'),
+                ('participants',OrderedDict(carlos=participant)),
+                ('recent_joins',deque([join],maxlen=100)),
+                ('participants_revision',12),
+                ('session_metrics',None),
+            ):
+                stack.enter_context(patch.object(server,name,value))
+            stack.enter_context(patch.object(server.time,'time',return_value=1000))
+            with patch.object(server.socketio,'emit') as emitted:
+                server.finish_session_metrics()
+
+        event,payload=emitted.call_args.args
+        self.assertEqual(event,'participants_update')
+        self.assertEqual(payload['session'],'end-test')
+        self.assertEqual(payload['revision'],13)
+        self.assertEqual(payload['participants'],[])
+        self.assertEqual(payload['joins'][0]['user'],'@Carlos')
+
     def test_follower_status_is_tristate_and_not_based_on_follower_count(self):
         from types import SimpleNamespace as S
         self.assertIsNone(server.follower_status(S()))
