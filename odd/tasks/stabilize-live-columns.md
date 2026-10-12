@@ -47,8 +47,8 @@ The current cascade lets comment actions wrap and stretch inside each card, whic
 - Exploration identified `web/static/live_refinement.css` and `web/static/live_columns.css` as the active cascade, with `tests/test_visual_refresh.cjs` as the nearest source-level regression suite.
 - `git diff --check` passed. `git status --short` showed changes only to the authorized task/test/source files plus the five preserved pre-existing paths; none of those unrelated paths were staged.
 - Combined work-unit estimate: 49 authored additions before this progress update, well below the forecast. The two tasks share the same source cascade and regression file, so they close in one coherent work-unit commit.
-- Work-unit commit: pending.
+- Work-unit commit: `dd0638d` (`fix: stabilize live column controls and scrolling`).
 
 ## Next step
 
-Record the work-unit commit identity after committing the verified CSS, regression assertions, and this task record.
+Complete; the verified CSS, regression assertions, and task record are committed as work unit `dd0638d`.
