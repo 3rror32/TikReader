@@ -67,9 +67,9 @@ The backend records `last_seen` but returns every observed participant until the
 - RCP-2 correction size: approximately 46 authored lines including its task-record update; the RCP-1 count above remains its original work-unit count.
 - RDD state: unavailable (`gentle-ai` executable is not present); review outcome is unmanaged.
 - Work-unit commit: `af6dba4` (`feat(participants): expire inactive activity rows`).
-- RCP-2 correction commit: pending.
+- RCP-2 correction commit: `79189a2` (`fix(participants): clear rows at definitive session end`).
 - Engram mirror `odd/recent-chat-participants/tasks`: pending because the memory provider is unavailable in this session.
 
 ## Next step
 
-Restore a Python runtime with Flask and rerun the server suite; record the RCP-2 correction commit identity and synchronize the Engram mirror when available.
+Restore a Python runtime with Flask and rerun the server suite; synchronize the Engram mirror when available.
