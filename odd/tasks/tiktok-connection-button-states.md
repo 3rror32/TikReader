@@ -40,7 +40,7 @@ The current interface exposes a large pending control beside a separate disconne
   - Outcome: implemented. One button now renders `Conectar`, `Conectando…`, `Desconectar`, and `Desconectando…`; connecting and disconnecting transitions reject repeats without removing keyboard focus. Socket event names and payloads remain unchanged. The compatibility stop node stays visually and accessibly hidden while retaining its computed active state for the external-platform status integration.
   - RED: the corrected focused browser regression failed before implementation because `#btn-connect` had no `data-connection-state` (`expected disconnected`, `received null`).
   - GREEN/refinement: the focused four-state regression passed, including focus retention, busy/disabled announcements, hidden split control, and one start/stop emission each. The focused four-state plus mobile keyboard checks passed (2/2).
-  - Commit: pending.
+  - Commit: `a3e88542d66ac075a67d522b227b77da7af349bc` — `feat(operator): unify TikTok connection button states`.
   - Review assessment: unavailable; `gentle-ai review mode status` could not run because the executable was not found. RDD state remains unknown.
 
 - [ ] **TCB-2 — Verify the operator connection flow**
@@ -52,4 +52,4 @@ The current interface exposes a large pending control beside a separate disconne
 
 ## Progress and next step
 
-TCB-1 is implemented and its focused browser regression is green. TCB-2 remains partial until the seven out-of-scope visual baselines are reconciled. Authored code and test changes currently total 152 changed lines (additions plus deletions; task-document edits excluded). RDD could not be assessed because the `gentle-ai` executable is unavailable in this environment.
+TCB-1 is implemented and its focused browser regression is green. TCB-2 remains partial until the seven out-of-scope visual baselines are reconciled. The work-unit commit contains 207 added/deleted lines across implementation, browser test, and feature record. RDD could not be assessed because the `gentle-ai` executable is unavailable in this environment.

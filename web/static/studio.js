@@ -35,7 +35,7 @@ window.Studio = (() => {
   function voiceNote(reason,text){voiceLog.unshift({reason,text:String(text).slice(0,200)});if(voiceLog.length>100)voiceLog.pop();}
   let prefs = {};
   try { prefs = JSON.parse(localStorage.getItem('tikreader.preferences') || '{}'); } catch (_) {}
-  const settings = ['tts-rate','tts-volume','tts-voice','tts-read-name','tts-gifts-enabled','tts-greetings-enabled','blocked-words','antispam','no-emoji','alerts-enabled','alert-tone','alert-gift','alert-min','tts-priority','priority-users','tts-max-age','tts-restrict','tts-audience','tts-allowed-users'];
+  const settings = ['tts-rate','tts-volume','tts-voice','tts-read-name','tts-use-profile-name','tts-gifts-enabled','tts-greetings-enabled','blocked-words','antispam','no-emoji','alerts-enabled','alert-tone','alert-gift','alert-min','tts-priority','priority-users','tts-max-age','tts-restrict','tts-audience','tts-allowed-users'];
   for (const id of settings) {
     if (prefs[id] !== undefined && $(id)) {
       if ($(id).type === 'checkbox') $(id).checked = prefs[id]; else $(id).value = prefs[id];
@@ -78,8 +78,10 @@ window.Studio = (() => {
       const mode=$('tts-priority').value;
       const priority=(mode==='questions' && /[¿?]/.test(data.comment)) || (mode==='users' && $('priority-users').value.toLowerCase().split(',').map(s=>s.trim().replace(/^@/,'')).includes(data.user.toLowerCase().replace(/^@/,'')));
       const read=text=>{if(session===data.session && $('tts-enabled').checked && canRead(data))speak(text,false,priority?1:0);};
-      if(window.ProductionUI)window.ProductionUI.readComment(data,read);
-      else read($('tts-read-name').checked ? `${data.user.replace(/^@/,'')} dice: ${data.comment}` : data.comment);
+      const displayName=typeof data.display_name==='string'?data.display_name:'';
+      const spokenName=$('tts-use-profile-name').checked&&displayName.trim()?displayName:data.user;
+      if(window.ProductionUI)window.ProductionUI.readComment(spokenName===data.user?data:{...data,user:spokenName},read);
+      else read($('tts-read-name').checked ? `${String(spokenName||'').replace(/^@/,'')} dice: ${data.comment}` : data.comment);
     }
     return true;
   }

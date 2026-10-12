@@ -105,23 +105,26 @@ test('manual greetings work with automatic voice off and respect emergency mute'
   assert.equal(spoken.length,1);
 });
 
-function setupStudio() {
-  const elements = new Map(), spoken = [], listeners = {};
+function setupStudio(savedPreferences = {}, productionUI = null) {
+  const elements = new Map(), spoken = [], listeners = {}, storage = new Map();
   const element = id => {
     if (!elements.has(id)) elements.set(id, {value:'', checked:false, options:[], textContent:'',
-      addEventListener() {}, dispatchEvent() {}, replaceChildren(){this.options=[];}, append(child){this.options.push(child);}});
+      type:['tts-read-name','tts-use-profile-name','tts-gifts-enabled','tts-greetings-enabled','no-emoji','alerts-enabled','antispam','tts-restrict'].includes(id)?'checkbox':'text',
+      events:{}, addEventListener(name,fn){this.events[name]=fn;}, dispatchEvent(event){this.events[event.type]?.(event);},
+      replaceChildren(){this.options=[];}, append(child){this.options.push(child);}});
     return elements.get(id);
   };
   element('tts-rate').value='1'; element('tts-volume').value='0.7';
   element('tts-read-name').checked=true;
   const speechSynthesis={cancel(){},pause(){},resume(){},getVoices:()=>[{voiceURI:'local-es',name:'Local español',lang:'es-MX',localService:true}],addEventListener(){},dispatchEvent(){},speak:u=>spoken.push(u)};
-  const window={speechSynthesis};
+  const window={speechSynthesis,ProductionUI:productionUI};
   vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/studio.js`,'utf8'), {
     window, speechSynthesis, SpeechSynthesisUtterance:function(text){this.text=text;},
     CustomEvent:class {constructor(type,options){this.type=type;this.detail=options?.detail}},document:{getElementById:element,createElement:()=>({}),querySelectorAll:()=>[],addEventListener(name,fn){listeners[name]=fn;},dispatchEvent(event){listeners[event.type]?.(event);}},
-    localStorage:{getItem:()=>null},location:{origin:'http://localhost:5000'},setTimeout(){},clearTimeout(){},
+    localStorage:{getItem:key=>key==='tikreader.preferences'?JSON.stringify(savedPreferences):null,setItem:(key,value)=>storage.set(key,value)},
+    location:{origin:'http://localhost:5000'},setTimeout(){},clearTimeout(){},
   });
-  return {studio:window.Studio,element,spoken,speechSynthesis,event:name=>listeners[name]?.()};
+  return {studio:window.Studio,element,spoken,speechSynthesis,storage,event:name=>listeners[name]?.()};
 }
 
 test('automatic voice holds and session updates do not interrupt a manual preview', () => {
@@ -177,6 +180,50 @@ test('voice omits the username when reading names is disabled', () => {
   element('tts-enabled').checked=true;element('tts-read-name').checked=false;
   studio.ingest({...comment(1),comment:'Hola'},true);
   assert.equal(spoken[0].text,'Hola');
+});
+
+test('profile-name voice preference restores, persists and defaults off', () => {
+  const restored=setupStudio({'tts-use-profile-name':true});
+  assert.equal(restored.element('tts-use-profile-name').checked,true);
+  const control=restored.element('tts-use-profile-name');
+  control.checked=false;control.dispatchEvent({type:'change'});
+  const saved=JSON.parse(restored.storage.get('tikreader.preferences'));
+  assert.equal(saved['tts-use-profile-name'],false);
+  assert.equal(saved['tts-read-name'],true);
+  assert.equal(setupStudio().element('tts-use-profile-name').checked,false);
+  assert.equal(setupStudio(saved).element('tts-use-profile-name').checked,false);
+});
+
+test('profile-name checkbox keeps the existing commenter-name control', () => {
+  const html=fs.readFileSync(`${__dirname}/../web/templates/index.html`,'utf8');
+  assert.match(html,/<input id="tts-read-name" type="checkbox" checked> Leer el nombre de quien comenta/);
+  assert.match(html,/<input id="tts-use-profile-name" type="checkbox"> Usar el nombre del perfil/);
+});
+
+test('voice uses a selected profile name and strips one leading at sign', () => {
+  const {studio,element,spoken}=setupStudio({'tts-use-profile-name':true});
+  element('tts-enabled').checked=true;
+  studio.ingest({...comment(1),user:'@account',display_name:'@Visible Profile'},true);
+  assert.equal(spoken[0].text,'Visible Profile dice: 1');
+});
+
+test('voice falls back to the account name when a selected profile name is empty', () => {
+  const {studio,element,spoken}=setupStudio({'tts-use-profile-name':true});
+  element('tts-enabled').checked=true;
+  studio.ingest({...comment(1),user:'@account',display_name:'  '},true);
+  assert.equal(spoken[0].text,'account dice: 1');
+});
+
+test('selected profile name reaches production comment speech without changing comment data', () => {
+  let spokenData;
+  const productionUI={speechText:text=>text,readComment(data,read){spokenData=data;read(`${data.user.replace(/^@/,'')} dice: ${data.comment}`);}};
+  const {studio,element,spoken}=setupStudio({'tts-use-profile-name':true},productionUI);
+  element('tts-enabled').checked=true;
+  const record={...comment(1),user:'@account',display_name:'@Visible Profile'};
+  studio.ingest(record,true);
+  assert.equal(spokenData.user,'@Visible Profile');
+  assert.equal(record.user,'@account');
+  assert.equal(spoken[0].text,'Visible Profile dice: 1');
 });
 
 test('voice prioritizes questions and reports synthesis errors instead of hiding them', () => {

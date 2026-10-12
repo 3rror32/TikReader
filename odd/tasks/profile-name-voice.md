@@ -41,25 +41,31 @@ The user authorized implementation of the profile-name voice preference, its per
 - Acceptance: payloads expose a usable display name without changing the account username field or breaking payloads that lack profile data.
 - Check: `python -m pytest tests/test_server.py`.
 
-### T2 — Persist the voice preference and select the spoken name
+### T2 — Persist the voice preference and select the spoken name — complete
 
-- [ ] Add a second checkbox beside the existing commenter-name option, with persistence and a default-off value.
-- [ ] When enabled, use `display_name` for speech when available and otherwise use the account username; preserve current behavior when disabled.
-- [ ] Add frontend tests for restoring/saving the preference, default-off compatibility, and spoken-name selection/fallback.
+- [x] Add a second checkbox beside the existing commenter-name option, with persistence and a default-off value.
+- [x] When enabled, use `display_name` for speech when available and otherwise use the account username; preserve current behavior when disabled.
+- [x] Add frontend tests for restoring/saving the preference, default-off compatibility, and spoken-name selection/fallback.
 - Acceptance: the current checkbox remains intact, the new preference survives reload, and speech uses the requested name with a safe fallback.
-- Check: `node tests/test_frontend.cjs`.
+- Check: `node --test --test-name-pattern='profile-name voice preference|profile-name checkbox|voice uses a selected profile|voice falls back to the account name|selected profile name reaches production' tests/test_frontend.cjs`.
 
 ## Progress and verification
 
 - Tracking document: created and structurally read back.
 - T1 source and backend tests: implemented.
-- Task completion: 1/2; T2 remains pending.
+- Task completion: 2/2; T1 and T2 implementation work is complete.
+- T1 work-unit evidence: commit `172eaae`; independent verification PASS.
+- T2 work-unit evidence: source and focused frontend tests are complete; commit is pending parent-scoped staging and commit.
 - Test-first evidence: before implementation, the three focused display-name tests produced 1 failure and 2 errors for the missing/untrimmed/unpropagated field. After implementation, the same three tests passed (`Ran 3 tests ... OK`) using the repository bundled Python and standard-library unittest runner.
+- T2 frontend test-first evidence: focused tests observed RED before UI implementation; the exact command above then passed 5 tests with 0 failures after implementation.
+- Full frontend suite: pending; it has not been verified as passing.
 - Full-check status: the requested `python -m pytest tests/test_server.py` could not start because the WindowsApps Python launcher returned Access denied; bundled Python does not include pytest. A full-file unittest fallback was started but had not returned a final result after 30 seconds. The focused T1 tests passed; the full backend suite remains unverified.
 - Structural readback: the T1 diff and task record were reviewed; only the display-name implementation, its backend test class, and T1 progress evidence belong in this work unit.
 - Engram mirror: pending because no Engram mechanism is available in this session.
-- Skill resolution for this turn: none; proceeding without the unavailable project-specific skill was authorized by the parent.
+- RDD mode and assessment: unavailable because `gentle-ai` is not installed in this environment.
+- Skill resolution for T2: none; no matching project-specific skill was available.
+- T2 authored changed-line estimate: approximately 70 lines, excluding unrelated concurrent changes and generated files.
 
 ## Next step
 
-Continue with T2 in a separate authorized work unit. Preserve unrelated dirty files throughout; synchronize the Engram mirror when a memory mechanism is available.
+Parent performs scoped staging and commit for T2, followed by independent verification. Preserve unrelated dirty files throughout; synchronize the Engram mirror when a memory mechanism is available.
