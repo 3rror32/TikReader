@@ -52,9 +52,9 @@ The backend records `last_seen` but returns every observed participant until the
 - RCP-1 uses a 180-second inactivity window in backend payloads and browser rendering; expiry advances the participant revision while recent-join greeting history remains intact. Session replacement still clears both collections.
 - Authored change count: approximately 157 lines across this work unit, including the tracked feature record and excluding unrelated edits and generated files.
 - RDD state: unavailable (`gentle-ai` executable is not present); review outcome is unmanaged.
-- Work-unit commit: pending.
+- Work-unit commit: `af6dba4` (`feat(participants): expire inactive activity rows`).
 - Engram mirror `odd/recent-chat-participants/tasks`: pending because the memory provider is unavailable in this session.
 
 ## Next step
 
-Restore a Python runtime with Flask and rerun the server suite; record the work-unit commit identity and synchronize the Engram mirror when available.
+Restore a Python runtime with Flask and rerun the server suite; synchronize the Engram mirror when available.
