@@ -159,6 +159,44 @@ test('all 22 themes retain named controls, focus, and reload-persistent preferen
   expect(operator.errors).toEqual([]);
 });
 
+test('one connection control handles disconnected, connecting, connected and disconnecting states', async ({ operator }) => {
+  const { page } = operator;
+  const input = page.locator('#username-input');
+  const control = page.locator('#btn-connect');
+  await input.fill('fixture_operator');
+
+  await expect(control).toHaveAccessibleName('Conectar');
+  await expect(control).toHaveAttribute('aria-busy', 'false');
+  await expect(control).toHaveAttribute('data-connection-state', 'disconnected');
+  await expect(page.locator('#btn-stop')).toBeHidden();
+  await control.focus();
+  await control.click();
+  await expect(control).toBeFocused();
+  await expect(control).toHaveAccessibleName('Conectando…');
+  await expect(control).toHaveAttribute('aria-busy', 'true');
+  await expect(control).toHaveAttribute('aria-disabled', 'true');
+  await expect(control).toHaveAttribute('data-connection-state', 'connecting');
+  await expect(page.locator('#btn-stop')).toBeHidden();
+  await control.evaluate(node => node.click());
+  expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'start_live').length)).toBe(1);
+
+  await page.evaluate(() => window.__operatorSocket.receive('connected', { username: 'fixture_operator' }));
+  await expect(control).toHaveAccessibleName('Desconectar');
+  await expect(control).toBeEnabled();
+  await expect(control).toHaveAttribute('aria-busy', 'false');
+  await expect(control).toHaveAttribute('data-connection-state', 'connected');
+  await expect(page.locator('#btn-stop')).toBeHidden();
+  await control.click();
+  await expect(control).toHaveAccessibleName('Desconectando…');
+  await expect(control).toHaveAttribute('aria-busy', 'true');
+  await expect(control).toHaveAttribute('aria-disabled', 'true');
+  await expect(control).toHaveAttribute('data-connection-state', 'disconnecting');
+  expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'stop_live').length)).toBe(1);
+  await page.evaluate(() => window.__operatorSocket.receive('disconnected', { reason: 'Detenido por el usuario' }));
+  await expect(control).toHaveAccessibleName('Conectar');
+  await expect(control).toHaveAttribute('data-connection-state', 'disconnected');
+});
+
 test('connection intent, unknown viewers, confirmed zero and single classified announcement', async ({ operator }) => {
   const { page } = operator;
   const username = page.getByRole('textbox', { name: 'Usuario de TikTok', exact: true });
@@ -169,7 +207,7 @@ test('connection intent, unknown viewers, confirmed zero and single classified a
   await expect(page.locator('body')).toHaveAttribute('data-live-state', 'idle');
   await page.evaluate(() => window.__operatorSocket.receive('connecting', { username: 'fixture_operator' }));
   await expect(page.locator('body')).toHaveAttribute('data-live-state', 'connecting');
-  await expect(page.locator('#btn-connect')).toBeDisabled();
+  await expect(page.locator('#btn-connect')).toHaveAttribute('aria-disabled', 'true');
   expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'start_live')))
     .toEqual([{ event: 'start_live', payload: { username: 'fixture_operator' } }]);
   await page.evaluate(() => window.__operatorSocket.receive('connected', { username: 'fixture_operator' }));

@@ -155,24 +155,26 @@ function showLiveBadge(visible) {
   document.getElementById('live-badge').classList.toggle('visible', visible);
 }
 
-function setConnectPending(pending) {
+function setConnectionState(state) {
   const button = document.getElementById('btn-connect');
-  button.classList.toggle('is-connecting', pending);
-  button.setAttribute('aria-busy', String(pending));
-  button.querySelector('.connect-button__icon').hidden = pending;
-  button.querySelector('.connect-button__label').hidden = pending;
-  button.querySelector('.connect-button__pending').hidden = !pending;
-  button.disabled = pending || button.dataset.connected === 'true' || document.body.classList.contains('simulation-active');
-  document.getElementById('btn-stop').style.display = pending || button.dataset.connected === 'true' ? 'inline-flex' : 'none';
+  const transitioning = state === 'connecting' || state === 'disconnecting';
+  const simulated = document.body.classList.contains('simulation-active');
+  const labels = {disconnected: 'Conectar', connecting: 'Conectando…', connected: 'Desconectar', disconnecting: 'Desconectando…'};
+  button.dataset.connectionState = state;
+  button.dataset.connected = String(state === 'connected');
+  button.classList.toggle('is-connecting', state === 'connecting');
+  button.classList.toggle('is-disconnecting', state === 'disconnecting');
+  button.setAttribute('aria-busy', String(transitioning));
+  button.setAttribute('aria-disabled', String(transitioning || simulated));
+  button.querySelector('.connect-button__label').textContent = labels[state];
+  button.querySelector('.connect-button__icon').dataset.state = state;
+  button.disabled = simulated;
+  document.getElementById('btn-stop').style.display = state === 'disconnected' ? 'none' : 'inline-flex';
 }
 
 function setButtons(connected) {
   if (!connected) stopIntent = null;
-  const button = document.getElementById('btn-connect');
-  button.dataset.connected = String(connected);
-  setConnectPending(false);
-  document.getElementById('btn-stop').style.display = connected ? 'inline-flex' : 'none';
-  document.getElementById('btn-stop').disabled = Boolean(stopIntent);
+  setConnectionState(connected ? 'connected' : 'disconnected');
 }
 
 function showToast(msg) {
@@ -280,24 +282,28 @@ function escapeHtml(s) {
 
 /* ── Controls ────────────────────────────────────────────── */
 function startLive() {
-  if (document.getElementById('btn-connect').disabled) return;
+  const button = document.getElementById('btn-connect');
+  const state = button.dataset.connectionState || 'disconnected';
+  if (state === 'connected') { stopLive(); return; }
+  if (state !== 'disconnected' || button.disabled || document.body.classList.contains('simulation-active')) return;
   if (!socket.connected) { setStatus('Sin conexión con el servidor.', 'err'); return; }
   hideError();
   const u = document.getElementById('username-input').value.trim().replace(/^@/, '');
   if (!u) { setStatus('⚠️ Ingresa un nombre de usuario.', 'err'); return; }
   setStatus(`Conectando a @${u}…`);
   stopIntent = null;
-  setConnectPending(true);
+  setConnectionState('connecting');
   socket.emit('start_live', { username: u });
 }
 
 
 function stopLive() {
-  if (!socket.connected || stopIntent) return;
-  stopIntent = document.getElementById('btn-connect').classList.contains('is-connecting') ? 'cancelled' : 'offline';
+  const state = document.getElementById('btn-connect').dataset.connectionState;
+  if (!socket.connected || stopIntent || state !== 'connected') return;
+  stopIntent = 'offline';
   window.LivePresence?.requestStop();
-  document.getElementById('btn-stop').disabled = true;
-  setStatus(stopIntent === 'cancelled' ? 'Cancelando conexión…' : 'Desconectando…');
+  setConnectionState('disconnecting');
+  setStatus('Desconectando…');
   socket.emit('stop_live');
 }
 
@@ -371,7 +377,7 @@ socket.on('connect', () => {
 socket.on('reconnecting', ({username, attempt, delay, maximum}) => {
   hideError();
   showLiveBadge(false);
-  setConnectPending(true);
+  setConnectionState('connecting');
   setStatus(`⏳ Reconectando a @${username}: intento ${attempt}/${maximum} en ${delay} s…`);
 });
 
@@ -384,7 +390,7 @@ socket.on('disconnect', () => {
 
 socket.on('connecting', ({ username }) => {
   hideError();
-  setConnectPending(true);
+  setConnectionState('connecting');
   setStatus(`⏳ Conectando al live de @${username}…`);
 });
 
@@ -442,7 +448,7 @@ socket.on('status', (s) => {
       : `Conectando a @${s.username}…`);
     showLiveBadge(s.connected);
     if (s.connected) setButtons(true);
-    else setConnectPending(true);
+    else setConnectionState('connecting');
   } else {
     const stopped = stopIntent;
     showLiveBadge(false);

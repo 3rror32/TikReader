@@ -681,15 +681,14 @@
                maxlength="50"
                autocomplete="off" />
       </div>
-      <button class="btn btn-primary" id="btn-connect" onclick="startLive()" aria-live="polite" aria-busy="false">
+      <button class="btn btn-primary" id="btn-connect" data-connection-state="disconnected" onclick="startLive()" aria-live="polite" aria-busy="false" aria-disabled="false">
         <svg class="connect-button__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9 3v5m6-5v5M7 8h10v4a5 5 0 0 1-10 0V8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M12 17v1a4 4 0 0 0 4 4h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          <path class="connect-button__cable" d="M12 17v1a4 4 0 0 0 4 4h2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         <span class="connect-button__label">Conectar</span>
-        <span class="connect-button__pending" role="status" hidden><span class="connect-button__spinner" aria-hidden="true"></span>Conectando…</span>
       </button>
-      <button class="btn btn-stop" id="btn-stop" onclick="stopLive()">
+      <button class="btn btn-stop" id="btn-stop" onclick="stopLive()" aria-hidden="true" tabindex="-1">
         ⏹ Detener
       </button>
     </div>
@@ -832,6 +831,7 @@
       <h2>Lectura por voz</h2>
       <label><input id="tts-enabled" type="checkbox"> Leer comentarios nuevos</label>
       <label><input id="tts-read-name" type="checkbox" checked> Leer el nombre de quien comenta</label>
+      <label><input id="tts-use-profile-name" type="checkbox"> Usar el nombre del perfil</label>
       <label><input id="tts-greetings-enabled" type="checkbox"> Saludar automáticamente a personas nuevas</label>
       <label><input id="tts-gifts-enabled" type="checkbox" checked> Leer regalos nuevos</label>
       <label><input id="tts-restrict" type="checkbox"> Elegir quién se lee en voz alta</label>
