@@ -44,7 +44,7 @@ The current interface exposes a large pending control beside a separate disconne
   - Review assessment: unavailable; `gentle-ai review mode status` could not run because the executable was not found. RDD state remains unknown.
   - Correction RED: after the button entered `disconnecting`, a synthetic `status` snapshot with `connected: true` changed its accessible name back to `Desconectar`; expected `Desconectando…`.
   - Correction GREEN: the status handler now ignores nonterminal connected/connecting snapshots only while the local offline stop intent is pending and the button is still `disconnecting`. The focused regression passes and verifies an extra click emits no second `stop_live` event; terminal disconnect confirmation still resets the button.
-  - Correction commit: pending.
+  - Correction commit: `f5824e8da33001c7fbf0a6d25319bf8ac4931bae` — `fix(operator): preserve disconnecting state on status refresh`.
 
 - [ ] **TCB-2 — Verify the operator connection flow**
   - Route: delegated direct verification.
