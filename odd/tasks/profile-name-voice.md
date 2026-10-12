@@ -55,7 +55,8 @@ The user authorized implementation of the profile-name voice preference, its per
 - T1 source and backend tests: implemented.
 - Task completion: 2/2; T1 and T2 implementation work is complete.
 - T1 work-unit evidence: commit `172eaae`; independent verification PASS.
-- T2 work-unit evidence: source and focused frontend tests are complete; commit is pending parent-scoped staging and commit.
+- T2 work-unit evidence: commit `56f5e32` (`feat: allow profile names in voice comments`). The checkbox template hunk was incorporated concurrently in commit `a3e8854` while implementation was in progress; no content was lost.
+- Commit-scope note: `56f5e32` unintentionally included a concurrent four-line update to `odd/tasks/tiktok-connection-button-states.md` after it became staged between the final index check and commit. This is commit-scope contamination, not part of the profile-name feature; preserve the change.
 - Test-first evidence: before implementation, the three focused display-name tests produced 1 failure and 2 errors for the missing/untrimmed/unpropagated field. After implementation, the same three tests passed (`Ran 3 tests ... OK`) using the repository bundled Python and standard-library unittest runner.
 - T2 frontend test-first evidence: focused tests observed RED before UI implementation; the exact command above then passed 5 tests with 0 failures after implementation.
 - Full frontend suite: pending; it has not been verified as passing.
@@ -68,4 +69,4 @@ The user authorized implementation of the profile-name voice preference, its per
 
 ## Next step
 
-Parent performs scoped staging and commit for T2, followed by independent verification. Preserve unrelated dirty files throughout; synchronize the Engram mirror when a memory mechanism is available.
+Next: independent T2 verification and final checks. Preserve unrelated dirty files throughout; synchronize the Engram mirror when a memory mechanism is available.
