@@ -34,7 +34,8 @@ The current cascade lets comment actions wrap and stretch inside each card, whic
   - Trigger evidence: implementation requires reading existing cascade and updating source plus regression coverage.
   - Acceptance: per-comment actions remain compact, never inherit card height, and the `More` control renders as an icon-sized square without visible vertical text.
   - Result: actions no longer wrap or stretch; `Más` uses the existing icon-only control treatment and retains its accessible label. Mobile controls keep their existing 44 px size.
-  - Checks: `node --test tests/test_visual_refresh.cjs` first observed 2 focused failures (16 passed), then passed 18/18 after the CSS changes.
+  - Follow-up result: removed closed-state padding that clipped the icon; the open disclosure is an absolutely positioned, bounded menu outside the row flow; its container matches the 44 px mobile summary.
+  - Follow-up checks: `node --test tests/test_visual_refresh.cjs` RED: 18 passed, 1 failed on the missing zero-padding rule; GREEN: 19/19 passed. `node --test tests/test_frontend.cjs tests/test_chat_navigation.cjs`: 34/34 passed. `git diff --check` passed.
 - [x] `SLC-2` Stabilize the `En el chat` participant panel.
   - Route: delegated direct.
   - Trigger evidence: the fix spans breakpoint behavior and scroll geometry in the same live-column cascade.
@@ -48,7 +49,9 @@ The current cascade lets comment actions wrap and stretch inside each card, whic
 - `git diff --check` passed. `git status --short` showed changes only to the authorized task/test/source files plus the five preserved pre-existing paths; none of those unrelated paths were staged.
 - Combined work-unit estimate: 49 authored additions before this progress update, well below the forecast. The two tasks share the same source cascade and regression file, so they close in one coherent work-unit commit.
 - Work-unit commit: `dd0638d` (`fix: stabilize live column controls and scrolling`).
+- Follow-up P2/P3 review findings for `SLC-1` are resolved with explicit open-state and mobile regression coverage. The focused RED was 18 passed/1 failed; GREEN was 19/19; frontend subset was 34/34. `git diff --check` passed.
+- Follow-up commit: pending.
 
 ## Next step
 
-Complete; the verified CSS, regression assertions, and task record are committed as work unit `dd0638d`.
+Record the follow-up commit identity after committing the CSS, tests, and task evidence.

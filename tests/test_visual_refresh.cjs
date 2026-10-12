@@ -41,6 +41,21 @@ test('comment actions stay compact and the More disclosure keeps an icon-sized l
   assert.match(liveButtonIcons, /control\.setAttribute\('aria-label', text\)/);
 });
 
+test('the More disclosure opens outside the action row and matches mobile icon geometry', () => {
+  const compactDetails = liveRefinement.match(/\.comment-actions > details\s*\{([^}]*)\}/s)?.[1] || '';
+  const openDetails = liveRefinement.match(/\.comment-actions > details\[open\]\s*\{([^}]*)\}/s)?.[1] || '';
+  const mobileDetails = liveRefinement.match(/@media\s*\(max-width:\s*700px\)\s*\{\s*\.live-columns \.comment-actions > details\s*\{([^}]*)\}/s)?.[1] || '';
+  assert.match(compactDetails, /padding:\s*0/);
+  assert.match(openDetails, /position:\s*absolute/);
+  assert.match(openDetails, /display:\s*flex/);
+  assert.match(openDetails, /flex-direction:\s*column/);
+  assert.match(openDetails, /height:\s*auto/);
+  assert.match(openDetails, /overflow-y:\s*auto/);
+  assert.match(mobileDetails, /width:\s*44px/);
+  assert.match(mobileDetails, /height:\s*44px/);
+  assert.match(mobileDetails, /flex:\s*0 0 44px/);
+});
+
 test('desktop participant scrolling reserves space and stays inside a fixed panel', () => {
   assert.match(liveRefinement, /@media\s*\(min-width:\s*701px\) and \(max-width:\s*1279px\)\s*\{[\s\S]*?\.live-columns > \.participants-bar\s*\{[^}]*height:\s*560px[^}]*min-height:\s*560px[^}]*max-height:\s*560px/s);
   assert.match(liveRefinement, /\.live-columns \.participants-list\s*\{[^}]*overflow-y:\s*scroll[^}]*scrollbar-gutter:\s*stable[^}]*overscroll-behavior:\s*contain[^}]*overflow-anchor:\s*none/s);
