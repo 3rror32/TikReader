@@ -14,6 +14,7 @@ const js = read('web/static/visual_refresh.js');
 const presence = read('web/static/live_presence.js');
 const liveButtonIcons = read('web/static/live_button_icons.js');
 const liveColumns = read('web/static/live_columns.css');
+const liveRefinement = read('web/static/live_refinement.css');
 
 test('the studio loads the visual refresh while keeping the shared form contract authoritative', () => {
   assert.match(template, /visual_refresh\.css\?v=20261005-responsive-settings/);
@@ -28,6 +29,21 @@ test('the studio loads the visual refresh while keeping the shared form contract
 test('automatic voice controls switch to a muted speaker icon when disabled', () => {
   assert.match(liveColumns, /auto-reading-toggle\[aria-pressed=['"]false['"]\]/);
   assert.match(liveColumns, /M16(?:%20|\s)9l5(?:%20|\s)5/);
+});
+
+test('comment actions stay compact and the More disclosure keeps an icon-sized label', () => {
+  assert.match(liveRefinement, /\.comment-card \.comment-actions\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*align-self:\s*flex-start[^}]*flex-wrap:\s*nowrap/s);
+  const moreControl = liveRefinement.match(/\.comment-actions > details\s*\{([^}]*)\}/s)?.[1] || '';
+  assert.match(moreControl, /width:\s*36px/);
+  assert.match(moreControl, /height:\s*36px/);
+  assert.match(moreControl, /flex:\s*0 0 36px/);
+  assert.match(liveColumns, /html body \.live-columns \[data-live-icon\][\s\S]*?width:\s*36px[\s\S]*?height:\s*36px/);
+  assert.match(liveButtonIcons, /control\.setAttribute\('aria-label', text\)/);
+});
+
+test('desktop participant scrolling reserves space and stays inside a fixed panel', () => {
+  assert.match(liveRefinement, /@media\s*\(min-width:\s*701px\) and \(max-width:\s*1279px\)\s*\{[\s\S]*?\.live-columns > \.participants-bar\s*\{[^}]*height:\s*560px[^}]*min-height:\s*560px[^}]*max-height:\s*560px/s);
+  assert.match(liveRefinement, /\.live-columns \.participants-list\s*\{[^}]*overflow-y:\s*scroll[^}]*scrollbar-gutter:\s*stable[^}]*overscroll-behavior:\s*contain[^}]*overflow-anchor:\s*none/s);
 });
 
 test('the disconnected desk has no colored metric pipes', () => {
