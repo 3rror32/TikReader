@@ -50,8 +50,8 @@ The current cascade lets comment actions wrap and stretch inside each card, whic
 - Combined work-unit estimate: 49 authored additions before this progress update, well below the forecast. The two tasks share the same source cascade and regression file, so they close in one coherent work-unit commit.
 - Work-unit commit: `dd0638d` (`fix: stabilize live column controls and scrolling`).
 - Follow-up P2/P3 review findings for `SLC-1` are resolved with explicit open-state and mobile regression coverage. The focused RED was 18 passed/1 failed; GREEN was 19/19; frontend subset was 34/34. `git diff --check` passed.
-- Follow-up commit: pending.
+- Follow-up commit: `0049dd8` (`fix: keep comment disclosure menu unclipped`).
 
 ## Next step
 
-Record the follow-up commit identity after committing the CSS, tests, and task evidence.
+Complete; the disclosure fix, focused tests, and evidence are committed as `0049dd8`.
