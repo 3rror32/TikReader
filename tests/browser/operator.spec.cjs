@@ -192,6 +192,14 @@ test('one connection control handles disconnected, connecting, connected and dis
   await expect(control).toHaveAttribute('aria-disabled', 'true');
   await expect(control).toHaveAttribute('data-connection-state', 'disconnecting');
   expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'stop_live').length)).toBe(1);
+  await page.evaluate(() => window.__operatorSocket.receive('status', {
+    connected: true, connecting: false, username: 'fixture_operator',
+  }));
+  await expect(control).toHaveAccessibleName('Desconectando…');
+  await expect(control).toHaveAttribute('aria-busy', 'true');
+  await expect(control).toHaveAttribute('data-connection-state', 'disconnecting');
+  await control.evaluate(node => node.click());
+  expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'stop_live').length)).toBe(1);
   await page.evaluate(() => window.__operatorSocket.receive('disconnected', { reason: 'Detenido por el usuario' }));
   await expect(control).toHaveAccessibleName('Conectar');
   await expect(control).toHaveAttribute('data-connection-state', 'disconnected');

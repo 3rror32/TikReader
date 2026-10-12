@@ -42,14 +42,17 @@ The current interface exposes a large pending control beside a separate disconne
   - GREEN/refinement: the focused four-state regression passed, including focus retention, busy/disabled announcements, hidden split control, and one start/stop emission each. The focused four-state plus mobile keyboard checks passed (2/2).
   - Commit: `a3e88542d66ac075a67d522b227b77da7af349bc` — `feat(operator): unify TikTok connection button states`.
   - Review assessment: unavailable; `gentle-ai review mode status` could not run because the executable was not found. RDD state remains unknown.
+  - Correction RED: after the button entered `disconnecting`, a synthetic `status` snapshot with `connected: true` changed its accessible name back to `Desconectar`; expected `Desconectando…`.
+  - Correction GREEN: the status handler now ignores nonterminal connected/connecting snapshots only while the local offline stop intent is pending and the button is still `disconnecting`. The focused regression passes and verifies an extra click emits no second `stop_live` event; terminal disconnect confirmation still resets the button.
+  - Correction commit: pending.
 
 - [ ] **TCB-2 — Verify the operator connection flow**
   - Route: delegated direct verification.
   - Trigger evidence: browser execution and regression checks are delegated by policy.
   - Acceptance: focused operator and startup browser specifications pass.
   - Checks: `npm run test:operator -- tests/browser/operator.spec.cjs tests/browser/startup.spec.cjs` or the repository-equivalent focused command identified by the worker.
-  - Evidence: `npm run test:operator -- tests/browser/operator.spec.cjs tests/browser/startup.spec.cjs` completed with 13 passing and 7 failing. The failing baselines are `tests/visual-baselines/operator/original.png`, `light.png`, `dark.png`, `broadcast-console.png`, `creator-pop.png`, `swiss-brutalist.png`, and `tactile-scrapbook.png`. The inspected original diff contains the intended plug-control change and broad unrelated rendering differences in activity, participant, and feed areas, so the failures are mixed and cannot all be attributed to this task. Baselines are outside this task's authorized edit surfaces and remain pending. Startup checks and the non-visual operator checks passed.
+  - Evidence: the latest `npm run test:operator -- tests/browser/operator.spec.cjs tests/browser/startup.spec.cjs` run completed with 13 passing and 7 failing. The same visual baselines fail: `tests/visual-baselines/operator/original.png`, `light.png`, `dark.png`, `broadcast-console.png`, `creator-pop.png`, `swiss-brutalist.png`, and `tactile-scrapbook.png`. The inspected original diff contains the intended plug-control change and broad unrelated rendering differences in activity, participant, and feed areas, so the failures are mixed and cannot all be attributed to this task. Baselines remain untouched and pending. All non-visual operator checks, the corrected disconnect-refresh regression, and startup checks passed.
 
 ## Progress and next step
 
-TCB-1 is implemented and its focused browser regression is green. TCB-2 remains partial until the seven out-of-scope visual baselines are reconciled. The work-unit commit contains 207 added/deleted lines across implementation, browser test, and feature record. RDD could not be assessed because the `gentle-ai` executable is unavailable in this environment.
+TCB-1 is implemented; the status-refresh correction is green in the focused browser regression. TCB-2 remains partial until the seven out-of-scope visual baselines are reconciled. RDD could not be assessed because the `gentle-ai` executable is unavailable in this environment.

@@ -442,6 +442,8 @@ socket.on('stats_update', applyStats);
 
 socket.on('status', (s) => {
   // Counter snapshots arrive through stats_update and HTTP recovery.
+  const button = document.getElementById('btn-connect');
+  if (stopIntent === 'offline' && button.dataset.connectionState === 'disconnecting' && (s.connected || s.connecting)) return;
   if (s.connected || s.connecting) {
     setStatus(s.connected ? `🟢 Conectado a @${s.username}` : s.retry_in
       ? `⏳ Reconectando a @${s.username}: intento ${s.retry_count}…`
