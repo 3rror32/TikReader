@@ -1216,6 +1216,10 @@ Voz automática|Automatic voice|Voix automatique
 👋 Saludar|👋 Greet|👋 Saluer
 Saludo por voz local; no envía mensajes a TikTok|Local voice greeting; does not send messages to TikTok|Salutation vocale locale ; n’envoie pas de messages à TikTok
 Participantes observados|Observed participants|Participants observés
+Actividad reciente|Recent activity|Activité récente
+Actividad reciente de participantes|Recent participant activity|Activité récente des participants
+{count} participantes con actividad reciente|{count} participants with recent activity|{count} participants avec une activité récente
+Sin actividad reciente.|No recent activity.|Aucune activité récente.
 En el chat|In chat|Dans le chat
 Se unieron|Joined|Ont rejoint
 Lectura de participantes|Participant reading|Lecture des participants

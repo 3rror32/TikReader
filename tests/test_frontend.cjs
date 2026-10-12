@@ -439,3 +439,17 @@ test('participants greet new people once, skip initial history and reset per ses
   assert.deepEqual(spoken,['@Carlos','@Carlos']);
 });
 
+test('participants panel labels recent activity and removes expired rows', () => {
+  const nodes=[];let now=1_000_000;const timers=[];
+  const element=()=>{const node={childNodes:[],classList:{toggle(){}},setAttribute(name,value){this[name]=value},append(...items){this.childNodes.push(...items)},before(){},replaceChildren(...items){this.childNodes=items}};nodes.push(node);return node};
+  class FakeDate extends Date {static now(){return now}}
+  const window={Studio:{greetAutomatic(){}},ChatExtras:{bindAutoToggle(){},greeting(){},badges(){}},addEventListener(){},setTimeout(callback,delay){timers.push({callback,delay});return timers.length},clearTimeout(){}};
+  vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/participants.js`,'utf8'),{window,URL,Date:FakeDate,setTimeout:window.setTimeout,clearTimeout:window.clearTimeout,CustomEvent:class {constructor(type,options){this.type=type;this.detail=options?.detail}},document:{createElement:element,querySelector:element,getElementById:element}});
+  window.Participants.render({session:'A',revision:1,activity_window_seconds:180,participants:[{user:'@Carlos',last_seen:now/1000}],joins:[]});
+  assert.ok(nodes.some(node=>node.textContent==='Actividad reciente'));
+  assert.ok(nodes.some(node=>node['aria-label']==='Actividad reciente de participantes'));
+  assert.equal(timers.at(-1).delay,180_000);
+  now+=180_000;timers.at(-1).callback();
+  assert.equal(nodes.find(node=>node.className==='participants-list').childNodes.filter(node=>node.className==='participant-chip').length,0);
+});
+

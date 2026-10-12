@@ -178,6 +178,7 @@ gift_catalog = OrderedDict()
 participants = OrderedDict()
 recent_joins = deque(maxlen=100)
 participants_revision = 0
+PARTICIPANT_ACTIVITY_WINDOW_SECONDS = 180
 feed_session = uuid4().hex
 session_metrics = None
 
@@ -221,6 +222,7 @@ def observe_participant(user, source="activity", joined=False):
     key = str(username).casefold()
     now = time.time()
     with feed_lock:
+        _expire_inactive_participants(now)
         previous = participants.get(key, {})
         row = {"user": f"@{username}", "avatar_url": avatar_url(user),
                "badges": user_badges(user),
@@ -234,16 +236,31 @@ def observe_participant(user, source="activity", joined=False):
         while len(participants) > 300:
             participants.popitem(last=False)
         participants_revision += 1
-        payload = participants_payload()
+        payload = participants_payload(now)
     socketio.emit("participants_update", payload)
     return row
 
 
-def participants_payload():
-    active = sorted((dict(x) for x in participants.values()), key=lambda x: x["last_seen"], reverse=True)
-    return {"session": feed_session, "revision": participants_revision,
-            "participants": active[:100], "joins": list(recent_joins)[:50],
-            "scope": "Usuarios observados por entradas, comentarios y regalos; TikTok no entrega una lista completa de espectadores."}
+def _expire_inactive_participants(now):
+    """Remove rows without observed activity during the recent-activity window."""
+    global participants_revision
+    expired = [key for key, row in participants.items()
+               if now - row.get("last_seen", now) >= PARTICIPANT_ACTIVITY_WINDOW_SECONDS]
+    for key in expired:
+        del participants[key]
+    if expired:
+        participants_revision += 1
+
+
+def participants_payload(now=None):
+    with feed_lock:
+        now = time.time() if now is None else now
+        _expire_inactive_participants(now)
+        active = sorted((dict(x) for x in participants.values()), key=lambda x: x["last_seen"], reverse=True)
+        return {"session": feed_session, "revision": participants_revision,
+                "activity_window_seconds": PARTICIPANT_ACTIVITY_WINDOW_SECONDS,
+                "participants": active[:100], "joins": list(recent_joins)[:50],
+                "scope": "Actividad observada durante los últimos 3 minutos por entradas, comentarios y regalos; no representa una lista completa de espectadores."}
 
 
 def gift_records():
@@ -573,6 +590,7 @@ def observe_external_participant(platform, data, source="comment"):
     key = f"{platform}:{identity}"
     now = time.time()
     with feed_lock:
+        _expire_inactive_participants(now)
         previous = participants.get(key, {})
         row = {"user": f"@{username}", "avatar_url": data.get("avatar_url"),
                "badges": list(data.get("badges") or [])[:12], "last_seen": now,
@@ -583,7 +601,7 @@ def observe_external_participant(platform, data, source="comment"):
         while len(participants) > 300:
             participants.popitem(last=False)
         participants_revision += 1
-        payload = participants_payload()
+        payload = participants_payload(now)
     socketio.emit("participants_update", payload)
 
 

@@ -116,13 +116,28 @@ class LiveLifecycleTests(unittest.TestCase):
         with patch.object(server.socketio,'emit') as emitted, patch.object(server.time,'time',side_effect=[100,101]):
             server.observe_participant(S(unique_id='Carlos'), 'join', joined=True)
             server.observe_participant(S(unique_id='Carlos'), 'comment')
-        payload=server.participants_payload()
+        payload=server.participants_payload(now=101)
         self.assertEqual(payload['participants'][0]['user'],'@Carlos')
         self.assertEqual(payload['participants'][0]['source'],'comment')
         self.assertEqual(payload['joins'][0]['joined_at'],100)
         self.assertEqual(payload['revision'],2)
         self.assertEqual(emitted.call_args.args[0],'participants_update')
         self.assertIn('participants',server.feed_snapshot())
+
+    def test_participants_expire_after_recent_activity_window_without_losing_join_history(self):
+        from types import SimpleNamespace as S
+        server.participants.clear();server.recent_joins.clear();server.participants_revision=0
+        with patch.object(server.socketio,'emit'), patch.object(server.time,'time',side_effect=[100,250]):
+            server.observe_participant(S(unique_id='Carlos'), 'join', joined=True)
+            server.observe_participant(S(unique_id='Carlos'), 'comment')
+
+        refreshed=server.participants_payload(now=429)
+        expired=server.participants_payload(now=430)
+        self.assertEqual(refreshed['activity_window_seconds'],180)
+        self.assertEqual([row['user'] for row in refreshed['participants']],['@Carlos'])
+        self.assertEqual(expired['participants'],[])
+        self.assertEqual(expired['revision'],3)
+        self.assertEqual(expired['joins'][0]['user'],'@Carlos')
 
     def test_follower_status_is_tristate_and_not_based_on_follower_count(self):
         from types import SimpleNamespace as S
