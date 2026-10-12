@@ -59,14 +59,15 @@ The user authorized implementation of the profile-name voice preference, its per
 - Commit-scope note: `56f5e32` unintentionally included a concurrent four-line update to `odd/tasks/tiktok-connection-button-states.md` after it became staged between the final index check and commit. This is commit-scope contamination, not part of the profile-name feature; preserve the change.
 - Test-first evidence: before implementation, the three focused display-name tests produced 1 failure and 2 errors for the missing/untrimmed/unpropagated field. After implementation, the same three tests passed (`Ran 3 tests ... OK`) using the repository bundled Python and standard-library unittest runner.
 - T2 frontend test-first evidence: focused tests observed RED before UI implementation; the exact command above then passed 5 tests with 0 failures after implementation.
-- Full frontend suite: pending; it has not been verified as passing.
+- Independent T2 verification: PASS. All five profile-name tests and existing name-omission coverage passed.
+- Full frontend suite: `node --test tests/test_frontend.cjs` exited 1 with 36 passing and 1 unrelated failure. The connecting-indicator test at `tests/test_frontend.cjs:8` expected spinner markup that is absent.
 - Full-check status: the requested `python -m pytest tests/test_server.py` could not start because the WindowsApps Python launcher returned Access denied; bundled Python does not include pytest. A full-file unittest fallback was started but had not returned a final result after 30 seconds. The focused T1 tests passed; the full backend suite remains unverified.
 - Structural readback: the T1 diff and task record were reviewed; only the display-name implementation, its backend test class, and T1 progress evidence belong in this work unit.
 - Engram mirror: pending because no Engram mechanism is available in this session.
-- RDD mode and assessment: unavailable because `gentle-ai` is not installed in this environment.
+- RDD mode and assessment: unavailable because `gentle-ai` is not installed in this environment; no RDD receipt exists.
 - Skill resolution for T2: none; no matching project-specific skill was available.
 - T2 authored changed-line estimate: approximately 70 lines, excluding unrelated concurrent changes and generated files.
 
 ## Next step
 
-Next: independent T2 verification and final checks. Preserve unrelated dirty files throughout; synchronize the Engram mirror when a memory mechanism is available.
+Next: final delivery/reporting. Preserve unrelated dirty files throughout; synchronize the Engram mirror when a memory mechanism is available.
