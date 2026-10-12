@@ -494,6 +494,7 @@ def handle_comment_event(event):
         "id": message_id,
         "session": feed_session,
         "user": f"@{event.user.unique_id}",
+        "display_name": getattr(event.user, "nickname", None),
         "avatar_url": avatar_url(event.user),
         "badges": user_badges(event.user),
         "is_follower": follower_status(event.user),
@@ -518,6 +519,8 @@ def publish_comment_payload(payload):
     payload["session"] = feed_session
     payload["comment"] = str(payload.get("comment") or "")[:2000]
     payload["user"] = str(payload.get("user") or "@Espectador")[:160]
+    display_name = str(payload.get("display_name") or "").strip()
+    payload["display_name"] = (display_name or payload["user"])[:160]
     payload.setdefault("emoji", "💬")
     payload.setdefault("emotes", [])
     payload.setdefault("badges", [])
@@ -594,6 +597,7 @@ def handle_external_comment(platform, data):
     occurred_at = _external_occurred_at(data.get("occurred_at"))
     return publish_comment_payload({
         "id": f"{platform}:{raw_id}", "user": f"@{username}",
+        "display_name": data.get("display_name") or data.get("displayName") or data.get("nickname"),
         "avatar_url": data.get("avatar_url"), "badges": list(data.get("badges") or [])[:12],
         "is_follower": None, "comment": data.get("comment"), "timestamp": time.strftime("%H:%M:%S", time.localtime(occurred_at)),
         "occurred_at": occurred_at, "platform": platform,

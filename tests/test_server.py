@@ -536,6 +536,77 @@ class LiveLifecycleTests(unittest.TestCase):
         self.assertNotIn('recovered', payload['gifts'][1])
         self.assertTrue(payload['gifts'][2]['recovered'])
 
+class CommentDisplayNameTests(unittest.TestCase):
+    def publish(self, payload, publisher=None):
+        from collections import OrderedDict, deque
+        from contextlib import ExitStack
+
+        publisher = publisher or server.publish_comment_payload
+        with ExitStack() as stack:
+            for name, value in (
+                ("feed_session", "display-name-test"),
+                ("state", dict(server.state, comment_count=0)),
+                ("seen_comment_ids", OrderedDict()),
+                ("comment_history", deque(maxlen=10)),
+                ("diagnostics", {}),
+                ("archive", None),
+            ):
+                stack.enter_context(patch.object(server, name, value))
+            for owner, name in (
+                (server.production, "comment"),
+                (server.creator_suite, "audience_event"),
+                (server.interactive, "event"),
+                (server.overlay_animations, "event"),
+                (server.points, "event"),
+                (server.user_info_overlay, "command"),
+                (server.spotify, "comment"),
+                (server.chatbot, "comment"),
+                (server.socketio, "emit"),
+                (server, "publish_stats"),
+            ):
+                stack.enter_context(patch.object(owner, name))
+            return publisher(payload)
+
+    def test_tiktok_comment_uses_nickname_and_keeps_account_username(self):
+        from types import SimpleNamespace as S
+        user = S(unique_id="account_name", nickname="Visible Profile")
+        event = S(user=user, comment="Hola")
+
+        with patch.object(server, "observe_participant"), \
+                patch.object(server, "event_emotes", return_value=[]), \
+                patch.object(server, "avatar_url", return_value=None), \
+                patch.object(server, "user_badges", return_value=[]), \
+                patch.object(server, "follower_status", return_value=None), \
+                patch.object(server, "publish_comment_payload", side_effect=lambda payload: payload):
+            payload = server.handle_comment_event(event)
+
+        self.assertEqual(payload["user"], "@account_name")
+        self.assertEqual(payload["display_name"], "Visible Profile")
+
+    def test_publish_normalizes_display_name_and_uses_account_fallback(self):
+        named = self.publish({"id": "named", "user": "@account", "display_name": "  Visible  "})
+        missing = self.publish({"id": "missing", "user": "@account"})
+        empty = self.publish({"id": "empty", "user": "@account", "display_name": "  "})
+
+        self.assertEqual(named["display_name"], "Visible")
+        self.assertEqual(missing["display_name"], "@account")
+        self.assertEqual(empty["display_name"], "@account")
+
+    def test_external_comment_carries_supplied_display_name_and_falls_back(self):
+        original_publish = server.publish_comment_payload
+        with patch.object(server, "publish_comment_payload", side_effect=lambda payload: self.publish(payload, original_publish)), \
+                patch.object(server, "observe_external_participant"):
+            supplied = server.handle_external_comment(
+                "youtube", {"id": "external-named", "user": "account", "display_name": "Channel Name", "comment": "Hola"}
+            )
+            missing = server.handle_external_comment(
+                "twitch", {"id": "external-missing", "user": "account", "comment": "Hola"}
+            )
+
+        self.assertEqual(supplied["display_name"], "Channel Name")
+        self.assertEqual(missing["display_name"], "@account")
+
+
 if __name__ == "__main__":
     unittest.main()
 
