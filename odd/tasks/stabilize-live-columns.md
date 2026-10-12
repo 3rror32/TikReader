@@ -51,6 +51,7 @@ The current cascade lets comment actions wrap and stretch inside each card, whic
 - Work-unit commit: `dd0638d` (`fix: stabilize live column controls and scrolling`).
 - Follow-up P2/P3 review findings for `SLC-1` are resolved with explicit open-state and mobile regression coverage. The focused RED was 18 passed/1 failed; GREEN was 19/19; frontend subset was 34/34. `git diff --check` passed.
 - Follow-up commit: `0049dd8` (`fix: keep comment disclosure menu unclipped`).
+- Final independent rerun: `tests/test_visual_refresh.cjs` passed 19/19 and the candidate diff remained clean. The combined frontend/chat command later reported 34/35 because an uncommitted, out-of-scope participant test now expects `Actividad reciente`; neither that test nor its related source edits are part of this candidate.
 
 ## Next step
 
