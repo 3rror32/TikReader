@@ -657,15 +657,16 @@ class CommentDisplayNameTests(unittest.TestCase):
     def test_tiktok_comment_skips_empty_content_and_records_diagnostic(self):
         from types import SimpleNamespace as S
         event = S(comment="  ")
+        diagnostics = {}
 
-        with patch.object(server, "diagnostics", {}), \
+        with patch.object(server, "diagnostics", diagnostics), \
                 patch.object(server, "publish_comment_payload") as publish, \
                 patch.object(server, "logger") as logger:
             result = server.handle_comment_event(event)
 
         self.assertIsNone(result)
         publish.assert_not_called()
-        self.assertIn("comment_error", server.diagnostics)
+        self.assertIn("comment_error", diagnostics)
         logger.warning.assert_called_once()
         self.assertNotIn("  ", str(logger.warning.call_args))
 

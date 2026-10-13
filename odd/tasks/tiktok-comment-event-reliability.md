@@ -45,6 +45,9 @@ The live session can receive gifts and participant activity while the comment co
   - Checks observed: `python -m pytest tests/test_server.py -k "comment" -q` — unavailable (`python.exe` launch denied); bundled Python equivalent — unavailable (`No module named pytest`); bundled Python AST parse of `app/server.py` and `tests/test_server.py` — passed; `git diff --check` — passed.
   - Approximate authored change size: 190 lines across callback, focused tests, and this tracking update.
   - Work-unit commit: `acfb348` (`fix: harden TikTok comment event handling`).
+  - Review follow-up: fixed the P2 diagnostic-test assertion to inspect the same temporary dictionary patched during the callback; production logic is unchanged.
+  - Follow-up checks observed: focused pytest remains unavailable because the system Python launcher is denied; bundled Python AST parse of `app/server.py` and `tests/test_server.py` passed; `git diff --check` passed.
+  - Follow-up change size: approximately 5 authored lines; commit identity will be recorded in a documentation follow-up.
   - Completion: pending focused pytest execution; do not close TCER-1 until it passes.
   - Next step: restore a local Python environment with pytest, run the focused selector, then update this evidence and close the task if all criteria pass.
 
