@@ -128,7 +128,8 @@ html body .app-sidebar :is(.nav-group>details,.nav-advanced-section):has([aria-c
  .sidebar-collapsed .app-sidebar :is(.nav-group>details,.nav-advanced-section)>summary>:is(span,.nav-category-copy),.sidebar-collapsed .app-sidebar :is(.nav-group>details,.nav-advanced-section)>summary::after{display:none}
  .sidebar-collapsed .app-sidebar :is(.nav-submenu,.sidebar-disclosure-content){margin:0;padding:0;border-left:0}
  .sidebar-collapsed .sidebar-search{justify-content:center;padding:0}
- .sidebar-collapsed .sidebar-search::before,.sidebar-collapsed .sidebar-search::after,.sidebar-collapsed #sidebar-search-input{display:none}
+ .sidebar-collapsed .sidebar-search::before,.sidebar-collapsed .sidebar-search::after{display:none}
+ html body.sidebar-collapsed .app-sidebar .sidebar-search:not(.is-popover) #sidebar-search-input{display:none}
  html body.sidebar-collapsed .app-sidebar .sidebar-search-toggle{display:flex;align-items:center;justify-content:center;width:100%;height:44px;padding:10px 8px;border:0;border-radius:0;background:transparent;color:var(--nav-muted);cursor:pointer}
  html body.sidebar-collapsed .app-sidebar .sidebar-search-toggle:hover{color:var(--nav-ink)}
  .sidebar-collapsed .sidebar-search.is-popover{position:fixed;left:clamp(86px,calc(var(--sidebar-width) + 10px),calc(100vw - 322px));top:66px;z-index:10030;display:flex;flex-direction:column;justify-content:flex-start;box-sizing:border-box;width:min(310px,calc(100vw - 104px));max-height:calc(100dvh - 84px);padding:12px;border:1px solid var(--nav-line);border-radius:10px;background:var(--nav-surface);box-shadow:0 16px 42px #0009}

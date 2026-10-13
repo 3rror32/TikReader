@@ -66,3 +66,11 @@ test('collapsed search result labels and categories stay horizontal and truncate
   assert.match(styles,/\.sidebar-search-result-copy :is\(strong,small\)\{[^}]*text-overflow:ellipsis/);
   assert.match(styles,/\.sidebar-search-result-copy :is\(strong,small\)\{[^}]*overflow-wrap:normal/);
 });
+
+test('collapsed inactive search hides its input while the active popover restores it', () => {
+  const inactiveRule = /html body\.sidebar-collapsed \.app-sidebar \.sidebar-search:not\(\.is-popover\) #sidebar-search-input\{display:none\}/;
+  const activeRule = /html body\.sidebar-collapsed \.app-sidebar \.sidebar-search\.is-popover #sidebar-search-input\{display:block/;
+  assert.match(styles,inactiveRule);
+  assert.match(styles,activeRule);
+  assert.ok(styles.search(activeRule) > styles.search(inactiveRule));
+});
