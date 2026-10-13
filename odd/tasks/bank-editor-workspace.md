@@ -67,7 +67,16 @@ La interfaz actual mantiene dos representaciones de la alcancía, muestra contro
     - `git diff --check 534c76e HEAD`: pasó tras crear `0d43cfe`; también pasó la comprobación staged antes del commit.
     - Authored count de esta corrección: 70 líneas (adiciones + eliminaciones; sin archivos generados).
     - Nuevo work-unit commit: `0d43cfe fix(overlays): preserve bank editor state` (sin amend).
+  - Corrección acotada posterior al commit `9475acf`:
+    - Hallazgos de integración: `AnimationControls.select('')` reabría el formulario genérico después de mostrar Alcancías; el shell reparentaba el registro `point-drop` a `config-content`, haciendo visible una segunda arena fuera del iframe.
+    - RED: la prueba de integración ejecuta el registro del template, `live_games` y `OverlayGallery.registerGameControls` antes de conectar el callback real de `shell.js`; corre también los selectores reales en su orden fuente. Fallaba con controles reparentados, formulario visible y dos escenas visibles.
+    - GREEN: `live_games.js` deja el registro `point-drop` en propiedad de OverlayGallery; esta reaplica su visibilidad después de selectores auxiliares y oculta solo la arena de operador mientras `point-drop` está activo, restaurándola al cambiar de overlay. Animaciones y otros overlays conservan el comportamiento del formulario.
+    - `node --test tests/test_bank_editor.cjs tests/test_overlay_gallery.cjs`: 42/42 pasaron.
+    - `npm run check:overlays`: pasó (`tsc --noEmit`, código 0).
+    - `git diff --check 9475acf HEAD`: pendiente de la comprobación de rango post-commit; el diff staged pasa `git diff --cached --check`.
+    - Authored count: se anotará tras el diff del work-unit commit; cambios no generados.
+    - Work-unit commit previsto: `fix(overlays): keep bank tools in workspace` (sin amend).
 
 ## Progress and next step
 
-BANK-01 implementada y verificada con los comandos enfocados, incluida la corrección de reapertura integrada, foco tras puntero y estilo visible en el SVG del iframe. El preview conserva una sola escena, oculta la apariencia genérica, refleja el punto integrado en vivo y mantiene handles seleccionables y proporción 4:5; guardar, cancelar y recargar conservan el flujo existente. Siguiente paso: evaluación nativa del orquestador. La revisión visual de navegador sigue pendiente por falta de un servidor local disponible.
+BANK-01 implementada y verificada con los comandos enfocados, incluida la corrección de reapertura integrada, foco tras puntero y estilo visible en el SVG del iframe, y ahora la corrección de integración para conservar el panel en OverlayGallery, ocultar su arena duplicada solo en ese contexto y mantener el formulario genérico oculto en Alcancías. El preview conserva una sola escena y el panel todas sus acciones; guardar, cancelar y recargar conservan el flujo existente. El registro de finalización y la revisión visual de navegador siguen pendientes.

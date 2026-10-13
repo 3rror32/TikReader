@@ -71,10 +71,59 @@ test('overlay navigation exposes the built-in and user package destinations',()=
 });
 
 test('piggy bank editor hides general appearance controls and keeps its preview portrait on mobile',()=>{
- assert.match(gallery,/form\.hidden\s*=\s*piggy/);
+ assert.match(gallery,/if\(piggy\)form\.hidden=true/);
  assert.doesNotMatch(gallery,/piggySidebar\.append\(gameHost,form\)/);
  assert.match(galleryStyles,/\.piggy-editor \.overlay-screen\{[^}]*aspect-ratio:4\/5!important/s);
  assert.doesNotMatch(galleryStyles,/\.piggy-editor \.overlay-screen\{[^}]*aspect-ratio:1;/s);
+});
+
+test('point-drop registration stays in the gallery and preserves its iframe-only scene',async()=>{
+ const index=fs.readFileSync('web/templates/index.html','utf8'),games=fs.readFileSync('web/static/live_games.js','utf8'),animation=fs.readFileSync('web/static/overlay_animation_controls.js','utf8');
+ class Node{
+  constructor(name=''){this.name=name;this.children=[];this.dataset={};this.hidden=false;this.classList={add(){},toggle(){}};this.parentNode=null;}
+  append(...nodes){for(const node of nodes){node.parentNode?.remove?.(node);node.parentNode=this;this.children.push(node);}}
+  before(...nodes){for(const node of nodes){node.parentNode?.remove?.(node);node.parentNode=this.parentNode;this.parentNode?.children.push(node);}}
+  insertBefore(node){this.append(node);}
+  remove(node){this.children=this.children.filter(child=>child!==node);if(node)node.parentNode=null;}
+  removeAttribute(){}
+  setAttribute(){}
+  replaceWith(node){this.replacedBy=node;}
+  querySelector(selector){return this.queries?.[selector]||null;}
+  querySelectorAll(selector){return selector==='.overlay-control-group'?this.matches||[]:[];}
+ }
+ const dynamicMount=new Node('dynamic-mount'),config=new Node('config'),gameHost=new Node('game-host'),arena=new Node('drop-arena');
+ const registry=index.match(/<script id="operator-view-registry">([\s\S]*?)<\/script>/)[1];
+ const section=games.match(/const section = \(key, kicker, title, copy\) => \{[\s\S]*?return node; \};/)[0];
+ const shellViews=shell.slice(shell.indexOf(' const views=new Map();'),shell.indexOf(' const panes='));
+ const viewContext={window:{},document:{getElementById:()=>dynamicMount},dynamicMount,config,pendingRoute:null,currentRoute:null,show(){},el:(tag,text,className)=>new Node(className||tag)};
+ const dropNode=vm.runInNewContext(`${registry}; ${section}; section('point-drop','MINIJUEGO','Caída de puntos','');`,viewContext);
+ const heading=new Node('h2'),hero=new Node('live-tool-hero');hero.queries={h2:heading};dropNode.queries={'.live-tool-hero':hero,'.drop-arena':arena};
+ const gameControls=new Map(),registration=gallery.match(/window\.OverlayGallery=\{registerGameControls\(key,node\)\{[\s\S]*?\}\};/)[0];
+ const galleryContext={window:viewContext.window,el:viewContext.el,gameControls,gameHost,selected:'',dropNode,showGameControls(){}};
+ vm.runInNewContext(`${registration}; window.OverlayGallery.registerGameControls('point-drop',dropNode);`,galleryContext);
+ vm.runInNewContext(`${shellViews}; window.OperatorViewRegistry.connect((key,node)=>views.get(key)===node?node:registerView(key,node));`,viewContext);
+
+ const form=new Node('overlay-style-form'),status=new Node('overlay-gallery-status'),animationHost=new Node('animation-controls');
+ const animationStart=animation.indexOf('async function select(key){'),animationEnd=animation.indexOf('\n return {select};',animationStart),animationSelect=animation.slice(animationStart,animationEnd);
+ const animationContext={document:{getElementById:id=>id==='overlay-style-form'?form:status},$:id=>id==='overlay-style-form'?form:status,host:animationHost,selected:'',ready:false,loaded:false};
+ const selectAnimation=vm.runInNewContext(`${animationSelect}; select`,animationContext);
+ const editor=new Node('overlay-editor'),workbench=new Node('workbench'),stage=new Node('stage'),piggySidebar=new Node('piggy-sidebar');editor.queries={'.overlay-workbench':workbench};
+ const controlGroups=[new Node(),new Node()],controls=new Node('controls'),styleSection=new Node('style-section');controls.queries={'.overlay-style-section':styleSection};controls.matches=controlGroups;
+ const label=()=>({closest:()=>({querySelector:()=>({textContent:''})})}),font=label(),fontSize=label(),titleSize=label();
+ const nodes={'overlay-editor':editor,'overlay-source-resolution':new Node(),'overlay-gallery-status':status};
+ const frame=new Node('iframe'),context={gameControls,gameHost,appearance:new Node('appearance'),workbench,stage,sourceActions:new Node(),code:new Node(),sourceResolution:new Node(),editorCopy:{textContent:''},defaultEditorCopy:'',piggySidebar,frame,controls,timerBox:new Node(),styleHeading:{textContent:''},colorSection:{querySelector:()=>({textContent:''})},layoutSection:{querySelector:()=>({textContent:''})},font,fontSize,titleSize,$:id=>nodes[id],form,selected:'point-drop'};
+ const showFunctionSource=gallery.match(/function showGameControls\(key\)\{[\s\S]*?\n \}/)[0];
+ const showPointDrop=vm.runInNewContext(`${showFunctionSource}; showGameControls`,context);
+ const selectPos=gallery.indexOf('async function select(key',showFunctionSource.length),showAt=gallery.indexOf('showGameControls(key)',selectPos),animationAt=gallery.indexOf('AnimationControls.select(',selectPos);
+ for(const action of showAt<animationAt?['gallery','animation']:['animation','gallery']){
+  if(action==='gallery')showPointDrop('point-drop');
+  else await selectAnimation('');
+ }
+ assert.deepEqual({
+  controlsRemainInGallery:dropNode.parentNode===gameHost,
+  genericStyleFormVisible:!form.hidden,
+  visibleScenes:Number(!frame.hidden)+Number(!arena.hidden),
+ },{controlsRemainInGallery:true,genericStyleFormVisible:false,visibleScenes:1});
 });
 
 test('overlay submenu offers favorites and animations as independent destinations',()=>{
