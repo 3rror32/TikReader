@@ -113,6 +113,43 @@ test('production template boots in isolation', async ({ operator }) => {
   await expect.poll(() => operator.blocked.filter(url => url.startsWith('https://example.invalid/')).length).toBe(3);
 });
 
+test('voice setup keeps system, Kokoro, and RVC sources without character choices', async ({ operator }) => {
+  await operator.page.addInitScript(() => {
+    if (sessionStorage.getItem('voiceSetupSeeded')) return;
+    sessionStorage.setItem('voiceSetupSeeded', 'true');
+    localStorage.setItem('tikreader.voiceCharacter', JSON.stringify({
+      id: 'heroe', name: 'Héroe relámpago', engine: 'browser', builtIn: true,
+      personality: 'heroe', variation: 'classic', pitch: 1.42, rate: 1.22,
+    }));
+    localStorage.setItem('tikreader.voiceCharacters', JSON.stringify([
+      { id: 'legacy-custom', name: 'Mi personaje', engine: 'browser', pitch: 1.1, rate: 1.1 },
+    ]));
+    Object.defineProperty(window, 'speechSynthesis', {
+      configurable: true,
+      value: {
+        getVoices: () => [{ voiceURI: 'fixture-es-mx', name: 'Voz del equipo', lang: 'es-MX', localService: true }],
+        addEventListener() {},
+      },
+    });
+  });
+  await operator.page.reload();
+  await operator.page.evaluate(() => window.Shell.show('custom-voice'));
+
+  await expect(operator.page.locator('#voice-browser-fields')).toBeVisible();
+  await expect(operator.page.locator('#tts-voice')).toBeVisible();
+  await expect(operator.page.locator('#tts-voice option[value="fixture-es-mx"]')).toHaveText('Voz del equipo · es-MX');
+  await expect(operator.page.locator('#voice-character-list, #voice-character-variation, #voice-character-extra')).toHaveCount(0);
+  const kokoroSource = operator.page.locator('[name="custom-voice-source"][value="kokoro"]');
+  const rvcSource = operator.page.locator('[name="custom-voice-source"][value="local"]');
+  await expect(kokoroSource).toBeVisible();
+  await expect(rvcSource).toBeVisible();
+  const saved = await operator.page.evaluate(() => JSON.parse(localStorage.getItem('tikreader.voiceCharacter')));
+  expect(saved).toMatchObject({ engine: 'browser', name: 'Voz de este equipo', pitch: 1, rate: 1 });
+  expect(saved).not.toHaveProperty('personality');
+  await expect.poll(() => operator.page.evaluate(() => JSON.parse(localStorage.getItem('tikreader.voiceCharacters'))))
+    .toEqual([{ id: 'legacy-custom', name: 'Mi personaje', engine: 'browser', pitch: 1.1, rate: 1.1 }]);
+});
+
 test('keyboard navigation restores history and destination focus without initial theft', async ({ operator }) => {
   const { page } = operator;
   expect(await page.evaluate(() => document.activeElement.tagName)).toBe('BODY');
@@ -211,6 +248,13 @@ test('comment text size controls clamp, apply only to messages, and persist acro
   await expect(group.locator('button')).toHaveCount(2);
   await expect(decrease).toBeVisible();
   await expect(increase).toBeVisible();
+  await expect(decrease).toHaveText('A−');
+  await expect(increase).toHaveText('A+');
+  for (const button of [decrease, increase]) {
+    await expect(button).toHaveAttribute('data-live-label', 'true');
+    expect(await button.evaluate(node => getComputedStyle(node).fontSize)).not.toBe('0px');
+    await expect(button).not.toHaveAttribute('data-live-icon', 'more');
+  }
   expect(await status.evaluate(node => {
     const style = getComputedStyle(node);
     const box = node.getBoundingClientRect();

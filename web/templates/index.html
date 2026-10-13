@@ -1100,7 +1100,7 @@
     <div class="settings-heading">
       <span>VOZ Y LECTURA</span>
       <h2 id="voice-setup-title">Configurar voz</h2>
-      <p>Selecciona un personaje y pruébalo con tu propio texto.</p>
+      <p>Elige el origen y la voz que quieres usar para leer.</p>
     </div>
     <div class="voice-setup-grid">
       <div class="voice-setup-main">
@@ -1118,22 +1118,9 @@
           <details><summary>Créditos y licencia</summary><p>Kokoro 1.0 · hexgrad · Apache 2.0. Motor kokoro-onnx · thewh1teagle · MIT. Reconocimiento Vosk y modelo pequeño en español · Alpha Cephei · Apache 2.0. <a href="/local-tts/credits" target="_blank" rel="noopener">Ver atribuciones y licencias locales</a>.</p></details>
         </div>
         <div id="voice-browser-fields" class="voice-config-fields">
-          <h3 id="voice-character-heading">Elige un personaje</h3>
-          <div role="group" aria-labelledby="voice-character-heading">
-            <div id="voice-character-list" class="voice-character-list"></div>
-            <details id="voice-character-more" class="voice-character-more"><summary>Ver más personajes <span id="voice-character-more-count"></span></summary><div id="voice-character-extra" class="voice-character-list"></div></details>
-          </div>
-          <section class="voice-character-settings" aria-labelledby="voice-character-settings-title">
-          <h4 id="voice-character-settings-title">Personaliza el personaje seleccionado</h4>
-          <label for="voice-character-variation">Interpretación del personaje</label>
-          <select id="voice-character-variation" aria-describedby="voice-character-expression"></select>
-          <p id="voice-character-expression"></p>
-          <details class="voice-character-advanced"><summary>Ajustes avanzados</summary>
-          <p>Los personajes comparten la voz base del equipo y modifican su tono, velocidad y expresión. No crean un timbre nuevo ni un efecto metálico. El resultado depende de la voz instalada.</p>
-          <details class="voice-character-create"><summary>Crear una variación</summary><div class="voice-create-grid"><label>Nombre<input id="voice-character-name" maxlength="32" placeholder="Mi personaje"></label><label>Tono<input id="voice-character-pitch" type="range" min="0.5" max="1.8" step="0.01" value="1"></label><label>Velocidad<input id="voice-character-rate" type="range" min="0.6" max="1.6" step="0.01" value="1"></label></div><button id="voice-character-add" type="button">Agregar a mi biblioteca</button></details>
-          <details class="voice-base-settings"><summary>Elegir la voz instalada del equipo</summary><label for="tts-voice">Voz usada como base</label><select id="tts-voice" aria-label="Voz base del equipo"></select><p id="custom-voice-count">Buscando voces instaladas…</p></details>
-          </details>
-          </section>
+          <h3>Voz de este equipo</h3>
+          <p>Elige una de las voces instaladas en Windows. TikReader la usa directamente, sin cambiar su tono ni velocidad.</p>
+          <div class="voice-base-settings"><label for="tts-voice">Voz instalada</label><select id="tts-voice" aria-label="Voz instalada del equipo"></select><p id="custom-voice-count" role="status">Buscando voces instaladas…</p></div>
         </div>
         <div id="voice-local-fields" class="voice-config-fields" hidden>
           <div class="voice-local-heading"><div><strong>Modelo RVC local</strong><p>Elige el modelo y prepara la voz antes de transmitir.</p></div><span id="voice-local-badge">Comprobando…</span></div>
@@ -1160,14 +1147,14 @@
         <div class="voice-test-box">
           <label for="custom-voice-sample">Texto de prueba</label><div><input id="custom-voice-sample" maxlength="180" value="Hola, estoy leyendo los comentarios del live."><button id="custom-voice-test" type="button">Escuchar prueba</button></div>
           <label class="voice-output-volume" for="tts-volume"><span>Volumen de lectura</span><input id="tts-volume" type="range" min="0" max="1" step="0.1" value="0.7"></label>
-          <p id="custom-voice-status" role="status">Selecciona otro personaje y pulsa Escuchar prueba para comparar con este texto.</p>
+          <p id="custom-voice-status" role="status">Elige un origen, escucha la prueba y guarda tu voz.</p>
         </div>
         <div id="voice-connector-note" class="voice-connector-note" hidden role="status"><strong>Esta opción necesita un conector.</strong><p>TikReader todavía no pedirá claves ni archivos. Así tus credenciales y muestras de voz no se guardan en el navegador por accidente.</p><button id="voice-back-browser" type="button">Usar una voz del equipo por ahora</button></div>
 
 
       </div>
       <aside class="voice-summary" aria-label="Resumen de voz">
-        <span>PERSONAJE ELEGIDO</span><div class="voice-orb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><h3 id="custom-voice-summary">Padre animado</h3><p id="custom-voice-privacy">Los comentarios permanecen en este dispositivo.</p><dl><div><dt>Consumo</dt><dd id="custom-voice-engine">Bajo</dd></div><div><dt>Después</dt><dd id="custom-voice-ready">Pulsa Reactivar voz</dd></div></dl><button id="custom-voice-save" type="button">Usar esta voz</button><button id="custom-voice-cancel" type="button">Volver sin cambios</button>
+        <span>VOZ ELEGIDA</span><div class="voice-orb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><h3 id="custom-voice-summary">Voz de este equipo</h3><p id="custom-voice-privacy">Los comentarios permanecen en este dispositivo.</p><dl><div><dt>Consumo</dt><dd id="custom-voice-engine">Bajo</dd></div><div><dt>Después</dt><dd id="custom-voice-ready">Pulsa Reactivar voz</dd></div></dl><button id="custom-voice-save" type="button">Usar esta voz</button><button id="custom-voice-cancel" type="button">Volver sin cambios</button>
       </aside>
     </div>
   </section>
