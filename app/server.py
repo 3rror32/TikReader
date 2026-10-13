@@ -506,31 +506,60 @@ def event_emotes(event):
     return result
 
 
+def _tiktok_comment_user_name(event, user):
+    """Return a public account name without exposing TikTok's internal IDs."""
+    for owner, fields in ((user, ("unique_id", "username", "user_name")),
+                          (event, ("unique_id", "username", "user_name"))):
+        for field in fields:
+            value = getattr(owner, field, None)
+            if isinstance(value, str) and value.strip():
+                return value.strip()[:100]
+    return ""
+
+
+def _comment_callback_diagnostic(reason):
+    diagnostics["comment_error"] = time.time()
+    logger.warning("TikTok comment callback skipped: %s", reason)
+
+
 def handle_comment_event(event):
-    observe_participant(event.user, "comment")
-    common = getattr(event, "common", None)
-    message_id = str(getattr(common, "msg_id", "") or uuid4().hex)
-    emotes = event_emotes(event)
-    comment = str(getattr(event, "comment", None) or getattr(event, "content", None) or "")[:2000]
-    payload = {
-        "id": message_id,
-        "session": feed_session,
-        "user": f"@{event.user.unique_id}",
-        "display_name": getattr(event.user, "nickname", None),
-        "avatar_url": avatar_url(event.user),
-        "badges": user_badges(event.user),
-        "is_follower": follower_status(event.user),
-        "emoji": "💬",
-        "comment": comment,
-        "emotes": emotes,
-        "likes": 0,
-        "timestamp": time.strftime("%H:%M:%S"),
-        "occurred_at": time.time(),
-        "platform": "tiktok",
-        "platform_label": "TikTok",
-        "identity": f"tiktok:{event.user.unique_id}",
-    }
-    return publish_comment_payload(payload)
+    try:
+        user = getattr(event, "user", None)
+        username = _tiktok_comment_user_name(event, user)
+        display_name = (getattr(user, "nickname", None) or
+                        getattr(user, "display_name", None) or username or "Espectador")
+        observe_participant(user, "comment")
+        common = getattr(event, "common", None)
+        message_id = str(getattr(common, "msg_id", "") or uuid4().hex)
+        emotes = event_emotes(event)
+        raw_comment = getattr(event, "comment", None) or getattr(event, "content", None)
+        comment = str(raw_comment or "")[:2000]
+        if not comment.strip():
+            _comment_callback_diagnostic("empty_content")
+            return None
+        payload = {
+            "id": message_id,
+            "session": feed_session,
+            "user": f"@{username or 'Espectador'}",
+            "display_name": display_name,
+            "avatar_url": avatar_url(user),
+            "badges": user_badges(user),
+            "is_follower": follower_status(user),
+            "emoji": "💬",
+            "comment": comment,
+            "emotes": emotes,
+            "likes": 0,
+            "timestamp": time.strftime("%H:%M:%S"),
+            "occurred_at": time.time(),
+            "platform": "tiktok",
+            "platform_label": "TikTok",
+            "identity": f"tiktok:{username.casefold()}" if username else "tiktok:anonymous",
+        }
+        return publish_comment_payload(payload)
+    except Exception as exc:
+        diagnostics["comment_error"] = time.time()
+        logger.warning("TikTok comment callback failed (%s)", type(exc).__name__)
+        return None
 
 
 def publish_comment_payload(payload):

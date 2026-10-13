@@ -623,6 +623,66 @@ class CommentDisplayNameTests(unittest.TestCase):
         self.assertEqual(payload["user"], "@account_name")
         self.assertEqual(payload["display_name"], "Visible Profile")
 
+    def test_tiktok_comment_uses_alternate_public_username(self):
+        from types import SimpleNamespace as S
+        event = S(user=S(username="alternate_name", nickname="Visible Profile"), comment="Hola")
+
+        with patch.object(server, "observe_participant"), \
+                patch.object(server, "event_emotes", return_value=[]), \
+                patch.object(server, "avatar_url", return_value=None), \
+                patch.object(server, "user_badges", return_value=[]), \
+                patch.object(server, "follower_status", return_value=None), \
+                patch.object(server, "publish_comment_payload", side_effect=lambda payload: payload):
+            payload = server.handle_comment_event(event)
+
+        self.assertEqual(payload["user"], "@alternate_name")
+        self.assertEqual(payload["identity"], "tiktok:alternate_name")
+
+    def test_tiktok_comment_without_user_uses_safe_fallback(self):
+        from types import SimpleNamespace as S
+        event = S(comment="Hola")
+
+        with patch.object(server, "observe_participant"), \
+                patch.object(server, "event_emotes", return_value=[]), \
+                patch.object(server, "avatar_url", return_value=None), \
+                patch.object(server, "user_badges", return_value=[]), \
+                patch.object(server, "follower_status", return_value=None), \
+                patch.object(server, "publish_comment_payload", side_effect=lambda payload: payload):
+            payload = server.handle_comment_event(event)
+
+        self.assertEqual(payload["user"], "@Espectador")
+        self.assertEqual(payload["display_name"], "Espectador")
+        self.assertEqual(payload["identity"], "tiktok:anonymous")
+
+    def test_tiktok_comment_skips_empty_content_and_records_diagnostic(self):
+        from types import SimpleNamespace as S
+        event = S(comment="  ")
+
+        with patch.object(server, "diagnostics", {}), \
+                patch.object(server, "publish_comment_payload") as publish, \
+                patch.object(server, "logger") as logger:
+            result = server.handle_comment_event(event)
+
+        self.assertIsNone(result)
+        publish.assert_not_called()
+        self.assertIn("comment_error", server.diagnostics)
+        logger.warning.assert_called_once()
+        self.assertNotIn("  ", str(logger.warning.call_args))
+
+    def test_tiktok_comment_callback_logs_exception_without_event_content(self):
+        from types import SimpleNamespace as S
+        secret_comment = "private comment text"
+        event = S(comment=secret_comment)
+
+        with patch.object(server, "diagnostics", {}), \
+                patch.object(server, "event_emotes", side_effect=RuntimeError(secret_comment)), \
+                patch.object(server, "logger") as logger:
+            result = server.handle_comment_event(event)
+
+        self.assertIsNone(result)
+        logger.warning.assert_called_once()
+        self.assertNotIn(secret_comment, str(logger.warning.call_args))
+
     def test_publish_normalizes_display_name_and_uses_account_fallback(self):
         named = self.publish({"id": "named", "user": "@account", "display_name": "  Visible  "})
         missing = self.publish({"id": "missing", "user": "@account"})
