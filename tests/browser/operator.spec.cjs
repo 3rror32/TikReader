@@ -5,7 +5,7 @@ const path = require('node:path');
 const themes = ['original', 'broadcast-console', 'creator-pop', 'studio-rundown',
   'terminal-crt', 'cyber-neumorph', 'swiss-brutalist', 'tactile-scrapbook', 'kawai',
   'dark', 'light', 'cute', 'dracula', 'ice', 'one-dark-pro', 'github-dark', 'monokai',
-  'glass', 'aetheria', 'cloudfoam', 'monolith', 'chromapulse'];
+  'glass', 'aetheria', 'cloudfoam', 'monolith', 'chromapulse', 'dragon'];
 const representative = ['original', 'light', 'dark', 'broadcast-console',
   'creator-pop', 'swiss-brutalist', 'tactile-scrapbook'];
 
@@ -130,7 +130,7 @@ test('keyboard navigation restores history and destination focus without initial
   await expect(page).toHaveURL(/#live$/);
 });
 
-test('all 22 themes retain named controls, focus, and reload-persistent preferences', async ({ operator }) => {
+test('all 23 themes retain named controls, focus, and reload-persistent preferences', async ({ operator }) => {
   test.setTimeout(120000);
   const { page, signalBackendReady } = operator;
   expect(await page.locator('#skin-select option').evaluateAll(nodes => nodes.map(node => node.value).sort())).toEqual([...themes].sort());
@@ -155,7 +155,7 @@ test('all 22 themes retain named controls, focus, and reload-persistent preferen
       expect(focus.size).toBeGreaterThanOrEqual(12);
     });
   }
-  await expect.poll(() => operator.preferences['tikreader.skin']).toBe('chromapulse');
+  await expect.poll(() => operator.preferences['tikreader.skin']).toBe('dragon');
   expect(operator.errors).toEqual([]);
 });
 

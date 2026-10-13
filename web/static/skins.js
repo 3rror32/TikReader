@@ -1,5 +1,5 @@
 (()=>{
-  const labels={original:'TikReader','broadcast-console':'Consola Broadcast','creator-pop':'Creator Pop','studio-rundown':'Guion de Estudio','terminal-crt':'Terminal Retro · CRT','cyber-neumorph':'Neumorfismo Cyberpunk','swiss-brutalist':'Brutalismo Suizo','tactile-scrapbook':'Scrapbook Táctil',kawai:'Kawai',dark:'Dark',light:'Luz de estudio',cute:'Creativo',dracula:'Dracula',ice:'Ice','one-dark-pro':'One Dark Pro','github-dark':'GitHub Dark',monokai:'Monokai',glass:'Glass',aetheria:'Aetheria',cloudfoam:'Cloudfoam',monolith:'Monolith',chromapulse:'ChromaPulse'};
+  const labels={original:'TikReader','broadcast-console':'Consola Broadcast','creator-pop':'Creator Pop','studio-rundown':'Guion de Estudio','terminal-crt':'Terminal Retro · CRT','cyber-neumorph':'Neumorfismo Cyberpunk','swiss-brutalist':'Brutalismo Suizo','tactile-scrapbook':'Scrapbook Táctil',kawai:'Kawai',dark:'Dark',light:'Luz de estudio',cute:'Creativo',dracula:'Dracula',ice:'Ice','one-dark-pro':'One Dark Pro','github-dark':'GitHub Dark',monokai:'Monokai',glass:'Glass',aetheria:'Aetheria',cloudfoam:'Cloudfoam',monolith:'Monolith',chromapulse:'ChromaPulse',dragon:'Dragon'};
   const allowed=new Set(Object.keys(labels));
   const select=document.getElementById('skin-select');
   const status=document.getElementById('skin-status');

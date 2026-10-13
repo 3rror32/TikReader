@@ -61,6 +61,14 @@ test('light signature themes use readable warning and navigation colors', () => 
   assert.match(signatures, /#8a5e3b !important/);
 });
 
+test('Dragon theme is selectable, survives first paint, and keeps its motion safeguards', () => {
+  assert.match(index, /const skins = \[[^\]]*'dragon'/);
+  assert.match(index, /<option value="dragon">Dragon<\/option>/);
+  assert.match(read('web/static/skins.js'), /dragon:'Dragon'/);
+  assert.match(signatures, /html\[data-skin="dragon"\][\s\S]*--skin-accent: #f36b21/);
+  assert.match(signatures, /@media \(prefers-reduced-motion: reduce\)[\s\S]*data-skin="dragon"/);
+});
+
 test('operator focus uses visible ink and error recovery beats secondary actions', () => {
   assert.match(css, /:focus-visible\s*\{[^}]*outline: 2px solid var\(--skin-text\) !important/s);
   assert.match(css, /#error-recovery\s*\{[^}]*background: var\(--skin-accent\) !important/s);
