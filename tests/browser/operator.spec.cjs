@@ -261,6 +261,10 @@ test('comment text size controls clamp, apply only to messages, and persist acro
     await expect(button).toHaveAttribute('data-live-label', 'true');
     expect(await button.evaluate(node => getComputedStyle(node).fontSize)).not.toBe('0px');
     await expect(button).not.toHaveAttribute('data-live-icon', 'more');
+    expect(await button.evaluate(node => {
+      const pseudo = getComputedStyle(node, '::before');
+      return { content: pseudo.content, display: pseudo.display };
+    })).toEqual({ content: 'none', display: 'none' });
   }
   expect(await status.evaluate(node => {
     const style = getComputedStyle(node);
