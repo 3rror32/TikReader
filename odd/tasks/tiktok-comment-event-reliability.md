@@ -51,20 +51,20 @@ The live session can receive gifts and participant activity while the comment co
   - Review correction commit: `5349fdc` (`test: fix comment diagnostic assertion`).
   - Completion: complete; implementation criteria and focused regression checks passed.
 
-- [ ] **TCER-2 — Rebuild and verify the application package**
+- [x] **TCER-2 — Rebuild and verify the application package**
   - Route: delegated direct.
   - Trigger evidence: payload and installer reconstruction requires build and external packaging tooling.
   - Acceptance criteria:
     - Rebuild the payload and installer from the current HEAD.
     - Verify the packaged `app/server.py` matches the source at HEAD.
     - Run the applicable packaging checks and record their results.
-  - Status: blocked; the current environment has no usable Python 3.13 build interpreter with PyInstaller.
-  - Build attempt: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\packaging\build_installer.ps1` first failed because the sandbox could not start the WindowsApps `python.exe` alias. The same official command with approved execution reached Python 3.14.7 and pip 26.2.1, then failed at `python -m PyInstaller --version` because PyInstaller is not installed. It stopped before moving or rebuilding any release output.
-  - Payload verification: `app/server.py` SHA-256 at HEAD is `41EA3DBF81A3817359DE5AFA823D01D5F7281EB85175C7D37016D3BBE5DDD042`; `release/TikReader/app/server.py` is `8C80E40BF267110616B0B3D454A3CDCD383C092FED5F83F21875C5A4C36D114A` (mismatch).
-  - Installer: `release/TikReader-1.0.0.8-Beta-Setup.exe` exists, 311,446,934 bytes, timestamp `2026-10-09T06:41:03.5024213Z`; it predates the October 12 fix and was not replaced.
-  - Checks: `release/TikReader/python/python.exe tools/validate_release.py` passed after approved execution, but validates the existing stale package. `node tools/qa_release.cjs` failed because `http://127.0.0.1:5199/` refused the connection; the browser process started, but no local app server was running. `git diff --check` passed after this tracking update; no package install or TikTok session was started.
-  - Generated changes: none tracked; the official build stopped before touching payload or installer outputs. Six ignored artifacts under `release/` were created or refreshed by the two build attempts and release validation: two build logs, two validation-data directories, `validation-report.json`, and `validation-server.log`.
-  - Completion: pending a usable Python 3.13 + PyInstaller build environment, then rerun the build and applicable checks. TCER-3 remains blocked until explicit authorization to install.
+  - Status: complete; the payload and installer were rebuilt from HEAD and the packaged server matches the source.
+  - Build setup: prepended the resolved `runtime/installer-python-3.13` directory to the process-only PATH; confirmed Python 3.13.15, pip 25.3, and PyInstaller 6.20.0. `packaging/build_installer.ps1 -CheckOnly` passed for version 1.0.0.8. The official `packaging/build_installer.ps1` first hit sandbox DNS failure for PyPI, then passed with approved execution; overlays, dependencies, payload, PyInstaller launcher, and Inno Setup installer completed successfully (Inno Setup reported `Successful compile (196.906 sec)`). No versions or declared dependencies were changed. PyInstaller emitted a deprecation warning about a foreign `site-packages` search path; build completed successfully.
+  - Payload verification: `app/server.py` and `release/TikReader/app/server.py` are byte-identical; SHA-256 for each is `41EA3DBF81A3817359DE5AFA823D01D5F7281EB85175C7D37016D3BBE5DDD042`.
+  - Installer: `release/TikReader-1.0.0.8-Beta-Setup.exe` exists, is 311,488,110 bytes, and has UTC timestamp `2026-10-13T06:20:43.4025887Z`, later than the fix commit (`5349fdc`, `2026-10-12T22:51:48-07:00`).
+  - Checks: `python tools/validate_release.py` using the local Python 3.13 toolchain passed all six packaged-runtime checks: isolated startup, Vosk/model availability, external preferences, permitted diagnostics, clean server shutdown, and reopen with preferences/database integrity. `node tools/qa_release.cjs` reached the current UI but timed out on `#settings-save-device`; this selector is absent from `web/templates/index.html`, which exposes `#settings-save-status` and automatic preference saving instead, so the checked-in QA script is stale and not applicable to the current settings flow. The documented preview helper started the payload server on `127.0.0.1:5199` for that attempt; its process was stopped afterward and the port is free. No install or TikTok session was started. `git diff --check` passed.
+  - Generated changes: two tracked build outputs changed (`web/static/build/broadcast.css`, `web/static/build/platformConnectors.js`); payload and installer remain ignored release artifacts and were not force-added. Preview and validation data/logs are generated under `release/`.
+  - Completion: complete for TCER-2. TCER-3 remains blocked until explicit authorization to install the package locally.
 
 - [ ] **TCER-3 — Validate new comments with the rebuilt package**
   - Route: delegated direct after authorization.
@@ -81,4 +81,4 @@ The live session can receive gifts and participant activity while the comment co
 - Known behavior: comments from earlier sessions are archived but are not repopulated into the in-memory feed. This is outside the authorized scope and is not being changed.
 - RDD state: unavailable because `gentle-ai` is not installed in this terminal.
 - Engram mirror: pending.
-- Next step: provide a usable Python 3.13 build environment with PyInstaller, complete TCER-2 package reconstruction and checks, then obtain explicit authorization before local installation and TCER-3 LIVE validation.
+- Next step: obtain explicit authorization before local installation and TCER-3 LIVE validation.
