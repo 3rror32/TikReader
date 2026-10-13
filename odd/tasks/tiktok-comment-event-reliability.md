@@ -47,7 +47,8 @@ The live session can receive gifts and participant activity while the comment co
   - Work-unit commit: `acfb348` (`fix: harden TikTok comment event handling`).
   - Review follow-up: fixed the P2 diagnostic-test assertion to inspect the same temporary dictionary patched during the callback; production logic is unchanged.
   - Follow-up checks observed: focused pytest remains unavailable because the system Python launcher is denied; bundled Python AST parse of `app/server.py` and `tests/test_server.py` passed; `git diff --check` passed.
-  - Follow-up change size: approximately 5 authored lines; commit identity will be recorded in a documentation follow-up.
+  - Follow-up change size: approximately 5 authored lines.
+  - Review correction commit: `5349fdc` (`test: fix comment diagnostic assertion`).
   - Completion: pending focused pytest execution; do not close TCER-1 until it passes.
   - Next step: restore a local Python environment with pytest, run the focused selector, then update this evidence and close the task if all criteria pass.
 
