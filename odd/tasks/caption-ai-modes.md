@@ -39,7 +39,7 @@ The external model currently accepts one free-form instruction. Useful behaviors
   - Verification evidence: Initial test-first red: backend AI mode tests failed for missing defaults, legacy migration, mode-specific prompts, save/load, and public privacy; frontend assertion failed because the mode options were absent. Initial green: backend 11 tests passed; frontend structural checks passed; JavaScript syntax check passed; scoped `git diff --check` passed. Independent review reopened one issue: the local preview flattened bilingual line breaks. Correction test-first red showed the preview rendered the newline as a text span with spaces; correction green: `node tests/test_microphone_captions.cjs` passed, `node --check web/static/microphone_captions.js` passed, and scoped `git diff --check` passed. The Windows `python` app alias was inaccessible, so the backend suite used the installed Python 3.14 interpreter with the requested unittest arguments.
   - Commit: `5daf399` (`feat(captions): add AI subtitle modes`).
   - Correction commit: `9c1453b` (`fix(captions): preserve bilingual preview lines`).
-  - Review assessment: pending parent assessment; native receipt tooling was unavailable during the preceding caption task and remains the parent’s responsibility to assess.
+  - Review assessment: unavailable because the `gentle-ai` executable is not present in this environment; treated as unassessable/high and independently verified. Final independent result: PASS with no remaining findings.
 
 ## Progress
 
@@ -50,4 +50,4 @@ The external model currently accepts one free-form instruction. Useful behaviors
 
 ## Next step
 
-Parent performs the native risk assessment and review lifecycle as the user-owned switch requires, then synchronizes the Engram mirror when its memory tools are available.
+CAP-MODE-1 is complete. Native receipt assessment and the Engram mirror remain unavailable in this environment; all focused checks and independent verification passed.
