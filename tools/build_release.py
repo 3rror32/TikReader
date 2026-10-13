@@ -16,6 +16,16 @@ PY_VERSION = '3.13.15'
 PY_SHA256 = 'd1f04d990aee1253d8569e8e5104e30fa9f5fa830899f14843448872d936a2cf'
 OVERLAY_BUILD = ('runtime.js', 'broadcast.js', 'broadcast.css', 'studio.js', 'controlCenter.js', 'platformConnectors.js')
 SPEECH_MODEL = 'vosk-model-small-es-0.42'
+SPEECH_MODEL_LINE_ENDING_PATHS = frozenset({
+    'README',
+    'conf/mfcc.conf',
+    'conf/model.conf',
+    'graph/disambig_tid.int',
+    'graph/phones/word_boundary.int',
+    'ivector/global_cmvn.stats',
+    'ivector/online_cmvn.conf',
+    'ivector/splice.conf',
+})
 
 
 def build_overlays():
@@ -41,6 +51,14 @@ def download_python():
     return path
 
 
+def _speech_model_sha256(path, relative):
+    """Hash speech model files, canonicalizing checkout line endings for allowlisted files."""
+    content = path.read_bytes()
+    if relative in SPEECH_MODEL_LINE_ENDING_PATHS:
+        content = content.replace(b'\r\n', b'\n')
+    return hashlib.sha256(content).hexdigest()
+
+
 def copy_speech_model():
     """Copy the approved local caption model after checking every file."""
     speech = ROOT / 'data' / 'speech'
@@ -54,7 +72,7 @@ def copy_speech_model():
         raise RuntimeError('Los archivos del modelo español no coinciden con el manifiesto aprobado.')
     for relative, expected in manifest.items():
         path = source / relative
-        if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        if _speech_model_sha256(path, relative) != expected:
             raise RuntimeError(f'El modelo español no superó la verificación: {relative}')
     target = PAYLOAD / 'assets' / 'speech'
     shutil.copytree(source, target / SPEECH_MODEL, dirs_exist_ok=True)
