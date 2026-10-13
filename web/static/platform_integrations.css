@@ -120,11 +120,22 @@
 /* The live desk asks only for session-specific information. */
 .platform-connectors .youtube-fields,
 .platform-connectors .twitch-fields,
-.platform-connectors .kick-fields { grid-template-columns: 1fr; }
-.platform-connectors .platform-help { display: flex; align-items: center; gap: 12px; min-height: 28px; }
-.platform-connectors .platform-help > span { min-width: 0; }
-.platform-connectors [data-platform-settings] { margin-left: auto; padding: 3px 0; border: 0; background: transparent; color: var(--skin-accent, #86dfbe); font-size: 10px; white-space: nowrap; }
-.platform-connectors [data-platform-settings]:hover { text-decoration: underline; }
+.platform-connectors .kick-fields { grid-template-columns: 38px minmax(0, 1fr); }
+.platform-connectors .platform-settings-button {
+  display: grid;
+  place-items: center;
+  align-self: end;
+  width: 38px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--skin-border, #34465a);
+  border-radius: 8px;
+  background: var(--skin-bg, #0b1520);
+  color: var(--skin-accent, #86dfbe);
+}
+.platform-connectors .platform-settings-button svg { width: 17px; height: 17px; fill: currentColor; }
+.platform-connectors .platform-settings-button:hover { border-color: currentColor; background: color-mix(in srgb, currentColor 9%, var(--skin-bg, #0b1520)); }
+.platform-connectors .platform-settings-button:focus-visible { outline: 2px solid var(--skin-accent, #86dfbe); outline-offset: 2px; }
 
 @media (max-width: 850px) {
   .platform-integration-grid { grid-template-columns: 1fr; }
@@ -141,6 +152,5 @@
   .platform-config-actions .platform-remove { width: 100%; margin-left: 0; }
   .platform-integrations-footer { grid-template-columns: 1fr; }
   .platform-integrations-footer button { width: 100%; }
-  .platform-connectors .platform-help { align-items: flex-start; flex-direction: column; gap: 3px; }
-  .platform-connectors [data-platform-settings] { margin-left: 0; }
+  .platform-connectors .platform-settings-button { width: 38px; flex: 0 0 38px; }
 }

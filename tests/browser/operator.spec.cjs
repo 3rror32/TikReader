@@ -130,6 +130,46 @@ test('keyboard navigation restores history and destination focus without initial
   await expect(page).toHaveURL(/#live$/);
 });
 
+test('platform settings use named inline gears and focus the matching credential form', async ({ operator }) => {
+  const { page, signalBackendReady } = operator;
+  await page.locator('details:has([data-platform-settings="youtube"]) > summary').click();
+  const platforms = [
+    ['youtube', 'YouTube', 'youtube-api-key'],
+    ['twitch', 'Twitch', 'twitch-nickname'],
+    ['kick', 'Kick', 'kick-client-id'],
+  ];
+  for (const [platform, name, credentialInput] of platforms) {
+    const gear = page.getByRole('button', { name: `Configurar ${name}`, exact: true });
+    await expect(gear).toHaveAttribute('title', `Configurar ${name}`);
+    await expect(page.locator(`[data-platform-card="${platform}"] .platform-help`)).toHaveCount(0);
+    const positions = await gear.evaluate(node => {
+      const input = node.closest('.platform-connector').querySelector('.platform-fields input');
+      return { gearRight: node.getBoundingClientRect().right, inputLeft: input.getBoundingClientRect().left,
+        buttonWidth: node.getBoundingClientRect().width, svgCount: node.querySelectorAll('svg').length };
+    });
+    expect(positions.gearRight).toBeLessThanOrEqual(positions.inputLeft);
+    expect(positions.buttonWidth).toBeGreaterThanOrEqual(36);
+    expect(positions.svgCount).toBe(1);
+    await gear.click();
+    await expect(page).toHaveURL(/#platform-integrations$/);
+    await expect(page.locator(`#${credentialInput}`)).toBeFocused();
+    await page.evaluate(() => window.Shell.show('live', { history: 'none', focus: false }));
+  }
+  await page.route('**/system/platform-credentials', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ platforms: platforms.map(([platform]) => ({ platform, configured: true })), storage: 'memory' }),
+  }));
+  await page.reload();
+  await signalBackendReady();
+  await page.locator('details:has([data-platform-settings="youtube"]) > summary').click();
+  for (const [platform, name] of platforms) {
+    const gear = page.getByRole('button', { name: `Cambiar configuración de ${name}`, exact: true });
+    await expect(gear).toHaveAttribute('title', `Cambiar configuración de ${name}`);
+    await expect(gear.locator('svg')).toHaveCount(1);
+  }
+});
+
 test('all 23 themes retain named controls, focus, and reload-persistent preferences', async ({ operator }) => {
   test.setTimeout(120000);
   const { page, signalBackendReady } = operator;

@@ -60,7 +60,11 @@ if (root && typeof socket !== "undefined") {
       const remove = document.querySelector<HTMLButtonElement>(`[data-platform-delete="${platform}"]`);
       if (remove) remove.hidden = !item?.configured;
       const settings = platformRoot.querySelector<HTMLButtonElement>(`[data-platform-settings="${platform}"]`);
-      if (settings) settings.textContent = item?.configured ? "Cambiar configuración" : `Configurar ${names[platform]}`;
+      if (settings) {
+        const label = item?.configured ? `Cambiar configuración de ${names[platform]}` : `Configurar ${names[platform]}`;
+        settings.setAttribute("aria-label", label);
+        settings.setAttribute("title", label);
+      }
       if (platform === "twitch" && item?.nickname) {
         const nickname = byId<HTMLInputElement>("twitch-nickname");
         if (nickname) nickname.value = item.nickname;

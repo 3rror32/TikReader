@@ -701,38 +701,38 @@
         <article class="platform-connector" data-platform-card="youtube">
           <header class="platform-connector-heading">
             <span class="platform-logo youtube">YT</span>
-            <div><strong>YouTube Live</strong><small id="youtube-platform-status">Desconectado</small></div>
+            <div><strong>YouTube Live</strong><small id="youtube-platform-status" data-platform-status="youtube">Desconectado</small></div>
             <div class="platform-actions"><button type="button" data-platform-connect="youtube">Conectar</button><button type="button" data-platform-stop="youtube" hidden>Desconectar</button></div>
           </header>
           <div class="platform-fields youtube-fields">
+            <button type="button" class="platform-settings-button" data-platform-settings="youtube" aria-label="Configurar YouTube" title="Configurar YouTube"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.4 13a7.8 7.8 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.3 7.3 0 0 0-1.7-1L15 3.5h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg></button>
             <label><span>Video en vivo</span><input id="youtube-video" type="text" maxlength="500" placeholder="URL o ID del video" autocomplete="off"></label>
           </div>
-          <p class="platform-help"><span>Recibe mensajes, membresías y Super Chats nuevos.</span><button type="button" data-platform-settings="youtube">Configurar YouTube</button></p>
         </article>
         <article class="platform-connector" data-platform-card="twitch">
           <header class="platform-connector-heading">
             <span class="platform-logo twitch">TW</span>
-            <div><strong>Twitch</strong><small id="twitch-platform-status">Desconectado</small></div>
+            <div><strong>Twitch</strong><small id="twitch-platform-status" data-platform-status="twitch">Desconectado</small></div>
             <div class="platform-actions"><button type="button" data-platform-connect="twitch">Conectar</button><button type="button" data-platform-stop="twitch" hidden>Desconectar</button></div>
           </header>
           <div class="platform-fields twitch-fields">
+            <button type="button" class="platform-settings-button" data-platform-settings="twitch" aria-label="Configurar Twitch" title="Configurar Twitch"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.4 13a7.8 7.8 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.3 7.3 0 0 0-1.7-1L15 3.5h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg></button>
             <label><span>Canal</span><input id="twitch-channel" type="text" maxlength="80" placeholder="nombre_del_canal" autocomplete="off"></label>
           </div>
-          <p class="platform-help"><span>Recibe el chat y los avisos de suscripción.</span><button type="button" data-platform-settings="twitch">Configurar Twitch</button></p>
         </article>
         <article class="platform-connector" data-platform-card="kick">
           <header class="platform-connector-heading">
             <span class="platform-logo kick">K</span>
-            <div><strong>Kick</strong><small id="kick-platform-status">Desconectado</small></div>
+            <div><strong>Kick</strong><small id="kick-platform-status" data-platform-status="kick">Desconectado</small></div>
             <div class="platform-actions"><button type="button" data-platform-connect="kick">Conectar</button><button type="button" data-platform-stop="kick" hidden>Desconectar</button></div>
           </header>
           <div class="platform-fields kick-fields">
+            <button type="button" class="platform-settings-button" data-platform-settings="kick" aria-label="Configurar Kick" title="Configurar Kick"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.4 13a7.8 7.8 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.3 7.3 0 0 0-1.7-1L15 3.5h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5ZM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg></button>
             <label><span>Canal</span><input id="kick-channel" type="text" maxlength="80" placeholder="nombre-del-canal" autocomplete="off"></label>
           </div>
-          <p class="platform-help"><span>Recibe chat, suscripciones y KICKs mediante webhooks oficiales.</span><button type="button" data-platform-settings="kick">Configurar Kick</button></p>
         </article>
       </div>
-      <p id="platform-privacy-note"><span aria-hidden="true">🔒</span><span><strong>Credenciales fuera del LIVE.</strong> Usa “Configurar” debajo de cada canal; no se guardan en el historial.</span></p>
+      <p id="platform-privacy-note"><span aria-hidden="true">🔒</span><span><strong>Credenciales fuera del LIVE.</strong> Se protegen para tu usuario.</span></p>
     </details>
 
     <div class="stats-bar">

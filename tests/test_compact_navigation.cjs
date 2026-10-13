@@ -16,7 +16,31 @@ test('personal destinations are contextual and compact instead of forming a seco
   assert.doesNotMatch(shell,/"Credenciales de canales"[\s\S]*"platform-integrations"/);
   assert.doesNotMatch(shell,/settingsAbout|settings-about-link/);
   assert.match(template,/data-platform-settings="youtube"/);
-  assert.match(template,/Usa “Configurar” debajo de cada canal/);
+});
+
+test('platform cards use named inline gear controls without redundant instructions',()=>{
+  for(const [platform,name,input] of [
+    ['youtube','YouTube','youtube-video'],
+    ['twitch','Twitch','twitch-channel'],
+    ['kick','Kick','kick-channel'],
+  ]){
+    const card=template.match(new RegExp(`<article class="platform-connector" data-platform-card="${platform}">([\\s\\S]*?)</article>`))?.[1];
+    assert.ok(card,`${platform} card exists`);
+    assert.match(card,new RegExp(`<button[^>]*data-platform-settings="${platform}"[^>]*aria-label="Configurar ${name}"[^>]*title="Configurar ${name}"[^>]*>[\\s\\S]*?<svg[^>]*aria-hidden="true"`));
+    assert.ok(card.indexOf(`data-platform-settings="${platform}"`)<card.indexOf(`id="${input}"`),`${platform} gear precedes its live input`);
+    assert.doesNotMatch(card,/platform-help|Recibe mensajes|Recibe el chat|Recibe chat/);
+    assert.doesNotMatch(card,new RegExp(`>Configurar ${name}<\\/button>`));
+    assert.match(card,new RegExp(`id="${input}"`));
+    assert.match(card,new RegExp(`<small[^>]*data-platform-status="${platform}"`));
+    assert.match(card,new RegExp(`data-platform-connect="${platform}"`));
+    assert.match(card,new RegExp(`data-platform-stop="${platform}"`));
+  }
+  assert.doesNotMatch(template,/Usa “Configurar” debajo de cada canal/);
+  const connectors=fs.readFileSync('frontend/entries/platform-connectors.ts','utf8');
+  assert.match(connectors,/settings\.setAttribute\("aria-label", label\)/);
+  assert.match(connectors,/settings\.setAttribute\("title", label\)/);
+  assert.match(connectors,/`Cambiar configuración de \$\{names\[platform\]\}`/);
+  assert.doesNotMatch(connectors,/settings\.textContent\s*=/);
 });
 
 test('the menu keeps overlay shortcuts while consolidating other repeated routes',()=>{
