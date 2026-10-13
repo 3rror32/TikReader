@@ -36,14 +36,16 @@ The external model currently accepts one free-form instruction. Useful behaviors
 - [x] **CAP-MODE-1** — Implement persisted AI caption presets, legacy migration, target-language selection, and focused tests.
   - Acceptance: all five modes are selectable; translation and bilingual modes expose the target language; custom mode exposes the instruction; mode-specific prompts are selected server-side; legacy instructions migrate safely; public snapshots remain private; provider request shape is unchanged.
   - Checks: `python -m unittest discover -s tests -p test_microphone_captions.py`; `node tests/test_microphone_captions.cjs`; `node --check web/static/microphone_captions.js`.
-  - Verification evidence: Test-first red observed before implementation: backend AI mode tests failed for missing defaults, legacy migration, mode-specific prompts, save/load, and public privacy; frontend assertion failed because the mode options were absent. Green observed after implementation: backend 11 tests passed; frontend structural checks passed; JavaScript syntax check passed; `git diff --check` passed for the allowed paths. The Windows `python` app alias was inaccessible, so the same unittest arguments ran through the installed Python 3.14 interpreter.
+  - Verification evidence: Initial test-first red: backend AI mode tests failed for missing defaults, legacy migration, mode-specific prompts, save/load, and public privacy; frontend assertion failed because the mode options were absent. Initial green: backend 11 tests passed; frontend structural checks passed; JavaScript syntax check passed; scoped `git diff --check` passed. Independent review reopened one issue: the local preview flattened bilingual line breaks. Correction test-first red showed the preview rendered the newline as a text span with spaces; correction green: `node tests/test_microphone_captions.cjs` passed, `node --check web/static/microphone_captions.js` passed, and scoped `git diff --check` passed. The Windows `python` app alias was inaccessible, so the backend suite used the installed Python 3.14 interpreter with the requested unittest arguments.
   - Commit: `5daf399` (`feat(captions): add AI subtitle modes`).
+  - Correction commit: `9c1453b` (`fix(captions): preserve bilingual preview lines`).
   - Review assessment: pending parent assessment; native receipt tooling was unavailable during the preceding caption task and remains the parent’s responsibility to assess.
 
 ## Progress
 
 - Exploration and compatibility design completed with CodeGraph.
 - CAP-MODE-1 implemented and committed; 215 authored changed lines across the backend, visible controls, and focused tests.
+- Independent review correction preserves explicit line boundaries in local preview and replay while retaining word animations; correction committed as `9c1453b`.
 - Engram mirror remains pending because no Engram memory tools are available in this session.
 
 ## Next step
