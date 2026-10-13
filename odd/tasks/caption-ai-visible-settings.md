@@ -34,7 +34,7 @@ The integration already works, but the provider, model, API key, instruction, an
   - Acceptance: the AI toggle is visible without expanding a disclosure; provider fields appear only when enabled; existing save/test/refine behavior remains wired; privacy copy remains visible when configured.
   - Checks: `node tests/test_microphone_captions.cjs`.
   - Verification evidence: `node tests/test_microphone_captions.cjs` failed first on the new visible-section assertion, then passed with `microphone captions frontend checks passed`; scoped `git diff --check` passed.
-  - Commit: pending.
+  - Commit: `6687a27` (`feat(captions): surface AI correction settings`).
   - Review assessment: pending; receipt-driven development status command is unavailable in this environment, so assessment is currently unknown.
 
 ## Progress
@@ -45,4 +45,4 @@ The integration already works, but the provider, model, API key, instruction, an
 
 ## Next step
 
-Record the implementation commit identity, then report the focused verification outcome. The Engram mirror remains pending because no memory tools are available in this session.
+CAP-AI-1 is complete. The Engram mirror remains pending because no memory tools are available in this session; native review assessment also remains unknown in this environment.
