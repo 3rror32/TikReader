@@ -52,3 +52,17 @@ test('complete mode offers a keyboard-friendly tool search above navigation', ()
   assert.match(styles,/\.sidebar-collapsed \.sidebar-search\.is-popover/);
   assert.match(styles,/\.app-sidebar\.is-searching:not\(\.search-popover\)/);
 });
+
+test('collapsed search popover stays outside the rail and within the viewport', () => {
+  assert.match(styles,/\.sidebar-collapsed \.sidebar-search\.is-popover\{[^}]*position:fixed/);
+  assert.match(styles,/\.sidebar-collapsed \.sidebar-search\.is-popover\{[^}]*left:clamp\(/);
+  assert.match(styles,/\.sidebar-collapsed \.sidebar-search\.is-popover\{[^}]*width:min\(310px,calc\(100vw - 104px\)\)/);
+  assert.match(styles,/\.sidebar-collapsed \.sidebar-search\.is-popover\{[^}]*box-sizing:border-box/);
+});
+
+test('collapsed search result labels and categories stay horizontal and truncate', () => {
+  assert.match(styles,/\.sidebar-search-result-copy :is\(strong,small\)\{[^}]*white-space:nowrap/);
+  assert.match(styles,/\.sidebar-search-result-copy :is\(strong,small\)\{[^}]*overflow:hidden/);
+  assert.match(styles,/\.sidebar-search-result-copy :is\(strong,small\)\{[^}]*text-overflow:ellipsis/);
+  assert.match(styles,/\.sidebar-search-result-copy :is\(strong,small\)\{[^}]*overflow-wrap:normal/);
+});
