@@ -69,6 +69,16 @@ test('Dragon theme is selectable, survives first paint, and keeps its motion saf
   assert.match(signatures, /@media \(prefers-reduced-motion: reduce\)[\s\S]*data-skin="dragon"/);
 });
 
+test('Dragon keeps navigation, active controls, and focus readable on dark surfaces', () => {
+  const dragonTokens = signatures.match(/html\[data-skin="dragon"\]\s*\{([^}]*)\}/)?.[1] || '';
+  assert.match(dragonTokens, /--nav-muted: #fff3d6/);
+  assert.match(dragonTokens, /--nav-ink: #fffaf0/);
+  assert.match(dragonTokens, /--skin-accent-ink: #17233f/);
+  assert.match(signatures, /html\[data-skin="dragon"\] body #app-sidebar\.app-sidebar \[data-section-nav\]\.active\s*\{[^}]*background: #f36b21 !important/s);
+  assert.match(signatures, /html\[data-skin="dragon"\] body #app-sidebar :focus-visible\s*\{[^}]*outline: 2px solid #eabf45 !important/s);
+  assert.match(signatures, /html\[data-skin="dragon"\] body \.app > \.session-panel :focus-visible\s*\{[^}]*outline: 2px solid #eabf45 !important/s);
+});
+
 test('operator focus uses visible ink and error recovery beats secondary actions', () => {
   assert.match(css, /:focus-visible\s*\{[^}]*outline: 2px solid var\(--skin-text\) !important/s);
   assert.match(css, /#error-recovery\s*\{[^}]*background: var\(--skin-accent\) !important/s);

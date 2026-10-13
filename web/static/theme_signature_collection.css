@@ -843,7 +843,9 @@ html[data-skin="dragon"] {
   --skin-muted: #4d5e7c;
   --skin-accent: #f36b21;
   --skin-accent-2: #347ded;
-  --skin-accent-ink: #fffaf0;
+  --skin-accent-ink: #17233f;
+  --nav-muted: #fff3d6;
+  --nav-ink: #fffaf0;
   --skin-danger: #a52d37;
   --skin-warning: #825300;
   --skin-wash: #fde4bd;
@@ -879,10 +881,20 @@ html[data-skin="dragon"] body .app-sidebar :is(.sidebar-brand, .nav-section-labe
   color: #fff3d6 !important;
 }
 
-html[data-skin="dragon"] body .app-sidebar [data-section-nav].active {
+html[data-skin="dragon"] body #app-sidebar.app-sidebar [data-section-nav].active {
   border-color: #f36b21 !important;
   background: #f36b21 !important;
-  color: #fffaf0 !important;
+  color: #17233f !important;
+}
+
+html[data-skin="dragon"] body #app-sidebar :focus-visible {
+  outline: 2px solid #eabf45 !important;
+  outline-offset: 3px !important;
+}
+
+html[data-skin="dragon"] body .app > .session-panel :focus-visible {
+  outline: 2px solid #eabf45 !important;
+  outline-offset: 3px !important;
 }
 
 html[data-skin="dragon"] body .app > header {
