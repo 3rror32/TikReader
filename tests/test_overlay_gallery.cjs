@@ -5,6 +5,7 @@ const gallery=fs.readFileSync('web/static/overlay_gallery.js','utf8');
 const shell=fs.readFileSync('web/static/shell.js','utf8');
 const menuStyles=fs.readFileSync('web/static/live_refinement.css','utf8');
 const sidebarStyles=fs.readFileSync('web/static/sidebar.css','utf8');
+const galleryStyles=fs.readFileSync('web/static/overlay_gallery.css','utf8');
 const widgetsRoute=fs.readFileSync('app/widget_routes.py','utf8');
 const canvas=fs.readFileSync('web/static/overlay_canvas_controls.js','utf8');
 
@@ -50,7 +51,7 @@ test('overlay navigation exposes the built-in and user package destinations',()=
  const start=shell.indexOf(' const overlaySections='),end=shell.indexOf(' function focusDestination');
  assert.ok(start>=0&&end>start,'the authored route resolver must be present');
  const resolveRoute=vm.runInNewContext(`${shell.slice(start,end)};resolveRoute`,{
-  views:new Map(['overlay-gallery','alerts','custom-overlays'].map(key=>[key,{}])),destinationLabels:new Map()
+  views:new Map(['overlay-gallery','alerts','custom-overlays'].map(key=>[key,{}])),destinationLabels:new Map(),window:{}
  });
  for(const [key,viewKey,activeKey,section] of [
   ['overlay-gallery','overlay-gallery','overlay-favorites','favorites'],
@@ -67,6 +68,13 @@ test('overlay navigation exposes the built-in and user package destinations',()=
   assert.equal(route.overlaySection,section,key);
  }
  assert.match(gallery,/section==='favorites'\)renderFavoritesView/);
+});
+
+test('piggy bank editor hides general appearance controls and keeps its preview portrait on mobile',()=>{
+ assert.match(gallery,/form\.hidden\s*=\s*piggy/);
+ assert.doesNotMatch(gallery,/piggySidebar\.append\(gameHost,form\)/);
+ assert.match(galleryStyles,/\.piggy-editor \.overlay-screen\{[^}]*aspect-ratio:4\/5!important/s);
+ assert.doesNotMatch(galleryStyles,/\.piggy-editor \.overlay-screen\{[^}]*aspect-ratio:1;/s);
 });
 
 test('overlay submenu offers favorites and animations as independent destinations',()=>{

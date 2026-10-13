@@ -78,10 +78,10 @@
   for(const [game,node] of gameControls)node.hidden=game!==key;
   const active=gameControls.has(key),piggy=key==='point-drop',timer=key==='timer';gameHost.hidden=!active;appearance.hidden=!active||piggy||timer;
   $('overlay-editor').classList.toggle('piggy-editor',piggy);
-  $('overlay-editor').classList.toggle('timer-editor',timer);
+  $('overlay-editor').classList.toggle('timer-editor',timer);form.hidden=piggy;
   piggySidebar.hidden=!piggy;
   if(timer){const node=gameControls.get(key),configuration=node?.querySelector('.timer-configuration');if(node){configuration?node.insertBefore(form,configuration):node.append(form);timerSource.append(sourceActions,code,sourceResolution);node.append(timerSource);}}
-  else{stage.append(sourceActions,code,sourceResolution);if(piggy){piggySidebar.append(gameHost,form);}else{workbench.before(gameHost,appearance);workbench.insertBefore(form,piggySidebar);}}
+  else{stage.append(sourceActions,code,sourceResolution);if(piggy){piggySidebar.append(gameHost);}else{workbench.before(gameHost,appearance);workbench.insertBefore(form,piggySidebar);}}
   frame.title=piggy?'Alcancía en directo':'Vista previa con datos de ejemplo';
   const timerKeys=new Set(['canvas_format','background','text_color','accent_color','border_color','font_family','font_size','title_size','alignment','radius','opacity','show_background']);
   for(const input of controls.querySelectorAll('[data-key]'))input.closest('label').hidden=piggy&&!['canvas_format','text_color','accent_color','font_family','font_size','title_size'].includes(input.dataset.key)||timer&&!timerKeys.has(input.dataset.key)&&!input.closest('.timer-overlay-options');

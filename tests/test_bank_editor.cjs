@@ -233,6 +233,23 @@ test('real editor keeps built-in transform intact through open and cancel', asyn
   assert.deepEqual([ui.pig.style.getPropertyValue('left'), ui.pig.style.getPropertyValue('top'), ui.pig.style.getPropertyValue('transform'), ui.slot.style.getPropertyValue('left'), ui.slot.style.getPropertyValue('top')], before);
 });
 
+test('integrated bank entry point updates immediately and focused handles expose selection', async () => {
+  const ui = await makeEditor('pato', { entry_point: { x: 46, y: 40 } });
+  const svg = ui.pig.children.find(node => node.tagName === 'svg');
+  const entry = svg.children.at(-1);
+  entry.onpointerdown({ pointerId: 4 });
+  entry.onpointermove({ pointerId: 4, clientX: 62, clientY: 32 });
+  assert.equal(ui.slot.style.getPropertyValue('left'), '62%');
+  assert.equal(ui.slot.style.getPropertyValue('top'), '32%');
+  const outlineHandle = svg.children[1];
+  outlineHandle.onfocus();
+  assert.equal(outlineHandle.attributes['aria-pressed'], 'true');
+  assert.equal(entry.attributes['aria-pressed'], 'false');
+  await findButton(ui.box, 'Cancelar').onclick();
+  assert.equal(ui.slot.style.getPropertyValue('left'), '46%');
+  assert.equal(ui.slot.style.getPropertyValue('top'), '40%');
+});
+
 test('real editor cancel restores custom preview, and save synchronizes immediate configure state', async () => {
   const ui = await makeEditor('custom');
   const placement = ui.box.children.find(node => node.className === 'bank-editor-placement');
