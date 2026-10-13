@@ -13,6 +13,13 @@ AI_DEFAULT_INSTRUCTION = (
     'Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. '
     'Devuelve únicamente el subtítulo corregido.'
 )
+AI_MODE_INSTRUCTIONS = {
+    'correct': AI_DEFAULT_INSTRUCTION,
+    'simplify': (
+        'Reescribe el subtítulo con palabras más sencillas y de forma más breve, '
+        'sin cambiar el sentido ni añadir información. Devuelve únicamente el texto simplificado.'
+    ),
+}
 
 
 DEFAULTS = {
@@ -34,10 +41,14 @@ DEFAULTS = {
     'ai_enabled': False,
     'ai_endpoint': 'https://api.openai.com/v1',
     'ai_model': '',
+    'ai_mode': 'correct',
+    'ai_target_language': 'en',
     'ai_instruction': AI_DEFAULT_INSTRUCTION,
 }
 
 LANGUAGES = {'es-MX', 'es-US', 'es-ES', 'en-US'}
+AI_MODES = {'correct', 'translate', 'bilingual', 'simplify', 'custom'}
+AI_TARGET_LANGUAGES = {'en', 'es'}
 POSITIONS = {'top', 'center', 'bottom'}
 FONT_FAMILIES = {'system', 'impact', 'rounded', 'mono', 'serif', 'handwritten', 'condensed', 'futuristic'}
 TEXT_STYLES = {'solid', 'outline', 'neon', 'label'}
@@ -52,6 +63,7 @@ def validate_settings(data, current=None):
     if not isinstance(data, dict):
         raise ValueError('Configuración inválida')
     out = {**DEFAULTS, **(current or {})}
+    current = current or {}
     if 'language' in data:
         value = str(data['language'])
         if value not in LANGUAGES:
@@ -117,6 +129,23 @@ def validate_settings(data, current=None):
         if not 1 <= len(value) <= 500:
             raise ValueError('La instrucción debe tener entre 1 y 500 caracteres')
         out['ai_instruction'] = value
+    if 'ai_mode' in data:
+        value = str(data['ai_mode'])
+    elif 'ai_mode' in current:
+        value = current['ai_mode']
+    else:
+        legacy_instruction = ' '.join(str(out['ai_instruction']).split())
+        value = 'custom' if legacy_instruction != AI_DEFAULT_INSTRUCTION else 'correct'
+    if value not in AI_MODES:
+        raise ValueError('Modo de IA inválido')
+    out['ai_mode'] = value
+    if 'ai_target_language' in data:
+        value = str(data['ai_target_language'])
+    else:
+        value = out['ai_target_language']
+    if value not in AI_TARGET_LANGUAGES:
+        raise ValueError('Idioma de destino inválido')
+    out['ai_target_language'] = value
     if out.get('ai_enabled') and not out.get('ai_model'):
         raise ValueError('Indica el nombre del modelo antes de activar la IA externa')
     return out
@@ -171,7 +200,21 @@ class MicrophoneCaptions:
         model = config.get('ai_model', '').strip()
         if not model:
             raise ValueError('Indica el nombre del modelo')
-        source = 'Responde únicamente con la palabra OK.' if test else config['ai_instruction']
+        if test:
+            source = 'Responde únicamente con la palabra OK.'
+        elif config['ai_mode'] == 'translate':
+            language = {'en': 'inglés', 'es': 'español'}[config['ai_target_language']]
+            source = f'Traduce fielmente el subtítulo al {language}. Devuelve únicamente la traducción y no añadas información.'
+        elif config['ai_mode'] == 'bilingual':
+            language = {'en': 'inglés', 'es': 'español'}[config['ai_target_language']]
+            source = (
+                f'Devuelve dos líneas compactas: Original: [texto original] y Traducción ({language}): [traducción]. '
+                'Conserva el significado y no añadas información.'
+            )
+        elif config['ai_mode'] == 'custom':
+            source = config['ai_instruction']
+        else:
+            source = AI_MODE_INSTRUCTIONS[config['ai_mode']]
         content = 'Prueba de conexión' if test else str(text or '').strip()[:300]
         headers = {'Content-Type': 'application/json'}
         api_key = self.ai_key() if api_key is None else str(api_key or '').strip()
@@ -199,7 +242,10 @@ class MicrophoneCaptions:
             result = response.json()['choices'][0]['message']['content']
         except (ValueError, KeyError, IndexError, TypeError) as exc:
             raise RuntimeError('El proveedor respondió con un formato no compatible') from exc
-        result = ' '.join(str(result or '').split())[:300]
+        if config['ai_mode'] == 'bilingual' and not test:
+            result = '\n'.join(' '.join(line.split()) for line in str(result or '').splitlines() if line.strip())[:300]
+        else:
+            result = ' '.join(str(result or '').split())[:300]
         if not result:
             raise RuntimeError('El modelo no devolvió texto')
         return result
@@ -257,7 +303,10 @@ class MicrophoneCaptions:
             self.recognizer_language = None
 
     def apply_transcript(self, text, interim):
-        text = ' '.join(str(text).split())[:300]
+        if self.settings.get('ai_mode') == 'bilingual':
+            text = '\n'.join(' '.join(line.split()) for line in str(text).splitlines() if line.strip())[:300]
+        else:
+            text = ' '.join(str(text).split())[:300]
         if interim:
             self.interim = text
             # A provisional phrase is still being formed.  Do not spend the
@@ -312,7 +361,7 @@ class MicrophoneCaptions:
             text = ''
         visible_settings = dict(self.settings)
         if public:
-            for key in ('ai_enabled', 'ai_endpoint', 'ai_model', 'ai_instruction'):
+            for key in ('ai_enabled', 'ai_endpoint', 'ai_model', 'ai_instruction', 'ai_mode', 'ai_target_language'):
                 visible_settings.pop(key, None)
         result = {
             'text': text,
@@ -431,7 +480,10 @@ class MicrophoneCaptions:
             try:
                 with self.lock:
                     config = validate_settings({
-                        key: data[key] for key in ('ai_enabled', 'ai_endpoint', 'ai_model', 'ai_instruction')
+                        key: data[key] for key in (
+                            'ai_enabled', 'ai_endpoint', 'ai_model', 'ai_instruction',
+                            'ai_mode', 'ai_target_language',
+                        )
                         if key in data
                     }, self.settings)
                 supplied_key = str(data.get('api_key') or '').strip()

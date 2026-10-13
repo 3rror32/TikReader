@@ -102,6 +102,24 @@
             </div>
             <div class="mic-caption-ai-fields" id="mic-caption-ai-fields" hidden>
               <p class="mic-caption-privacy-note"><strong>Solo se envía el texto.</strong> El audio nunca sale de TikReader.</p>
+              <label>Modo de subtítulos
+                <select id="mic-caption-ai-mode" aria-describedby="mic-caption-ai-mode-help">
+                  <option value="correct">Corregir</option>
+                  <option value="translate">Traducir</option>
+                  <option value="bilingual">Bilingüe</option>
+                  <option value="simplify">Simplificar</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+                <small id="mic-caption-ai-mode-help">Elige cómo debe transformar el texto el modelo.</small>
+              </label>
+              <div id="mic-caption-ai-target-fields" hidden>
+                <label>Traducir al
+                  <select id="mic-caption-ai-target-language">
+                    <option value="en">English</option>
+                    <option value="es">Español</option>
+                  </select>
+                </label>
+              </div>
               <label>Dirección del proveedor
                 <input id="mic-caption-ai-endpoint" type="url" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1" spellcheck="false">
               </label>
@@ -109,9 +127,11 @@
                 <label>Modelo<input id="mic-caption-ai-model" type="text" placeholder="gpt-4.1-mini" maxlength="120" spellcheck="false"></label>
                 <label>Clave API<input id="mic-caption-ai-key" type="password" placeholder="Opcional para modelos locales" maxlength="1000" autocomplete="new-password"></label>
               </div>
-              <label>Instrucción
-                <textarea id="mic-caption-ai-instruction" rows="3" maxlength="500">Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.</textarea>
-              </label>
+              <div id="mic-caption-ai-custom-fields" hidden>
+                <label>Instrucción personalizada
+                  <textarea id="mic-caption-ai-instruction" rows="3" maxlength="500">Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.</textarea>
+                </label>
+              </div>
               <div class="mic-caption-ai-actions">
                 <button id="mic-caption-ai-test" type="button">Probar conexión</button>
                 <button id="mic-caption-ai-remove" type="button">Quitar clave</button>
@@ -247,6 +267,10 @@
   const processingStatus = $('mic-caption-processing-status');
   const aiEnabled = $('mic-caption-ai-enabled');
   const aiFields = $('mic-caption-ai-fields');
+  const aiMode = $('mic-caption-ai-mode');
+  const aiTargetFields = $('mic-caption-ai-target-fields');
+  const aiTargetLanguage = $('mic-caption-ai-target-language');
+  const aiCustomFields = $('mic-caption-ai-custom-fields');
   const aiStatus = $('mic-caption-ai-status');
   const processingControls = [
     ['mic-caption-noise-suppression', 'noiseSuppression'],
@@ -562,6 +586,8 @@
       echo_cancellation: $('mic-caption-echo-cancellation').checked,
       auto_gain_control: $('mic-caption-auto-gain').checked,
       ai_enabled: aiEnabled.checked,
+      ai_mode: aiMode.value,
+      ai_target_language: aiTargetLanguage.value,
       ai_endpoint: $('mic-caption-ai-endpoint').value.trim(),
       ai_model: $('mic-caption-ai-model').value.trim(),
       ai_instruction: $('mic-caption-ai-instruction').value.trim()
@@ -570,6 +596,8 @@
 
   function syncAiInterface() {
     const enabled = aiEnabled.checked;
+    aiTargetFields.hidden = !['translate', 'bilingual'].includes(aiMode.value);
+    aiCustomFields.hidden = aiMode.value !== 'custom';
     aiFields.hidden = !enabled;
     $('mic-caption-form').querySelector('.mic-caption-ai-settings').classList.toggle('has-active-ai', enabled);
     const modelStep = $('mic-caption-path-model');
@@ -598,6 +626,8 @@
     $('mic-caption-pause-voice').checked = next.pause_during_voice;
     applyProcessingControls(next);
     aiEnabled.checked = next.ai_enabled === true;
+    aiMode.value = next.ai_mode || 'correct';
+    aiTargetLanguage.value = next.ai_target_language || 'en';
     $('mic-caption-ai-endpoint').value = next.ai_endpoint || 'https://api.openai.com/v1';
     $('mic-caption-ai-model').value = next.ai_model || '';
     $('mic-caption-ai-instruction').value = next.ai_instruction || 'Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.';
@@ -641,6 +671,8 @@
   function aiConnectionPayload(extra = {}) {
     return {
       ai_enabled: aiEnabled.checked,
+      ai_mode: aiMode.value,
+      ai_target_language: aiTargetLanguage.value,
       ai_endpoint: $('mic-caption-ai-endpoint').value.trim(),
       ai_model: $('mic-caption-ai-model').value.trim(),
       ai_instruction: $('mic-caption-ai-instruction').value.trim(),
@@ -1134,7 +1166,7 @@
       applySettings(state.settings);
       if (state.text) showPreview(state.text, state.interim);
     } catch (_) {
-      applySettings({language:'es-MX', duration:5, position:'bottom', font_size:48, text_color:'#ffffff', background:'#101925', show_background:true, pause_during_voice:true, noise_suppression:true, echo_cancellation:true, auto_gain_control:true, font_family:'system', text_style:'solid', shadow:'soft', animation:'fade', ai_enabled:false, ai_endpoint:'https://api.openai.com/v1', ai_model:'', ai_instruction:'Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.'});
+      applySettings({language:'es-MX', duration:5, position:'bottom', font_size:48, text_color:'#ffffff', background:'#101925', show_background:true, pause_during_voice:true, noise_suppression:true, echo_cancellation:true, auto_gain_control:true, font_family:'system', text_style:'solid', shadow:'soft', animation:'fade', ai_enabled:false, ai_endpoint:'https://api.openai.com/v1', ai_model:'', ai_mode:'correct', ai_target_language:'en', ai_instruction:'Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.'});
       setStatus('error', 'No se pudo cargar la configuración');
     }
     await loadEngineStatus();

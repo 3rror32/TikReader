@@ -8,7 +8,7 @@ from unittest.mock import patch
 from flask import Flask
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app'))
-from microphone_captions import MicrophoneCaptions, validate_settings
+from microphone_captions import AI_DEFAULT_INSTRUCTION, MicrophoneCaptions, validate_settings
 
 
 class FakeSocket:
@@ -33,12 +33,23 @@ class FakeCredentials:
         self.values.pop(name, None)
 
 
+class FakeArchive:
+    def __init__(self):
+        self.values = {}
+
+    def settings(self):
+        return dict(self.values)
+
+    def set_setting(self, name, value):
+        self.values[name] = dict(value)
+
+
 class MicrophoneCaptionTests(unittest.TestCase):
     def setUp(self):
         root = Path(__file__).resolve().parents[1]
         self.app = Flask(__name__, template_folder=str(root / 'web' / 'templates'))
         self.runtime = SimpleNamespace(
-            archive=None,
+            archive=FakeArchive(),
             socketio=FakeSocket(),
             production=SimpleNamespace(settings={'emergency': False, 'scene': 'talk'}),
             platform_credentials=FakeCredentials(),
@@ -81,6 +92,100 @@ class MicrophoneCaptionTests(unittest.TestCase):
             validate_settings({'ai_enabled': True})
         with self.assertRaisesRegex(ValueError, 'HTTPS'):
             validate_settings({'ai_endpoint': 'http://example.com/v1'})
+
+    def test_ai_modes_validate_and_migrate_legacy_instructions(self):
+        defaults = validate_settings({})
+        self.assertEqual(defaults['ai_mode'], 'correct')
+        self.assertEqual(defaults['ai_target_language'], 'en')
+        self.assertEqual(validate_settings({'ai_mode': 'translate', 'ai_target_language': 'es'})['ai_target_language'], 'es')
+        with self.assertRaisesRegex(ValueError, '[Mm]odo'):
+            validate_settings({'ai_mode': 'summarize'})
+        with self.assertRaisesRegex(ValueError, '[Ii]dioma'):
+            validate_settings({'ai_target_language': 'fr'})
+
+        legacy_custom = validate_settings({'ai_instruction': 'Usa palabras sencillas.'})
+        self.assertEqual(legacy_custom['ai_mode'], 'custom')
+        legacy_default = validate_settings({'ai_instruction': AI_DEFAULT_INSTRUCTION})
+        self.assertEqual(legacy_default['ai_mode'], 'correct')
+        self.assertEqual(validate_settings({}, {'ai_instruction': 'Instrucción antigua.'})['ai_mode'], 'custom')
+
+        current = validate_settings({'ai_mode': 'translate', 'ai_target_language': 'es'})
+        updated = validate_settings({'ai_model': 'caption-model'}, current)
+        self.assertEqual(updated['ai_mode'], 'translate')
+        self.assertEqual(updated['ai_target_language'], 'es')
+
+    def test_ai_mode_prompts_are_selected_without_changing_provider_shape(self):
+        class Response:
+            status_code = 200
+
+            @staticmethod
+            def json():
+                return {'choices': [{'message': {'content': 'Original: Hello world\nTraducción (español): Hola mundo'}}]}
+
+        class FakeHttpx:
+            RequestError = type('RequestError', (Exception,), {})
+
+            @staticmethod
+            def Timeout(_):
+                return None
+
+            def __init__(self):
+                self.calls = []
+
+            def post(self, *args, **kwargs):
+                self.calls.append((args, kwargs))
+                return Response()
+
+        httpx = FakeHttpx()
+        prompts = {
+            'correct': 'Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.',
+            'translate': 'Traduce fielmente el subtítulo al español. Devuelve únicamente la traducción y no añadas información.',
+            'bilingual': 'Devuelve dos líneas compactas: Original: [texto original] y Traducción (español): [traducción]. Conserva el significado y no añadas información.',
+            'simplify': 'Reescribe el subtítulo con palabras más sencillas y de forma más breve, sin cambiar el sentido ni añadir información. Devuelve únicamente el texto simplificado.',
+            'custom': 'Usa mi instrucción personalizada.',
+        }
+        with patch.dict('sys.modules', {'httpx': httpx}):
+            for mode, expected in prompts.items():
+                with self.subTest(mode=mode):
+                    config = validate_settings({
+                        'ai_model': 'caption-model',
+                        'ai_mode': mode,
+                        'ai_target_language': 'es',
+                        'ai_instruction': 'Usa mi instrucción personalizada.',
+                    })
+                    result = self.captions.call_external_model('Hello world', config, api_key='key')
+                    body = httpx.calls[-1][1]['json']
+                    self.assertEqual(set(body), {'model', 'messages', 'temperature', 'max_tokens'})
+                    self.assertEqual(body['messages'][0]['content'], expected)
+                    self.assertEqual(body['messages'][1], {'role': 'user', 'content': 'Hello world'})
+                    if mode == 'bilingual':
+                        self.assertEqual(result, 'Original: Hello world\nTraducción (español): Hola mundo')
+
+    def test_ai_mode_and_target_language_save_load_and_stay_private(self):
+        config = {
+            'ai_enabled': True,
+            'ai_endpoint': 'https://models.example.test/v1',
+            'ai_model': 'caption-editor',
+            'ai_mode': 'bilingual',
+            'ai_target_language': 'es',
+            'ai_instruction': 'No se usa en este modo.',
+        }
+        saved = self.client.post('/microphone-captions/ai', json=config)
+        self.assertEqual(saved.status_code, 200)
+        self.assertEqual(saved.json['settings']['ai_mode'], 'bilingual')
+        self.assertEqual(saved.json['settings']['ai_target_language'], 'es')
+        self.assertEqual(self.runtime.archive.settings()['microphone_caption_settings']['ai_mode'], 'bilingual')
+
+        restored_app = Flask(__name__ + '_restored')
+        restored = MicrophoneCaptions(restored_app, self.runtime)
+        restored.restore()
+        self.assertEqual(restored.settings['ai_mode'], 'bilingual')
+        self.assertEqual(restored.settings['ai_target_language'], 'es')
+        restored.apply_transcript('Original: Hello\nTraducción (español): Hola', False)
+        self.assertEqual(restored.text, 'Original: Hello\nTraducción (español): Hola')
+        public = self.client.get('/broadcast/microphone-captions').json['settings']
+        self.assertNotIn('ai_mode', public)
+        self.assertNotIn('ai_target_language', public)
 
     def test_external_ai_configuration_is_private_and_can_refine_text(self):
         config = {

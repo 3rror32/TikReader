@@ -83,6 +83,21 @@ assert.match(controls, /mic-caption-ai-enabled/);
 const aiSettingsMarkup = controls.match(/<section class="mic-caption-ai-settings"[\s\S]*?<\/section>/)?.[0] || '';
 assert(aiSettingsMarkup, 'AI settings should have a visible section outside the advanced disclosure');
 assert.doesNotMatch(aiSettingsMarkup, /<\/?details\b/);
+for (const [label, value] of [
+  ['Corregir', 'correct'],
+  ['Traducir', 'translate'],
+  ['Bilingüe', 'bilingual'],
+  ['Simplificar', 'simplify'],
+  ['Personalizado', 'custom'],
+]) {
+  assert.match(aiSettingsMarkup, new RegExp(`<option value="${value}">${label}<\\/option>`));
+}
+assert.match(aiSettingsMarkup, /id="mic-caption-ai-mode"/);
+assert.match(aiSettingsMarkup, /id="mic-caption-ai-target-fields" hidden/);
+assert.match(aiSettingsMarkup, /id="mic-caption-ai-target-language"/);
+assert.match(aiSettingsMarkup, /id="mic-caption-ai-custom-fields" hidden/);
+assert.match(controls, /aiMode\.value[\s\S]*?aiTargetFields\.hidden = !\['translate', 'bilingual'\]\.includes\(aiMode\.value\)/);
+assert.match(controls, /aiCustomFields\.hidden = aiMode\.value !== 'custom'/);
 assert.match(controls, /mic-caption-signal-path[\s\S]*?<section class="mic-caption-ai-settings"[\s\S]*?mic-caption-ai-enabled[\s\S]*?mic-caption-ai-fields[\s\S]*?<\/section>[\s\S]*?<section class="mic-caption-form-section" aria-labelledby="mic-caption-content-title"/);
 assert.match(aiSettingsMarkup, /id="mic-caption-ai-fields" hidden/);
 assert.match(controls, /aiFields\.hidden = !enabled/);
