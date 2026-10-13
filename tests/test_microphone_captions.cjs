@@ -101,6 +101,35 @@ assert.match(controls, /aiCustomFields\.hidden = aiMode\.value !== 'custom'/);
 assert.match(controls, /mic-caption-signal-path[\s\S]*?<section class="mic-caption-ai-settings"[\s\S]*?mic-caption-ai-enabled[\s\S]*?mic-caption-ai-fields[\s\S]*?<\/section>[\s\S]*?<section class="mic-caption-form-section" aria-labelledby="mic-caption-content-title"/);
 assert.match(aiSettingsMarkup, /id="mic-caption-ai-fields" hidden/);
 assert.match(controls, /aiFields\.hidden = !enabled/);
+{
+  const start = controls.indexOf('  function renderPreviewWords(');
+  const end = controls.indexOf('\n  function playNextPreviewWord()', start);
+  const previewRendererSource = controls.slice(start, end);
+  const previewText = {
+    children: [],
+    replaceChildren(...nodes) { this.children = nodes; },
+    append(node) { this.children.push(node); },
+  };
+  const document = {
+    createTextNode: text => ({nodeName: '#text', textContent: text}),
+    createElement: tag => ({
+      nodeName: tag.toUpperCase(), classList: {add() {}},
+      style: {setProperty() {}}, textContent: '',
+    }),
+  };
+  const renderPreviewWords = new Function('previewText', 'preview', 'document',
+    `let previewWords = []; ${previewRendererSource}; return renderPreviewWords;`)(
+    previewText, {dataset: {animation: 'none'}}, document);
+  renderPreviewWords(['Original:', 'Hola', '\n', 'Translation:', 'Hello'], 0);
+  assert.deepEqual(
+    previewText.children.map(node => node.nodeName === 'BR' ? '<br>' : node.textContent),
+    ['Original:', ' ', 'Hola', '<br>', 'Translation:', ' ', 'Hello'],
+    'preview rendering should preserve an explicit line break between bilingual captions');
+  assert.match(controls, /renderPreviewWords\(previewTokens\(value\), 0\)/,
+    'replay should use the newline-aware tokenization');
+  assert.match(controls, /const words = previewTokens\(value\)/,
+    'preview should use the newline-aware tokenization');
+}
 assert.match(controls, /Probar conexión/);
 assert.match(controls, /\/microphone-captions\/ai\/refine/);
 assert.match(controls, /Clave protegida/);

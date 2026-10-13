@@ -504,19 +504,33 @@
     return index;
   }
 
+  function previewTokens(value) {
+    return String(value).split(/\r?\n/).flatMap((line, index) => {
+      const words = line.split(/\s+/).filter(Boolean);
+      return index ? ['\n', ...words] : words;
+    });
+  }
+
   function renderPreviewWords(words, animateFrom = words.length) {
     previewText.replaceChildren();
+    let wordIndex = 0;
+    const animateWordFrom = words.slice(0, animateFrom).filter(word => word !== '\n').length;
     words.forEach((word, index) => {
-      if (index) previewText.append(document.createTextNode(' '));
+      if (word === '\n') {
+        previewText.append(document.createElement('br'));
+        return;
+      }
+      if (index && words[index - 1] !== '\n') previewText.append(document.createTextNode(' '));
       const span = document.createElement('span');
       span.className = 'mic-caption-word';
       span.textContent = word;
       span.style.setProperty('--word-length', String(Math.max(1, Array.from(word).length)));
-      if (index >= animateFrom && (preview.dataset.animation || 'fade') !== 'none') {
+      if (wordIndex >= animateWordFrom && (preview.dataset.animation || 'fade') !== 'none') {
         span.classList.add('caption-word-animate');
-        span.style.setProperty('--word-delay', `${(index - animateFrom) * 70}ms`);
+        span.style.setProperty('--word-delay', `${(wordIndex - animateWordFrom) * 70}ms`);
       }
       previewText.append(span);
+      wordIndex += 1;
     });
     previewWords = words.slice();
   }
@@ -537,7 +551,7 @@
     const value = preview.dataset.captionValue || '';
     if (!value) return;
     stopPreviewWords();
-    renderPreviewWords(value.split(/\s+/).filter(Boolean), 0);
+    renderPreviewWords(previewTokens(value), 0);
   }
 
   function showPreview(text, interim = false, sequence = false) {
@@ -553,7 +567,7 @@
       previewText.textContent = 'Aquí aparecerá lo que digas';
       return;
     }
-    const words = value.split(/\s+/).filter(Boolean);
+    const words = previewTokens(value);
     if (sequence) {
       previewWords = [];
       previewWasInterim = false;
