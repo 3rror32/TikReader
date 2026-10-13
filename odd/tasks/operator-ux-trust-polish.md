@@ -362,6 +362,8 @@ Evidence:
 - [x] Preserve accessible names and the existing custom hover/focus tooltip.
 - [x] Keep expanded navigation free of redundant tooltips when labels are already visible.
 - [x] Add focused deterministic coverage for the tooltip contract.
+- [x] Suppress the separate long navigation-help description while the advanced menu is collapsed.
+- [x] Verify the compact label tooltip remains available on pointer hover and keyboard focus.
 
 Acceptance criteria:
 
@@ -372,6 +374,7 @@ Acceptance criteria:
 Verification:
 
 - `node --test tests/test_sidebar_navigation.cjs`
+- `node --test tests/test_sidebar_navigation.cjs tests/test_operator_ux.cjs`
 - `git diff --check`
 
 Evidence:
@@ -382,6 +385,12 @@ Evidence:
 - `git diff --check`: passed; Git emitted a line-ending normalization warning for the task document.
 - The delegated custom tooltip selectors and pointer/focus handlers remain covered by the passing regression test.
 - Work-unit commit: `32c1fa5` (`fix(sidebar): prevent duplicate navigation tooltips`).
+- Reopened after screenshot clarification: the remaining duplication is two custom tooltips, because `navigation_help.js` shows its long description without checking the collapsed state.
+- RED: `node --test tests/test_sidebar_navigation.cjs tests/test_operator_ux.cjs` reported 30 passed and 3 failed; the new collapsed-description guard assertion failed as expected, along with two cancellation-state failures.
+- GREEN: `node --test tests/test_sidebar_navigation.cjs` passed 13/13 after `navigation_help.js` suppressed the long description while collapsed; compact pointer/focus tooltip coverage remains green.
+- Final combined command `node --test tests/test_sidebar_navigation.cjs tests/test_operator_ux.cjs` reported 31 passed and 2 failed. The same cancellation-state tests remain failing: `stop and cancellation wait for confirmed backend closure` and `idle status can confirm cancellation and a new connection resets old viewer measurements`.
+- `git diff --check`: passed; Git emitted a line-ending normalization warning for the task document.
+- Correction commit identity is recorded in the final implementation handoff.
 
 ## Closing checks
 
@@ -400,7 +409,7 @@ Evidence:
 - UX-3 complete and committed.
 - UX-4 through UX-7 complete locally and committed; UX-8 and UX-9 authorized and pending.
 - UX-10 implementation and focused verification are complete.
-- UX-11 implementation and focused verification are complete; commit identity is recorded in the final implementation handoff.
+- UX-11 implementation and both focused tooltip corrections are complete; the combined command still has two cancellation-state failures recorded above.
 - Full closing Node suite: 305/305 passed after correcting a stale source-order assertion.
 - JavaScript syntax: 88 authored files passed.
 - Overlay type check: `tsc --noEmit` passed.

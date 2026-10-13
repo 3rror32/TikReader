@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const sidebar = fs.readFileSync('web/static/sidebar.js', 'utf8');
+const navigationHelp = fs.readFileSync('web/static/navigation_help.js', 'utf8');
 const styles = fs.readFileSync('web/static/sidebar.css', 'utf8');
 const refinements = fs.readFileSync('web/static/live_refinement.css', 'utf8');
 
@@ -88,4 +89,11 @@ test('generated advanced summaries use accessible names without native title too
 test('delegated custom tooltip still covers destinations and summaries on pointer and focus', () => {
   assert.match(sidebar,/function tooltipControl\(target\) \{\s*return target\?\.closest\?\.\('\[data-section-nav\], summary'\) \|\| null;\s*\}/);
   assert.match(sidebar,/sidebar\.addEventListener\('pointerover', showTooltip\);[\s\S]{0,180}sidebar\.addEventListener\('focusin', showTooltip\);/);
+});
+
+test('long navigation descriptions stay available only while the sidebar is expanded', () => {
+  const show = navigationHelp.match(/function show\(button\) \{([\s\S]*?)\n  \}/);
+  assert.ok(show, 'navigation help should define its display function');
+  assert.match(show[1],/document\.body\.classList\.contains\('sidebar-collapsed'\)/);
+  assert.match(show[1],/tooltip\.textContent = `\$\{button\.textContent\.trim\(\) \|\| button\.getAttribute\('aria-label'\)\}\. \$\{descriptions\[button\.dataset\.sectionNav\]\}`/);
 });

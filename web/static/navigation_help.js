@@ -64,7 +64,7 @@
     tooltip.hidden = true; current = null;
   }
   function show(button) {
-    if (button.classList.contains('active')) return;
+    if (button.classList.contains('active') || document.body.classList.contains('sidebar-collapsed')) return;
     hide(); current = button;
     tooltip.textContent = `${button.textContent.trim() || button.getAttribute('aria-label')}. ${descriptions[button.dataset.sectionNav]}`;
     button.setAttribute('aria-describedby', [button.getAttribute('aria-describedby'), tooltip.id].filter(Boolean).join(' '));
