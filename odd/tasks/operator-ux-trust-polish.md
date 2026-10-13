@@ -390,7 +390,8 @@ Evidence:
 - GREEN: `node --test tests/test_sidebar_navigation.cjs` passed 13/13 after `navigation_help.js` suppressed the long description while collapsed; compact pointer/focus tooltip coverage remains green.
 - Final combined command `node --test tests/test_sidebar_navigation.cjs tests/test_operator_ux.cjs` reported 31 passed and 2 failed. The same cancellation-state tests remain failing: `stop and cancellation wait for confirmed backend closure` and `idle status can confirm cancellation and a new connection resets old viewer measurements`.
 - `git diff --check`: passed; Git emitted a line-ending normalization warning for the task document.
-- Correction commit identity is recorded in the final implementation handoff.
+- Independent verification classified both remaining cancellation failures as base/pre-existing; their tests and executed dependencies do not use `navigation_help.js`.
+- Correction commit: `fbe1312` (`fix(navigation): suppress long help while collapsed`).
 
 ## Closing checks
 
