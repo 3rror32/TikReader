@@ -148,6 +148,13 @@ test('voice setup keeps system, Kokoro, and RVC sources without character choice
   expect(saved).not.toHaveProperty('personality');
   await expect.poll(() => operator.page.evaluate(() => JSON.parse(localStorage.getItem('tikreader.voiceCharacters'))))
     .toEqual([{ id: 'legacy-custom', name: 'Mi personaje', engine: 'browser', pitch: 1.1, rate: 1.1 }]);
+  const rate = operator.page.locator('#tts-rate');
+  await rate.evaluate(node => { node.value = '1.3'; node.dispatchEvent(new Event('change', { bubbles: true })); });
+  await expect(rate).toHaveValue('1.3');
+  await expect(operator.page.locator('#custom-voice-save')).toBeEnabled();
+  await operator.page.locator('#custom-voice-save').evaluate(button => button.onclick());
+  await expect(operator.page.locator('#custom-voice-status')).toContainText('quedó lista');
+  await expect(rate).toHaveValue('1');
 });
 
 test('keyboard navigation restores history and destination focus without initial theft', async ({ operator }) => {
