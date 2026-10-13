@@ -51,8 +51,29 @@ The live session can receive gifts and participant activity while the comment co
   - Review correction commit: `5349fdc` (`test: fix comment diagnostic assertion`).
   - Completion: complete; implementation criteria and focused regression checks passed.
 
+- [ ] **TCER-2 — Rebuild and verify the application package**
+  - Route: delegated direct.
+  - Trigger evidence: payload and installer reconstruction requires build and external packaging tooling.
+  - Acceptance criteria:
+    - Rebuild the payload and installer from the current HEAD.
+    - Verify the packaged `app/server.py` matches the source at HEAD.
+    - Run the applicable packaging checks and record their results.
+  - Status: open.
+  - Next step: delegate packaging work and verification.
+
+- [ ] **TCER-3 — Validate new comments with the rebuilt package**
+  - Route: delegated direct after authorization.
+  - Trigger evidence: installing the rebuilt package changes the local application; live validation also requires a real LIVE session.
+  - Acceptance criteria:
+    - Install the rebuilt package after explicit authorization.
+    - Validate that new comments arrive during a LIVE session.
+  - Status: open, blocked on explicit authorization to install the package locally.
+
 ## Progress
 
 - Exploration completed: the server-side comment counter remains zero when processing stops before `publish_comment_payload`; gift and comment handlers are independent.
+- Manual validation attempt: failed because the UI used TikReader 1.0.0.8 from an older package. Its payload/installer is dated October 8, while the fix is from October 12; the packaged and current `app/server.py` hashes differ.
+- Known behavior: comments from earlier sessions are archived but are not repopulated into the in-memory feed. This is outside the authorized scope and is not being changed.
 - RDD state: unavailable because `gentle-ai` is not installed in this terminal.
-- Next step: validate comment ingestion manually during the next LIVE session.
+- Engram mirror: pending.
+- Next step: complete TCER-2 package reconstruction and checks, then obtain explicit authorization before local installation and TCER-3 LIVE validation.
