@@ -555,32 +555,15 @@
 .mic-caption-check { grid-template-columns: 18px 1fr !important; align-items: center; gap: 9px !important; }
 .mic-caption-check input { width: 17px; height: 17px; margin: 0; accent-color: var(--mic-accent); }
 .mic-caption-check span { color: var(--mic-ink); font-weight: 600; }
-.mic-caption-advanced {
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--mic-border) 84%, transparent);
+.mic-caption-ai-settings {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--mic-border) 78%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--mic-accent) 68%, var(--mic-border));
   border-radius: var(--mic-radius);
   background: color-mix(in srgb, var(--mic-raised) 54%, transparent);
 }
-.mic-caption-advanced summary {
-  display: flex;
-  min-height: 54px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 0 13px;
-  color: var(--mic-ink);
-  cursor: pointer;
-  list-style: none;
-}
-.mic-caption-advanced summary::-webkit-details-marker { display: none; }
-.mic-caption-advanced summary > span { display: flex; align-items: center; gap: 9px; }
-.mic-caption-advanced summary small { color: var(--mic-accent); font: 700 .62rem/1 var(--tr-data, ui-monospace, monospace); }
-.mic-caption-advanced summary strong { color: var(--mic-ink) !important; font-size: .82rem; }
-.mic-caption-advanced summary em { color: var(--mic-muted); font-size: .68rem; font-style: normal; font-weight: 600; }
-.mic-caption-advanced summary::after { content: '+'; color: var(--mic-accent); font-size: 1.15rem; line-height: 1; }
-.mic-caption-advanced[open] summary::after { content: '−'; }
-.mic-caption-advanced.has-active-ai { border-color: color-mix(in srgb, var(--mic-warning) 42%, var(--mic-border)); }
-.mic-caption-advanced-body { padding: 14px; border-top: 1px solid color-mix(in srgb, var(--mic-border) 70%, transparent); }
+.mic-caption-ai-settings.has-active-ai { border-left-color: var(--mic-warning); }
 .mic-caption-ai-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .mic-caption-ai-heading > div { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .mic-caption-ai-heading > div > span:last-child { display: grid; gap: 3px; }
@@ -732,7 +715,7 @@ html[data-skin="chromapulse"] body :is(.mic-caption-console, .mic-caption-previe
   .mic-caption-processing legend { align-items: flex-start; flex-direction: column; gap: 4px; }
   .mic-caption-processing legend small { text-align: left; }
   .mic-caption-processing > div { grid-template-columns: 1fr; }
-  .mic-caption-advanced summary em { display: none; }
+  .mic-caption-ai-settings { padding: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

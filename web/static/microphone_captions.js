@@ -93,6 +93,33 @@
           <span><i aria-hidden="true"></i><small>SALIDA</small><strong>Overlay</strong></span>
         </div>
         <form id="mic-caption-form">
+          <section class="mic-caption-ai-settings" aria-labelledby="mic-caption-ai-title">
+            <div class="mic-caption-ai-heading">
+              <div><span class="mic-caption-ai-mark" aria-hidden="true">AI</span><span><strong id="mic-caption-ai-title">Mejorar con IA externa</strong><small>Corrige puntuación y legibilidad al terminar cada frase.</small></span></div>
+              <label class="mic-caption-switch" aria-label="Usar modelo de IA externo">
+                <input id="mic-caption-ai-enabled" type="checkbox" aria-controls="mic-caption-ai-fields"><span aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="mic-caption-ai-fields" id="mic-caption-ai-fields" hidden>
+              <p class="mic-caption-privacy-note"><strong>Solo se envía el texto.</strong> El audio nunca sale de TikReader.</p>
+              <label>Dirección del proveedor
+                <input id="mic-caption-ai-endpoint" type="url" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1" spellcheck="false">
+              </label>
+              <div class="mic-caption-field-row">
+                <label>Modelo<input id="mic-caption-ai-model" type="text" placeholder="gpt-4.1-mini" maxlength="120" spellcheck="false"></label>
+                <label>Clave API<input id="mic-caption-ai-key" type="password" placeholder="Opcional para modelos locales" maxlength="1000" autocomplete="new-password"></label>
+              </div>
+              <label>Instrucción
+                <textarea id="mic-caption-ai-instruction" rows="3" maxlength="500">Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.</textarea>
+              </label>
+              <div class="mic-caption-ai-actions">
+                <button id="mic-caption-ai-test" type="button">Probar conexión</button>
+                <button id="mic-caption-ai-remove" type="button">Quitar clave</button>
+              </div>
+              <p id="mic-caption-ai-status" class="mic-caption-ai-status" role="status"></p>
+            </div>
+          </section>
+
           <section class="mic-caption-form-section" aria-labelledby="mic-caption-content-title">
             <div class="mic-caption-form-heading"><span>01</span><h4 id="mic-caption-content-title">Contenido y ritmo</h4></div>
             <label>Idioma de reconocimiento
@@ -172,36 +199,6 @@
             </fieldset>
             <label class="mic-caption-check"><input id="mic-caption-transparent-background" type="checkbox"><span>Fondo transparente</span></label>
           </section>
-
-          <details class="mic-caption-advanced" id="mic-caption-advanced">
-            <summary><span><small>03</small><strong>Avanzado</strong></span><em>Modelo externo y conexión</em></summary>
-            <div class="mic-caption-advanced-body">
-              <div class="mic-caption-ai-heading">
-                <div><span class="mic-caption-ai-mark" aria-hidden="true">AI</span><span><strong>Mejorar con IA externa</strong><small>Corrige puntuación y legibilidad al terminar cada frase.</small></span></div>
-                <label class="mic-caption-switch" aria-label="Usar modelo de IA externo">
-                  <input id="mic-caption-ai-enabled" type="checkbox" aria-controls="mic-caption-ai-fields"><span aria-hidden="true"></span>
-                </label>
-              </div>
-              <div class="mic-caption-ai-fields" id="mic-caption-ai-fields" hidden>
-                <p class="mic-caption-privacy-note"><strong>Solo se envía el texto.</strong> El audio nunca sale de TikReader.</p>
-                <label>Dirección del proveedor
-                  <input id="mic-caption-ai-endpoint" type="url" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1" spellcheck="false">
-                </label>
-                <div class="mic-caption-field-row">
-                  <label>Modelo<input id="mic-caption-ai-model" type="text" placeholder="gpt-4.1-mini" maxlength="120" spellcheck="false"></label>
-                  <label>Clave API<input id="mic-caption-ai-key" type="password" placeholder="Opcional para modelos locales" maxlength="1000" autocomplete="new-password"></label>
-                </div>
-                <label>Instrucción
-                  <textarea id="mic-caption-ai-instruction" rows="3" maxlength="500">Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.</textarea>
-                </label>
-                <div class="mic-caption-ai-actions">
-                  <button id="mic-caption-ai-test" type="button">Probar conexión</button>
-                  <button id="mic-caption-ai-remove" type="button">Quitar clave</button>
-                </div>
-                <p id="mic-caption-ai-status" class="mic-caption-ai-status" role="status"></p>
-              </div>
-            </div>
-          </details>
 
           <button class="mic-caption-save" type="submit">Guardar cambios</button>
           <p id="mic-caption-save-status" class="mic-caption-save-status" role="status"></p>
@@ -574,7 +571,7 @@
   function syncAiInterface() {
     const enabled = aiEnabled.checked;
     aiFields.hidden = !enabled;
-    $('mic-caption-advanced').classList.toggle('has-active-ai', enabled);
+    $('mic-caption-form').querySelector('.mic-caption-ai-settings').classList.toggle('has-active-ai', enabled);
     const modelStep = $('mic-caption-path-model');
     modelStep.classList.toggle('is-external', enabled);
     modelStep.querySelector('strong').textContent = enabled ? 'IA externa' : 'Local';
