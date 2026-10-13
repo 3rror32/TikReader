@@ -854,7 +854,6 @@ Voz apagada|Voice off|Voix désactivée
 Buscar usuario o comentario|Search user or comment|Rechercher un utilisateur ou un commentaire
 Buscar comentarios|Search comments|Rechercher des commentaires
 Solo preguntas|Questions only|Questions uniquement
-El chat aparecerá aquí|Chat will appear here|Le chat apparaîtra ici
 Conecta una transmisión activa para empezar a leer comentarios.|Connect an active stream to start reading comments.|Connectez un direct actif pour commencer à lire les commentaires.
 Paneles del estudio|Studio panels|Panneaux du studio
 🎁 Regalos|🎁 Gifts|🎁 Cadeaux
@@ -864,7 +863,6 @@ Paneles del estudio|Studio panels|Panneaux du studio
 Estudio|Studio|Studio
 Conexión|Connection|Connexion
 Lectura de regalos|Gift reading|Lecture des cadeaux
-Aún no se han recibido regalos en esta conexión.|No gifts received on this connection yet.|Aucun cadeau reçu sur cette connexion pour le moment.
 Usuario|User|Utilisateur
 Regalo|Gift|Cadeau
 Cantidad|Quantity|Quantité
@@ -961,12 +959,11 @@ Apagada|Off|Désactivée
 Disponibles|Available|Disponibles
 Overlays|Overlays|Overlays
 Más|More|Plus
-Tu chat aparecerá aquí|Your chat will appear here|Votre chat apparaîtra ici
-Conecta un LIVE para ver y escuchar la conversación.|Connect a LIVE to see and hear the conversation.|Connectez un LIVE pour voir et écouter la conversation.
+Conecta un LIVE para ver comentarios.|Connect a LIVE to see comments.|Connectez un LIVE pour voir les commentaires.
 Conectar un LIVE|Connect a LIVE|Connecter un LIVE
 Conexión lista|Connection ready|Connexion prête
-Los próximos comentarios se mostrarán en cuanto lleguen.|New comments will appear as soon as they arrive.|Les nouveaux commentaires apparaîtront dès leur arrivée.
-Los regalos aparecerán aquí con su remitente y cantidad cuando comience la actividad.|Gifts will appear here with their sender and amount when activity begins.|Les cadeaux apparaîtront ici avec leur expéditeur et leur quantité dès le début de l’activité.
+Aún no hay comentarios.|No comments yet.|Il n’y a pas encore de commentaires.
+Aún no hay regalos.|No gifts yet.|Pas encore de cadeaux.
 El ranking se formará automáticamente con los regalos de esta sesión.|The ranking will be built automatically from this session's gifts.|Le classement sera créé automatiquement à partir des cadeaux de cette session.
 Distribución del panel|Panel layout|Disposition du panneau
 Ajusta cuánto espacio ocupa el chat o activa una vista limpia para presentar.|Adjust the chat width or enable a clean presenter view.|Ajustez la largeur du chat ou activez une vue épurée pour la présentation.
@@ -1224,7 +1221,6 @@ En el chat|In chat|Dans le chat
 Se unieron|Joined|Ont rejoint
 Lectura de participantes|Participant reading|Lecture des participants
 Sin actividad|No activity|Aucune activité
-Aparecerán al entrar o interactuar.|They will appear when they join or interact.|Ils apparaîtront en rejoignant le direct ou en interagissant.
 Sin entradas recientes.|No recent joins.|Aucune arrivée récente.
 Sin participantes en esta vista.|No participants in this view.|Aucun participant dans cette vue.
 Leer el nombre de quien comenta|Read the commenter's name|Lire le nom de la personne qui commente

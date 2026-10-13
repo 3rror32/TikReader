@@ -506,7 +506,6 @@
       opacity: .5;
     }
 
-    #empty-state .icon { font-size: 3rem; }
     #empty-state p { font-size: .9rem; color: var(--text-muted); text-align: center; }
 
     /* ─── GIFT TOAST ─────────────────────────────────────────── */
@@ -804,8 +803,7 @@
     <div id="pinned-comment" hidden></div>
     <div id="comment-feed">
       <div id="empty-state">
-        <div class="icon" aria-hidden="true">TR</div>
-        <p><strong>El chat aparecerá aquí</strong><br/>Conecta una transmisión activa para empezar a leer comentarios.</p>
+        <p>Conecta un LIVE para ver comentarios.</p>
       </div>
     </div>
   </div>
@@ -818,7 +816,7 @@
     <div data-pane="gifts" class="studio-pane">
     <h2 id="gift-heading">Regalos</h2>
     <div class="live-reading-controls" role="group" aria-label="Lectura de regalos"><button id="gift-auto-toggle" type="button" class="auto-reading-toggle" aria-pressed="true">Leer regalos</button></div>
-    <p id="gift-empty">Aún no se han recibido regalos en esta conexión.</p>
+    <p id="gift-empty">Aún no hay regalos.</p>
     <div class="gift-scroll">
       <table id="gift-table" hidden style="width:100%;border-collapse:collapse;text-align:left">
         <thead><tr><th>Usuario</th><th>Regalo</th><th>Cantidad</th><th>Hora</th></tr></thead>

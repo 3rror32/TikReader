@@ -315,7 +315,7 @@ function clearFeed() {
   // Re-add empty state
   const es = document.createElement('div');
   es.id = 'empty-state';
-  es.innerHTML = '<div class="icon" aria-hidden="true">TR</div><p><strong>El chat aparecerá aquí</strong><br/>Conecta una transmisión activa para empezar a leer comentarios.</p>';
+  es.innerHTML = '<p>Conecta un LIVE para ver comentarios.</p>';
   feed.appendChild(es);
 }
 

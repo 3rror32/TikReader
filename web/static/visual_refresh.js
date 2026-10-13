@@ -26,16 +26,16 @@
       failed: ['No se pudo conectar', 'Revisa el usuario y la conexión antes de reintentar.'],
       cancelled: ['Conexión cancelada', 'Puedes revisar el usuario e intentar de nuevo.'],
       offline: ['Sin conexión', 'La conexión terminó. Revisa el usuario antes de volver a conectar.'],
-      live: ['Conexión lista', 'Los próximos comentarios se mostrarán en cuanto lleguen.'],
-      idle: ['Tu chat aparecerá aquí', 'Conecta un LIVE para ver y escuchar la conversación.'],
+      live: ['Conexión lista', 'Aún no hay comentarios.'],
+      idle: ['Conecta un LIVE para ver comentarios.', ''],
     };
     const presentation = state + ':' + (window.I18n?.locale || 'es-419');
     if (paragraph && (!paragraph.querySelector('strong') || empty.dataset.presentation !== presentation)) {
       empty.dataset.presentation = presentation;
       const [title, description] = messages[state] || messages.idle;
       const heading = create('strong', '', translate(title));
-      const copy = document.createTextNode(translate(description));
-      paragraph.replaceChildren(heading, document.createElement('br'), copy);
+      paragraph.replaceChildren(heading);
+      if (description) paragraph.append(document.createElement('br'), document.createTextNode(translate(description)));
     }
     let action = empty.querySelector('.empty-state-action');
     if (!action) {
@@ -59,7 +59,7 @@
   enhanceEmptyState();
 
   const giftEmpty = document.getElementById('gift-empty');
-  if (giftEmpty) giftEmpty.textContent = translate('Los regalos aparecerán aquí con su remitente y cantidad cuando comience la actividad.');
+  if (giftEmpty) giftEmpty.textContent = translate('Aún no hay regalos.');
   const rankingEmpty = document.getElementById('ranking-empty');
   if (rankingEmpty) rankingEmpty.textContent = translate('El ranking se formará automáticamente con los regalos de esta sesión.');
 

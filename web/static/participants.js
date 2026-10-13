@@ -24,7 +24,7 @@
    if(mode==='joins')item.append(el('small',new Date(row.joined_at*1000).toLocaleTimeString((window.I18n?.locale || 'es-419'),{hour12:true})));
    window.ChatExtras?.greeting(item,row.user);list.append(item);
   }
-  if(!rows.length)list.append(el('p',isEmpty?'Aparecerán al entrar o interactuar.':mode==='joins'?'Sin entradas recientes.':'Sin actividad reciente.'));
+  if(!rows.length&&!isEmpty)list.append(el('p',mode==='joins'?'Sin entradas recientes.':'Sin actividad reciente.'));
  }
  function scheduleExpiry(){
   if(expiryTimer!==null){clearTimeout(expiryTimer);expiryTimer=null;}

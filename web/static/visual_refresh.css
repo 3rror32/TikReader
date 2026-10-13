@@ -445,16 +445,6 @@ html body :is(#profile-delete, .platform-remove, .danger-lite) {
   padding: 42px 20px;
 }
 
-#empty-state .icon {
-  width: 48px;
-  height: 48px;
-  border: 1px solid color-mix(in srgb, var(--skin-accent, var(--tr-signal)) 42%, var(--tr-divider));
-  background: color-mix(in srgb, var(--skin-accent, var(--tr-signal)) 7%, transparent);
-  color: var(--skin-accent, var(--tr-signal));
-  font-family: var(--tr-data);
-  font-size: 14px;
-}
-
 #empty-state p { max-width: 360px; }
 #empty-state p strong { color: var(--skin-text, var(--tr-day)); font-size: 15px; }
 
