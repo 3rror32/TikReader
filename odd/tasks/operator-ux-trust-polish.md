@@ -348,11 +348,11 @@ Evidence:
 - RED: the requested Node command reported 7 passing and 2 failing tests; the failures identified missing viewport-clamp and horizontal-truncation rules.
 - GREEN: `node --test tests/test_sidebar_navigation.cjs tests/test_sidebar_search_icon.cjs` passed 9/9 after the CSS change.
 - `git diff --check`: passed; Git noted an existing LF-to-CRLF warning in the unrelated `tests/browser/operator.spec.cjs` change.
-- Work-unit commit identity is recorded in the final implementation handoff.
+- Work-unit commit: `af297fd` (`fix(sidebar): keep collapsed search legible`).
 - Independent verification found the base input rule outranked the original collapsed hide rule. The added cascade regression failed before correction (9 passed, 1 failed).
 - The inactive collapsed input now has a more specific rule, while the later active-popover rule restores it. The focused Node command passed 10/10 after correction.
 - Correction `git diff --check`: passed; the LF-to-CRLF warning remains limited to the unrelated browser test change.
-- Correction commit identity is recorded in the follow-up implementation handoff.
+- Correction commit: `ba7da0e` (`fix(sidebar): hide inactive collapsed search input`).
 
 ## Closing checks
 
