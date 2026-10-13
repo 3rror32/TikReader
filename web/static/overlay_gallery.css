@@ -46,8 +46,6 @@
 .piggy-editor .tool-card{margin:0;padding:16px}
 .piggy-editor .overlay-style-form{margin-top:12px}
 .piggy-editor .overlay-control-grid label[hidden],.piggy-editor #overlay-style-controls>[hidden]{display:none!important}
-.piggy-editor .bank-editor-handle[data-selected="true"]{stroke:#fff;stroke-width:1.4;filter:drop-shadow(0 0 3px #fff)}
-.piggy-editor .bank-editor-handle:focus-visible{stroke:#fff;stroke-width:1.8;filter:drop-shadow(0 0 4px #fff)}
 @media(max-width:850px){.piggy-editor .overlay-workbench{grid-template-columns:1fr}.piggy-editor .overlay-stage{position:static}.piggy-editor .overlay-screen{min-height:0!important;aspect-ratio:4/5!important}}
 
 .overlay-screen:before{display:none}

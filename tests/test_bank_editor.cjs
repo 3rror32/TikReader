@@ -63,10 +63,10 @@ class Style {
   getPropertyValue(key) { return this.values[key] || ''; }
 }
 class Node {
-  constructor(tag = 'div') { this.tagName = tag; this.children = []; this.dataset = {}; this.style = new Style(); this.attributes = {}; this.listeners = {}; this.parentElement = null; this.value = ''; this.hidden = false; }
-  append(...nodes) { for (const node of nodes) { node.parentElement = this; this.children.push(node); } }
-  replaceChildren(...nodes) { this.children = []; this.append(...nodes); }
-  remove() { if (this.parentElement) this.parentElement.children = this.parentElement.children.filter(node => node !== this); }
+  constructor(tag = 'div') { this.tagName = tag; this.children = []; this.dataset = {}; this.style = new Style(); this.attributes = {}; this.listeners = {}; this.parentElement = null; this.ownerDocument = null; this.value = ''; this.hidden = false; }
+  append(...nodes) { for (const node of nodes) { node.parentElement = this; node.ownerDocument = this.ownerDocument; this.children.push(node); } }
+  replaceChildren(...nodes) { for (const child of this.children) if (child.ownerDocument?.activeElement === child) child.ownerDocument.activeElement = null; this.children = []; this.append(...nodes); }
+  remove() { if (this.ownerDocument?.activeElement === this) this.ownerDocument.activeElement = null; if (this.parentElement) this.parentElement.children = this.parentElement.children.filter(node => node !== this); }
   setAttribute(key, value) { this.attributes[key] = String(value); }
   addEventListener(key, callback) { this.listeners[key] = callback; }
   querySelector(selector) { if (selector === '.piggy-slot') return this.slot || null; if (selector === '.piggy-custom-image') return this.image || null; return null; }
@@ -74,7 +74,7 @@ class Node {
   setPointerCapture(id) { this.captured = id; }
   hasPointerCapture(id) { return this.captured === id; }
   releasePointerCapture() { this.captured = null; }
-  focus() { this.focused = true; }
+  focus() { this.focused = true; if (this.ownerDocument) this.ownerDocument.activeElement = this; this.onfocus?.(); }
 }
 const shape = { points: [[10,10],[30,10],[70,10],[90,30],[90,70],[10,70]], slot: [46,40] };
 function functionSource(source, name) {
@@ -96,8 +96,9 @@ async function makeEditor(bank, initialDrop = {}, openEditor = true, initialHydr
   pig.style = new Style({ left: '22%', top: '18%', bottom: '22px', transform: 'translateX(-50%)' });
   slot.style = new Style({ left: '46%', top: '40%' });
   const listeners = {}, frame = new Node('iframe');
-  frame.contentDocument = { querySelector: () => pig };
-  frame.contentWindow = { PiggyBank: { shapeFor: () => structuredClone(shape), prepare(_piggy, key, data) { pig.dataset.bank = key; if(data?.custom_bank_asset)pig.image.src=data.custom_bank_asset; } }, postMessage() {} };
+  frame.contentDocument = { activeElement: null, querySelector: () => pig };
+  pig.ownerDocument = frame.contentDocument;
+  frame.contentWindow = { PiggyBank: { shapeFor: key => structuredClone(initialDrop.shapes?.[key] || shape), prepare(_piggy, key, data) { pig.dataset.bank = key; if(data?.custom_bank_asset)pig.image.src=data.custom_bank_asset; } }, postMessage() {} };
   const selector = new Node('select'); selector.addEventListener = (key, fn) => { selector.listeners[key] = fn; };
   const document = { querySelector: () => panel, createElement: tag => new Node(tag), createElementNS: (_ns, tag) => new Node(tag), getElementById: id => id === 'overlay-preview' ? frame : selector };
   let stored = { bank, custom_bank_asset: `${'a'.repeat(32)}.png`, bank_position: { x: 50, y: 50 }, bank_scale: 100, entry_point: { x: 46, y: 40 }, ...initialDrop };
@@ -242,12 +243,43 @@ test('integrated bank entry point updates immediately and focused handles expose
   assert.equal(ui.slot.style.getPropertyValue('left'), '62%');
   assert.equal(ui.slot.style.getPropertyValue('top'), '32%');
   const outlineHandle = svg.children[1];
-  outlineHandle.onfocus();
+  outlineHandle.focus();
   assert.equal(outlineHandle.attributes['aria-pressed'], 'true');
+  assert.equal(outlineHandle.attributes['stroke-width'], '2');
+  assert.equal(outlineHandle.attributes.filter, 'drop-shadow(0 0 4px #fff)');
   assert.equal(entry.attributes['aria-pressed'], 'false');
   await findButton(ui.box, 'Cancelar').onclick();
   assert.equal(ui.slot.style.getPropertyValue('left'), '46%');
   assert.equal(ui.slot.style.getPropertyValue('top'), '40%');
+});
+
+test('integrated bank reopens its persisted shape slot instead of stale custom entry settings', async () => {
+  const ui = await makeEditor('pato', {
+    entry_point: { x: 50, y: 16 },
+    shapes: { pato: { points: structuredClone(shape.points), slot: [62, 32] } }
+  });
+  const entry = ui.pig.children.find(node => node.tagName === 'svg').children.at(-1);
+  assert.equal(entry.attributes.cx, '62');
+  assert.equal(entry.attributes.cy, '32');
+  assert.equal(ui.slot.style.getPropertyValue('left'), '62%');
+  assert.equal(ui.slot.style.getPropertyValue('top'), '32%');
+});
+
+test('pointer selection restores handle focus so keyboard editing continues after redraw', async () => {
+  const ui = await makeEditor('pato');
+  let svg = ui.pig.children.find(node => node.tagName === 'svg');
+  const point = svg.children[1];
+  point.onpointerdown({ pointerId: 5 });
+  point.focus();
+  point.onpointerup();
+  svg = ui.pig.children.find(node => node.tagName === 'svg');
+  let focused = svg.ownerDocument.activeElement;
+  assert.equal(focused, svg.children[1]);
+  focused.onkeydown({ key: 'ArrowRight', shiftKey: false, preventDefault() {} });
+  svg = ui.pig.children.find(node => node.tagName === 'svg');
+  focused = svg.ownerDocument.activeElement;
+  assert.equal(focused, svg.children[1]);
+  assert.equal(focused.attributes.cx, '10.25');
 });
 
 test('real editor cancel restores custom preview, and save synchronizes immediate configure state', async () => {

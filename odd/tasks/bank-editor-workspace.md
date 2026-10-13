@@ -58,7 +58,16 @@ La interfaz actual mantiene dos representaciones de la alcancía, muestra contro
     - Validación visual/funcional en navegador: pendiente por entorno; no había servidor ni pestaña local y el lanzador de Python del sistema no era accesible. No se afirma resultado visual.
   - Work-unit commit: `fix(overlays): unify piggy bank editor` (identidad incluida en el cierre del worker).
   - Native review assessment: pendiente del orquestador.
+  - Corrección acotada posterior al commit `534c76e`:
+    - Hallazgos independientes: los modelos integrados reabrían desde `entry_point` en vez de `shape.slot`; el redraw del SVG perdía el foco del handle; y el CSS del padre no alcanzaba el SVG dentro del iframe.
+    - RED: se añadieron regresiones para reabrir `[62,32]` frente a `entry_point` obsoleto `[50,16]`, conservar foco y permitir ArrowRight tras pointerup, y comprobar los atributos SVG de foco; las tres fallaron antes del arreglo.
+    - GREEN: hidratación integrada desde `draft.slot` y custom desde `entry_point`; pointerdown enfoca el handle y el redraw restaura el índice enfocado; atributos SVG aplican énfasis y foco dentro del iframe. Se eliminaron reglas CSS del padre que no podían alcanzar los handles.
+    - `node --test tests/test_bank_editor.cjs tests/test_overlay_gallery.cjs`: 41/41 pasaron.
+    - `npm run check:overlays`: pasó (`tsc --noEmit`, código 0).
+    - `git diff --check 534c76e`: pasó en el candidato antes del commit; se repetirá la comparación solicitada contra el nuevo HEAD inmediatamente después de crearlo.
+    - Authored count de esta corrección: 70 líneas (adiciones + eliminaciones; sin archivos generados).
+    - Nuevo work-unit commit: `fix(overlays): preserve bank editor state` (sin amend; SHA por registrar en el cierre del worker).
 
 ## Progress and next step
 
-BANK-01 implementada y verificada con los comandos enfocados. El preview conserva una sola escena, oculta la apariencia genérica, refleja el punto integrado en vivo y mantiene handles seleccionables y proporción 4:5; guardar, cancelar y recargar conservan el flujo existente. Siguiente paso: evaluación nativa del orquestador. La revisión visual de navegador sigue pendiente por falta de un servidor local disponible.
+BANK-01 implementada y verificada con los comandos enfocados, incluida la corrección de reapertura integrada, foco tras puntero y estilo visible en el SVG del iframe. El preview conserva una sola escena, oculta la apariencia genérica, refleja el punto integrado en vivo y mantiene handles seleccionables y proporción 4:5; guardar, cancelar y recargar conservan el flujo existente. Siguiente paso: evaluación nativa del orquestador. La revisión visual de navegador sigue pendiente por falta de un servidor local disponible.
