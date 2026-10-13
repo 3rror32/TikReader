@@ -55,9 +55,9 @@ La interfaz actual mantiene dos representaciones de la alcancía, muestra contro
     - GREEN: `node --test tests/test_bank_editor.cjs tests/test_overlay_gallery.cjs` pasó con 39/39 pruebas; `npm run check:overlays` terminó con código 0 (`tsc --noEmit`).
     - El fallo previo del test de navegación (`window is not defined`) se corrigió completando el contexto del test; no requería cambiar comportamiento de producto.
     - `git diff --check` pasó. Authored count: 113 líneas (adiciones + eliminaciones; sin generados).
-    - Validación visual/funcional en navegador: pendiente por entorno; no había servidor ni pestaña local y el lanzador de Python del sistema no era accesible. No se afirma resultado visual.
+    - La primera validación visual quedó pendiente por entorno; la verificación independiente posterior la sustituyó con Chromium, plantilla y scripts reales, y respuestas locales sintéticas.
   - Work-unit commit: `fix(overlays): unify piggy bank editor` (identidad incluida en el cierre del worker).
-  - Native review assessment: pendiente del orquestador.
+  - Native review assessment: no disponible; `gentle-ai` no está instalado o accesible en esta sesión. Se aplicó verificación independiente de riesgo alto y comprobación puntual del orquestador.
   - Corrección acotada posterior al commit `534c76e`:
     - Hallazgos independientes: los modelos integrados reabrían desde `entry_point` en vez de `shape.slot`; el redraw del SVG perdía el foco del handle; y el CSS del padre no alcanzaba el SVG dentro del iframe.
     - RED: se añadieron regresiones para reabrir `[62,32]` frente a `entry_point` obsoleto `[50,16]`, conservar foco y permitir ArrowRight tras pointerup, y comprobar los atributos SVG de foco; las tres fallaron antes del arreglo.
@@ -76,7 +76,16 @@ La interfaz actual mantiene dos representaciones de la alcancía, muestra contro
     - `git diff --check 9475acf HEAD`: pasó tras crear `d565914`; también pasó la comprobación staged antes del commit.
     - Authored count: 70 líneas (adiciones + eliminaciones; sin archivos generados).
     - Work-unit commit: `d565914 fix(overlays): keep bank tools in workspace` (sin amend).
+  - Verificación independiente final:
+    - Chromium confirmó `overlay-style-form.hidden=true`, la arena local oculta y exactamente un iframe visible en Alcancías.
+    - El panel permaneció dentro de OverlayGallery con siete acciones visibles y habilitadas.
+    - Los 26 handles conservaron foco tras clic; flechas, estilo blanco de 2 px, sombra, actualización en vivo y cancelación funcionaron dentro del iframe.
+    - La entrada integrada `[62,32]` se reabrió intacta.
+    - Relación 4:5 observada en escritorio (`439.734×549.656`) y móvil (`290×362.5`), sin desbordamiento.
+    - Navegar entre webcam, temporizador, rueda y Alcancías mantuvo visibles solo los formularios aplicables y no produjo errores JavaScript.
+    - `node --test tests/test_bank_editor.cjs tests/test_overlay_gallery.cjs`: 42/42 pasaron; `npm run check:overlays` y `git diff --check 534c76e 89f3957` pasaron.
+    - Limitación: la persistencia se ejercitó en navegador real con respuestas locales sintéticas, no contra un backend o transmisión en vivo.
 
 ## Progress and next step
 
-BANK-01 completada y verificada con todos los comandos requeridos, incluida la corrección de integración para conservar el panel en OverlayGallery, ocultar su arena duplicada solo en ese contexto y mantener el formulario genérico oculto en Alcancías. El preview conserva una sola escena y el panel todas sus acciones; guardar, cancelar y recargar conservan el flujo existente. Siguiente paso: evaluación nativa del orquestador. La validación visual en navegador continúa pendiente de la iteración previa.
+BANK-01 completada. La verificación automatizada y la inspección independiente en Chromium confirmaron una sola escena, todas las acciones pertinentes, edición accesible, persistencia local coherente y proporción 4:5 en escritorio y móvil. La evaluación nativa no estuvo disponible; no quedan cambios locales ni verificaciones aplicables pendientes salvo una prueba opcional contra backend/transmisión reales.
