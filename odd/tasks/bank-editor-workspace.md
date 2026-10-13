@@ -64,9 +64,9 @@ La interfaz actual mantiene dos representaciones de la alcancía, muestra contro
     - GREEN: hidratación integrada desde `draft.slot` y custom desde `entry_point`; pointerdown enfoca el handle y el redraw restaura el índice enfocado; atributos SVG aplican énfasis y foco dentro del iframe. Se eliminaron reglas CSS del padre que no podían alcanzar los handles.
     - `node --test tests/test_bank_editor.cjs tests/test_overlay_gallery.cjs`: 41/41 pasaron.
     - `npm run check:overlays`: pasó (`tsc --noEmit`, código 0).
-    - `git diff --check 534c76e`: pasó en el candidato antes del commit; se repetirá la comparación solicitada contra el nuevo HEAD inmediatamente después de crearlo.
+    - `git diff --check 534c76e HEAD`: pasó tras crear `0d43cfe`; también pasó la comprobación staged antes del commit.
     - Authored count de esta corrección: 70 líneas (adiciones + eliminaciones; sin archivos generados).
-    - Nuevo work-unit commit: `fix(overlays): preserve bank editor state` (sin amend; SHA por registrar en el cierre del worker).
+    - Nuevo work-unit commit: `0d43cfe fix(overlays): preserve bank editor state` (sin amend).
 
 ## Progress and next step
 
