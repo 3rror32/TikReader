@@ -12,6 +12,7 @@ The live session can receive gifts and participant activity while the comment co
 
 - Harden TikTok comment event normalization and callback diagnostics.
 - Add focused regression tests for alternate or incomplete comment payloads.
+- Add persistent text-size controls for the main operator comment feed.
 - Do not change gift, participant, filtering, or voice-selection behavior.
 
 ## Constraints
@@ -75,6 +76,26 @@ The live session can receive gifts and participant activity while the comment co
     - Validate that new comments arrive during a LIVE session.
   - Status: open, blocked on explicit authorization to install the package locally.
 
+- [ ] **TCER-4 — Add persistent comment text-size controls**
+  - Route: delegated direct.
+  - Trigger evidence: the complete behavior spans the operator template, feed renderer, persisted preference allowlist, and Python/browser regression tests.
+  - Acceptance criteria:
+    - Add compact `A−` and `A+` controls to the main Comments toolbar with accessible names and keyboard support.
+    - Adjust only the displayed comment message text from 12 to 24 px in 1 px steps, defaulting to 15 px.
+    - Persist and restore the selected size through the existing operator preference system.
+    - Leave usernames, metadata, captions, and broadcast/custom overlays unchanged.
+    - Add deterministic preference and browser coverage for default, limits, visible application, and reload persistence.
+  - Verification:
+    - Focused operator browser test.
+    - Focused release-support preference test.
+    - Parent spot check of one reported command.
+  - Design: retained the existing industrial console toolbar and reused its button, border, and teal focus tokens. Added the compact A− / A+ pair as one labeled control group; the live region announces the selected pixel size without adding another visible toolbar label. The `--chat-font` variable is set on `#comment-feed`, matching the existing comment typography hook and leaving names, metadata, captions, and overlay documents unchanged.
+  - Test-first evidence: the two new browser cases failed RED before implementation because the controls and feed size state were absent. The Python RED check could not be observed with the requested runtime path because its `python.exe` is absent; the available system Python initially needed the repository's `app/` module path.
+  - Implementation: added persisted 12–24 px controls with 1 px steps and a 15 px default; absent or malformed storage uses the default and numeric values clamp to the range. Added the allowlisted preference and tests for initial/default size, visible message-only application, unchanged username/metadata size, limits, keyboard focus/activation, preference save/reload, corrupt fallback, numeric clamp, and server acceptance.
+  - Checks observed: `npm run test:operator -- tests/browser/operator.spec.cjs -g "comment text size controls|corrupt comment text size preference"` — 2 passed. Full requested `npm run test:operator -- tests/browser/operator.spec.cjs` — 13 passed, 7 failed only on existing PNG baselines for original, light, dark, broadcast-console, creator-pop, swiss-brutalist, and tactile-scrapbook; each diff reflects the intentional addition of the visible toolbar, and baseline files are outside this task's allowed edit surfaces. Focused unittest equivalent using the available Python 3.14 interpreter and repository module path — 8 passed. `git diff --check` — passed with only existing LF/CRLF notices.
+  - Approximate authored change size: 160 lines across the feed toolbar/style, font-size controller, preference allowlist, browser/Python tests, and this task record.
+  - Status: partial; behavior and focused tests pass, while the seven visual baselines need an authorized update. TCER-3 remains blocked on explicit installation authorization.
+
 ## Progress
 
 - Exploration completed: the server-side comment counter remains zero when processing stops before `publish_comment_payload`; gift and comment handlers are independent.
@@ -82,4 +103,4 @@ The live session can receive gifts and participant activity while the comment co
 - Known behavior: comments from earlier sessions are archived but are not repopulated into the in-memory feed. This is outside the authorized scope and is not being changed.
 - RDD state: unavailable because `gentle-ai` is not installed in this terminal.
 - Engram mirror: pending.
-- Next step: obtain explicit authorization before local installation and TCER-3 LIVE validation.
+- Next step: implement and verify TCER-4; TCER-3 remains blocked on explicit installation authorization.

@@ -76,6 +76,9 @@ class ReleaseTests(unittest.TestCase):
         import server
         with tempfile.TemporaryDirectory() as folder, patch.object(server, 'archive', HistoryStore(Path(folder) / 'history.sqlite3')):
             client = server.app.test_client()
+            self.assertIn('tikreader.commentFontSize', client.get('/system/preferences').json['keys'])
+            self.assertEqual(client.post('/system/preferences', json={'tikreader.commentFontSize': '18'}).status_code, 200)
+            self.assertEqual(client.get('/system/preferences').json['values']['tikreader.commentFontSize'], '18')
             self.assertEqual(client.post('/system/preferences', json={'tikreader.skin': 'light'}).status_code, 200)
             self.assertEqual(client.get('/system/preferences').json['values']['tikreader.skin'], 'light')
             self.assertEqual(client.post('/system/preferences', json={'secret': 'never-share'}).status_code, 400)

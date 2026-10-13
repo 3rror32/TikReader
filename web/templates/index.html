@@ -417,6 +417,7 @@
     .feed-actions {
       display: flex;
       gap: 8px;
+      align-items: center;
     }
 
     .feed-btn {
@@ -432,6 +433,28 @@
     }
 
     .feed-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+    .feed-btn:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 2px;
+    }
+
+    .feed-btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .feed-font-size-controls {
+      display: flex;
+      gap: 4px;
+      padding-left: 8px;
+      border-left: 1px solid var(--border);
+    }
+
+    .feed-font-size-controls .feed-btn {
+      min-width: 34px;
+      padding-inline: 7px;
+    }
 
     #comment-feed {
       flex: 1;
@@ -484,7 +507,7 @@
     }
 
     .comment-text {
-      font-size: .92rem;
+      font-size: var(--chat-font, .92rem);
       line-height: 1.45;
       word-break: break-word;
     }
@@ -792,6 +815,11 @@
     <div class="feed-header">
       <h2 class="feed-title">Comentarios</h2>
       <div class="feed-actions">
+        <div class="feed-font-size-controls" role="group" aria-label="Tamaño del texto de comentarios">
+          <button class="feed-btn" id="btn-comment-font-decrease" type="button" aria-label="Reducir tamaño del texto de comentarios">A−</button>
+          <button class="feed-btn" id="btn-comment-font-increase" type="button" aria-label="Aumentar tamaño del texto de comentarios">A+</button>
+        </div>
+        <span id="comment-font-size-status" class="sr-only" role="status" aria-live="polite">Tamaño del texto de comentarios: 15 px.</span>
         <button class="feed-btn" id="btn-autoscroll" onclick="toggleAutoScroll()" title="Mostrar los comentarios más recientes">↑ Auto</button>
         <button class="feed-btn" onclick="clearFeed()">🗑 Limpiar</button>
       </div>

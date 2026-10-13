@@ -199,6 +199,71 @@ test('all 23 themes retain named controls, focus, and reload-persistent preferen
   expect(operator.errors).toEqual([]);
 });
 
+test('comment text size controls clamp, apply only to messages, and persist across reloads', async ({ operator }) => {
+  const { page } = operator;
+  const decrease = page.getByRole('button', { name: /reducir tamaño del texto de comentarios/i });
+  const increase = page.getByRole('button', { name: /aumentar tamaño del texto de comentarios/i });
+  const feed = page.locator('#comment-feed');
+
+  await expect(decrease).toBeVisible();
+  await expect(increase).toBeVisible();
+  await expect(feed).toHaveAttribute('data-comment-font-size', '15');
+  await page.evaluate(() => window.__operatorSocket.receive('new_comment', {
+    id: 'font-size-fixture', session: 'font-size-session', sequence: 1,
+    user: 'Operador', comment: 'Texto de muestra', timestamp: '12:00:00',
+  }));
+  const message = page.locator('#comment-feed .comment-text');
+  const username = page.locator('#comment-feed .comment-user');
+  const metadata = page.locator('#comment-feed .comment-meta');
+  const untouchedSizes = await Promise.all([
+    username.evaluate(node => getComputedStyle(node).fontSize),
+    metadata.evaluate(node => getComputedStyle(node).fontSize),
+  ]);
+  await expect(message).toHaveCSS('font-size', '15px');
+  await expect(page.getByRole('status').filter({ hasText: 'Tamaño del texto de comentarios: 15 px.' })).toBeAttached();
+
+  await decrease.focus();
+  await expect(decrease).toBeFocused();
+  expect(await decrease.evaluate(node => getComputedStyle(node).outlineStyle)).not.toBe('none');
+  await page.keyboard.press('Enter');
+  await expect(feed).toHaveAttribute('data-comment-font-size', '14');
+  await expect(message).toHaveCSS('font-size', '14px');
+  expect(await Promise.all([
+    username.evaluate(node => getComputedStyle(node).fontSize),
+    metadata.evaluate(node => getComputedStyle(node).fontSize),
+  ])).toEqual(untouchedSizes);
+  await increase.click();
+  await expect(feed).toHaveAttribute('data-comment-font-size', '15');
+  await expect.poll(() => operator.preferences['tikreader.commentFontSize']).toBe('15');
+
+  for (let size = 15; size < 24; size++) await increase.click();
+  await expect(feed).toHaveAttribute('data-comment-font-size', '24');
+  await expect(increase).toBeDisabled();
+  for (let size = 24; size > 12; size--) await decrease.click();
+  await expect(feed).toHaveAttribute('data-comment-font-size', '12');
+  await expect(decrease).toBeDisabled();
+
+  await increase.click();
+  await expect(feed).toHaveAttribute('data-comment-font-size', '13');
+  await expect.poll(() => operator.preferences['tikreader.commentFontSize']).toBe('13');
+  await page.reload();
+  await expect(page.locator('#comment-feed')).toHaveAttribute('data-comment-font-size', '13');
+  await page.evaluate(() => window.__operatorSocket.receive('new_comment', {
+    id: 'font-size-reload-fixture', session: 'font-size-reload-session', sequence: 1,
+    user: 'Operador', comment: 'Texto restaurado', timestamp: '12:00:00',
+  }));
+  await expect(page.locator('#comment-feed .comment-text')).toHaveCSS('font-size', '13px');
+});
+
+test('corrupt comment text size preference falls back to the default', async ({ operator }) => {
+  await operator.page.evaluate(() => localStorage.setItem('tikreader.commentFontSize', 'corrupt'));
+  await operator.page.reload();
+  await expect(operator.page.locator('#comment-feed')).toHaveAttribute('data-comment-font-size', '15');
+  await operator.page.evaluate(() => localStorage.setItem('tikreader.commentFontSize', '99'));
+  await operator.page.reload();
+  await expect(operator.page.locator('#comment-feed')).toHaveAttribute('data-comment-font-size', '24');
+});
+
 test('one connection control handles disconnected, connecting, connected and disconnecting states', async ({ operator }) => {
   const { page } = operator;
   const input = page.locator('#username-input');

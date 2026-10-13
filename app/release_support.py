@@ -16,7 +16,8 @@ PREFERENCE_KEYS = frozenset('''tikreader.preferences tikreader.profiles tikreade
 tikreader.skin tikreader.interfaceMode tikreader.accessibility tikreader.shortcuts
 tikreader.voiceWanted tikreader.voiceCharacter tikreader.voiceSource tikreader.voiceVariation
 tikreader.kokoroVoice tikreader.localModel tikreader.language tikreader.voiceCharacters
-tikreader.voiceVariations tikreader.kokoroSpeed tikreader.voiceLocalModel'''.split())
+tikreader.voiceVariations tikreader.kokoroSpeed tikreader.voiceLocalModel
+tikreader.commentFontSize'''.split())
 connection_failures = deque(maxlen=12)
 
 

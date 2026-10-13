@@ -329,6 +329,49 @@ function toggleAutoScroll() {
   btn.style.borderColor = autoScroll ? 'var(--teal)' : 'var(--gold)';
 }
 
+const COMMENT_FONT_SIZE_KEY = 'tikreader.commentFontSize';
+const COMMENT_FONT_SIZE_MIN = 12;
+const COMMENT_FONT_SIZE_MAX = 24;
+const COMMENT_FONT_SIZE_DEFAULT = 15;
+let commentFontSize = COMMENT_FONT_SIZE_DEFAULT;
+
+function clampCommentFontSize(value) {
+  return Math.min(COMMENT_FONT_SIZE_MAX, Math.max(COMMENT_FONT_SIZE_MIN, value));
+}
+
+function savedCommentFontSize() {
+  try {
+    const saved = localStorage.getItem(COMMENT_FONT_SIZE_KEY);
+    if (saved === null || !/^-?\d+$/.test(saved.trim())) return COMMENT_FONT_SIZE_DEFAULT;
+    return clampCommentFontSize(Number(saved));
+  } catch (_) { return COMMENT_FONT_SIZE_DEFAULT; }
+}
+
+function applyCommentFontSize(announce = false) {
+  const feed = document.getElementById('comment-feed');
+  const decrease = document.getElementById('btn-comment-font-decrease');
+  const increase = document.getElementById('btn-comment-font-increase');
+  const status = document.getElementById('comment-font-size-status');
+  if (!feed || !decrease || !increase || !status) return;
+  feed.style.setProperty('--chat-font', `${commentFontSize}px`);
+  feed.dataset.commentFontSize = String(commentFontSize);
+  decrease.disabled = commentFontSize <= COMMENT_FONT_SIZE_MIN;
+  increase.disabled = commentFontSize >= COMMENT_FONT_SIZE_MAX;
+  if (announce || !status.textContent) status.textContent = `Tamaño del texto de comentarios: ${commentFontSize} px.`;
+}
+
+function adjustCommentFontSize(change) {
+  commentFontSize = clampCommentFontSize(commentFontSize + change);
+  try { localStorage.setItem(COMMENT_FONT_SIZE_KEY, String(commentFontSize)); }
+  catch (_) { /* The current page still reflects the selected size without storage access. */ }
+  applyCommentFontSize(true);
+}
+
+commentFontSize = savedCommentFontSize();
+applyCommentFontSize();
+document.getElementById('btn-comment-font-decrease')?.addEventListener('click', () => adjustCommentFontSize(-1));
+document.getElementById('btn-comment-font-increase')?.addEventListener('click', () => adjustCommentFontSize(1));
+
 /* ── Enter key ───────────────────────────────────────────── */
 document.getElementById('username-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') startLive();
