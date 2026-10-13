@@ -203,10 +203,23 @@ test('comment text size controls clamp, apply only to messages, and persist acro
   const { page } = operator;
   const decrease = page.getByRole('button', { name: /reducir tamaño del texto de comentarios/i });
   const increase = page.getByRole('button', { name: /aumentar tamaño del texto de comentarios/i });
+  const group = page.getByRole('group', { name: 'Tamaño del texto de comentarios' });
+  const status = page.locator('#comment-font-size-status');
   const feed = page.locator('#comment-feed');
 
+  await expect(group).toHaveAccessibleName('Tamaño del texto de comentarios');
+  await expect(group.locator('button')).toHaveCount(2);
   await expect(decrease).toBeVisible();
   await expect(increase).toBeVisible();
+  expect(await status.evaluate(node => {
+    const style = getComputedStyle(node);
+    const box = node.getBoundingClientRect();
+    const actions = node.parentElement.getBoundingClientRect();
+    return { position: style.position, clipPath: style.clipPath, width: box.width, height: box.height,
+      withinToolbar: box.right <= actions.right + 1 && box.bottom <= actions.bottom + 1 };
+  })).toEqual({ position: 'absolute', clipPath: 'inset(50%)', width: 1, height: 1, withinToolbar: true });
+  const actions = page.locator('.feed-actions');
+  expect(await actions.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
   await expect(feed).toHaveAttribute('data-comment-font-size', '15');
   await page.evaluate(() => window.__operatorSocket.receive('new_comment', {
     id: 'font-size-fixture', session: 'font-size-session', sequence: 1,
