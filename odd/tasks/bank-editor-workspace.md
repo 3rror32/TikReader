@@ -73,10 +73,10 @@ La interfaz actual mantiene dos representaciones de la alcancía, muestra contro
     - GREEN: `live_games.js` deja el registro `point-drop` en propiedad de OverlayGallery; esta reaplica su visibilidad después de selectores auxiliares y oculta solo la arena de operador mientras `point-drop` está activo, restaurándola al cambiar de overlay. Animaciones y otros overlays conservan el comportamiento del formulario.
     - `node --test tests/test_bank_editor.cjs tests/test_overlay_gallery.cjs`: 42/42 pasaron.
     - `npm run check:overlays`: pasó (`tsc --noEmit`, código 0).
-    - `git diff --check 9475acf HEAD`: pendiente de la comprobación de rango post-commit; el diff staged pasa `git diff --cached --check`.
-    - Authored count: se anotará tras el diff del work-unit commit; cambios no generados.
-    - Work-unit commit previsto: `fix(overlays): keep bank tools in workspace` (sin amend).
+    - `git diff --check 9475acf HEAD`: pasó tras crear `d565914`; también pasó la comprobación staged antes del commit.
+    - Authored count: 70 líneas (adiciones + eliminaciones; sin archivos generados).
+    - Work-unit commit: `d565914 fix(overlays): keep bank tools in workspace` (sin amend).
 
 ## Progress and next step
 
-BANK-01 implementada y verificada con los comandos enfocados, incluida la corrección de reapertura integrada, foco tras puntero y estilo visible en el SVG del iframe, y ahora la corrección de integración para conservar el panel en OverlayGallery, ocultar su arena duplicada solo en ese contexto y mantener el formulario genérico oculto en Alcancías. El preview conserva una sola escena y el panel todas sus acciones; guardar, cancelar y recargar conservan el flujo existente. El registro de finalización y la revisión visual de navegador siguen pendientes.
+BANK-01 completada y verificada con todos los comandos requeridos, incluida la corrección de integración para conservar el panel en OverlayGallery, ocultar su arena duplicada solo en ese contexto y mantener el formulario genérico oculto en Alcancías. El preview conserva una sola escena y el panel todas sus acciones; guardar, cancelar y recargar conservan el flujo existente. Siguiente paso: evaluación nativa del orquestador. La validación visual en navegador continúa pendiente de la iteración previa.
