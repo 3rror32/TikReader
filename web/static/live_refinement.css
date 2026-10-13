@@ -419,12 +419,12 @@ html body .session-panel #btn-stop {
   overflow: visible;
   transition: color .18s ease, filter .18s ease;
 }
-.session-panel #btn-connect .connect-button__icon[data-state="disconnected"] {
-  color: #25f4ee;
+html body #btn-connect .connect-button__icon[data-state="disconnected"] {
+  color: #fff !important;
   filter: drop-shadow(0 0 3px #25f46666);
 }
-.session-panel #btn-connect .connect-button__icon[data-state="connected"] {
-  color: #fe2c55;
+html body #btn-connect .connect-button__icon[data-state="connected"] {
+  color: #fff !important;
   filter: drop-shadow(0 0 4px #fe2c5566);
 }
 .session-panel #btn-connect .connect-button__cable { transition: transform .18s ease, stroke-dasharray .18s ease; }

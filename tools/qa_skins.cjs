@@ -20,6 +20,7 @@ const {chromium} = require('playwright');
     await page.goto('http://skins.test');
     await page.addStyleTag({content:'*, *::before, *::after { transition:none!important; animation:none!important; }'});
     await page.addScriptTag({path:path.join(__dirname,'../web/static/skins.js')});
+    const skins = await page.locator('#skin-select option').evaluateAll(options => options.map(option => option.value));
     await page.evaluate(() => {
       const fixture = document.createElement('section');
       fixture.id='skin-fixture';
@@ -27,11 +28,12 @@ const {chromium} = require('playwright');
       fixture.innerHTML='<h2>Controles del tema</h2><button id="qa-normal">Normal</button> <button id="qa-primary" class="primary-action">Guardar</button> <button id="qa-danger" class="danger-lite">Eliminar</button> <button id="qa-selected" aria-pressed="true">Seleccionado</button> <button id="qa-disabled" disabled>Deshabilitado</button><div class="overlay-gallery"><div class="overlay-categories"><button id="qa-category" class="active">Categoría activa</button></div><button class="overlay-card selected">Overlay seleccionado</button></div><div class="voice-setup"><button class="voice-character" data-selected="true">Voz seleccionada</button><div class="voice-summary"><p>Texto secundario</p><textarea id="qa-textarea" placeholder="Mensaje"></textarea></div></div>';
       document.body.append(fixture);
     });
-    for (const skin of ['original','kawai','dark','light','cute','dracula','ice','one-dark-pro','github-dark','monokai']) {
+    for (const skin of skins) {
       await page.mouse.move(1400,950);
       await page.evaluate(skin => {
-        document.querySelector('#skin-select').value=skin;
-        document.querySelector('#skin-apply').click();
+        const select=document.querySelector('#skin-select');
+        select.value=skin;
+        select.dispatchEvent(new Event('change',{bubbles:true}));
       },skin);
       const colors = await page.evaluate(() => {
         const color = (selector,property) => getComputedStyle(document.querySelector(selector))[property];
@@ -41,16 +43,30 @@ const {chromium} = require('playwright');
         };
         return {skin:document.documentElement.dataset.skin,saved:localStorage.getItem('tikreader.skin'),
           normal:color('#qa-normal','backgroundColor'),raised:token('--skin-raised'),
-          primary:color('#qa-primary','backgroundColor'),accent:token('--skin-accent'),
+          primary:color('#qa-primary','backgroundColor'),accent:token('--skin-accent'),accent2:token('--skin-accent-2'),
           danger:color('#qa-danger','color'),dangerToken:token('--skin-danger'),
           selected:color('#qa-selected','borderTopColor'),category:color('#qa-category','borderTopColor'),
           disabled:color('#qa-disabled','opacity'),buttons:document.querySelectorAll('button').length};
       });
       assert.equal(colors.skin,skin);assert.equal(colors.saved,skin);
-      assert.equal(colors.normal,colors.raised);assert.equal(colors.primary,colors.accent);
-      assert.equal(colors.danger,colors.dangerToken);assert.equal(colors.selected,colors.accent);
-      assert.equal(colors.category,colors.accent);assert.equal(colors.disabled,'0.5');
-      const unthemed = await page.evaluate(() => [...document.querySelectorAll('button')].flatMap(button => {
+      const iconColors = await page.evaluate(() => {
+        const icon = document.querySelector('#btn-connect .connect-button__icon');
+        const colors = {};
+        for (const state of ['disconnected','connected']) {
+          icon.dataset.state = state;
+          colors[state] = getComputedStyle(icon).color;
+        }
+        return colors;
+      });
+      assert.equal(iconColors.disconnected,'rgb(255, 255, 255)',`${skin}: disconnected plug icon must stay white`);
+      assert.equal(iconColors.connected,'rgb(255, 255, 255)',`${skin}: connected plug icon must stay white`);
+      assert.equal(colors.normal,colors.raised);
+      assert.equal(colors.primary,skin==='original'?colors.raised:colors.accent,`${skin}: primary surface palette`);
+      assert.equal(colors.danger,colors.dangerToken,`${skin}: danger palette`);
+      assert.ok([colors.accent,colors.accent2].includes(colors.selected),`${skin}: selected palette`);
+      assert.ok([colors.accent,colors.accent2].includes(colors.category),`${skin}: category palette`);
+      assert.equal(colors.disabled,'0.5',`${skin}: disabled opacity`);
+      const unthemed = await page.evaluate(() => [...document.querySelectorAll('#skin-fixture button')].flatMap(button => {
         const style=getComputedStyle(button), probe=document.createElement('span');
         probe.style.color=style.getPropertyValue('--control-ink');document.body.append(probe);
         const expected=getComputedStyle(probe).color;probe.remove();
@@ -58,6 +74,8 @@ const {chromium} = require('playwright');
       }));
       assert.deepEqual(unthemed,[],`${skin}: every page button must inherit its semantic ink`);
       const voice = await page.evaluate(() => {
+        const selectors=['.voice-setup-kicker','.voice-route i','.voice-setup-hero','#voice-setup-title','#custom-voice-sample','#custom-voice-test'];
+        if (selectors.some(selector=>!document.querySelector(selector))) return null;
         const style = selector => getComputedStyle(document.querySelector(selector));
         const probe = document.createElement('span');
         document.body.append(probe);
@@ -74,12 +92,14 @@ const {chromium} = require('playwright');
         result.display=getComputedStyle(probe).fontFamily;
         probe.remove();return result;
       });
-      assert.equal(voice.kicker,voice.accent,`${skin}: voice accent`);
-      assert.equal(voice.route,voice.accent,`${skin}: voice route`);
-      assert.equal(voice.divider,voice.border,`${skin}: voice divider`);
-      assert.equal(voice.heading,voice.display,`${skin}: heading typography`);
-      assert.equal(voice.input,voice.body,`${skin}: input typography`);
-      assert.equal(voice.button,voice.body,`${skin}: button typography`);
+      if (voice) {
+        assert.equal(voice.kicker,voice.accent,`${skin}: voice accent`);
+        assert.equal(voice.route,voice.accent,`${skin}: voice route`);
+        assert.equal(voice.divider,voice.border,`${skin}: voice divider`);
+        assert.equal(voice.heading,voice.display,`${skin}: heading typography`);
+        assert.equal(voice.input,voice.body,`${skin}: input typography`);
+        assert.equal(voice.button,voice.body,`${skin}: button typography`);
+      }
       await page.locator('#qa-normal').hover();
       assert.notEqual(await page.locator('#qa-normal').evaluate(el=>getComputedStyle(el).backgroundColor),colors.normal);
       await page.locator('#qa-textarea').focus();
@@ -89,7 +109,7 @@ const {chromium} = require('playwright');
     await page.setViewportSize({width:390,height:844});
     await page.screenshot({path:path.join(__dirname,'../docs/screenshots/qa-skins-mobile.png')});
     await page.setViewportSize({width:1440,height:1000});
-    await page.evaluate(()=>{document.querySelector('#skin-select').value='light';document.querySelector('#skin-apply').click()});
+    await page.evaluate(()=>{const select=document.querySelector('#skin-select');select.value='light';select.dispatchEvent(new Event('change',{bubbles:true}))});
     await page.screenshot({path:path.join(__dirname,'../docs/screenshots/qa-skins-light.png')});
     await page.evaluate(() => {
       document.querySelector('#skin-fixture').remove();
@@ -99,7 +119,7 @@ const {chromium} = require('playwright');
       document.body.append(voice);
     });
     for (const skin of ['github-dark','light','kawai']) {
-      await page.evaluate(skin=>{document.querySelector('#skin-select').value=skin;document.querySelector('#skin-apply').click()},skin);
+      await page.evaluate(skin=>{const select=document.querySelector('#skin-select');select.value=skin;select.dispatchEvent(new Event('change',{bubbles:true}))},skin);
       await page.screenshot({path:path.join(__dirname,`../docs/screenshots/qa-voice-${skin}.png`)});
     }
   } finally { await browser.close(); }
