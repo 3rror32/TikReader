@@ -52,4 +52,4 @@ The live session can receive gifts and participant activity while the comment co
 
 - Exploration completed: the server-side comment counter remains zero when processing stops before `publish_comment_payload`; gift and comment handlers are independent.
 - RDD state: unknown/unavailable because `gentle-ai` is not installed in this terminal.
-- Next step: delegate TCER-1 implementation and focused verification.
+- Next step: run focused verification when a local pytest runner is available, then close TCER-1 only if it passes.
