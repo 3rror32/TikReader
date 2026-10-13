@@ -381,7 +381,7 @@ Evidence:
 - GREEN: `node --test tests/test_sidebar_navigation.cjs` passed 12/12 after removing the two native title assignments and adding the generated summary's `aria-label`.
 - `git diff --check`: passed; Git emitted a line-ending normalization warning for the task document.
 - The delegated custom tooltip selectors and pointer/focus handlers remain covered by the passing regression test.
-- Work-unit commit identity is recorded in the final implementation handoff.
+- Work-unit commit: `32c1fa5` (`fix(sidebar): prevent duplicate navigation tooltips`).
 
 ## Closing checks
 
