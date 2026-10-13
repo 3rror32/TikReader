@@ -74,3 +74,18 @@ test('collapsed inactive search hides its input while the active popover restore
   assert.match(styles,activeRule);
   assert.ok(styles.search(activeRule) > styles.search(inactiveRule));
 });
+
+test('navigation destinations use accessible names without native title tooltips', () => {
+  assert.match(sidebar,/const label = button\.textContent\.trim\(\);[\s\S]{0,250}button\.setAttribute\('aria-label', label\);[\s\S]{0,250}button\.replaceChildren/);
+  assert.doesNotMatch(sidebar,/button\.title = label/);
+});
+
+test('generated advanced summaries use accessible names without native title tooltips', () => {
+  assert.match(sidebar,/const heading = document\.createElement\('summary'\); heading\.setAttribute\('aria-label', label\.textContent\);/);
+  assert.doesNotMatch(sidebar,/heading\.title = label/);
+});
+
+test('delegated custom tooltip still covers destinations and summaries on pointer and focus', () => {
+  assert.match(sidebar,/function tooltipControl\(target\) \{\s*return target\?\.closest\?\.\('\[data-section-nav\], summary'\) \|\| null;\s*\}/);
+  assert.match(sidebar,/sidebar\.addEventListener\('pointerover', showTooltip\);[\s\S]{0,180}sidebar\.addEventListener\('focusin', showTooltip\);/);
+});

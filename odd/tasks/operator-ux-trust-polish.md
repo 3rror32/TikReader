@@ -354,6 +354,35 @@ Evidence:
 - Correction `git diff --check`: passed; the LF-to-CRLF warning remains limited to the unrelated browser test change.
 - Correction commit: `ba7da0e` (`fix(sidebar): hide inactive collapsed search input`).
 
+### UX-11 — Single compact tooltip for collapsed advanced navigation
+
+- Route: delegated direct.
+- Trigger: tooltip behavior and deterministic regression coverage span two non-trivial files; preparation and writing stay with one bounded writer.
+- [x] Remove native browser tooltips from advanced destination buttons and generated advanced category summaries.
+- [x] Preserve accessible names and the existing custom hover/focus tooltip.
+- [x] Keep expanded navigation free of redundant tooltips when labels are already visible.
+- [x] Add focused deterministic coverage for the tooltip contract.
+
+Acceptance criteria:
+
+- A collapsed advanced navigation control displays exactly one compact custom tooltip.
+- Destination buttons and advanced category summaries retain an accessible name.
+- Expanded navigation relies on its visible labels without showing the custom collapsed tooltip.
+
+Verification:
+
+- `node --test tests/test_sidebar_navigation.cjs`
+- `git diff --check`
+
+Evidence:
+
+- RED: `node --test tests/test_sidebar_navigation.cjs` reported 10 passed and 2 failed for native titles on destination buttons and generated advanced summaries; the delegated custom-tooltip coverage passed.
+- First implementation rerun reported 11 passed and 1 failed because the summary assertion expected `label` instead of the source's `label.textContent`; the assertion was corrected to match the accessible-name value.
+- GREEN: `node --test tests/test_sidebar_navigation.cjs` passed 12/12 after removing the two native title assignments and adding the generated summary's `aria-label`.
+- `git diff --check`: passed; Git emitted a line-ending normalization warning for the task document.
+- The delegated custom tooltip selectors and pointer/focus handlers remain covered by the passing regression test.
+- Work-unit commit identity is recorded in the final implementation handoff.
+
 ## Closing checks
 
 - Run all non-emitting JavaScript tests.
@@ -370,7 +399,8 @@ Evidence:
 - UX-2 complete and committed.
 - UX-3 complete and committed.
 - UX-4 through UX-7 complete locally and committed; UX-8 and UX-9 authorized and pending.
-- UX-10 authorized and mapped; implementation is pending.
+- UX-10 implementation and focused verification are complete.
+- UX-11 implementation and focused verification are complete; commit identity is recorded in the final implementation handoff.
 - Full closing Node suite: 305/305 passed after correcting a stale source-order assertion.
 - JavaScript syntax: 88 authored files passed.
 - Overlay type check: `tsc --noEmit` passed.
@@ -388,4 +418,4 @@ Evidence:
 
 ## Next step
 
-Complete UX-10, then resume UX-8 and UX-9.
+Resume UX-8 and UX-9.

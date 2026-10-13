@@ -87,7 +87,6 @@
     text.className = 'sidebar-label';
     text.textContent = label;
     button.setAttribute('aria-label', label);
-    button.title = label;
     button.replaceChildren(icon(icons[button.dataset.sectionNav] || icons.workspace), text);
   }
   for (const id of ['emergency-button']) {
@@ -156,7 +155,7 @@
   const advancedSections = [];
   for (const label of [...sidebar.querySelectorAll('.nav-section-label[data-advanced-only]')]) {
     const section = document.createElement('details'); section.className = 'nav-advanced-section'; section.dataset.advancedOnly = 'true';
-    const heading = document.createElement('summary'); heading.title = label.textContent;
+    const heading = document.createElement('summary'); heading.setAttribute('aria-label', label.textContent);
     const text = document.createElement('span'); text.className = 'nav-category-label'; text.textContent = label.textContent;
     const current = document.createElement('span'); current.className = 'nav-current-label'; current.hidden = true;
     const copy = document.createElement('span'); copy.className = 'nav-category-copy'; copy.append(text, current);
