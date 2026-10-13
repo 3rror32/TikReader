@@ -13,6 +13,7 @@ const signatureCollection = read('web/static/theme_signature_collection.css');
 const js = read('web/static/visual_refresh.js');
 const presence = read('web/static/live_presence.js');
 const liveButtonIcons = read('web/static/live_button_icons.js');
+const production = read('web/static/production.js');
 const liveColumns = read('web/static/live_columns.css');
 const liveRefinement = read('web/static/live_refinement.css');
 
@@ -31,29 +32,25 @@ test('automatic voice controls switch to a muted speaker icon when disabled', ()
   assert.match(liveColumns, /M16(?:%20|\s)9l5(?:%20|\s)5/);
 });
 
-test('comment actions stay compact and the More disclosure keeps an icon-sized label', () => {
-  assert.match(liveRefinement, /\.comment-card \.comment-actions\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*align-self:\s*flex-start[^}]*flex-wrap:\s*nowrap/s);
-  const moreControl = liveRefinement.match(/\.comment-actions > details\s*\{([^}]*)\}/s)?.[1] || '';
-  assert.match(moreControl, /width:\s*36px/);
-  assert.match(moreControl, /height:\s*36px/);
-  assert.match(moreControl, /flex:\s*0 0 36px/);
+test('comment actions stay visible, labeled, and wrap without splitting button text', () => {
+  const commentDecoration = production.match(/function decorate\(card,data\)\{([\s\S]*?)\n function readComment/)?.[1] || '';
+  assert.match(commentDecoration, /marker\.type\s*=\s*'button'/);
+  assert.match(commentDecoration, /marker\.textContent\s*=\s*'Marcar momento'/);
+  assert.match(commentDecoration, /translation\.type\s*=\s*'button'/);
+  assert.match(commentDecoration, /translation\.textContent\s*=\s*'Traducir'/);
+  assert.match(commentDecoration, /marker\.setAttribute\('data-live-label',\s*'true'\)/);
+  assert.match(commentDecoration, /translation\.setAttribute\('data-live-label',\s*'true'\)/);
+  assert.match(commentDecoration, /bar\.append\(marker,\s*translation\)/);
+  assert.doesNotMatch(commentDecoration, /document\.createElement\(["']details["']\)/);
+  assert.match(liveButtonIcons, /control\.hasAttribute\('data-live-label'\)\)\s*return/);
+  assert.doesNotMatch(liveButtonIcons, /comment-actions summary/);
+  assert.match(liveRefinement, /\.comment-card \.comment-actions\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*align-self:\s*flex-start[^}]*flex-wrap:\s*wrap/s);
+  assert.match(liveRefinement, /html\[data-skin\] body \.live-columns \.comment-actions > button\[data-live-label\]\s*\{[^}]*white-space:\s*nowrap/);
+  assert.doesNotMatch(liveRefinement, /\.comment-actions\s*>\s*details|\.comment-actions\s*>\s*details\[open\]/);
+  assert.match(liveRefinement, /@media\s*\(pointer:\s*coarse\)[\s\S]*?\.live-columns \.comment-actions > button\s*\{[^}]*min-height:\s*44px/);
+  assert.match(liveRefinement, /\.comment-actions > button:focus-visible\s*\{[^}]*outline/);
+  assert.match(template, /live_refinement\.css\?v=usability-2/);
   assert.match(liveColumns, /html body \.live-columns \[data-live-icon\][\s\S]*?width:\s*36px[\s\S]*?height:\s*36px/);
-  assert.match(liveButtonIcons, /control\.setAttribute\('aria-label', text\)/);
-});
-
-test('the More disclosure opens outside the action row and matches mobile icon geometry', () => {
-  const compactDetails = liveRefinement.match(/\.comment-actions > details\s*\{([^}]*)\}/s)?.[1] || '';
-  const openDetails = liveRefinement.match(/\.comment-actions > details\[open\]\s*\{([^}]*)\}/s)?.[1] || '';
-  const mobileDetails = liveRefinement.match(/@media\s*\(max-width:\s*700px\)\s*\{\s*\.live-columns \.comment-actions > details\s*\{([^}]*)\}/s)?.[1] || '';
-  assert.match(compactDetails, /padding:\s*0/);
-  assert.match(openDetails, /position:\s*absolute/);
-  assert.match(openDetails, /display:\s*flex/);
-  assert.match(openDetails, /flex-direction:\s*column/);
-  assert.match(openDetails, /height:\s*auto/);
-  assert.match(openDetails, /overflow-y:\s*auto/);
-  assert.match(mobileDetails, /width:\s*44px/);
-  assert.match(mobileDetails, /height:\s*44px/);
-  assert.match(mobileDetails, /flex:\s*0 0 44px/);
 });
 
 test('desktop participant scrolling reserves space and stays inside a fixed panel', () => {

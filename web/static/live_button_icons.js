@@ -51,7 +51,7 @@
   }
   const ownLabels = new WeakSet();
   function decorate(control) {
-    if (!control.closest(scope) || control.matches('.empty-state-action')) return;
+    if (!control.closest(scope) || control.matches('.empty-state-action') || control.hasAttribute('data-live-label')) return;
     const text = (window.I18n?.sourceText(control) ?? control.textContent).trim();
     const label = control.getAttribute('aria-label') || text;
     if (!control.hasAttribute('aria-label') || ownLabels.has(control)) {
@@ -97,8 +97,7 @@
       'greeting-auto-toggle': 'Activa o desactiva los saludos automáticos a personas nuevas.',
       'chat-new-messages': 'Vuelve a los comentarios más recientes y activa el seguimiento.',
     };
-    const specific = control.matches('.feed-actions > button[onclick="clearFeed()"]') ? 'Limpia los comentarios visibles; no borra el historial guardado.'
-      : control.matches('.comment-actions summary') ? 'Abre más acciones para este comentario, como marcar un momento o traducir.' : '';
+    const specific = control.matches('.feed-actions > button[onclick="clearFeed()"]') ? 'Limpia los comentarios visibles; no borra el historial guardado.' : '';
     control.dataset.help = byId[control.id] || specific || help[icon] || (icon === 'voice' && !text.includes('traducción') ? 'Lee este comentario en voz alta.' : control.getAttribute('aria-label') || label);
   }
   function scan(node) {
