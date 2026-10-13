@@ -43,7 +43,8 @@ The live session can receive gifts and participant activity while the comment co
   - Progress: callback now tolerates absent user objects, selects public account-name aliases, uses a stable anonymous fallback, skips blank comments, and logs only bounded error categories or exception class names.
   - Test-first evidence: focused regression tests were written before the implementation. RED could not be observed because the system Python launcher is inaccessible and the available bundled Python has no `pytest` module.
   - Checks observed: `python -m pytest tests/test_server.py -k "comment" -q` — unavailable (`python.exe` launch denied); bundled Python equivalent — unavailable (`No module named pytest`); bundled Python AST parse of `app/server.py` and `tests/test_server.py` — passed; `git diff --check` — passed.
-  - Approximate authored change size: 150 lines across callback, focused tests, and this tracking update.
+  - Approximate authored change size: 190 lines across callback, focused tests, and this tracking update.
+  - Work-unit commit: `acfb348` (`fix: harden TikTok comment event handling`).
   - Completion: pending focused pytest execution; do not close TCER-1 until it passes.
   - Next step: restore a local Python environment with pytest, run the focused selector, then update this evidence and close the task if all criteria pass.
 
