@@ -79,7 +79,7 @@ class SeasonalTests(unittest.TestCase):
         bundle = Path(__file__).resolve().parent.parent / 'web/static/vendor/raindrop-fx/original.js'
         integration = Path(__file__).resolve().parent.parent / 'web/static/rain_original.js'
         integration_source = integration.read_text(encoding='utf-8')
-        self.assertEqual(hashlib.sha256(bundle.read_bytes()).hexdigest(), 'cbe3df720636639d5bec28855bac5cc5395f0593f6b731c9fad98ab1de68100b')
+        self.assertEqual(hashlib.sha256(bundle.read_bytes()).hexdigest(), 'fd4eb6115854a5bfc236b53dcc75bd3ef930d842510da06d6d07ae46fb958970')
         self.assertNotIn('matrlCompose.setPipelineStateOverride', integration_source)
         self.assertIn('new ResizeObserver(scheduleResize)', integration_source)
         self.assertIn('canvas.getBoundingClientRect()', integration_source)

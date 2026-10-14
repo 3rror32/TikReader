@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import zipfile
+from unittest.mock import patch
 
 import data_recovery
 from history_store import HistoryStore
@@ -41,10 +42,12 @@ class LayoutTests(unittest.TestCase):
             voice = source / 'assets' / 'voice_models' / 'example' / 'model.pth'
             voice.parent.mkdir(parents=True)
             voice.write_bytes(b'voice fixture')
-            package = data_recovery.backup(root / 'backup.zip', source)
+            with patch.dict('os.environ', {'TIKREADER_DATA_DIR': ''}):
+                package = data_recovery.backup(root / 'backup.zip', source)
             with zipfile.ZipFile(package) as archive:
                 self.assertIn('voice_models/example/model.pth', archive.namelist())
-            data_recovery.restore(package, target)
+            with patch.dict('os.environ', {'TIKREADER_DATA_DIR': ''}):
+                data_recovery.restore(package, target)
             restored = target / 'assets' / 'voice_models' / 'example' / 'model.pth'
             self.assertEqual(restored.read_bytes(), b'voice fixture')
             self.assertFalse((target / 'data' / 'voice_models').exists())

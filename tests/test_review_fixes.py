@@ -109,15 +109,18 @@ class ReviewFixes(unittest.TestCase):
             points=PointsSystem(self.app,self.r);points.config['enabled']=True;points.event('comment',{'user':'viewer'},'one')
             self.r.archive.set_setting('points_config',points.config)
             media=data/'alert_media';media.mkdir();(media/'image.png').write_bytes(b'image')
-            package=data_recovery.backup(root/'full.zip',root)
+            with patch.dict('os.environ',TIKREADER_DATA_DIR=''):
+                package=data_recovery.backup(root/'full.zip',root)
             target=Path(destination)
-            self.assertIsNone(data_recovery.restore(package,target))
+            with patch.dict('os.environ',TIKREADER_DATA_DIR=''):
+                self.assertIsNone(data_recovery.restore(package,target))
             store=HistoryStore(target/'data'/'history.sqlite3')
             self.assertTrue(store.settings()['points_config']['enabled'])
             with store.connect() as db:self.assertEqual(db.execute('SELECT points FROM viewer_points').fetchone()[0],1)
             self.assertEqual((target/'data'/'alert_media'/'image.png').read_bytes(),b'image')
             store.set_setting('points_config',{'enabled':False})
-            previous=data_recovery.restore(package,target)
+            with patch.dict('os.environ',TIKREADER_DATA_DIR=''):
+                previous=data_recovery.restore(package,target)
             self.assertTrue(previous.is_file());self.assertTrue(store.settings()['points_config']['enabled'])
 
     def test_recovery_rolls_back_when_replacement_fails(self):
@@ -125,13 +128,17 @@ class ReviewFixes(unittest.TestCase):
             root=Path(folder);data=root/'data';data.mkdir()
             store=HistoryStore(data/'history.sqlite3');store.set_setting('x',1)
             media=data/'media';media.mkdir();(media/'a.wav').write_bytes(b'old')
-            package=data_recovery.backup(root/'full.zip',root);store.set_setting('x',2)
+            with patch.dict('os.environ',TIKREADER_DATA_DIR=''):
+                package=data_recovery.backup(root/'full.zip',root)
+            store.set_setting('x',2)
             original=data_recovery.os.replace;calls=[]
             def replace(source,target):
                 calls.append(str(target))
                 if len(calls)==2:raise OSError('simulated disk failure')
                 return original(source,target)
-            with patch('data_recovery.os.replace',side_effect=replace),self.assertRaises(OSError):data_recovery.restore(package,root)
+            with patch.dict('os.environ',TIKREADER_DATA_DIR=''), \
+                    patch('data_recovery.os.replace',side_effect=replace),self.assertRaises(OSError):
+                data_recovery.restore(package,root)
             self.assertEqual(store.settings()['x'],2)
 
 

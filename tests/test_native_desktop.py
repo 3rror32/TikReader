@@ -55,11 +55,15 @@ class DesktopApiTests(unittest.TestCase):
 
 
 class DesktopWindowSafetyTests(unittest.TestCase):
-    def test_windows_launcher_waits_without_batch_interrupt_prompt(self):
+    def test_windows_launcher_uses_nonblocking_powershell_process_validation(self):
         root = Path(__file__).resolve().parents[1]
         script = (root / 'Iniciar TikReader.cmd').read_text(encoding='utf-8')
 
-        self.assertEqual(script.count('start "" /wait /b'), 3)
+        self.assertIn('powershell.exe -NoProfile -NonInteractive -Command', script)
+        self.assertIn('Start-Process -FilePath $exe', script)
+        self.assertIn('if ($actual -ne $exe)', script)
+        self.assertNotIn('start "" /wait /b', script)
+        self.assertNotIn('Start-Process -Wait', script)
 
     def test_native_startup_uses_a_branded_animated_splash(self):
         root = Path(__file__).resolve().parents[1]

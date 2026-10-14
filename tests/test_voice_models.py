@@ -19,6 +19,9 @@ from types import SimpleNamespace
 
 class VoiceModelTests(unittest.TestCase):
     def setUp(self):
+        self.data_override = patch.dict(os.environ, {'TIKREADER_DATA_DIR': ''})
+        self.data_override.start()
+        self.addCleanup(self.data_override.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.app = Flask(__name__, template_folder=str(Path(__file__).resolve().parent.parent / 'web' / 'templates'))
@@ -129,13 +132,14 @@ class VoiceModelTests(unittest.TestCase):
     @unittest.skipUnless(os.name == 'nt', 'Windows process ownership')
     def test_gpu_runner_exits_when_owner_is_terminated(self):
         # Exercise the real process watcher without loading torch or a voice model.
-        child_code = ('from rvc_gpu_runner import watch_parent; import os,time; '
+        runner_path = str(Path(__file__).resolve().parent.parent / 'app')
+        child_code = (f'import sys; sys.path.insert(0, {runner_path!r}); '
+                      'from rvc_gpu_runner import watch_parent; import os,time; '
                       'watch_parent(os.getppid()); print("ready",flush=True); time.sleep(30)')
         parent_code = ('import subprocess,sys,time,json; '
                        f'p=subprocess.Popen([sys.executable,"-c",{child_code!r}],stdout=subprocess.PIPE,text=True); '
                        'print(json.dumps({"pid":p.pid,"state":p.stdout.readline().strip()}),flush=True); time.sleep(30)')
-        env = {**os.environ, 'PYTHONPATH': str(Path(__file__).resolve().parent.parent / 'app')}
-        owner = subprocess.Popen([sys.executable, '-c', parent_code], stdout=subprocess.PIPE, text=True, env=env)
+        owner = subprocess.Popen([sys.executable, '-c', parent_code], stdout=subprocess.PIPE, text=True)
         import ctypes
         from ctypes import wintypes
         kernel = ctypes.WinDLL('kernel32', use_last_error=True)

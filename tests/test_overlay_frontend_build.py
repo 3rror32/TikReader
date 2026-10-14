@@ -17,11 +17,11 @@ def test_overlay_templates_use_vite_builds():
 
 
 def test_likes_and_gifts_have_independent_public_routes():
-    server = (ROOT / "app/server.py").read_text(encoding="utf-8")
+    routes = (ROOT / "app/widget_routes.py").read_text(encoding="utf-8")
     production = (ROOT / "app/production.py").read_text(encoding="utf-8")
     workspace = (ROOT / "web/static/workspace.js").read_text(encoding="utf-8")
-    assert '@app.route("/overlay/likes")' in server
-    assert '@app.route("/overlay/gifts")' in server
+    assert '@app.get("/overlay/likes")' in routes
+    assert '@app.get("/overlay/gifts")' in routes
     assert "'/overlay/'" in production
     assert "Likes separados" in workspace
     assert "Regalos separados" in workspace
