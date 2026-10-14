@@ -143,6 +143,12 @@ test('voice setup keeps system, Kokoro, and RVC sources without character choice
   const rvcSource = operator.page.locator('[name="custom-voice-source"][value="local"]');
   await expect(kokoroSource).toBeVisible();
   await expect(rvcSource).toBeVisible();
+  const summaryButtonEdges = await operator.page.locator('.voice-summary').evaluate(summary => {
+    const save = summary.querySelector('#custom-voice-save').getBoundingClientRect();
+    const cancel = summary.querySelector('#custom-voice-cancel').getBoundingClientRect();
+    return { left: Math.round(save.left - cancel.left), right: Math.round(save.right - cancel.right) };
+  });
+  expect(summaryButtonEdges).toEqual({ left: 0, right: 0 });
   const saved = await operator.page.evaluate(() => JSON.parse(localStorage.getItem('tikreader.voiceCharacter')));
   expect(saved).toMatchObject({ engine: 'browser', name: 'Voz de este equipo', pitch: 1, rate: 1 });
   expect(saved).not.toHaveProperty('personality');

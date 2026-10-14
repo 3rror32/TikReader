@@ -63,7 +63,7 @@ html body :is(.settings-heading, .simulation-heading, .overlay-editor-heading, .
 html body :is(.settings-heading, .simulation-heading, .overlay-editor-heading, .game-action-head) > div { min-width: 0; }
 html body :is(button, summary) { overflow-wrap: anywhere; }
 html body input::file-selector-button { font-size: var(--ui-type-body); line-height: 1.4; }
+html body .voice-summary > :is(#custom-voice-save, #custom-voice-cancel) { width: 100%; margin-inline: 0; }
 @media (max-width: 600px) {
   html body :is(.tool-buttons, .pane-actions, .actions, .overlay-actions) > :is(button, a) { max-width: 100%; }
-  html body .voice-summary > button { width: 100%; margin-inline: 0; }
 }
