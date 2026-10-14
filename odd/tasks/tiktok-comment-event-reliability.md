@@ -124,6 +124,7 @@ The live session can receive gifts and participant activity while the comment co
   - Installer: `release/TikReader-1.0.0.8-Beta-Setup.exe` exists, is 311,464,918 bytes, and has UTC timestamp `2026-10-14T00:08:07.7079018Z`, later than size-control commit `86ee55e` (`2026-10-13T16:59:25-07:00`).
   - Checks: `python tools/validate_release.py` using the local Python 3.13 toolchain passed all six packaged-runtime checks. `qa_release.cjs` was not repeated because its previously documented `#settings-save-device` selector is absent from the current UI and the script is stale. `git diff --check` passed. No app install or TikTok session was started.
   - Generated changes: no tracked build outputs changed; payload and installer are ignored release artifacts and were not force-added. The ODD document is the only change from this task. Two unrelated dirty files appeared outside the authorized edit surfaces during the build (`tests/browser/operator.spec.cjs`, `web/static/ui_typography.css`) and were preserved, not staged.
+  - Work-unit commit: `fd3597a` (`docs: record TCER-5 package rebuild`).
   - Completion: complete for TCER-5. TCER-3 remains blocked pending explicit authorization to install.
 
 ## Progress
