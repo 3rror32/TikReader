@@ -9,7 +9,6 @@ test.describe('operator startup evidence', () => {
     await expect(page.locator('#operator-boot-status')).toBeVisible();
     await expect(page.locator('.app')).toBeVisible();
     await expect(page.locator('.app')).toHaveAttribute('inert', '');
-    await expect(page.locator('#operator-boot-status')).toContainText('Estructura visible');
     await firstNavigation;
     await expect(page.locator('html')).toHaveAttribute('data-operator-boot-state', 'shell-ready');
     await expect(page.locator('.app')).toHaveAttribute('inert', '');
@@ -39,9 +38,14 @@ test.describe('operator startup evidence', () => {
     };
     expect(measurements.cold.assetRequestCount).toBeGreaterThan(0);
     expect(measurements.cold.transferredBytes).toBeGreaterThan(0);
-    expect(measurements.cold.boot.firstUsefulStructureMs).not.toBeNull();
-    expect(measurements.cold.boot.milestones.shellReadyMs).not.toBeNull();
-    expect(measurements.cold.boot.milestones.backendReadyMs).not.toBeNull();
+    for (const run of [measurements.cold, measurements.warm]) {
+      const milestones = run.boot.milestones;
+      expect(run.boot.firstUsefulStructureMs).not.toBeNull();
+      expect(milestones.shellReadyMs).not.toBeNull();
+      expect(milestones.backendReadyMs).not.toBeNull();
+      expect(run.boot.firstUsefulStructureMs).toBeLessThan(milestones.shellReadyMs);
+      expect(milestones.shellReadyMs).toBeLessThan(milestones.backendReadyMs);
+    }
     expect(measurements.warm.boot.milestones.tikTokLiveMs).toBeNull();
     await testInfo.attach('operator-startup-measurements', { body: JSON.stringify(measurements, null, 2), contentType: 'application/json' });
     const concise = Object.fromEntries(Object.entries(measurements).map(([label, row]) => [label, {

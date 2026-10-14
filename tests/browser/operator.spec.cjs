@@ -532,11 +532,27 @@ for (const theme of representative) {
     expect(bounds.panel.bottom).toBeLessThanOrEqual(bounds.viewport.height);
     const captureBoundary = page;
     await page.locator('#sidebar-search-input').hover();
+    const expectRecoveryActionInsideFeed = async () => {
+      const feed = page.locator('#comment-feed');
+      const recoveryAction = feed.locator('.empty-state-action');
+      await expect(recoveryAction).toBeVisible();
+      expect(await feed.evaluate(node => node.scrollTop)).toBe(0);
+      const feedBounds = await feed.boundingBox();
+      const actionBounds = await recoveryAction.boundingBox();
+      expect(feedBounds).not.toBeNull();
+      expect(actionBounds).not.toBeNull();
+      expect(actionBounds.x).toBeGreaterThanOrEqual(feedBounds.x);
+      expect(actionBounds.x + actionBounds.width).toBeLessThanOrEqual(feedBounds.x + feedBounds.width);
+      expect(actionBounds.y).toBeGreaterThanOrEqual(feedBounds.y);
+      expect(actionBounds.y + actionBounds.height).toBeLessThanOrEqual(feedBounds.y + feedBounds.height);
+    };
+    await expectRecoveryActionInsideFeed();
     const review = testInfo.outputPath(`${theme}-review.png`);
     const image = await captureBoundary.screenshot({ ...operator.captureOptions(), path: review });
     expect({ width: image.readUInt32BE(16), height: image.readUInt32BE(20) })
       .toEqual({ width: 2560, height: 1800 });
     await testInfo.attach('reviewed-zoom-capture', { path: review, contentType: 'image/png' });
+    await expectRecoveryActionInsideFeed();
     await expect(captureBoundary).toHaveScreenshot(`${theme}.png`, operator.captureOptions());
     expect(await page.evaluate(() => innerWidth)).toBe(before.width);
     await operator.zoom(1);

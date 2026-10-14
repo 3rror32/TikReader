@@ -4,6 +4,7 @@ body:not(.config-view) .app { grid-template-rows: auto auto minmax(0, 1fr); }
   grid-template-columns: minmax(0, 1.3fr) minmax(0, .85fr) minmax(0, 1fr);
   gap: 12px;
 }
+.live-columns #comment-feed { min-height: 0; }
 .live-columns > .participants-bar,
 .live-columns > .gifts-column,
 .live-columns > .feed-wrap {
@@ -96,8 +97,9 @@ body:not(.config-view) .app { grid-template-rows: auto auto minmax(0, 1fr); }
 .live-columns .gift-scroll { padding: 0 12px; min-height: 0; overflow: auto; }
 .live-columns [data-pane="gifts"] > p:last-child { margin: 0 !important; padding: 12px 14px; line-height: 1.6; }
 .live-columns .gift-ranking { margin: 0; padding: 12px 14px; max-height: 40%; overflow: auto; flex-shrink: 0; }
-.live-columns .chat-tools { gap: 8px; }
-.live-columns #chat-search { flex-basis: 100%; }
+.live-columns .chat-tools { gap: 8px; flex-wrap: wrap; align-items: center; }
+.live-columns #chat-search { flex: 1 1 14rem; min-width: min(100%, 12rem); height: 36px; }
+.live-columns .chat-tools label { flex: 0 0 auto; }
 .live-columns .voice-dock #voice-visible { flex-basis: 100%; text-align: left; }
 /* Keep the same dimensions and states across all three control groups. */
 html body .live-columns button {
@@ -286,8 +288,8 @@ html body .live-columns [data-live-icon][aria-expanded="true"] {
 html body .live-columns .toolbar-disclosure > summary { display: none; }
 html body .live-columns .toolbar-disclosure:not([open]) { display: none; }
 .live-columns .live-voice-queue[open] { margin: 0; padding: 10px 14px; }
-.live-columns #voice-visible { padding: 7px 14px; flex: 0 0 auto; }
-.live-columns .chat-tools { padding: 8px 14px; }
+.live-columns #voice-visible { padding: 0 14px; flex: 0 0 auto; }
+.live-columns .chat-tools { padding: 4px 14px; }
 @media (max-width: 700px) {
   html body .live-columns .live-reading-controls [data-live-icon] {
     width: 36px; height: 36px; min-height: 36px; flex-basis: 36px;

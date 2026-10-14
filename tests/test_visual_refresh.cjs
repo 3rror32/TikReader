@@ -58,6 +58,17 @@ test('desktop participant scrolling reserves space and stays inside a fixed pane
   assert.match(liveRefinement, /\.live-columns \.participants-list\s*\{[^}]*overflow-y:\s*scroll[^}]*scrollbar-gutter:\s*stable[^}]*overscroll-behavior:\s*contain[^}]*overflow-anchor:\s*none/s);
 });
 
+test('operator recovery content fits the clipped feed and Swiss Brutalist keeps three desk tracks', () => {
+  const feedRule = liveColumns.match(/\.live-columns #comment-feed\s*\{([^}]*)\}/)?.[1] || '';
+  const emptyStateRule = css.match(/#empty-state\s*\{([^}]*)\}/)?.[1] || '';
+  const swissDeskRule = signatureCollection.match(/html\[data-skin="swiss-brutalist"\] body \.live-columns\s*\{([^}]*)\}/)?.[1] || '';
+  assert.match(feedRule, /min-height:\s*0/);
+  assert.match(emptyStateRule, /height:\s*auto/);
+  assert.match(emptyStateRule, /margin:\s*0\s+auto/);
+  assert.match(emptyStateRule, /padding:\s*20px/);
+  assert.match(swissDeskRule, /grid-template-columns:\s*minmax\(0,\s*1\.52fr\)\s+minmax\(0,\s*\.72fr\)\s+minmax\(0,\s*1fr\)/);
+});
+
 test('the disconnected desk has no colored metric pipes', () => {
   assert.match(css, /body:not\(\[data-live-state="live"\]\)[\s\S]*\.stat-card::before\s*{\s*display: none/);
   assert.match(presence, /const state = mode !== 'live' \? 'inactive' : pending \? 'pending'/);

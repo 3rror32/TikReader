@@ -531,7 +531,7 @@ html[data-skin="swiss-brutalist"] body .session-panel .stat-card {
 html[data-skin="swiss-brutalist"] body .session-panel .stat-card:last-child { border-right: 0 !important; }
 
 html[data-skin="swiss-brutalist"] body .live-columns {
-  grid-template-columns: minmax(0, 1.52fr) minmax(280px, .72fr);
+  grid-template-columns: minmax(0, 1.52fr) minmax(0, .72fr) minmax(0, 1fr);
   gap: 20px;
 }
 

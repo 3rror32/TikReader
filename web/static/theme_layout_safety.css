@@ -96,3 +96,27 @@ html[data-skin="tactile-scrapbook"] body .sidebar-brand {
     margin-inline: 0 !important;
   }
 }
+
+/* Keep the themed three-panel desk usable when the desktop canvas has room
+   for its content floors. Below this breakpoint, each skin keeps its existing
+   responsive fallback instead of forcing the tracks to overflow. */
+@media (min-width: 1201px) {
+  html[data-skin="broadcast-console"] body .live-columns,
+  html[data-skin="creator-pop"] body .live-columns,
+  html[data-skin="swiss-brutalist"] body .live-columns,
+  html[data-skin="tactile-scrapbook"] body .live-columns {
+    grid-template-columns: minmax(460px, 1.52fr) minmax(180px, .72fr) minmax(220px, 1fr);
+    gap: 20px;
+  }
+
+  html[data-skin="broadcast-console"] body .live-columns > .feed-wrap > .live-reading-controls,
+  html[data-skin="creator-pop"] body .live-columns > .feed-wrap > .live-reading-controls,
+  html[data-skin="swiss-brutalist"] body .live-columns > .feed-wrap > .live-reading-controls,
+  html[data-skin="tactile-scrapbook"] body .live-columns > .feed-wrap > .live-reading-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: auto;
+    overscroll-behavior-x: contain;
+  }
+}
