@@ -61,7 +61,7 @@ test('Connect declarations beat the shared important control cascade', () => {
   assert.match(liveRefinement, /prefers-reduced-motion: reduce[\s\S]*#btn-connect\.btn-primary::before[\s\S]*transition: none/);
 });
 
-test('Connect uses an accessible inline connection icon and synchronous pending state', () => {
+test('Connect uses an accessible inline icon and exposes its live state', () => {
   const template = fs.readFileSync(path.join(root, 'web/templates/index.html'), 'utf8');
   const coreUi = fs.readFileSync(path.join(root, 'web/static/core_ui.js'), 'utf8');
   const button = template.match(/<button class="btn btn-primary" id="btn-connect"[\s\S]*?<\/button>/)?.[0];
@@ -72,12 +72,13 @@ test('Connect uses an accessible inline connection icon and synchronous pending 
   assert.match(button, /M12 17v1a4 4 0 0 0 4 4h2/);
   assert.doesNotMatch(button, /M8\.8 5\.4|M6 3\.2|L12 8l3\.2 13/);
   assert.doesNotMatch(button, /↗|\bmask:/);
-  assert.match(button, /Conectar/);
-  assert.match(button, /Conectando…/);
-  assert.match(button, /role="status"/);
-  assert.match(coreUi, /setConnectPending\(true\)/);
-  assert.match(coreUi, /setConnectPending\(false\)/);
-  assert.match(coreUi, /function setConnectPending\(/);
+  assert.match(button, /data-connection-state="disconnected"/);
+  assert.match(button, /aria-live="polite" aria-busy="false" aria-disabled="false"/);
+  assert.match(button, /<span class="connect-button__label">Conectar<\/span>/);
+  assert.doesNotMatch(button, /connect-button__spinner|Conectando…/);
+  assert.match(coreUi, /const labels = \{[^}]*connecting: 'Conectando…'/);
+  assert.match(coreUi, /button\.dataset\.connectionState = state/);
+  assert.match(coreUi, /button\.setAttribute\('aria-busy', String\(transitioning\)\)/);
 });
 
 test('Connect reserves motion for its pending orbit rather than idle shimmer', () => {
@@ -91,21 +92,23 @@ test('Connect reserves motion for its pending orbit rather than idle shimmer', (
   assert.match(hover, /#25f4ee/i);
   assert.match(hover, /#fe2c55/i);
   assert.match(active, /transform: none/);
-  assert.match(rule('.session-panel #btn-connect .connect-button__spinner'), /animation: connect-spin 1\.1s linear infinite/);
   assert.match(liveRefinement, /prefers-reduced-motion: reduce[\s\S]*#btn-connect\.btn-primary::before[\s\S]*animation: none !important/);
 });
 
-test('Pending connection keeps Stop available and reduced motion resets hover scale', () => {
+test('Pending connection updates the shared state and reduced motion resets hover scale', () => {
   const coreUi = fs.readFileSync(path.join(root, 'web/static/core_ui.js'), 'utf8');
-  const pending = coreUi.match(/function setConnectPending\(pending\) \{([\s\S]*?)\n\}/)?.[1];
+  const state = coreUi.match(/function setConnectionState\(state\) \{([\s\S]*?)\n\}/)?.[1];
   const start = coreUi.match(/function startLive\(\) \{([\s\S]*?)\n\}/)?.[1];
   const connecting = coreUi.match(/socket\.on\('connecting',[\s\S]*?\n\}\);/)?.[0];
   const restored = coreUi.match(/socket\.on\('status',[\s\S]*?\n\}\);/)?.[0];
 
-  assert.match(pending, /btn-stop/);
-  assert.match(start, /setConnectPending\(true\)/);
-  assert.match(connecting, /setConnectPending\(true\)/);
-  assert.match(restored, /else setConnectPending\(true\)/);
+  assert.match(state, /button\.dataset\.connectionState = state/);
+  assert.match(state, /button\.classList\.toggle\('is-connecting', state === 'connecting'\)/);
+  assert.match(state, /button\.setAttribute\('aria-busy', String\(transitioning\)\)/);
+  assert.match(state, /btn-stop/);
+  assert.match(start, /setConnectionState\('connecting'\)/);
+  assert.match(connecting, /setConnectionState\('connecting'\)/);
+  assert.match(restored, /else setConnectionState\('connecting'\)/);
   assert.match(restored, /setButtons\(false\)/);
   assert.match(
     liveRefinement,

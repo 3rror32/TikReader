@@ -5,18 +5,19 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const script = fs.readFileSync(`${__dirname}/../web/static/core_ui.js`, 'utf8');
 
-test('TikTok connecting indicator has an animated, reduced-motion-safe mark', () => {
+test('Connect button exposes its pending state without duplicating the label', () => {
   const html = fs.readFileSync(`${__dirname}/../web/templates/index.html`, 'utf8');
-  const css = fs.readFileSync(`${__dirname}/../web/static/live_presence.css`, 'utf8');
-  assert.match(html, /class="connect-button__spinner" aria-hidden="true"/);
-  assert.match(css, /#btn-connect\.is-connecting \.connect-button__spinner/);
-  assert.match(css, /connect-orbit/);
-  assert.match(css, /prefers-reduced-motion:\s*reduce[\s\S]*?connect-button__spinner[\s\S]*?animation:\s*none/);
+  assert.match(html, /id="btn-connect" data-connection-state="disconnected"[^>]*aria-live="polite" aria-busy="false"/);
+  assert.match(html, /<span class="connect-button__label">Conectar<\/span>/);
+  assert.doesNotMatch(html, /connect-button__spinner|Conectando…/);
+  assert.match(script, /button\.dataset\.connectionState = state/);
+  assert.match(script, /button\.classList\.toggle\('is-connecting', state === 'connecting'\)/);
+  assert.match(script, /button\.setAttribute\('aria-busy', String\(transitioning\)\)/);
 });
 
 function setup() {
   const feed = {
-    children: [], scrollTop: 0,
+    children: [], scrollTop: 0, dataset: {}, style: {setProperty() {}},
     get firstElementChild() { return this.children[0]; },
     get lastChild() { return this.children.at(-1); },
     set innerHTML(_) { this.children = []; },

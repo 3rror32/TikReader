@@ -3,20 +3,18 @@ const fs=require('node:fs'),vm=require('node:vm'),test=require('node:test'),asse
 const source=fs.readFileSync('web/static/custom_voice.js','utf8');
 function setup(){
   const spoken=[],timers=[],status={textContent:''},sample={value:'Esta es mi frase personalizada.'};
-  let character={id:'heroe',name:'Héroe',pitch:1.42,rate:1.22};
   const voice={voiceURI:'test-es',lang:'es-MX',localService:true};
   const window={speechSynthesis:{getVoices:()=>[voice],cancel(){},resume(){this.paused=false;},speak(u){assert.equal(this.paused,false);spoken.push(u);}}};
   vm.runInNewContext(fs.readFileSync('web/static/voice_personality.js','utf8'),{window,Math:{random:()=>.5,min:Math.min,max:Math.max}});
-  const context=vm.createContext({window,status,select:{value:'test-es'},SpeechSynthesisUtterance:function(text){this.text=text;},$:id=>id==='custom-voice-sample'?sample:{value:'.7'},source:()=> 'browser',current:()=>character,setTimeout:fn=>timers.push(fn),document:{addEventListener(){}},URL:{revokeObjectURL(){}}});
+  const context=vm.createContext({window,status,select:{value:'test-es'},SpeechSynthesisUtterance:function(text){this.text=text;},$:id=>id==='custom-voice-sample'?sample:{value:'.7'},source:()=> 'browser',current:()=>({id:'browser',name:'Voz de este equipo',pitch:1,rate:1}),setTimeout:fn=>timers.push(fn),document:{addEventListener(){}},URL:{revokeObjectURL(){}}});
   const handler=source.split('\n').find(line=>line.includes("$('custom-voice-test').onclick="));
-  vm.runInContext('let previewGeneration=0,previewController=null,previewUrl=null,previewAudio=null,previewUtterance=null;'+source.slice(source.indexOf(' function stopPreview'),source.indexOf(' let custom='))+'var run='+handler.slice(handler.indexOf('async()=>')),context);
-  return {context,spoken,timers,status,window,sample,setCharacter:c=>{character=c;}};
+  const stop=source.split('\n').find(line=>line.includes('function stopPreview('));
+  vm.runInContext('let previewGeneration=0,previewController=null,previewUrl=null,previewAudio=null,previewUtterance=null;'+stop+'\nvar run='+handler.slice(handler.indexOf('async()=>')),context);
+  return {context,spoken,timers,status,window,sample};
 }
-test('shared preview uses the edited text and currently selected character',async()=>{
+test('browser preview uses the edited text and standard local voice settings',async()=>{
   const p=setup();await p.context.run();p.timers.shift()();
-  assert.equal(p.spoken[0].text,p.sample.value);assert.equal(p.spoken[0].pitch,1.42);assert.equal(p.spoken[0].rate,1.22);
-  p.setCharacter({id:'villano',name:'Villano',pitch:.58,rate:.76});await p.context.run();p.timers.shift()();
-  assert.equal(p.spoken[1].text,p.sample.value);assert.equal(p.spoken[1].pitch,.58);assert.equal(p.spoken[1].rate,.76);
+  assert.equal(p.spoken[0].text,p.sample.value);assert.equal(p.spoken[0].pitch,1);assert.equal(p.spoken[0].rate,1);
 });
 test('repeated preview cancels the queued previous reading',async()=>{
   const p=setup();await p.context.run();p.sample.value='Nueva frase';await p.context.run();p.timers.forEach(fn=>fn());assert.equal(p.spoken.length,1);assert.equal(p.spoken[0].text,'Nueva frase');

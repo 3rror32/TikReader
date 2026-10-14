@@ -38,6 +38,13 @@ test('basic mode stays focused and advanced voice controls remain optional', () 
   assert.match(voice, /audio\.dataset\.basicAdvanced/);
 });
 
+test('profile-name reading stays with the daily chat voice controls', () => {
+  const template = read('web/templates/index.html');
+  const voice = read('web/static/voice_layout.js');
+  assert.match(template, /<input id="tts-use-profile-name" type="checkbox"> Usar el nombre del perfil/);
+  assert.match(voice, /move\(daily, \[[^\]]*'tts-use-profile-name'[^\]]*\]\)/);
+});
+
 test('operator interface has no remote font dependency', () => {
   const template = read('web/templates/index.html');
   assert.doesNotMatch(template, /fonts\.(?:googleapis|gstatic)\.com/);
@@ -102,9 +109,12 @@ test('the primary Live connection action emits a normalized start request', () =
   assert.ok(start >= 0 && end > start, 'the Live connection action must be available');
   const emitted = [];
   const context = {
-    document: { getElementById: id => id === 'btn-connect' ? { disabled: false } : { value: ' @Creator ' } },
+    document: {
+      body: {classList: {contains: () => false}},
+      getElementById: id => id === 'btn-connect' ? {disabled: false, dataset: {connectionState: 'disconnected'}} : {value: ' @Creator '},
+    },
     socket: { connected: true, emit: (...args) => emitted.push(args) },
-    hideError() {}, setStatus() {}, setConnectPending() {}, setButtons() {},
+    hideError() {}, setStatus() {}, setConnectionState() {},
   };
   vm.runInNewContext(source.slice(start, end), context);
   context.startLive();

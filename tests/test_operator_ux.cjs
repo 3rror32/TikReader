@@ -230,7 +230,7 @@ function connection() {
     if (elements.has(id)) return elements.get(id);
     const attributes = new Map(), classes = new Set(), children = new Map();
     const node = {
-      dataset: {}, style: {}, textContent: '', value: '', hidden: false, disabled: false,
+      dataset: {}, style: {setProperty() {}}, textContent: '', value: '', hidden: false, disabled: false,
       classList: {
         contains: name => classes.has(name), add: name => classes.add(name), remove: name => classes.delete(name),
         toggle(name, force) { force ? classes.add(name) : classes.delete(name); },
@@ -295,21 +295,26 @@ test('viewer telemetry stays unavailable until a valid measured count arrives', 
   assert.equal(value.textContent, '—', 'a known flag does not make an invalid value numeric');
 });
 
-test('stop and cancellation wait for confirmed backend closure', () => {
+test('stop waits for a confirmed connection and then for confirmed backend closure', () => {
   const app = connection(); app.event('connecting', {username: 'Creator'});
   app.context.stopLive();
   assert.equal(app.element('body').dataset.liveState, 'connecting');
-  assert.match(app.element('status-bar').textContent, /Cancelando/);
+  assert.match(app.element('status-bar').textContent, /Conectando/);
+  assert.deepEqual(app.emitted, [], 'a pending connection is not cancellable through the stop action');
+  app.event('connected', {username: 'Creator'});
+  app.context.stopLive();
+  assert.equal(app.element('btn-connect').dataset.connectionState, 'disconnecting');
+  assert.match(app.element('status-bar').textContent, /Desconectando/);
   assert.deepEqual(app.emitted.map(args => args[0]), ['stop_live']);
   app.event('disconnected', {reason: 'Cerrando conexión'});
-  assert.equal(app.element('body').dataset.liveState, 'connecting', 'closing is not closed');
+  assert.equal(app.element('btn-connect').dataset.connectionState, 'disconnecting', 'closing is not closed');
   app.event('disconnected', {reason: 'Detenido por el usuario'});
-  assert.equal(app.element('body').dataset.liveState, 'cancelled');
-  assert.match(app.element('session-heading').textContent, /cancelada/i);
+  assert.equal(app.element('btn-connect').dataset.connectionState, 'disconnected');
+  assert.match(app.element('session-heading').textContent, /SIN CONEXIÓN|Listo para conectar/i);
   app.event('status', {connected: false, connecting: false});
-  assert.equal(app.element('body').dataset.liveState, 'cancelled', 'idle snapshots preserve a confirmed terminal outcome');
+  assert.equal(app.element('body').dataset.liveState, 'offline');
   app.event('disconnected', {reason: 'Conexión finalizada'});
-  assert.equal(app.element('body').dataset.liveState, 'cancelled', 'trailing closure events preserve cancellation');
+  assert.equal(app.element('body').dataset.liveState, 'offline');
   app.event('connected', {username: 'Creator'}); app.context.stopLive();
   assert.equal(app.element('body').dataset.liveState, 'live');
   assert.equal(app.element('live-badge').classList.contains('visible'), true);
@@ -366,11 +371,11 @@ test('Control center uses the same vocabulary in navigation and contextual help'
   assert.match(read('web/static/navigation_help.js'), /'control-center': 'Centro de control:/);
 });
 
-test('idle status can confirm cancellation and a new connection resets old viewer measurements', () => {
+test('idle status confirms disconnection and a new connection resets old viewer measurements', () => {
   const app = connection(); app.event('connecting', {username: 'Creator'});
   app.context.stopLive(); app.event('status', {connected: false, connecting: false});
-  assert.equal(app.element('body').dataset.liveState, 'cancelled');
-  assert.match(app.element('status-bar').textContent, /cancelada/);
+  assert.equal(app.element('body').dataset.liveState, 'idle');
+  assert.match(app.element('status-bar').textContent, /Conectado al servidor/);
   app.event('connected', {username: 'Creator'});
   app.event('stats_update', {revision: 1, viewers: 25, viewers_known: true});
   app.event('connecting', {username: 'NextCreator'});

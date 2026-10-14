@@ -25,7 +25,7 @@
   const daily = group('Lectura del chat');
   daily.classList.add('voice-daily');
   daily.append(pane.querySelector('.voice-active-card'));
-  move(daily, ['tts-enabled', 'tts-gifts-enabled', 'tts-read-name', 'tts-greetings-enabled', 'tts-state']);
+  move(daily, ['tts-enabled', 'tts-gifts-enabled', 'tts-read-name', 'tts-greetings-enabled', 'tts-use-profile-name', 'tts-state']);
   const audience = group('Quién se lee en voz alta');
   move(audience, ['tts-restrict', 'tts-audience', 'tts-allowed-users']);
   audience.append(audienceNote);

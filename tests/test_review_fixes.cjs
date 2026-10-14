@@ -20,10 +20,11 @@ function preview(){
   URL:{createObjectURL:()=>`blob:${revoked.length}`,revokeObjectURL:url=>revoked.push(url)},
   Audio:function(){this.pause=()=>counts.pauses++;this.play=async()=>{counts.plays++}}
  });
- const stop=source.slice(source.indexOf(' function stopPreview'),source.indexOf(' let custom='));
- const render=source.slice(source.indexOf(' async function localAudio'),source.indexOf(' document.querySelectorAll',source.indexOf(' async function localAudio')));
+ const stop=source.split('\n').find(line=>line.includes('function stopPreview('));
+ const muted=source.split('\n').find(line=>line.includes("document.addEventListener('tikreader:audio-muted'"));
+ const render=source.split('\n').find(line=>line.includes('async function localAudio('));
  const handler=source.split('\n').find(line=>line.includes("$('custom-voice-test').onclick="));
- vm.runInContext(`let previewController=null,previewUrl=null,previewGeneration=0,previewAudio=null,previewUtterance=null;${stop}${render}\nvar run=${handler.slice(handler.indexOf('async()=>'))}`,context);
+ vm.runInContext(`let previewController=null,previewUrl=null,previewGeneration=0,previewAudio=null,previewUtterance=null;${stop}\n${muted}\n${render}\nvar run=${handler.slice(handler.indexOf('async()=>'))}`,context);
  return {counts,revoked,run:()=>context.run(),finish:()=>pending.shift()({ok:true,blob:async()=>({})}),mute:()=>{context.window.tikreaderAudioMuted=true;listeners['tikreader:audio-muted']({detail:true})}};
 }
 

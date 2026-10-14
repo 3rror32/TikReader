@@ -156,7 +156,7 @@ test('settings respond to their usable panel width without collapsing headings',
 test('empty-state actions follow confirmed connection state and preserve recovery context', () => {
   const body = {dataset: {liveState: 'idle'}}, children = [];
   const paragraph = {children: [], querySelector: () => paragraph.children.find(node => node.tag === 'strong'),
-    replaceChildren(...nodes) { this.children = nodes; }};
+    replaceChildren(...nodes) { this.children = nodes; }, append(...nodes) { this.children.push(...nodes); }};
   const empty = {dataset: {}, querySelector: selector => selector === 'p' ? paragraph : children[0],
     append: node => children.push(node)};
   let focused = false, actionWrites = 0;
