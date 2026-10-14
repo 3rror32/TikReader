@@ -76,7 +76,7 @@ The live session can receive gifts and participant activity while the comment co
     - Validate that new comments arrive during a LIVE session.
   - Status: open, blocked on explicit authorization to install the package locally.
 
-- [ ] **TCER-4 — Add persistent comment text-size controls**
+- [x] **TCER-4 — Add persistent comment text-size controls**
   - Route: delegated direct.
   - Trigger evidence: the complete behavior spans the operator template, feed renderer, persisted preference allowlist, and Python/browser regression tests.
   - Acceptance criteria:
@@ -96,15 +96,26 @@ The live session can receive gifts and participant activity while the comment co
   - Correction verification: `npm run test:operator -- tests/browser/operator.spec.cjs -g "comment text size controls|corrupt comment text size preference"` — 2 passed, including the accessible group name, clipped one-pixel live status, and toolbar overflow assertion. `git diff --check` — passed with only LF/CRLF notices. Keep TCER-4 partial pending independent verification and the separately noted baseline update.
   - Correction commit: `3549328` (`fix: hide comment size status text`).
   - Decorator correction: the live-button icon pass replaced the visible A− / A+ labels with the generic `more` icon because the controls lacked the existing `data-live-label` marker. Added the marker to both controls; expanded the focused browser case to run the real decorator and assert the accessible group and button names, unchanged visible labels, non-zero text size, and absence of the generic icon. The dedicated correction test was RED before the template fix (`data-live-label` absent; `data-live-icon="more"` observed) and GREEN afterward.
-  - Decorator correction verification: `npm run test:operator -- tests/browser/operator.spec.cjs -g "comment text size controls|corrupt comment text size preference"` — 2 passed. This exercises the production decorator through the browser fixture; no separate decorator-only visual fixture exists. `git diff --check` — passed. Keep TCER-4 partial pending independent verification; do not update baselines, since the verifier established those failures already exist against parent `22e26cf^`.
+  - Decorator correction verification: `npm run test:operator -- tests/browser/operator.spec.cjs -g "comment text size controls|corrupt comment text size preference"` — 2 passed. This exercises the production decorator through the browser fixture; no separate decorator-only visual fixture exists. `git diff --check` — passed. At that point TCER-4 remained partial; the final independent verification below closes it. Do not update baselines, since the verifier established those failures already exist against parent `22e26cf^`.
   - Decorator correction commit: `b54dec0` (`fix: preserve comment text size labels`). The regression assertion reached HEAD as part of concurrent commit `1c541ac` (`feat: simplify voice selection`); it was not restaged or rewritten here.
   - Icon pseudo-element correction: the shared `.live-reading-controls button::before` rule added an empty-content square to textual controls. Added a narrow `[data-live-label]::before` reset (`content: none; display: none`) without changing iconographic controls. Extended the TCER-4 browser case to verify computed pseudo-element content and display. RED observed as `content: ""`, `display: block`; GREEN after the scoped reset.
-  - Icon pseudo-element correction verification: `npm run test:operator -- tests/browser/operator.spec.cjs -g "comment text size controls|corrupt comment text size preference"` — 2 passed; `git diff --check` — passed with only the existing LF/CRLF notice. TCER-4 remains partial pending independent recheck; visual baselines remain untouched.
+  - Icon pseudo-element correction verification: `npm run test:operator -- tests/browser/operator.spec.cjs -g "comment text size controls|corrupt comment text size preference"` — 2 passed; `git diff --check` — passed with only the existing LF/CRLF notice. At that point TCER-4 remained partial pending independent recheck; the final verification below closes it, and visual baselines remain untouched.
   - Icon pseudo-element correction commit: `86ee55e` (`fix: remove icon marker from labeled controls`).
+  - Independent final verification: immutable `HEAD 25b41cf`; 2 Playwright cases passed, 1 focused Python test passed, and 1 desktop/mobile visual-decorator check passed with no findings. The check confirmed the pseudo-element squares are gone and verified persistence, clamping, accessibility, and toolbar overflow. TCER-4 is complete; no baseline update was needed.
+  - Final status: complete at `25b41cf`; changes and verification evidence are recorded in the work-unit commits above.
   - Checks observed: `npm run test:operator -- tests/browser/operator.spec.cjs -g "comment text size controls|corrupt comment text size preference"` — 2 passed. Full requested `npm run test:operator -- tests/browser/operator.spec.cjs` — 13 passed, 7 failed only on existing PNG baselines for original, light, dark, broadcast-console, creator-pop, swiss-brutalist, and tactile-scrapbook; each diff reflects the intentional addition of the visible toolbar, and baseline files are outside this task's allowed edit surfaces. Focused unittest equivalent using the available Python 3.14 interpreter and repository module path — 8 passed. `git diff --check` — passed with only existing LF/CRLF notices.
   - Approximate authored change size: 160 lines across the feed toolbar/style, font-size controller, preference allowlist, browser/Python tests, and this task record.
   - Work-unit commit: `22e26cf` (`feat: add persistent comment text sizing`).
-  - Status: partial; behavior and focused tests pass, while the seven visual baselines need an authorized update. TCER-3 remains blocked on explicit installation authorization.
+  - Status: complete after independent final verification at `25b41cf`. TCER-3 remains blocked on explicit installation authorization.
+
+- [ ] **TCER-5 — Rebuild and verify the installer with TCER-4**
+  - Route: delegated direct.
+  - Trigger evidence: installer reconstruction invokes the build toolchain and validates an external packaged artifact.
+  - Acceptance criteria:
+    - Rebuild the installer payload with all TCER-4 commits included.
+    - Run `validate_release` successfully against the rebuilt payload.
+    - Produce a new installer artifact and confirm it is non-empty.
+  - Status: open; do not install the application as part of this task.
 
 ## Progress
 
