@@ -108,14 +108,23 @@ The live session can receive gifts and participant activity while the comment co
   - Work-unit commit: `22e26cf` (`feat: add persistent comment text sizing`).
   - Status: complete after independent final verification at `25b41cf`. TCER-3 remains blocked on explicit installation authorization.
 
-- [ ] **TCER-5 — Rebuild and verify the installer with TCER-4**
+- [x] **TCER-5 — Rebuild and verify the installer with TCER-4**
   - Route: delegated direct.
   - Trigger evidence: installer reconstruction invokes the build toolchain and validates an external packaged artifact.
   - Acceptance criteria:
     - Rebuild the installer payload with all TCER-4 commits included.
     - Run `validate_release` successfully against the rebuilt payload.
     - Produce a new installer artifact and confirm it is non-empty.
-  - Status: open; do not install the application as part of this task.
+  - Status: complete; built from HEAD `f07ccb1` after size-control commit `86ee55e`. The process-only PATH used `runtime/installer-python-3.13` with Python 3.13.15, pip 25.3, and PyInstaller 6.20.0. `packaging/build_installer.ps1 -CheckOnly` passed for version 1.0.0.8. The official build first hit sandbox DNS failure for PyPI, then passed with approved execution; Inno Setup reported `Successful compile (226.562 sec)`. No version or declared dependency changed.
+  - Payload integrity: source and payload SHA-256 and byte lengths match for all requested files:
+    - `web/templates/index.html`: `7FFBE234029A8CD247B2DC9055A671D42861DE74587D57FDAE5E2B0750604E0D` (77,998 bytes).
+    - `web/static/core_ui.js`: `54C01905DBCEFC6D124FA280202488423BF4F26EE8CF52992AE5322696AB768D` (22,080 bytes).
+    - `web/static/live_columns.css`: `579E73CB366E37DE2A961F28C76BB4ACE3405C2C752E8193649E175BA7636DFE` (23,875 bytes).
+    - `app/release_support.py`: `6D6D465DBF2367EE16C33552DABD72773A14BA493531C738A1CD04AF47CD2492` (11,445 bytes).
+  - Installer: `release/TikReader-1.0.0.8-Beta-Setup.exe` exists, is 311,464,918 bytes, and has UTC timestamp `2026-10-14T00:08:07.7079018Z`, later than size-control commit `86ee55e` (`2026-10-13T16:59:25-07:00`).
+  - Checks: `python tools/validate_release.py` using the local Python 3.13 toolchain passed all six packaged-runtime checks. `qa_release.cjs` was not repeated because its previously documented `#settings-save-device` selector is absent from the current UI and the script is stale. `git diff --check` passed. No app install or TikTok session was started.
+  - Generated changes: no tracked build outputs changed; payload and installer are ignored release artifacts and were not force-added. The ODD document is the only change from this task. Two unrelated dirty files appeared outside the authorized edit surfaces during the build (`tests/browser/operator.spec.cjs`, `web/static/ui_typography.css`) and were preserved, not staged.
+  - Completion: complete for TCER-5. TCER-3 remains blocked pending explicit authorization to install.
 
 ## Progress
 
@@ -124,4 +133,4 @@ The live session can receive gifts and participant activity while the comment co
 - Known behavior: comments from earlier sessions are archived but are not repopulated into the in-memory feed. This is outside the authorized scope and is not being changed.
 - RDD state: unavailable because `gentle-ai` is not installed in this terminal.
 - Engram mirror: pending.
-- Next step: rebuild and verify the installer under TCER-5; TCER-3 remains blocked on explicit installation authorization.
+- Next step: obtain explicit authorization before local installation and TCER-3 LIVE validation.
