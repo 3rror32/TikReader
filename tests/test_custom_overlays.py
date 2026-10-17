@@ -6,7 +6,7 @@ import unittest
 import zipfile
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from flask import Flask
 
@@ -137,12 +137,12 @@ class CustomOverlayTests(unittest.TestCase):
                     return replace(source, destination)
 
                 with patch.object(Path, 'replace', autospec=True, side_effect=rename), \
-                        patch.object(custom_overlays.time, 'sleep') as sleep:
+                        patch.object(custom_overlays, 'time', SimpleNamespace(time=custom_overlays.time.time, sleep=Mock())) as clock:
                     overlay = self.install()
                 self.assertTrue(self.service._folder(overlay['id']).is_dir())
                 self.assertEqual(len(attempts), 2)
                 self.assertEqual(attempts[0], attempts[1])
-                sleep.assert_called_once_with(0.05)
+                clock.sleep.assert_called_once_with(0.05)
 
     def test_exhausted_windows_rename_cleans_unregistered_package(self):
         replace = Path.replace
@@ -157,11 +157,11 @@ class CustomOverlayTests(unittest.TestCase):
             return replace(source, destination)
 
         with patch.object(Path, 'replace', autospec=True, side_effect=rename), \
-                patch.object(custom_overlays.time, 'sleep') as sleep:
+                patch.object(custom_overlays, 'time', SimpleNamespace(time=custom_overlays.time.time, sleep=Mock())) as clock:
             response = self.client.post('/custom-overlays', data={'file': (self.package(), 'overlay.zip')})
         self.assertEqual(response.status_code, 400)
         self.assertEqual(len(attempts), 3)
-        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(clock.sleep.call_count, 2)
         self.assertEqual(self.service._read_registry(), {})
         self.assertEqual(list(self.service.packages.iterdir()), [])
         self.assertEqual(list(self.service.root.glob('.import-*')), [])
@@ -181,11 +181,11 @@ class CustomOverlayTests(unittest.TestCase):
                     return replace(source, destination)
 
                 with patch.object(Path, 'replace', autospec=True, side_effect=rename), \
-                        patch.object(custom_overlays.time, 'sleep') as sleep:
+                        patch.object(custom_overlays, 'time', SimpleNamespace(time=custom_overlays.time.time, sleep=Mock())) as clock:
                     response = self.client.post('/custom-overlays', data={'file': (self.package(), 'overlay.zip')})
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(len(attempts), 1)
-                sleep.assert_not_called()
+                clock.sleep.assert_not_called()
                 self.assertEqual(self.service._read_registry(), {})
                 self.assertEqual(list(self.service.packages.iterdir()), [])
                 self.assertEqual(list(self.service.root.glob('.import-*')), [])
