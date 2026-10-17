@@ -40,8 +40,10 @@ Independent verification requested wiring the prepared release notes into the re
 Authorized outcome: update GitHub main and upload beta 1.0.0.9 using the user-approved session. Delegated route: one writer updates release metadata and sanitized checksum; parent owns GitHub delivery. Forecast: under 100 additional authored documentation lines.
 - [x] Update beta notes/checklist to 1.0.0.9 and record observed installer provenance and validation limits.
 - [x] Prepare sanitized SHA256SUMS.txt and match the supplied installer hash to recorded evidence.
-- [ ] Obtain a usable authorized repository session; current upload is blocked on correct authentication.
-- [ ] Reconcile and update main without overwriting remote work; resolve tag-build collision before upload.
-- [ ] Upload exact installer and checksum, verify remote assets, and publish within authorization.
-- [ ] Record work-unit commit and remote release evidence.
+- [x] Obtain the user-authorized 3rror32 GitHub CLI session.
+- [x] Update main by non-force push to d36bf824ff80fefb933ac2a016fb4657919d5d24.
+- [x] Upload exact installer and checksum as a draft prerelease; publication is not authorized.
+- [x] Record work-unit commit d36bf82 and remote release evidence below.
 Checks: source/distribution/installer metadata agree on 1.0.0.9; local SHA-256 matches recorded evidence. Existing runtime/UI reports passed on the development machine; clean Windows and real broadcasts remain pending. No raw evidence JSON is intended for upload. Engram mirror remains pending; gentle-ai is unavailable. No remote operation was performed by this worker.
+
+Remote delivery confirmed: draft release ID 415625645, intended tag v1.0.0.9-beta.1, https://github.com/3rror32/TikReader/releases/tag/untagged-5361390e4255991dd57e . API confirms draft=true and prerelease=true. Both assets' GitHub SHA-256 digests match local files; installer size 311474918 bytes, checksum size 99 bytes. No live beta tag or release workflow run was created. Main Calidad run 39009782895 remained in progress at last observation. This local recovery update is not pushed; main and the draft target remain at the verified delivery commit.

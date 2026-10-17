@@ -176,7 +176,7 @@ credentialTest('Kick webhook paths stay private unless intentionally revealed or
   expect(operator.requests.filter(request => request.path === '/system/platform-credentials' && request.method === 'DELETE')).toEqual([]);
 });
 
-credentialTest('concealed Kick webhook pixels stay invariant in forced-colors mode', async ({ operator }) => {
+credentialTest('concealed Kick webhook pixels stay invariant in forced-colors mode', async ({ operator }, testInfo) => {
   const {page} = operator;
   await page.evaluate(() => window.Shell.show('platform-integrations'));
   const path = page.locator('#kick-webhook-path');
@@ -189,6 +189,9 @@ credentialTest('concealed Kick webhook pixels stay invariant in forced-colors mo
       await expect(path).toHaveText('••••••••••••');
       await expect(path).toHaveAttribute('aria-hidden','true');
       captures.push(await panel.screenshot({animations:'disabled'}));
+    }
+    for (const [index, body] of captures.entries()) {
+      await testInfo.attach(`concealed-webhook-${forcedColors}-${index}`, { body, contentType: 'image/png' });
     }
     expect(captures[1].equals(captures[0])).toBe(true);
     expect(captures[2].equals(captures[0])).toBe(true);

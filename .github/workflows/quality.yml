@@ -38,13 +38,15 @@ jobs:
       - name: Verify operator browser contracts
         run: npm run test:operator
       - name: Validar programa, interfaz e instalador
+        if: ${{ !cancelled() }}
         run: python tools/check_changes.py
       - name: Conservar reporte de cobertura
-        if: always()
+        if: ${{ always() && hashFiles('runtime/.coverage') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: reporte-calidad-${{ github.run_number }}
           path: runtime/.coverage
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
       - name: Preserve operator browser diagnostics

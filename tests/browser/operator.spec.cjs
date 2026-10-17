@@ -616,7 +616,7 @@ for (const theme of representative) {
   });
 }
 
-test('synthetic credentials are redacted from captures and excluded from preference persistence', async ({ operator }) => {
+test('synthetic credentials are redacted from captures and excluded from preference persistence', async ({ operator }, testInfo) => {
   const { page } = operator;
   await page.locator('details:has([data-platform-settings="youtube"]) > summary').click();
   await page.locator('[data-platform-settings="youtube"]').click();
@@ -641,6 +641,8 @@ test('synthetic credentials are redacted from captures and excluded from prefere
   await page.locator('#kick-webhook-path').evaluate(node => { node.textContent = '/hooks/kick/fixture-secret-OTHER-PRIVATE'; });
   await page.evaluate(() => document.activeElement.blur());
   const second = await credentialPage.screenshot(operator.captureOptions());
+  await testInfo.attach('credentials-first-masked', { body: first, contentType: 'image/png' });
+  await testInfo.attach('credentials-second-masked', { body: second, contentType: 'image/png' });
   expect(second.equals(first)).toBe(true);
   await chooseTheme(page, 'dark');
   await expect.poll(() => operator.preferences['tikreader.skin']).toBe('dark');
