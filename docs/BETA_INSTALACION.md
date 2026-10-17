@@ -1,6 +1,6 @@
 # TikReader 1.0.0.9 Beta · instalación
 
-Versión en preparación: el instalador 1.0.0.9 todavía debe construirse y validarse. El paquete local anterior es 1.0.0.8.
+Esta guía corresponde a TikReader 1.0.0.9 Beta para Windows de 64 bits.
 
 ## Para instalar
 
