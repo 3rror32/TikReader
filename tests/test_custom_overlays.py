@@ -1,5 +1,6 @@
 import io
 import json
+import shutil
 import tempfile
 import unittest
 import zipfile
@@ -114,6 +115,80 @@ class CustomOverlayTests(unittest.TestCase):
         self.assertEqual(template.status_code, 200)
         response = self.client.post("/custom-overlays", data={"file": (io.BytesIO(template.data), "template.zip")})
         self.assertEqual(response.status_code, 201, response.get_data(as_text=True))
+
+    def test_retries_transient_windows_package_rename(self):
+        replace = Path.replace
+        for winerror in (5, 32, 33):
+            with self.subTest(winerror=winerror):
+                attempts = []
+                error = PermissionError("Transient package rename failure")
+                error.winerror = winerror
+
+                def rename(source, destination):
+                    if source.name.startswith('.import-'):
+                        attempts.append((source, destination))
+                        if len(attempts) == 1:
+                            raise error
+                        # Model completion independently of the transient Windows
+                        # primitive; the existing install tests exercise real rename.
+                        shutil.copytree(source, destination)
+                        shutil.rmtree(source)
+                        return destination
+                    return replace(source, destination)
+
+                with patch.object(Path, 'replace', autospec=True, side_effect=rename), \
+                        patch.object(custom_overlays.time, 'sleep') as sleep:
+                    overlay = self.install()
+                self.assertTrue(self.service._folder(overlay['id']).is_dir())
+                self.assertEqual(len(attempts), 2)
+                self.assertEqual(attempts[0], attempts[1])
+                sleep.assert_called_once_with(0.05)
+
+    def test_exhausted_windows_rename_cleans_unregistered_package(self):
+        replace = Path.replace
+        attempts = []
+        error = PermissionError("Persistent package rename failure")
+        error.winerror = 5
+
+        def rename(source, destination):
+            if source.name.startswith('.import-'):
+                attempts.append((source, destination))
+                raise error
+            return replace(source, destination)
+
+        with patch.object(Path, 'replace', autospec=True, side_effect=rename), \
+                patch.object(custom_overlays.time, 'sleep') as sleep:
+            response = self.client.post('/custom-overlays', data={'file': (self.package(), 'overlay.zip')})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(len(attempts), 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(self.service._read_registry(), {})
+        self.assertEqual(list(self.service.packages.iterdir()), [])
+        self.assertEqual(list(self.service.root.glob('.import-*')), [])
+
+    def test_unrelated_rename_errors_are_not_retried(self):
+        replace = Path.replace
+        for error in (PermissionError('Non-Windows denial'), PermissionError('Other Windows denial'), OSError('Other failure')):
+            if str(error) != 'Non-Windows denial':
+                error.winerror = 87 if isinstance(error, PermissionError) else 5
+            with self.subTest(error=str(error)):
+                attempts = []
+
+                def rename(source, destination):
+                    if source.name.startswith('.import-'):
+                        attempts.append((source, destination))
+                        raise error
+                    return replace(source, destination)
+
+                with patch.object(Path, 'replace', autospec=True, side_effect=rename), \
+                        patch.object(custom_overlays.time, 'sleep') as sleep:
+                    response = self.client.post('/custom-overlays', data={'file': (self.package(), 'overlay.zip')})
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(len(attempts), 1)
+                sleep.assert_not_called()
+                self.assertEqual(self.service._read_registry(), {})
+                self.assertEqual(list(self.service.packages.iterdir()), [])
+                self.assertEqual(list(self.service.root.glob('.import-*')), [])
 
 
 if __name__ == "__main__":

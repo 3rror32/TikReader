@@ -266,7 +266,14 @@ class CustomOverlays:
                     with archive.open(info) as source, target.open("wb") as destination:
                         shutil.copyfileobj(source, destination)
                 self.packages.mkdir(parents=True, exist_ok=True)
-                temporary.replace(self._folder(overlay_id))
+                for attempt in range(3):
+                    try:
+                        temporary.replace(self._folder(overlay_id))
+                        break
+                    except PermissionError as error:
+                        if getattr(error, 'winerror', None) not in (5, 32, 33) or attempt == 2:
+                            raise
+                        time.sleep(0.05 * (attempt + 1))
             except Exception:
                 shutil.rmtree(temporary, ignore_errors=True)
                 raise
