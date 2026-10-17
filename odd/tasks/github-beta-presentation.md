@@ -35,3 +35,13 @@ Next step: rebuild and validate an exact release candidate, then obtain authoriz
 
 ## Independent verification correction
 Independent verification requested wiring the prepared release notes into the release action and making their documentation URLs work outside the repository file view. Added `body_path: docs/BETA_RELEASE_NOTES.md`, converted release-body links to absolute main-branch GitHub URLs, and recorded that documentation must be merged before publication. Draft and prerelease flags remain enabled. Native gentle-ai review assessment is unavailable because gentle-ai is not installed; no native review approval is claimed. Full binary and clean-Windows validation remain pending.
+
+## GH-4 — upload updated beta and update main
+Authorized outcome: update GitHub main and upload beta 1.0.0.9 using the user-approved session. Delegated route: one writer updates release metadata and sanitized checksum; parent owns GitHub delivery. Forecast: under 100 additional authored documentation lines.
+- [x] Update beta notes/checklist to 1.0.0.9 and record observed installer provenance and validation limits.
+- [x] Prepare sanitized SHA256SUMS.txt and match the supplied installer hash to recorded evidence.
+- [ ] Obtain a usable authorized repository session; current upload is blocked on correct authentication.
+- [ ] Reconcile and update main without overwriting remote work; resolve tag-build collision before upload.
+- [ ] Upload exact installer and checksum, verify remote assets, and publish within authorization.
+- [ ] Record work-unit commit and remote release evidence.
+Checks: source/distribution/installer metadata agree on 1.0.0.9; local SHA-256 matches recorded evidence. Existing runtime/UI reports passed on the development machine; clean Windows and real broadcasts remain pending. No raw evidence JSON is intended for upload. Engram mirror remains pending; gentle-ai is unavailable. No remote operation was performed by this worker.
