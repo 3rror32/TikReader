@@ -31,6 +31,7 @@ from uuid import uuid4
 from urllib.parse import urlsplit
 from importlib.metadata import version as package_version
 from importlib.util import find_spec
+from typing import TYPE_CHECKING
 from flask import Flask, send_from_directory
 from history_store import HistoryStore
 from automatic_backups import AutomaticBackups
@@ -44,6 +45,14 @@ from app_config import load_or_create_secret, runtime_config
 from app_paths import data_dir
 from observability import RuntimeMetrics, configure_logging
 from runtime_state import RuntimeState
+
+if TYPE_CHECKING:
+    # Runtime names are populated by _load_tiktoklive only when LIVE is used.
+    from TikTokLive import TikTokLiveClient
+    from TikTokLive.events import (
+        CommentEvent, ConnectEvent, DisconnectEvent, EmoteChatEvent, GiftEvent,
+        JoinEvent, LikeEvent, RoomUserSeqEvent,
+    )
 
 # ── TikTokLive imports ──────────────────────────────────────────────────────
 TIKTOKLIVE_AVAILABLE = find_spec("TikTokLive") is not None

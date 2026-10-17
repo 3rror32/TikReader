@@ -104,9 +104,9 @@ class AnimationStudioTests(unittest.TestCase):
         self.assertEqual(len(self.studio.events),1)
 
     def test_follow_like_and_diamond_triggers(self):
-        follow=self.save(trigger='follow',gift='',text='{evento}: {usuario}')
-        like=self.save(id='likes',trigger='like',gift='',amount=20,text='{usuario} envió {cantidad} likes')
-        gift=self.save(id='diamonds',diamonds=50,text='{regalo}: {diamantes} diamantes')
+        self.save(trigger='follow',gift='',text='{evento}: {usuario}')
+        self.save(id='likes',trigger='like',gift='',amount=20,text='{usuario} envió {cantidad} likes')
+        self.save(id='diamonds',diamonds=50,text='{regalo}: {diamantes} diamantes')
         self.studio.event('follow',{'user':'Ana'},'follow-1')
         self.studio.event('like',{'user':'Luis','count':10},'like-1')
         self.studio.event('like',{'user':'Luis','count':25},'like-2')

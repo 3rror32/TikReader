@@ -1,5 +1,4 @@
 """Validated local storage for custom point-drop bank images."""
-from io import BytesIO
 import re
 from uuid import uuid4
 

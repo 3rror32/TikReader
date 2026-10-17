@@ -38,7 +38,8 @@ def test_installer_build_copies_the_entire_onedir_distribution():
         (source / "TikReader.exe").write_bytes(b"branded launcher")
         (source / "_internal" / "python.dll").write_bytes(b"runtime")
         (source / "_internal" / "nested" / "qtwebengine.dll").write_bytes(b"qt runtime")
-        quote = lambda value: str(value).replace("'", "''")
+        def quote(value):
+            return str(value).replace("'", "''")
         command = rf"""
 $ErrorActionPreference = 'Stop'
 $tokens = $null; $errors = $null

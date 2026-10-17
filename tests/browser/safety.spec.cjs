@@ -1,4 +1,4 @@
-const { test, expect } = require('./fixtures.cjs');
+const { test, expect, diagnoseCaptureDifference } = require('./fixtures.cjs');
 const credentialTest = test.extend({
   operatorCredentialScenario: [{kickWebhookSecret:'fixture-secret-alpha'}, {option:true}],
 });
@@ -193,6 +193,8 @@ credentialTest('concealed Kick webhook pixels stay invariant in forced-colors mo
     for (const [index, body] of captures.entries()) {
       await testInfo.attach(`concealed-webhook-${forcedColors}-${index}`, { body, contentType: 'image/png' });
     }
+    await diagnoseCaptureDifference(page, captures[0], captures[1], `concealed-webhook-${forcedColors}-1`, panel);
+    await diagnoseCaptureDifference(page, captures[0], captures[2], `concealed-webhook-${forcedColors}-2`, panel);
     expect(captures[1].equals(captures[0])).toBe(true);
     expect(captures[2].equals(captures[0])).toBe(true);
   }

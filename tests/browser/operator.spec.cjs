@@ -1,4 +1,4 @@
-const { test, expect } = require('./fixtures.cjs');
+const { test, expect, diagnoseCaptureDifference } = require('./fixtures.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -609,7 +609,14 @@ for (const theme of representative) {
       .toEqual({ width: 2560, height: 1800 });
     await testInfo.attach('reviewed-zoom-capture', { path: review, contentType: 'image/png' });
     await expectRecoveryActionInsideFeed();
-    await expect(captureBoundary).toHaveScreenshot(`${theme}.png`, operator.captureOptions());
+    try {
+      await expect(captureBoundary).toHaveScreenshot(`${theme}.png`, operator.captureOptions());
+    } catch (error) {
+      const actual = testInfo.outputPath(`${theme}-actual.png`);
+      await diagnoseCaptureDifference(page, fs.readFileSync(testInfo.snapshotPath(`${theme}.png`)),
+        fs.existsSync(actual) ? fs.readFileSync(actual) : image, theme);
+      throw error;
+    }
     expect(await page.evaluate(() => innerWidth)).toBe(before.width);
     await operator.zoom(1);
     expect(operator.errors).toEqual([]);
@@ -643,6 +650,7 @@ test('synthetic credentials are redacted from captures and excluded from prefere
   const second = await credentialPage.screenshot(operator.captureOptions());
   await testInfo.attach('credentials-first-masked', { body: first, contentType: 'image/png' });
   await testInfo.attach('credentials-second-masked', { body: second, contentType: 'image/png' });
+  await diagnoseCaptureDifference(page, first, second, 'masked-credentials', credentialPage);
   expect(second.equals(first)).toBe(true);
   await chooseTheme(page, 'dark');
   await expect.poll(() => operator.preferences['tikreader.skin']).toBe('dark');

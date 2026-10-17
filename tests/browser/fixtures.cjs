@@ -2,6 +2,44 @@ const { test: base, expect, chromium } = require('@playwright/test');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
+// The decoder ships with our pinned Playwright version; no extra dependency.
+const { PNG } = require('playwright-core/lib/utilsBundle');
+
+async function diagnoseCaptureDifference(page, first, second, label, boundary = page) {
+  if (first.equals(second)) return;
+  const a = PNG.sync.read(first), b = PNG.sync.read(second);
+  if (a.width !== b.width || a.height !== b.height) {
+    console.log('capture-difference', JSON.stringify({ label, dimensions: [[a.width, a.height], [b.width, b.height]] }));
+    return;
+  }
+  let minX = a.width, minY = a.height, maxX = -1, maxY = -1, pixels = 0;
+  const samples = [];
+  for (let y = 0; y < a.height; y++) for (let x = 0; x < a.width; x++) {
+    const offset = (y * a.width + x) * 4;
+    if (a.data.subarray(offset, offset + 4).equals(b.data.subarray(offset, offset + 4))) continue;
+    pixels++; minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+    if (samples.length < 6 && (!samples.length || y - samples.at(-1).y > 8)) samples.push({ x, y });
+  }
+  if (!pixels) return;
+  const region = boundary === page ? await page.evaluate(() => ({ x: 0, y: 0, width: innerWidth })) : await boundary.boundingBox();
+  const metadata = await page.evaluate(({ samples, region, width }) => ({
+    dpr: devicePixelRatio, fonts: document.fonts.status, platform: navigator.platform,
+    activeElement: document.activeElement?.id,
+    samples: samples.map(({ x, y }) => {
+      const node = document.elementFromPoint(region.x + x * region.width / width, region.y + y * region.width / width);
+      const style = node && getComputedStyle(node);
+      return { x, y, tag: node?.tagName, id: node?.id, className: typeof node?.className === 'string' ? node.className : '', font: style?.font, animation: style?.animationName };
+    }),
+  }), { samples, region, width: a.width });
+  console.log('capture-difference', JSON.stringify({ label, pixels, bounds: { minX, minY, maxX, maxY }, metadata }));
+  // Only synthetic fixture pixels are captured. Keep log previews tiny and bounded.
+  for (const [name, image] of [['first', a], ['second', b]]) {
+    const crop = new PNG({ width: Math.min(64, a.width - minX), height: Math.min(64, a.height - minY) });
+    PNG.bitblt(image, crop, minX, minY, crop.width, crop.height, 0, 0);
+    const encoded = PNG.sync.write(crop).toString('base64');
+    if (encoded.length <= 8192) console.log('capture-difference-crop', JSON.stringify({ label, name, x: minX, y: minY, pngBase64: encoded }));
+  }
+}
 
 const root = path.resolve(__dirname, '../..');
 // Read the backend's real allowlist without importing or starting the application.
@@ -207,4 +245,4 @@ const test = base.extend({
   },
 });
 
-module.exports = { test, expect };
+module.exports = { test, expect, diagnoseCaptureDifference };
