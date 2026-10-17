@@ -43,9 +43,12 @@ jobs:
             release/TikReader-*-Beta-Setup.exe
             release/TikReader/distribution.json
           if-no-files-found: error
-      - name: Publicar en GitHub Releases
+      - name: Prepare beta release draft
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: release/TikReader-*-Beta-Setup.exe
           generate_release_notes: true
+          body_path: docs/BETA_RELEASE_NOTES.md
+          draft: true
+          prerelease: true

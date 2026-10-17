@@ -1,4 +1,6 @@
-# TikReader
+# TikReader documentation
+
+For downloads, screenshots, and a feature overview, see the [project homepage](../README.md). Windows users should follow the [desktop installation guide](BETA_INSTALACION.md). The source setup below is for development.
 
 Consulta [ESTRUCTURA.md](ESTRUCTURA.md) para localizar el código, los recursos y las herramientas.
 
