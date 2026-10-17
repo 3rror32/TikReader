@@ -6,13 +6,18 @@
   --ui-muted: var(--skin-muted, #a4b6c8);
   --ui-border: var(--skin-border, #364a60);
   --ui-accent: var(--skin-accent, #68e0b5);
+  --ui-focus: var(--skin-accent, #68e0b5);
+  --ui-danger: var(--skin-danger, #ff9ca7);
+  --ui-disabled-opacity: .5;
+  --ui-control-height: 36px;
+  --ui-control-radius: 8px;
 }
 :where(button, input, select, textarea) { font: inherit; box-sizing: border-box; }
 :where(button, input[type="button"], input[type="submit"], input[type="reset"]) {
-  min-height: 36px;
+  min-height: var(--ui-control-height);
   padding: 8px 12px;
   border: 1px solid var(--ui-border);
-  border-radius: 8px;
+  border-radius: var(--ui-control-radius);
   background: var(--ui-surface);
   color: var(--ui-text);
   line-height: 1.35;
@@ -23,11 +28,11 @@
 }
 :where(input:not([type]), input[type="text"], input[type="password"], input[type="email"], input[type="url"], input[type="search"], input[type="number"], input[type="date"], input[type="time"], select, textarea) {
   min-width: 0;
-  min-height: 36px;
+  min-height: var(--ui-control-height);
   max-width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--ui-border);
-  border-radius: 8px;
+  border-radius: var(--ui-control-radius);
   background: var(--ui-surface);
   color: var(--ui-text);
   line-height: 1.5;
@@ -49,12 +54,12 @@
 :where(legend) { padding-inline: 6px; color: var(--ui-muted); font-size: .85rem; font-weight: 600; }
 :where(summary) { cursor: pointer; padding-block: 8px; line-height: 1.5; }
 :where(a) { color: var(--ui-accent); text-underline-offset: 3px; }
-:where(button, input, select, textarea):disabled { opacity: .5; cursor: not-allowed; }
+:where(button, input, select, textarea):disabled { opacity: var(--ui-disabled-opacity); cursor: not-allowed; }
 :where(button):hover:enabled { border-color: var(--ui-accent); }
 :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--ui-accent); outline-offset: 3px;
+  outline: 2px solid var(--ui-focus); outline-offset: 3px;
 }
-:where(input, textarea, select):user-invalid { border-color: var(--skin-danger, #ff9ca7); }
+:where(input, textarea, select):user-invalid { border-color: var(--ui-danger); }
 :where(dialog) {
   max-width: min(640px, calc(100vw - 32px)); max-height: calc(100dvh - 32px);
   margin: auto; padding: 24px; overflow: auto;

@@ -284,10 +284,10 @@ Evidence:
 
 - Route: delegated direct.
 - Trigger: template structure, navigation shell, dynamic feature producers, and compatibility tests span many non-trivial files.
-- [ ] Declare stable content and configuration mounts in markup.
-- [ ] Remove heading-text section ownership and unnecessary static-pane reparenting.
-- [ ] Preserve legacy selectors while migrating dynamic producers to stable mounts.
-- [ ] Preserve asynchronous view registration, aliases, creator iframe lifetime, and existing IDs.
+- [x] Declare stable content and configuration mounts in markup.
+- [x] Remove heading-text section ownership and unnecessary static-pane reparenting.
+- [x] Preserve legacy selectors while migrating dynamic producers to stable mounts.
+- [x] Preserve asynchronous view registration, aliases, creator iframe lifetime, and existing IDs.
 
 Acceptance criteria:
 
@@ -299,17 +299,17 @@ Verification:
 
 - Focused operator, dynamic-view, settings, frontend, workspace, and browser navigation tests.
 
-Evidence: pending.
+Evidence: reconciled during BRC-3 against existing template `data-view-mount` boundaries and shell ownership. The four dynamic-view Node tests pass, including queued/late registrations and duplicate-key replacement. The production browser boot test now changes visible headings and verifies the same mount nodes survive navigation; its existing creator iframe and microphone-root lifetime assertions also pass. No shell rewrite was necessary.
 
 ### UX-9 — Semantic tokens, component ownership, and proven override removal
 
 - Route: delegated direct.
 - Trigger: shared tokens, foundations, typography, controls, themes, templates, tests, documentation, and visual parity span multiple non-trivial files.
-- [ ] Centralize semantic color, geometry, type, focus, and control-state aliases.
-- [ ] Document that themes own palette/type/personality while feature files own feature layout.
-- [ ] Define permitted theme customizations and stylesheet ordering.
-- [ ] Remove duplicated declarations only after computed-style and visual parity proof.
-- [ ] Preserve all supported themes and extreme geometry safeguards.
+- [x] Centralize semantic color, geometry, type, focus, and control-state aliases.
+- [x] Document that themes own palette/type/personality while feature files own feature layout.
+- [x] Define permitted theme customizations and stylesheet ordering.
+- [x] Retain unproven overrides; remove duplicates only after computed-style and visual parity proof.
+- [x] Preserve all supported themes and extreme geometry safeguards.
 
 Acceptance criteria:
 
@@ -321,7 +321,7 @@ Verification:
 
 - Focused form, theme, visual-refresh, connection-button, and full browser theme-matrix tests.
 
-Evidence: pending.
+Evidence: BRC-3 extends the existing foundation palette aliases with focus, danger, disabled opacity, height and radius defaults, retaining previous values and inherited typography. `docs/FRONTEND_CONTRACTS.md` documents theme/component ownership and stylesheet order. The new focused foundation test observed RED for missing aliases and GREEN after implementation; the combined focused Node set passes 32/32. No duplicate removal was justified by computed-style evidence, so existing overrides remain intact. Final operator/safety suite passed 29/29, including named controls and focus in all 23 themes and seven unchanged visual baselines with narrow/short-window and browser-zoom safeguards.
 
 ### UX-10 — Collapsed search popover legibility
 

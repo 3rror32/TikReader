@@ -3,6 +3,36 @@ const credentialTest = test.extend({
   operatorCredentialScenario: [{kickWebhookSecret:'fixture-secret-alpha'}, {option:true}],
 });
 
+test('shareable diagnostic copy uses only the safe export and reports clipboard failure', async ({ operator }) => {
+  const {page} = operator;
+  const report = {application:'TikReader', version:'fixture', connected:false, stats:{comment_count:0}};
+  await page.route('**/diagnostics/export', route => route.fulfill({json:report}));
+  await page.evaluate(() => {
+    window.__diagnosticCopies = [];
+    Object.defineProperty(navigator, 'clipboard', {configurable:true, value:{
+      writeText:async text => window.__diagnosticCopies.push(text),
+    }});
+    localStorage.setItem('private-diagnostic-probe', 'never-copy-private-secret');
+    window.Shell.show('about');
+  });
+  const copy = page.getByRole('button', {name:'Copiar diagnóstico', exact:true});
+  const status = page.locator('#settings-diagnostic-status');
+  await copy.focus();
+  await copy.press('Enter');
+  await expect(status).toHaveText('Diagnóstico copiado. Puedes compartirlo para pedir ayuda.');
+  await expect(status).toHaveAttribute('role', 'status');
+  await test.info().attach('safe-diagnostic-copy', {body:await page.screenshot(), contentType:'image/png'});
+  expect(await page.evaluate(() => window.__diagnosticCopies)).toEqual([JSON.stringify(report, null, 2)]);
+  await expect(copy).toBeFocused();
+  await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw Error('private clipboard detail'); }; });
+  await copy.press('Space');
+  await expect(status).toHaveText('No se pudo copiar. Usa Exportar diagnóstico para descargarlo.');
+  await expect(copy).toBeEnabled();
+  expect(await page.evaluate(() => document.querySelector('#settings-diagnostic-status').textContent))
+    .not.toContain('private clipboard detail');
+  expect(operator.requests.filter(request => request.path.startsWith('/diagnostics/logs'))).toEqual([]);
+});
+
 test('canceling alert activation leaves the streaming configuration unchanged', async ({ operator }) => {
   const { page, requests } = operator;
   const group = page.locator(`details:has([data-section-nav="alerts"])`).first();

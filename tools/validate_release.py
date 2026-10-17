@@ -1,6 +1,7 @@
 """Exercise the bundled Python with fresh data and without system Python on PATH."""
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import time
@@ -10,6 +11,13 @@ ROOT = Path(__file__).resolve().parent.parent
 PAYLOAD = ROOT / 'release' / 'TikReader'
 DATA = ROOT / 'release' / ('validation-data-' + str(time.time_ns()))
 URL = 'http://127.0.0.1:5198'
+
+
+def packaged_version():
+    version = json.loads((PAYLOAD / 'distribution.json').read_text(encoding='utf-8')).get('version')
+    if not isinstance(version, str) or not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
+        raise ValueError('La versión del manifiesto del paquete no es válida.')
+    return version
 
 
 def api(path, data=None):
@@ -40,6 +48,7 @@ def start(log):
 
 
 def main():
+    expected_version = packaged_version()
     report = {'scope': 'Paquete aislado en el equipo de desarrollo; no sustituye Windows limpio.', 'checks': []}
     process = None
     if DATA.exists():
@@ -48,7 +57,7 @@ def main():
         with (ROOT / 'release' / 'validation-server.log').open('w', encoding='utf-8') as log:
             process = start(log)
             report['checks'].append('Inicio con Python incluido y sin Python del sistema en PATH')
-            assert api('/version')['app_version'] == '1.0.0.8'
+            assert api('/version')['app_version'] == expected_version, 'La versión en ejecución difiere del manifiesto.'
             assert api('/microphone-captions/engine')['available']
             report['checks'].append('Motor Vosk y modelo español incluidos')
             assert not api('/local-tts')['ready']

@@ -74,11 +74,26 @@ test('production template boots in isolation', async ({ operator }) => {
     .map(key => [key, document.querySelectorAll(`[data-view-mount="${key}"]`).length]));
   expect(staticMounts).toEqual(['voice', 'filters', 'alerts-local', 'history', 'workspace', 'diagnostics', 'obs']
     .map(key => [key, 1]));
+  await page.evaluate(() => {
+    window.__staticMounts = [...document.querySelectorAll('[data-view-mount]')];
+    for (const heading of document.querySelectorAll('[data-view-mount] h2')) {
+      heading.dataset.originalHeading = heading.textContent;
+      heading.textContent = 'Renamed fixture heading';
+    }
+  });
   for (const route of ['voice', 'filters', 'alerts', 'history', 'workspace', 'diagnostics', 'obs']) {
     await page.evaluate(key => window.Shell.show(key, { history: 'none', focus: false }), route);
     expect(await page.locator('.config-content').evaluate(node => [...node.children].filter(child => !child.hidden).length), route)
       .toBe(1);
   }
+  expect(await page.evaluate(() => window.__staticMounts.every(node => node.isConnected
+    && document.querySelector(`[data-view-mount="${node.dataset.viewMount}"]`) === node))).toBe(true);
+  await page.evaluate(() => {
+    for (const heading of document.querySelectorAll('[data-original-heading]')) {
+      heading.textContent = heading.dataset.originalHeading;
+      delete heading.dataset.originalHeading;
+    }
+  });
   await page.locator('[data-view-mount="filters"] h2').evaluate(node => { node.textContent = 'Copy changed without changing ownership'; });
   await page.evaluate(() => window.Shell.show('filters', { history: 'none', focus: false }));
   await expect(page.locator('.config-content > [data-view-mount="filters"]')).toBeVisible();
@@ -338,6 +353,46 @@ test('corrupt comment text size preference falls back to the default', async ({ 
   await expect(operator.page.locator('#comment-feed')).toHaveAttribute('data-comment-font-size', '24');
 });
 
+test('connected silence and other activity remain live with quiet timers and reduced motion', async ({ operator }) => {
+  const {page} = operator;
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.evaluate(() => window.__operatorSocket.receive('connected', {username:'fixture_operator'}));
+  await expect(page.locator('#session-activity-text')).toHaveText('Conectado · esperando actividad');
+  await expect(page.locator('body')).toHaveAttribute('data-live-state', 'live');
+  await page.evaluate(() => {
+    window.LivePresence.diagnostics({diagnostics:{gift:Date.now()/1000}});
+  });
+  await expect(page.locator('#session-activity-text')).toContainText('esperando comentarios');
+  expect(await page.locator('.session-live-dot').evaluate(node => node.getAnimations().filter(animation => animation.playState === 'running').length)).toBe(0);
+  expect(await page.locator('#session-activity-text').evaluate(node => !!node.closest('[aria-live], [role="status"], [role="alert"]'))).toBe(false);
+  await page.evaluate(() => window.__operatorSocket.receive('reconnecting', {username:'fixture_operator', delay:5}));
+  await expect(page.locator('#session-activity-text')).toContainText('Próximo intento en 5 s');
+});
+
+test('pending connection can be cancelled once with the keyboard', async ({ operator }) => {
+  const {page} = operator;
+  await page.emulateMedia({reducedMotion:'reduce', forcedColors:'active'});
+  await page.locator('#username-input').fill('fixture_operator');
+  await page.locator('#btn-connect').click();
+  await page.evaluate(() => window.__operatorSocket.receive('connecting', {username:'fixture_operator'}));
+  const cancel = page.getByRole('button', {name:'Cancelar conexión', exact:true});
+  await expect(cancel).toBeVisible();
+  await cancel.focus();
+  await expect(cancel).toBeFocused();
+  await test.info().attach('pending-cancel-forced-colors', {body:await page.screenshot(), contentType:'image/png'});
+  await cancel.press('Enter');
+  await page.evaluate(() => document.getElementById('btn-stop').click());
+  expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'stop_live').length)).toBe(1);
+  await page.evaluate(() => window.__operatorSocket.receive('connected', {username:'fixture_operator'}));
+  await page.evaluate(() => window.__operatorSocket.receive('status', {connecting:true, connected:false, username:'fixture_operator'}));
+  await expect(page.locator('#btn-connect')).toHaveAttribute('data-connection-state', 'disconnecting');
+  await expect(page.locator('body')).not.toHaveAttribute('data-live-state', 'live');
+  await page.evaluate(() => window.__operatorSocket.receive('disconnected', {reason:'Detenido por el usuario'}));
+  await expect(page.locator('body')).toHaveAttribute('data-live-state', 'cancelled');
+  await expect(page.locator('#btn-connect')).toHaveAccessibleName('Conectar');
+  await expect(page.locator('#btn-connect')).toBeFocused();
+});
+
 test('one connection control handles disconnected, connecting, connected and disconnecting states', async ({ operator }) => {
   const { page } = operator;
   const input = page.locator('#username-input');
@@ -355,7 +410,8 @@ test('one connection control handles disconnected, connecting, connected and dis
   await expect(control).toHaveAttribute('aria-busy', 'true');
   await expect(control).toHaveAttribute('aria-disabled', 'true');
   await expect(control).toHaveAttribute('data-connection-state', 'connecting');
-  await expect(page.locator('#btn-stop')).toBeHidden();
+  await expect(page.locator('#btn-stop')).toBeVisible();
+  await expect(page.locator('#btn-stop')).toHaveAccessibleName('Cancelar conexión');
   await control.evaluate(node => node.click());
   expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'start_live').length)).toBe(1);
 

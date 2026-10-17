@@ -192,10 +192,11 @@ window.LivePresence = (() => {
     tick();
   }
   function attach(socket) {
-  socket.on('connected', data => {stopTarget = null;set('live', data.username);});
-  socket.on('connecting', data => {stopTarget = null;set('connecting', data.username);});
-  socket.on('reconnecting', data => {retryAt = Date.now() + Math.max(0, Number(data.delay)||0)*1000;set('reconnecting', data.username);});
+  socket.on('connected', data => {if (!stopTarget) set('live', data.username);});
+  socket.on('connecting', data => {if (!stopTarget) set('connecting', data.username);});
+  socket.on('reconnecting', data => {if (stopTarget) return;retryAt = Date.now() + Math.max(0, Number(data.delay)||0)*1000;set('reconnecting', data.username);});
   socket.on('status', data => {
+    if (stopTarget && (data.connected || data.connecting)) return;
     retryAt = Date.now() + Math.max(0, Number(data.retry_in)||0)*1000;
     const terminal = stopTarget || (['failed','cancelled','offline'].includes(mode) ? mode : mode === 'live' ? 'offline' : 'idle');
     if (!data.connected && !data.connecting) stopTarget = null;

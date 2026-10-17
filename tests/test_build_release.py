@@ -1,7 +1,11 @@
 import hashlib
+import json
 import tempfile
 from pathlib import Path
 import unittest
+from unittest.mock import patch
+
+from tools import validate_release
 
 from tools.build_release import _speech_model_sha256
 
@@ -19,6 +23,17 @@ LINE_ENDING_PATHS = (
 
 
 class SpeechModelIntegrityTests(unittest.TestCase):
+    def test_packaged_version_comes_from_valid_distribution_metadata(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            manifest = Path(folder) / 'distribution.json'
+            with patch.object(validate_release, 'PAYLOAD', Path(folder)):
+                manifest.write_text(json.dumps({'version': '1.0.0.9'}), encoding='utf-8')
+                self.assertEqual(validate_release.packaged_version(), '1.0.0.9')
+                for value in (None, 9, '1.0.0', '1.0.0.9-extra'):
+                    manifest.write_text(json.dumps({'version': value}), encoding='utf-8')
+                    with self.subTest(version=value), self.assertRaises(ValueError):
+                        validate_release.packaged_version()
+
     def test_allowlisted_model_hashes_are_canonical_across_line_endings(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as folder:
             for relative in LINE_ENDING_PATHS:

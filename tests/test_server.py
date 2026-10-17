@@ -577,6 +577,30 @@ class LiveLifecycleTests(unittest.TestCase):
         self.assertTrue(payload['gifts'][2]['recovered'])
 
 class CommentDisplayNameTests(unittest.TestCase):
+    def test_malformed_event_does_not_suppress_next_valid_comment(self):
+        from types import SimpleNamespace as S
+
+        class MalformedEvent:
+            @property
+            def user(self):
+                raise ValueError('private malformed payload')
+
+        with patch.object(server, 'diagnostics', {}), \
+                patch.object(server, 'logger') as logger, \
+                patch.object(server, 'observe_participant'), \
+                patch.object(server, 'event_emotes', return_value=[]), \
+                patch.object(server, 'avatar_url', return_value=None), \
+                patch.object(server, 'user_badges', return_value=[]), \
+                patch.object(server, 'follower_status', return_value=None), \
+                patch.object(server, 'publish_comment_payload', side_effect=lambda payload: payload) as publish:
+            self.assertIsNone(server.handle_comment_event(MalformedEvent()))
+            payload = server.handle_comment_event(S(user=S(unique_id='viewer'), comment='Next valid comment'))
+            self.assertEqual(payload['comment'], 'Next valid comment')
+            self.assertEqual(payload['identity'], 'tiktok:viewer')
+            publish.assert_called_once()
+            self.assertIn('comment_error', server.diagnostics)
+            self.assertNotIn('private malformed payload', str(logger.warning.call_args))
+
     def publish(self, payload, publisher=None):
         from collections import OrderedDict, deque
         from contextlib import ExitStack

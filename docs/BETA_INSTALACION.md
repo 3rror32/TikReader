@@ -1,8 +1,10 @@
-# TikReader 1.0.0.8 Beta · instalación
+# TikReader 1.0.0.9 Beta · instalación
+
+Versión en preparación: el instalador 1.0.0.9 todavía debe construirse y validarse. El paquete local anterior es 1.0.0.8.
 
 ## Para instalar
 
-1. Ejecuta `TikReader-1.0.0.8-Beta-Setup.exe` en Windows 10 u 11 de 64 bits.
+1. Ejecuta `TikReader-1.0.0.9-Beta-Setup.exe` en Windows 10 u 11 de 64 bits.
 2. Si tienes una copia anterior, ciérrala y selecciona su carpeta cuando el instalador ofrezca importar datos. Puedes dejar esa opción vacía.
 3. Abre TikReader desde el menú Inicio. Se mostrará su ventana nativa; no se requiere instalar Python, abrir un navegador, usar una consola ni configurar variables.
 

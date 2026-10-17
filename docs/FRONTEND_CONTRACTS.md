@@ -79,6 +79,27 @@ retaining the static shell.
 
 ## View composition and lifetime
 
+### Theme and component ownership
+
+Themes supply the `--skin-*` palette, typography and visual personality. The
+low-specificity `ui_foundation.css` maps these to semantic `--ui-*` defaults for
+surface, text, border, focus, invalid state, disabled opacity, control height and
+radius. New shared defaults must consume these aliases rather than introduce
+another literal palette. Their fallback values preserve the previous appearance.
+Feature styles own their layout; themes may customize appearance within those
+bounds. `form_controls.css` owns the final shared native-control treatment, and
+the subsequent accessibility and layout safeguards retain readable focus and
+reachable geometry. Preserve the declared stylesheet order. Remove an override
+only after computed-style and browser parity evidence identifies it as redundant;
+matching declarations in different state or theme contexts alone are not proof.
+
+Connection intent and confirmed TikTok connection are separate. Pending attempts
+offer a keyboard-accessible cancel action that sends the existing `stop_live`
+request once. Timed activity text reports observed events without announcing
+each elapsed second or interpreting silence as disconnection. Diagnostic copy
+uses only the allowlisted `/diagnostics/export` response; clipboard failures offer
+the existing download and never expose exception text or raw logs.
+
 Static operator screens use template-authored `data-view-mount` boundaries for
 voice, filters, local alerts, history, workspace, diagnostics, and OBS. Shell
 ownership follows those stable markers; heading text and translations are copy,

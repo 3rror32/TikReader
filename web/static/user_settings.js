@@ -65,6 +65,25 @@
       catch (error) { $('settings-voice-status').textContent = error.message; }
       finally { $('settings-cancel-voices').disabled = false; }
     };
+    $('settings-copy-diagnostic').onclick = async () => {
+      const button = $('settings-copy-diagnostic');
+      const status = $('settings-diagnostic-status');
+      if (button.getAttribute('aria-disabled') === 'true') return;
+      button.setAttribute('aria-disabled', 'true');
+      button.setAttribute('aria-busy', 'true');
+      status.textContent = '';
+      try {
+        // Share only the server's allowlisted report, never local settings or logs.
+        const report = await api('/diagnostics/export');
+        await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+        status.textContent = 'Diagnóstico copiado. Puedes compartirlo para pedir ayuda.';
+      } catch (_) {
+        status.textContent = 'No se pudo copiar. Usa Exportar diagnóstico para descargarlo.';
+      } finally {
+        button.setAttribute('aria-disabled', 'false');
+        button.setAttribute('aria-busy', 'false');
+      }
+    };
     $('settings-exit').onclick = async () => {
       if (!confirm('¿Cerrar TikReader y detener la conexión y las voces?')) return;
       try {

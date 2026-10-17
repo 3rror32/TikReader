@@ -4,6 +4,14 @@ const test = require('node:test');
 
 const read = path => fs.readFileSync(path, 'utf8');
 
+test('foundation exposes semantic focus, disabled, and control geometry defaults', () => {
+  const css = read('web/static/ui_foundation.css');
+  for (const token of ['--ui-focus', '--ui-danger', '--ui-disabled-opacity', '--ui-control-height', '--ui-control-radius']) {
+    assert.ok(css.includes(token + ':'), `${token} is a shared semantic input`);
+    assert.ok(css.includes(`var(${token}`), `${token} is consumed by the foundation`);
+  }
+});
+
 test('every interactive application page loads the shared form contract last', () => {
   const pages = [
     ['web/templates/index.html', '/static/basic_mode.css'],

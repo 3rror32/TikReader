@@ -170,6 +170,15 @@ function setConnectionState(state) {
   button.querySelector('.connect-button__icon').dataset.state = state;
   button.disabled = simulated;
   document.getElementById('btn-stop').style.display = state === 'disconnected' ? 'none' : 'inline-flex';
+  const cancel = document.getElementById('btn-stop');
+  const pending = state === 'connecting';
+  const restoreFocus = !pending && document.activeElement === cancel;
+  cancel.dataset.pendingCancel = String(pending);
+  cancel.setAttribute('aria-hidden', String(!pending));
+  cancel.tabIndex = pending ? 0 : -1;
+  cancel.disabled = !pending;
+  cancel.textContent = 'Cancelar conexión';
+  if (restoreFocus) button.focus();
 }
 
 function setButtons(connected) {
@@ -299,8 +308,8 @@ function startLive() {
 
 function stopLive() {
   const state = document.getElementById('btn-connect').dataset.connectionState;
-  if (!socket.connected || stopIntent || state !== 'connected') return;
-  stopIntent = 'offline';
+  if (!socket.connected || stopIntent || !['connected', 'connecting'].includes(state)) return;
+  stopIntent = state === 'connecting' ? 'cancelled' : 'offline';
   window.LivePresence?.requestStop();
   setConnectionState('disconnecting');
   setStatus('Desconectando…');
@@ -418,6 +427,7 @@ socket.on('connect', () => {
 });
 
 socket.on('reconnecting', ({username, attempt, delay, maximum}) => {
+  if (stopIntent) return;
   hideError();
   showLiveBadge(false);
   setConnectionState('connecting');
@@ -432,12 +442,14 @@ socket.on('disconnect', () => {
 });
 
 socket.on('connecting', ({ username }) => {
+  if (stopIntent) return;
   hideError();
   setConnectionState('connecting');
   setStatus(`⏳ Conectando al live de @${username}…`);
 });
 
 socket.on('connected', ({ username }) => {
+  if (stopIntent) return;
   hideError();
   setStatus(`🟢 Conectado a @${username}`, 'ok');
   showLiveBadge(true);
@@ -486,7 +498,7 @@ socket.on('stats_update', applyStats);
 socket.on('status', (s) => {
   // Counter snapshots arrive through stats_update and HTTP recovery.
   const button = document.getElementById('btn-connect');
-  if (stopIntent === 'offline' && button.dataset.connectionState === 'disconnecting' && (s.connected || s.connecting)) return;
+  if (stopIntent && button.dataset.connectionState === 'disconnecting' && (s.connected || s.connecting)) return;
   if (s.connected || s.connecting) {
     setStatus(s.connected ? `🟢 Conectado a @${s.username}` : s.retry_in
       ? `⏳ Reconectando a @${s.username}: intento ${s.retry_count}…`

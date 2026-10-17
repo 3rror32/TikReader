@@ -15,8 +15,22 @@ const path=require('node:path');
     await page.waitForFunction(()=>window.Workspace && window.Studio);
     await page.locator('[data-section-nav="workspace"]').click();
     await page.locator('#installation-title').scrollIntoViewIfNeeded();
-    await page.locator('#settings-save-device').click();
-    await page.getByText('Ajustes guardados en este equipo.',{exact:true}).waitFor();
+    const originalSkin = await page.locator('#skin-select').inputValue();
+    const selectedSkin = originalSkin === 'light' ? 'dark' : 'light';
+    await page.locator('#skin-select').evaluate(select => { select.closest('details').open = true; });
+    const saved = page.waitForResponse(response => response.url().endsWith('/system/preferences')
+      && response.request().method() === 'POST'
+      && response.request().postDataJSON()['tikreader.skin'] === selectedSkin);
+    await page.locator('#skin-select').selectOption(selectedSkin);
+    assert.equal((await saved).ok(), true, 'automatic preference save succeeds');
+    assert.equal((await (await page.request.get('http://127.0.0.1:5199/system/preferences')).json())
+      .values['tikreader.skin'], selectedSkin, 'selected theme is persisted on the device');
+    // Remove the browser copy so reload must restore the device preference.
+    await page.evaluate(() => localStorage.removeItem('tikreader.skin'));
+    await page.reload();
+    await page.waitForFunction(()=>window.Workspace && window.Studio);
+    await page.waitForFunction(skin => document.documentElement.dataset.skin === skin, selectedSkin);
+    assert.equal(await page.locator('#skin-select').inputValue(), selectedSkin);
     assert.equal(await page.evaluate(()=>typeof io),'function');
     assert.equal((await page.request.get('http://127.0.0.1:5199/diagnostics/export')).status(),200);
     for(const width of [1440,390]){

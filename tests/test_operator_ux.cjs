@@ -295,12 +295,10 @@ test('viewer telemetry stays unavailable until a valid measured count arrives', 
   assert.equal(value.textContent, '—', 'a known flag does not make an invalid value numeric');
 });
 
-test('stop waits for a confirmed connection and then for confirmed backend closure', () => {
+test('active disconnect waits for confirmed backend closure', () => {
   const app = connection(); app.event('connecting', {username: 'Creator'});
-  app.context.stopLive();
   assert.equal(app.element('body').dataset.liveState, 'connecting');
   assert.match(app.element('status-bar').textContent, /Conectando/);
-  assert.deepEqual(app.emitted, [], 'a pending connection is not cancellable through the stop action');
   app.event('connected', {username: 'Creator'});
   app.context.stopLive();
   assert.equal(app.element('btn-connect').dataset.connectionState, 'disconnecting');
@@ -371,11 +369,12 @@ test('Control center uses the same vocabulary in navigation and contextual help'
   assert.match(read('web/static/navigation_help.js'), /'control-center': 'Centro de control:/);
 });
 
-test('idle status confirms disconnection and a new connection resets old viewer measurements', () => {
+test('idle status acknowledges cancellation and a new connection resets old viewer measurements', () => {
   const app = connection(); app.event('connecting', {username: 'Creator'});
   app.context.stopLive(); app.event('status', {connected: false, connecting: false});
-  assert.equal(app.element('body').dataset.liveState, 'idle');
-  assert.match(app.element('status-bar').textContent, /Conectado al servidor/);
+  assert.deepEqual(app.emitted.map(args => args[0]), ['stop_live']);
+  assert.equal(app.element('body').dataset.liveState, 'cancelled');
+  assert.match(app.element('status-bar').textContent, /Conexión cancelada/);
   app.event('connected', {username: 'Creator'});
   app.event('stats_update', {revision: 1, viewers: 25, viewers_known: true});
   app.event('connecting', {username: 'NextCreator'});
