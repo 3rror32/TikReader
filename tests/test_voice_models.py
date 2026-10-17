@@ -189,7 +189,7 @@ class VoiceModelTests(unittest.TestCase):
         with patch.object(self.voice, 'runtime', return_value={'ready': True}), \
                 patch.object(self.voice, '_start_worker') as start:
             result = self.voice.preload('homero')
-        start.assert_called_once_with(model, None)
+        start.assert_called_once_with(model.resolve(), None)
         self.assertTrue(self.voice.keep_warm)
         self.assertEqual(result, {'ready': True})
 

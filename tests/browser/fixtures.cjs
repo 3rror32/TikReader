@@ -139,7 +139,8 @@ const test = base.extend({
     const context = await chromium.launchPersistentContext(profile, {
       channel: 'chromium', headless: true, viewport: { width: 1280, height: 900 },
       deviceScaleFactor: 1, locale: 'es-MX', timezoneId: 'UTC',
-      args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
+      args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`,
+        '--use-angle=swiftshader', '--force-color-profile=srgb'],
     });
     const preferences = Object.fromEntries(Object.entries(seed).filter(([key]) => preferenceKeys.includes(key)));
     const blocked = [], requests = [], errors = [], assetResponses = [], assetTransfers = [];
@@ -231,8 +232,20 @@ const test = base.extend({
     const captureOptions = () => ({ animations: 'disabled',
       mask: [page.locator('input[type="password"], #kick-client-id, #twitch-nickname')],
       maskColor: '#182330', caret: 'hide' });
+    const stableScreenshot = async (boundary = page) => {
+      await page.evaluate(() => document.fonts.ready);
+      await page.mouse.move(0, 0);
+      let previous;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        const image = await boundary.screenshot(captureOptions());
+        if (previous?.equals(image)) return image;
+        previous = image;
+      }
+      throw new Error('Capture did not reach two byte-identical consecutive frames within five attempts.');
+    };
     try { await use({ page, context, preferences, blocked, requests, errors, assetResponses, assetTransfers,
-      start, signalBackendReady, zoom, captureOptions }); }
+      start, signalBackendReady, zoom, captureOptions, stableScreenshot }); }
     finally {
       await testInfo.attach('fixture-requests', { body: JSON.stringify({ requests: requests.map(({path, method}) => ({path, method})), blocked, errors, assetTransfers }, null, 2), contentType: 'application/json' });
       await context.close();

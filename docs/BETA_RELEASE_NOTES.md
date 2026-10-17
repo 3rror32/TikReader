@@ -8,13 +8,13 @@ Release asset: `TikReader-1.0.0.9-Beta-Setup.exe` for Windows 10/11 x64. The ins
 
 ## Package verification
 
-The supplied installer is **311,474,918 bytes**. Its SHA-256 was recomputed locally and matches the recorded build evidence:
+The supplied installer is **311,463,245 bytes**. Its SHA-256 was recomputed locally and matches the recorded build evidence:
 
 ```text
-884b86f4e0eba7e3ab686d85d0b95063902814e6097cba8d57aaef1024e0a640
+7cb6b5eb1cc0dddddc03aa95d6cda8e2633fa5de7e14438baeb6a9efe34b0946
 ```
 
-Binary source commit: `3567f3816a2c437026cb9b3d6603ed4616a1ea0c`. Commit `310039c` subsequently updates installation-guide wording only. The final compile log records successful installer construction. Recorded development-machine runtime checks passed: bundled-runtime startup, Spanish Vosk inclusion, separate data storage, diagnostic fields, full shutdown, and reopening with retained preferences. Recorded desktop/mobile UI QA also passed. These checks were read from the build evidence, not rerun during release-document preparation. Selected source/payload file identity was recorded; a full source-tree identity audit was not performed.
+Binary source commit: `6081fcff8090219e60142281d347ea0817dd30c9`. The final compile log records successful installer construction. All 694 checked distributed source files match this runtime candidate. Six packaged-runtime checks passed on the development machine: bundled-runtime startup, Spanish Vosk inclusion, separate data storage, diagnostic fields, full shutdown, and reopening with retained preferences. The independent local general check passed 409 Python tests, 345 Node tests, Ruff, overlay build, and installer checks, with 68% coverage. These are observed local results; final hosted CI verification remains pending. They do not certify clean-Windows installation or a real broadcast.
 
 Verify the downloaded installer using the attached `SHA256SUMS.txt`. Local reports containing private paths are not release attachments.
 

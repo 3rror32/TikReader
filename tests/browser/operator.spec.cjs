@@ -639,7 +639,7 @@ test('synthetic credentials are redacted from captures and excluded from prefere
   // Equal pixels for unequal secret lengths prove our capture mask, without OCR claims.
   const credentialPage = page.locator('[data-section="platform-integrations"]');
   await page.evaluate(() => document.activeElement.blur());
-  const first = await credentialPage.screenshot(operator.captureOptions());
+  const first = await operator.stableScreenshot(credentialPage);
   await page.locator('#youtube-api-key').fill('different-fixture-secret-with-another-length');
   await page.locator('#kick-client-id').fill('another-fixture-client-id');
   await page.locator('#kick-client-secret').fill('another-fixture-private-secret');
@@ -647,7 +647,7 @@ test('synthetic credentials are redacted from captures and excluded from prefere
   await page.locator('#twitch-nickname').fill('another-fixture-private-nickname');
   await page.locator('#kick-webhook-path').evaluate(node => { node.textContent = '/hooks/kick/fixture-secret-OTHER-PRIVATE'; });
   await page.evaluate(() => document.activeElement.blur());
-  const second = await credentialPage.screenshot(operator.captureOptions());
+  const second = await operator.stableScreenshot(credentialPage);
   await testInfo.attach('credentials-first-masked', { body: first, contentType: 'image/png' });
   await testInfo.attach('credentials-second-masked', { body: second, contentType: 'image/png' });
   await diagnoseCaptureDifference(page, first, second, 'masked-credentials', credentialPage);

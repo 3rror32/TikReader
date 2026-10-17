@@ -13,7 +13,11 @@ import time
 ROOT=Path(__file__).resolve().parent.parent
 
 def run():
-    commands=[[sys.executable,'-m','unittest','discover','-s','tests','-p','test_*.py'],['node','--test','--test-timeout=30000',*[str(p) for p in (ROOT/'tests').glob('test_*.cjs')]]]
+    physics_test = ROOT / 'tests' / 'test_piggy_physics.cjs'
+    # This six-contour simulation can exceed 30 seconds on Windows.
+    commands=[[sys.executable,'-m','unittest','discover','-s','tests','-p','test_*.py'],
+              ['node','--test','--test-timeout=30000',*[str(p) for p in (ROOT/'tests').glob('test_*.cjs') if p != physics_test]],
+              ['node','--test','--test-timeout=90000',str(physics_test)]]
     commands += [['node','--check',str(p)] for p in (ROOT/'web'/'static').glob('*.js')]
     commands += [['npm.cmd' if os.name == 'nt' else 'npm','run','build:overlays']]
     if os.name == 'nt':

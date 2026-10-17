@@ -4,14 +4,17 @@ This checklist prepares publication; it does not authorize tags, uploads, or pub
 
 ## Candidate and package
 
-- [x] Record binary source commit `3567f3816a2c437026cb9b3d6603ed4616a1ea0c`; later `310039c` changes documentation only. Select the final main/tag commit separately.
+- [x] Record binary source commit `6081fcff8090219e60142281d347ea0817dd30c9`; all 694 checked distributed source files match. Select the final main/tag commit separately.
 - [x] Confirm app, Inno definition, launcher metadata, distribution metadata, and release-note version agree on 1.0.0.9.
-- [ ] Run the applicable repository checks and `packaging/build_installer.ps1` on the selected commit.
-- [ ] Validate the newly built package with the included-runtime checks and on clean Windows; record observed results.
+- [x] Observe the independent local general check: 409 Python tests, 345 Node tests, 68% coverage, Ruff, overlay build, and installer checks passed.
+- [x] Rebuild `packaging/build_installer.ps1` for the selected runtime commit; version remains 1.0.0.9.
+- [ ] Confirm final hosted CI checks for the delivery commit.
+- [x] Validate the rebuilt package with all six included-runtime checks on the development machine.
+- [ ] Validate installation and operation on clean Windows.
 - [ ] Check startup, close/reopen, data retention, overlays, voice output, and optional component installation.
 - [ ] Validate external platforms with authorized test accounts; document anything still unverified.
 - [ ] Inspect package contents for credentials, history, user models, private media, and development-only files.
-- [x] Recompute local installer SHA-256 and match recorded evidence; size 311,474,918 bytes. Prepare sanitized `release/SHA256SUMS.txt`.
+- [x] Recompute local installer SHA-256 and match recorded evidence; size 311,463,245 bytes. Prepare sanitized `release/SHA256SUMS.txt`.
 - [ ] Verify the uploaded/downloaded file against that checksum.
 - [ ] Ensure the documentation is merged into `main` before publishing; release-note links target that branch.
 - [ ] Review [release notes](BETA_RELEASE_NOTES.md), screenshots, third-party notices, and unsigned-installer disclosure.

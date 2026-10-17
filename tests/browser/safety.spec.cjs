@@ -15,6 +15,7 @@ test('shareable diagnostic copy uses only the safe export and reports clipboard 
     localStorage.setItem('private-diagnostic-probe', 'never-copy-private-secret');
     window.Shell.show('about');
   });
+  await expect(page.locator('#creator-title')).toBeFocused();
   const copy = page.getByRole('button', {name:'Copiar diagnóstico', exact:true});
   const status = page.locator('#settings-diagnostic-status');
   await copy.focus();
@@ -188,7 +189,7 @@ credentialTest('concealed Kick webhook pixels stay invariant in forced-colors mo
       await path.evaluate((node, value) => { node.textContent = value; }, secret);
       await expect(path).toHaveText('••••••••••••');
       await expect(path).toHaveAttribute('aria-hidden','true');
-      captures.push(await panel.screenshot({animations:'disabled'}));
+      captures.push(await operator.stableScreenshot(panel));
     }
     for (const [index, body] of captures.entries()) {
       await testInfo.attach(`concealed-webhook-${forcedColors}-${index}`, { body, contentType: 'image/png' });
@@ -197,5 +198,14 @@ credentialTest('concealed Kick webhook pixels stay invariant in forced-colors mo
     await diagnoseCaptureDifference(page, captures[0], captures[2], `concealed-webhook-${forcedColors}-2`, panel);
     expect(captures[1].equals(captures[0])).toBe(true);
     expect(captures[2].equals(captures[0])).toBe(true);
+    // Bypass the production mask deliberately: one visible changed character
+    // must still change stable pixels, including under forced colors.
+    await path.evaluate(node => {
+      Object.getOwnPropertyDescriptor(Node.prototype, 'textContent').set.call(node, '•••••••••••X');
+    });
+    await expect(path).toHaveText('•••••••••••X');
+    await expect(path).toBeVisible();
+    const visibleCanary = await operator.stableScreenshot(panel);
+    expect(visibleCanary.equals(captures[0])).toBe(false);
   }
 });
