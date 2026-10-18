@@ -14,9 +14,38 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate:
+  general:
     runs-on: windows-latest
     timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Instalar dependencias Python
+        run: python -m pip install -r requirements-dev.txt
+      - name: Instalar dependencias web
+        run: npm ci
+      - name: Validar programa, interfaz e instalador
+        if: ${{ !cancelled() }}
+        run: python tools/check_changes.py
+      - name: Conservar reporte de cobertura
+        if: ${{ always() && hashFiles('runtime/.coverage') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-calidad-${{ github.run_number }}
+          path: runtime/.coverage
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+  browser:
+    runs-on: windows-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,19 +65,7 @@ jobs:
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/runtime/playwright-browsers
       - name: Verify operator browser contracts
-        run: npm run test:operator
-      - name: Validar programa, interfaz e instalador
-        if: ${{ !cancelled() }}
-        run: python tools/check_changes.py
-      - name: Conservar reporte de cobertura
-        if: ${{ always() && hashFiles('runtime/.coverage') != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: reporte-calidad-${{ github.run_number }}
-          path: runtime/.coverage
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 14
+        run: npm run test:operator -- --retries=0
       - name: Preserve operator browser diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -57,3 +74,18 @@ jobs:
           path: runtime/operator-browser
           if-no-files-found: ignore
           retention-days: 14
+  validate:
+    if: always()
+    needs: [general, browser]
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all quality checks
+        shell: pwsh
+        env:
+          GENERAL_RESULT: ${{ needs.general.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: |
+          if ($env:GENERAL_RESULT -ne 'success' -or $env:BROWSER_RESULT -ne 'success') {
+            throw "Quality checks incomplete: general=$env:GENERAL_RESULT; browser=$env:BROWSER_RESULT"
+          }
