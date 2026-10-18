@@ -46,6 +46,16 @@
  // Give standalone tools their own destinations while retaining the original controls and handlers.
  const integrationHeading=[...pane.children].find(n=>n.tagName==='H3'&&n.textContent==='Otras integraciones');
  integrationHeading.before(spotifyReturn,spotifyReturn.nextSibling);
+ const nativePoll=el('section');nativePoll.id='native-tiktok-poll';pollStatus.after(nativePoll);
+ function renderNativePoll(data) {
+   const status={active:'Activa',ended:'Finalizada',observed:'Actualización recibida'};
+   nativePoll.replaceChildren(el('h4','Encuesta de TikTok'));
+   if(!data){nativePoll.append(el('p','Sin encuesta de TikTok recibida en esta conexión.'));return;}
+   nativePoll.append(el('p',data.title||'Sin título recibido'),el('p',status[data.status]||'Actualización recibida'));
+   for(const option of data.options||[])nativePoll.append(el('p',`${option.text||'Opción '+option.index}: ${option.votes} votos`));
+   nativePoll.append(el('p',`Total observado: ${data.total_votes} votos · Solo lectura`));
+ }
+ renderNativePoll(null);
  const destinations=[['spotify','Peticiones de Spotify'],['chat-poll','Encuesta del chat'],['streamerbot','Streamer.bot local'],['sound-library','Biblioteca de sonidos'],['video-library','Videos y panel separable']];
  for(const [key,title] of destinations){
   const start=[...pane.children].find(n=>n.tagName==='H3'&&n.textContent===title);
@@ -89,7 +99,7 @@
  if(player){player.onended=stop;player.onerror=()=>{notice.textContent='No se pudo reproducir el archivo de la regla.';stop();};player.play().catch(()=>{notice.textContent='Reproducción bloqueada por el navegador.';stop();});}
  timeout=setTimeout(stop,player?30000:4000);return {done,cancel:stop};});}
  document.addEventListener('click',e=>{if(e.target.closest('#emergency-button'))clearEffects();},true);
- async function poll(){if(busy)return;busy=true;try{const d=await api('/interactivity');pollActive=Boolean(d.running||d.poll?.active||d.pending);if(d.mode&&d.mode!==effectMode)window.TikReaderEffects.setMode(d.mode);if(d.muted)clearEffects();time.textContent=`${Math.floor(d.remaining/3600)}:${String(Math.floor(d.remaining/60)%60).padStart(2,'0')}:${String(d.remaining%60).padStart(2,'0')}`;pollStatus.textContent=d.poll?d.poll.question+' · '+d.poll.options.map((x,i)=>`${i+1}. ${x}: ${d.poll.counts[i]}`).join(' | '):'Sin encuesta';log.replaceChildren(...d.log.slice(0,10).map(x=>el('p',new Date(x.at*1000).toLocaleTimeString((window.I18n?.locale || 'es-419'),{hour12:true})+' · '+x.text)));if(serial!==null)for(const e of d.effects.filter(e=>e.id>serial&&Date.now()/1000-e.at<10))displayEffect(e);serial=d.serial;}catch(e){clearEffects();notice.textContent=e.message;}finally{busy=false;}}
+ async function poll(){if(busy)return;busy=true;try{const d=await api('/interactivity');pollActive=Boolean(d.running||d.poll?.active||d.native_poll?.status==='active'||d.pending);renderNativePoll(d.native_poll);if(d.mode&&d.mode!==effectMode)window.TikReaderEffects.setMode(d.mode);if(d.muted)clearEffects();time.textContent=`${Math.floor(d.remaining/3600)}:${String(Math.floor(d.remaining/60)%60).padStart(2,'0')}:${String(d.remaining%60).padStart(2,'0')}`;pollStatus.textContent=d.poll?d.poll.question+' · '+d.poll.options.map((x,i)=>`${i+1}. ${x}: ${d.poll.counts[i]}`).join(' | '):'Sin encuesta';log.replaceChildren(...d.log.slice(0,10).map(x=>el('p',new Date(x.at*1000).toLocaleTimeString((window.I18n?.locale || 'es-419'),{hour12:true})+' · '+x.text)));if(serial!==null)for(const e of d.effects.filter(e=>e.id>serial&&Date.now()/1000-e.at<10))displayEffect(e);serial=d.serial;}catch(e){clearEffects();notice.textContent=e.message;}finally{busy=false;}}
  window.addEventListener('tikreader:rules-changed',()=>{api('/interactivity').then(d=>{rules=d.rules;render();}).catch(e=>notice.textContent=e.message);});
  api('/interactivity').then(d=>{rules=d.rules;serial=d.serial;pollActive=Boolean(d.running||d.poll?.active||d.pending);render();}).catch(e=>notice.textContent=e.message);files().catch(e=>notice.textContent=e.message);setInterval(()=>{const live=pollActive||rules.some(rule=>rule.enabled);if(live||!pane.hidden||(!document.hidden&&++idlePollTick%4===0))poll();},1500);
 })();

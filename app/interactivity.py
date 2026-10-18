@@ -21,6 +21,7 @@ class Interactivity:
         self.trace=deque(maxlen=500);self.global_times=deque();self.global_limit=120;self.external_ttl=10
         self.omissions=Counter();self.checkpoint_enabled=False;self.checkpoint_at=0;self.usage={}; self.audio_owner=None; self.audio_until=0; self.session=None; self.log=deque(maxlen=100); self.effects=deque(maxlen=50); self.serial=0
         self.pending=[]; self.order=0; self.poll=None; self.remaining=0; self.running=False; self.tick=time.monotonic(); self.external=False
+        self.native_poll = None; self.native_poll_session = None; self.native_poll_ids = OrderedDict()
         self.overlay_serial=0
         self.overlay_games={
             'wheel':{'serial':0,'options':['Reto sorpresa','+1 minuto','El chat elige','Giro extra','Saludo especial','Sin premio'],'winner':'','winner_index':-1,'angle':0,'spin_start_angle':0,'spin_delta':0,'spinning':False,'duration':4.8,'turns':5,'title':'RUEDA DE LA FORTUNA','show_result':True},
@@ -52,12 +53,60 @@ class Interactivity:
     def reset_live_session(self):
         """Start a LIVE with an empty bank while preserving its appearance."""
         with self.lock:
+            self.reset_native_poll()
             state = self.overlay_games['drop']
             self.overlay_serial += 1
             state.update(score=0, event=None, events=[], contents=[],
                          source_counts={}, epoch=uuid4().hex,
                          serial=self.overlay_serial)
             bank_storage.persist(self.r, state)
+
+    def reset_native_poll(self):
+        with self.lock:
+            self.native_poll = None; self.native_poll_session = self.r.feed_session; self.native_poll_ids.clear()
+
+    def native_poll_snapshot(self):
+        with self.lock:
+            if self.native_poll_session != self.r.feed_session: return None
+            if self.native_poll is None: return None
+            return {**self.native_poll, 'options': [dict(option) for option in self.native_poll['options']]}
+
+    def native_poll_event(self, event, session):
+        """Observe native content presence and cumulative vote totals; never manage a poll."""
+        start, update, end = (getattr(event, key, None) for key in ('start_content', 'update_votes_content', 'end_content'))
+        basic = getattr(event, 'poll_basic_info', None)
+        raw_id = getattr(event, 'poll_id', 0)
+        identity = str(raw_id if isinstance(raw_id, int) and raw_id > 0 else getattr(basic, 'poll_id_str', '') or '')[:80]
+        if not identity or not any(part is not None for part in (start, update, end)): return
+        with self.lock:
+            if session != self.r.feed_session: return
+            if self.native_poll_session != session: self.reset_native_poll()
+            current = self.native_poll
+            if current and current['id'] != identity:
+                if identity in self.native_poll_ids or start is None: return
+            if current is None or current['id'] != identity:
+                current = dict(id=identity, session=session, source='tiktok', title='', status='observed', options=[], total_votes=0)
+                self.native_poll = current
+                self.native_poll_ids[identity] = None
+                while len(self.native_poll_ids) > 50: self.native_poll_ids.popitem(last=False)
+            if current['status'] == 'ended' and end is None: return
+            title = str(getattr(start, 'title', '') or getattr(basic, 'title', '') or '')[:200]
+            if title: current['title'] = title
+            options = {option['index']: dict(option) for option in current['options']}
+            for part, status in ((start, 'active'), (update, None), (end, 'ended')):
+                if part is None: continue
+                if status: current['status'] = status
+                for option in list(getattr(part, 'option_list', []) or [])[:50]:
+                    index, votes = getattr(option, 'option_idx', None), getattr(option, 'votes', 0)
+                    if not isinstance(index, int) or isinstance(index, bool) or index < 0: continue
+                    if index not in options and len(options) >= 50: continue
+                    previous = options.get(index, dict(index=index, text='', votes=0))
+                    text = str(getattr(option, 'display_content', '') or '')[:200]
+                    if text: previous['text'] = text
+                    previous['votes'] = max(0, votes) if isinstance(votes, int) and not isinstance(votes, bool) else 0
+                    options[index] = previous
+            current['options'] = [options[key] for key in sorted(options)]
+            current['total_votes'] = sum(option['votes'] for option in options.values())
 
     def overlay_action(self, game, action, record=None):
         state = self.overlay_games[game]
@@ -333,7 +382,7 @@ class Interactivity:
                         if self.r.archive:self.r.archive.set_setting('interactive_rules',rules)
                         self.rules=rules
                     except (ValueError,TypeError) as exc:return jsonify(error=str(exc)),400
-                return jsonify(mode=self.r.live_tools.effects_mode,rules=self.rules,external=self.external,log=list(self.log),remaining=self.timer(),running=self.running,poll=self.poll_snapshot(),pending=len(self.pending),serial=self.serial,muted=self.r.production.settings["emergency"] or self.r.production.settings["scene"]!="talk",
+                return jsonify(mode=self.r.live_tools.effects_mode,rules=self.rules,external=self.external,log=list(self.log),remaining=self.timer(),running=self.running,poll=self.poll_snapshot(),native_poll=self.native_poll_snapshot(),pending=len(self.pending),serial=self.serial,muted=self.r.production.settings["emergency"] or self.r.production.settings["scene"]!="talk",
                     effects=list(self.effects) if not self.r.production.settings['emergency'] and self.r.production.settings['scene']=='talk' else [])
 
         @app.get('/widget/interactive')

@@ -147,6 +147,23 @@ class Production:
             if len(self.questions) > 200:
                 self.questions.popitem(last=False)
 
+    def native_question(self, record):
+        with self.r.feed_lock:
+            self.reset_session()
+            identity = 'native-question:' + record['question_id']
+            delivery = 'native-message:' + record['upstream_id'] if record.get('upstream_id') else None
+            if identity in self.questions or identity in self.seen or (delivery and delivery in self.seen) or self.r.is_moderated(record):
+                return
+            self.seen.add(identity)
+            if delivery: self.seen.add(delivery)
+            if len(self.seen) > 2000:
+                self.seen = set(list(self.seen)[-1000:])
+            self.questions[identity] = dict(id=identity, question_id=record['question_id'], source='tiktok',
+                text=record['comment'], comment_id=record['id'], users=[record['user']], count=1,
+                answered=False, records={record['id']: record})
+            if len(self.questions) > 200: self.questions.popitem(last=False)
+            self.r.socketio.emit('native_questions_update', {'session': self.r.feed_session})
+
     def remove_comments(self, matches):
         """Remove only moderation-matched origins from derived operator state."""
         self.remote_queue = [row for row in self.remote_queue if not matches(row)]
@@ -161,12 +178,13 @@ class Production:
     def snapshot(self):
         return {**self.settings, 'session': self.r.feed_session}
 
-    def answer_question(self, text, answered):
-        key = question_key(text)
+    def answer_question(self, text, answered, group_id=None):
+        key = next((key for key, group in self.questions.items() if group['id'] == group_id), None) if group_id else question_key(text)
         group = self.questions.get(key)
         if group:
             group['answered'] = answered
             if self.r.archive:self.r.archive.save(self.r.feed_session, 'question', group)
+            if group.get('source') == 'tiktok': return
         for item in list(self.r.comment_history) + self.remote_queue:
             if question_key(item.get('comment', '')) == key:item['answered'] = answered
         if self.r.archive:
@@ -265,7 +283,7 @@ class Production:
                     item = next((g for g in self.questions.values() if g['id'] == data.get('id')), None)
                     if item is None:
                         return jsonify(error='Pregunta no encontrada'), 404
-                    self.answer_question(item['text'], bool(data.get('answered', True)))
+                    self.answer_question(item['text'], bool(data.get('answered', True)), item['id'])
                 return jsonify(questions=list(reversed(self.questions.values())), prepared=list(self.remote_queue))
 
         @app.route('/production/markers', methods=['GET', 'POST'])

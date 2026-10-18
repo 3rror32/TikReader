@@ -737,6 +737,22 @@ def publish_follow_payload(record, message_id=None):
     return publish_activity_payload("follow", record, message_id)
 
 
+def handle_native_question_event(event, session):
+    data = getattr(event, 'data', None)
+    identity = native_id(getattr(data, 'question_id', None))
+    text = str(getattr(data, 'content', '') or '').strip()[:2000]
+    if not identity or not text: return
+    user = getattr(data, 'user', None)
+    name = getattr(user, 'display_id', None) or getattr(user, 'nickname', None) or 'Espectador'
+    message_id = native_id(getattr(getattr(event, 'common', None), 'msg_id', None))
+    with feed_lock:
+        if session != feed_session: return
+        production.native_question(dict(id='native-question:' + identity, question_id=identity,
+            session=session, platform='tiktok', upstream_id=message_id,
+            user_id=native_id(getattr(user, 'id', None) or getattr(user, 'id_str', None)),
+            user='@' + str(name).lstrip('@')[:159], comment=text))
+
+
 def _external_occurred_at(value):
     if isinstance(value, (int, float)):
         return float(value)
@@ -1133,6 +1149,13 @@ def run_tiktok_live(username: str):
             async def on_delete(event):
                 if current_run(): handle_moderation_event(event, run_session)
             client.on(delete_type)(on_delete)
+
+        for event_name, handler in [('QuestionNewEvent', handle_native_question_event), ('PollEvent', interactive.native_poll_event)]:
+            event_type = getattr(extra_events, event_name, None)
+            if event_type:
+                async def on_native(event, handler=handler):
+                    if current_run(): handler(event, run_session)
+                client.on(event_type)(on_native)
 
         for event_name, kind in [('FollowEvent','follow'),('ShareEvent','share'),('SubNotifyEvent','subscribe'),
                                  ('SuperFanEvent','super_fan'),('SuperFanJoinEvent','super_fan_join')]:
