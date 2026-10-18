@@ -51,6 +51,72 @@ function setup() {
 
 const comment = n => ({id: String(n), session: 'A', sequence: n, user: 'viewer', comment: String(n), timestamp: '23:01:02'});
 
+test('moderation removes exact native identities and rejects replay and stale sessions', () => {
+  const {context,feed}=setup();
+  context.receiveComment({...comment(1),upstream_id:'101',user_id:'42',platform:'tiktok'});
+  context.receiveComment({...comment(2),upstream_id:'102',user_id:'43',platform:'tiktok'});
+  context.receiveModeration({session:'A',message_ids:['101'],user_ids:[]});
+  assert.equal(feed.children.length,1);
+  context.receiveHistory({session:'A',cursor:2,comments:[{...comment(1),upstream_id:'101',user_id:'42',platform:'tiktok'}]});
+  assert.equal(feed.children.length,1);
+  context.receiveModeration({session:'old',message_ids:[],user_ids:['43']});
+  assert.equal(feed.children.length,1);
+  context.receiveModeration({session:'A',message_ids:[],user_ids:['43']});
+  assert.equal(feed.children.length,0);
+});
+
+test('moderation cancels matching queued/current speech and preserves manual speech', () => {
+  const {studio,element,spoken}=setupStudio();
+  element('tts-enabled').checked=true;
+  const row={...comment(1),upstream_id:'101',user_id:'42',platform:'tiktok'};
+  studio.ingest(row,true);
+  studio.ingest({...comment(2),upstream_id:'102',user_id:'43',platform:'tiktok'},true);
+  studio.moderate({session:'A',message_ids:['101'],user_ids:[]});
+  assert.equal(studio.voiceSnapshot().current,'viewer dice: 2');
+  studio.speakManual('manual');
+  studio.moderate({session:'A',message_ids:[],user_ids:['43']});
+  assert.equal(studio.voiceSnapshot().current,'manual');
+  studio.moderate({session:'A',message_ids:[],user_ids:['42','43']});
+  assert.equal(studio.voiceSnapshot().current,'manual');
+});
+
+test('moderation invalidates in-flight translation and deferred speech by origin', () => {
+  let translatedRead;
+  const {studio,element}=setupStudio({}, {readComment(data,read){translatedRead=read;}});
+  element('tts-enabled').checked=true;
+  studio.ingest({...comment(1),platform:'tiktok',upstream_id:'101',user_id:'42'},true);
+  studio.moderate({session:'A',message_ids:['101'],user_ids:[]});
+  translatedRead('traducción tardía');
+  assert.equal(studio.queueInfo().pending,0);
+  assert.equal(studio.voiceSnapshot().current,null);
+  const other=setupStudio();
+  other.element('tts-enabled').checked=true;
+  other.studio.hold('mic',true);
+  other.studio.ingest({...comment(1),platform:'tiktok',upstream_id:'101',user_id:'42'},true);
+  const pending=other.studio.voiceSnapshot().pending[0];
+  other.studio.editQueue(pending.id,'later');
+  other.studio.moderate({session:'A',message_ids:[],user_ids:['42']});
+  assert.equal(other.studio.voiceSnapshot().deferred.length,0);
+});
+
+test('lifecycle recovery keeps pause connected and rejects stale states', () => {
+  const {context}=setup();
+  context.receiveComment(comment(1));
+  const states=[],labels=[];
+  context.setButtons=value=>states.push(value);
+  context.showLiveBadge=()=>{};
+  context.setStatus=value=>labels.push(value);
+  context.receiveLiveStatus({platform:'tiktok',session:'A',revision:2,state:'paused'});
+  assert.equal(states.at(-1),true);
+  assert.match(labels.at(-1),/pausado/);
+  context.receiveLiveStatus({platform:'tiktok',session:'A',revision:1,state:'live'});
+  context.receiveLiveStatus({platform:'tiktok',session:'old',revision:9,state:'ended'});
+  assert.equal(states.length,1);
+  context.receiveLiveStatus({platform:'tiktok',session:'A',revision:3,state:'ended'});
+  assert.equal(states.at(-1),false);
+  assert.match(labels.at(-1),/finalizado/);
+});
+
 for (const kind of ['follow', 'share', 'subscribe', 'super_fan', 'super_fan_join']) {
 test(`${kind} activity renders escaped without comment actions or count`, () => {
   const {context,feed} = setup();

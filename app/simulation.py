@@ -27,6 +27,7 @@ class Simulation:
         r = self.r
         with r.feed_lock:
             r.feed_session = uuid4().hex
+            r.reset_feed_tracking()
             for name in ('comment_history', 'seen_comment_ids', 'gift_history', 'recovered_gifts',
                          'gift_counts', 'seen_like_ids', 'participants', 'recent_joins',
                          'gifter_totals', 'gifter_diamonds', 'viewer_samples'):

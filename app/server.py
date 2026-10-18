@@ -189,6 +189,78 @@ recent_joins = deque(maxlen=100)
 participants_revision = 0
 PARTICIPANT_ACTIVITY_WINDOW_SECONDS = 180
 feed_session = uuid4().hex
+feed_cursor = 0
+moderation_revision = 0
+moderated_messages = OrderedDict()
+moderated_users = OrderedDict()
+live_lifecycle = {"state": "disconnected", "revision": 0}
+tiktok_run_token = None
+
+
+def reset_feed_tracking():
+    global feed_cursor, moderation_revision
+    feed_cursor = 0
+    moderation_revision = 0
+    moderated_messages.clear(); moderated_users.clear()
+    live_lifecycle.update(state="disconnected", revision=0)
+
+
+def native_id(value):
+    text = str(value or "")
+    return text if text.isdecimal() and int(text) > 0 else ""
+
+
+def is_moderated(record):
+    return record.get("platform") == "tiktok" and (
+        str(record.get("upstream_id") or record.get("id")) in moderated_messages or
+        str(record.get("user_id") or "") in moderated_users)
+
+
+def set_live_lifecycle(value, session, token):
+    with feed_lock:
+        if session != feed_session or token != tiktok_run_token:
+            return
+        if live_lifecycle["state"] == "ended" and value != "ended":
+            return
+        live_lifecycle.update(state=value, revision=live_lifecycle["revision"] + 1)
+        state["connected"] = value in ("live", "paused")
+        state["connecting"] = False
+        payload = dict(live_lifecycle, platform="tiktok", session=feed_session, username=state["username"])
+    socketio.emit("live_status", payload)
+    return payload
+
+
+def native_lifecycle_payload():
+    """Only confirmed native phases may override ordinary connection presentation."""
+    if (live_lifecycle["revision"] == 0 or state["connecting"] or
+            ":" in str(state.get("username") or "") or
+            getattr(globals().get("simulation"), "active", False)):
+        return None
+    return dict(live_lifecycle, platform="tiktok", session=feed_session, username=state["username"])
+
+
+def handle_moderation_event(event, session):
+    global moderation_revision
+    with feed_lock:
+        if session != feed_session:
+            return
+        for values, target in ((getattr(event, "delete_msg_ids", []), moderated_messages),
+                               (getattr(event, "delete_user_ids", []), moderated_users)):
+            for value in values:
+                identity = native_id(value)
+                if identity: target[identity] = None
+            while len(target) > 2000: target.popitem(last=False)
+        moderation_revision += 1
+        removed = [dict(row) for row in comment_history if is_moderated(row)]
+        remaining = [row for row in comment_history if not is_moderated(row)]
+        comment_history.clear(); comment_history.extend(remaining)
+        production.remove_comments(is_moderated)
+        if studio_state.get("highlight") and is_moderated(studio_state["highlight"]):
+            studio_state["highlight"] = None
+        payload = {"session": session, "revision": moderation_revision,
+                   "message_ids": list(moderated_messages), "user_ids": list(moderated_users)}
+    socketio.emit("comments_deleted", payload)
+    return removed
 session_metrics = None
 
 
@@ -337,12 +409,15 @@ def identify_live_and_recover(username, live_id):
 def feed_snapshot(after=0, session=None, gifts_version=-1):
     with feed_lock:
         comments = list(comment_history)
-        cursor = comments[-1]["sequence"] if comments else 0
+        cursor = feed_cursor
         if session == feed_session and 0 <= after <= cursor:
             comments = [item for item in comments if item["sequence"] > after]
         result = {"session": feed_session, "cursor": cursor, "comments": comments,
                   "stats": stats_payload(), "gift_version": gift_revision,
-                  "participants": participants_payload()}
+                  "participants": participants_payload(),
+                  "lifecycle": native_lifecycle_payload(),
+                  "moderation": {"session": feed_session, "revision": moderation_revision,
+                                 "message_ids": list(moderated_messages), "user_ids": list(moderated_users)}}
         if session != feed_session or gifts_version != gift_revision:
             result["gifts"] = gift_records()
         return result
@@ -531,7 +606,7 @@ def _comment_callback_diagnostic(reason):
     logger.warning("TikTok comment callback skipped: %s", reason)
 
 
-def handle_comment_event(event):
+def handle_comment_event(event, session=None):
     try:
         user = getattr(event, "user", None)
         username = _tiktok_comment_user_name(event, user)
@@ -548,7 +623,9 @@ def handle_comment_event(event):
             return None
         payload = {
             "id": message_id,
-            "session": feed_session,
+            "upstream_id": native_id(getattr(common, "msg_id", None)),
+            "user_id": native_id(getattr(user, "id", None)),
+            "session": session or feed_session,
             "user": f"@{username or 'Espectador'}",
             "display_name": display_name,
             "avatar_url": avatar_url(user),
@@ -573,7 +650,9 @@ def handle_comment_event(event):
 
 def publish_comment_payload(payload):
     """Store and fan out a normalized comment from any live platform."""
+    global feed_cursor
     payload = dict(payload)
+    expected_session = payload.get("session")
     message_id = str(payload.get("id") or uuid4().hex)
     payload["id"] = message_id
     payload["session"] = feed_session
@@ -590,12 +669,17 @@ def publish_comment_payload(payload):
     payload.setdefault("platform", "tiktok")
     payload.setdefault("platform_label", payload["platform"].title())
     with feed_lock:
+        if expected_session and expected_session != feed_session:
+            return
+        if is_moderated(payload):
+            return
         if message_id in seen_comment_ids:
             return
         seen_comment_ids[message_id] = None
         if len(seen_comment_ids) > 1000:
             seen_comment_ids.popitem(last=False)
-        payload["sequence"] = comment_history[-1]["sequence"] + 1 if comment_history else 1
+        feed_cursor += 1
+        payload["sequence"] = feed_cursor
         comment_history.append(payload)
         state["comment_count"] += 1
         diagnostics["comment"] = time.time()
@@ -623,8 +707,9 @@ ACTIVITY_LABELS = {
 }
 
 
-def publish_activity_payload(kind, record, message_id=None):
+def publish_activity_payload(kind, record, message_id=None, session=None):
     """Store operator activity without invoking comment counters or automation."""
+    global feed_cursor
     label, emoji = ACTIVITY_LABELS[kind]
     identity = f"{kind}:{message_id or uuid4().hex}"
     payload = {"id": identity, "session": feed_session, "kind": kind,
@@ -633,12 +718,15 @@ def publish_activity_payload(kind, record, message_id=None):
                "timestamp": time.strftime("%H:%M:%S"), "occurred_at": time.time(),
                "platform": "tiktok", "avatar_url": record.get("avatar_url")}
     with feed_lock:
+        if session and session != feed_session:
+            return
         if identity in seen_comment_ids:
             return
         seen_comment_ids[identity] = None
         if len(seen_comment_ids) > 1000:
             seen_comment_ids.popitem(last=False)
-        payload["sequence"] = comment_history[-1]["sequence"] + 1 if comment_history else 1
+        feed_cursor += 1
+        payload["sequence"] = feed_cursor
         comment_history.append(payload)
     socketio.emit("new_comment", payload)
     return payload
@@ -909,14 +997,20 @@ def classify_tiktok_error(e: Exception) -> dict:
 
 # ── TikTok Live mode ─────────────────────────────────────────────────────────
 def run_tiktok_live(username: str):
-    global tiktok_client, tiktok_loop, tiktok_task
+    global tiktok_client, tiktok_loop, tiktok_task, tiktok_run_token
     failure = None
+    run_session, run_token = feed_session, uuid4().hex
+    tiktok_run_token = run_token
+
+    def current_run():
+        return run_session == feed_session and run_token == tiktok_run_token
 
     if not _load_tiktoklive():
         return "LIBRARY_ERROR"
 
     def report_error(error):
         nonlocal failure
+        if not current_run(): return
         failure = error["code"]
         from release_support import connection_failures
         connection_failures.append({'code': failure, 'at': int(time.time())})
@@ -949,14 +1043,14 @@ def run_tiktok_live(username: str):
         @client.on(ConnectEvent)
         async def on_connect(event):
             nonlocal room_stats_task
-            if stop_requested.is_set():
+            if stop_requested.is_set() or not current_run():
                 return
-            state["connected"] = True
+            set_live_lifecycle("live", run_session, run_token)
             begin_session_metrics()
             state["connecting"] = False
             state["retry_in"] = 0
             connected_event.set()
-            socketio.emit("connected", {"username": username})
+            socketio.emit("connected", {"username": username, "session": run_session})
             print(f"[TikTok] ✅ Conectado a @{username}")
             try:
                 live_id = getattr(client, 'room_id', None)
@@ -978,6 +1072,7 @@ def run_tiktok_live(username: str):
 
         @client.on(RoomUserSeqEvent)
         async def on_viewers(event):
+            if not current_run(): return
             state["viewer_count"] = max(0, event.total)
             state["viewers_known"] = True
             diagnostics["viewers"] = time.time()
@@ -986,29 +1081,35 @@ def run_tiktok_live(username: str):
 
         @client.on(DisconnectEvent)
         async def on_disconnect(event):
-            state["connected"] = False
-            socketio.emit("disconnected", {"reason": "Stream finalizado"})
+            if not current_run(): return
+            set_live_lifecycle("disconnected", run_session, run_token)
+            socketio.emit("disconnected", {"reason": "LIVE finalizado" if live_lifecycle['state'] == 'ended' else "Se perdió la conexión con TikTok", "session": run_session})
             print(f"[TikTok] Desconectado de @{username}")
 
         @client.on(CommentEvent)
         async def on_comment(event):
-            handle_comment_event(event)
+            if not current_run(): return
+            handle_comment_event(event, run_session)
 
         if EmoteChatEvent:
             @client.on(EmoteChatEvent)
             async def on_emote_comment(event):
-                handle_comment_event(event)
+                if not current_run(): return
+                handle_comment_event(event, run_session)
 
         @client.on(LikeEvent)
         async def on_like(event):
+            if not current_run(): return
             handle_like_event(event)
 
         @client.on(GiftEvent)
         async def on_gift(event):
+            if not current_run(): return
             handle_gift_event(event)
 
         @client.on(JoinEvent)
         async def on_join(event):
+            if not current_run(): return
             observe_participant(event.user, "join", joined=True)
 
         import TikTokLive.events as extra_events
@@ -1021,14 +1122,27 @@ def run_tiktok_live(username: str):
                     except (ValueError,TypeError,AttributeError,RuntimeError,sqlite3.Error):
                         logger.warning('battle_event_unavailable kind=%s',kind)
                 client.on(battle_type)(on_battle)
+        for event_name, value in [('LivePauseEvent', 'paused'), ('LiveUnpauseEvent', 'live'), ('LiveEndEvent', 'ended')]:
+            event_type = getattr(extra_events, event_name, None)
+            if event_type:
+                async def on_lifecycle(event, value=value):
+                    if current_run(): set_live_lifecycle(value, run_session, run_token)
+                client.on(event_type)(on_lifecycle)
+        delete_type = getattr(extra_events, 'ImDeleteEvent', None)
+        if delete_type:
+            async def on_delete(event):
+                if current_run(): handle_moderation_event(event, run_session)
+            client.on(delete_type)(on_delete)
+
         for event_name, kind in [('FollowEvent','follow'),('ShareEvent','share'),('SubNotifyEvent','subscribe'),
                                  ('SuperFanEvent','super_fan'),('SuperFanJoinEvent','super_fan_join')]:
             event_type=getattr(extra_events,event_name,None)
             if event_type:
                 async def on_extra(event, kind=kind):
+                    if not current_run(): return
                     message_id=getattr(getattr(event,'common',None),'msg_id',0) or uuid4().hex
                     extra_record={"user":getattr(getattr(event,"user",None),"unique_id",None), "avatar_url":avatar_url(getattr(event,"user",None))}
-                    publish_activity_payload(kind, extra_record, message_id)
+                    publish_activity_payload(kind, extra_record, message_id, run_session)
                     live_counters.event(kind,message_id,extra_record)
                     interactive.event(kind,extra_record,message_id)
                     points.event(kind,extra_record,message_id)
@@ -1145,11 +1259,11 @@ def run_tiktok_live(username: str):
         if pending:
             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
         loop.close()
-        tiktok_loop = None
-        tiktok_task = None
-        state["connected"] = False
-        state["connecting"] = False
-        socketio.emit("disconnected", {"reason": "Conexión finalizada"})
+        if current_run():
+            tiktok_loop = None
+            tiktok_task = None
+            set_live_lifecycle("disconnected", run_session, run_token)
+            socketio.emit("disconnected", {"reason": "LIVE finalizado" if live_lifecycle['state'] == 'ended' else "Se perdió la conexión con TikTok", "session": run_session})
 
 
     return failure
@@ -1200,7 +1314,7 @@ register_diagnostics_routes(app, sys.modules[__name__])
 def handle_connect():
     if not production.local():
         return False
-    emit("status", state)
+    emit("status", dict(state, session=feed_session, lifecycle=native_lifecycle_payload()))
     emit("comment_history", feed_snapshot())
     emit("stats_update", stats_payload())
     manager = globals().get("platform_manager")
@@ -1237,6 +1351,7 @@ def prepare_external_session(platform, channel):
         with feed_lock:
             feed_session = uuid4().hex
             comment_history.clear()
+            reset_feed_tracking()
             seen_comment_ids.clear()
             gift_history.clear()
             recovered_gifts.clear()
@@ -1310,6 +1425,7 @@ def start_connection(username):
             with feed_lock:
                 feed_session = uuid4().hex
                 comment_history.clear()
+                reset_feed_tracking()
                 seen_comment_ids.clear()
                 gift_history.clear()
                 recovered_gifts.clear()

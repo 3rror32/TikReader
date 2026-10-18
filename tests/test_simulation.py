@@ -42,6 +42,17 @@ class SimulationTests(unittest.TestCase):
         response = self.client.post('/simulation', json={'action': 'activate'})
         self.assertEqual(response.status_code, 200, response.get_json())
 
+    def test_new_simulation_session_resets_feed_identity_tracking(self):
+        with patch.object(server, 'feed_cursor', 90), patch.object(server, 'moderation_revision', 4), \
+                patch.object(server, 'live_lifecycle', dict(state='ended', revision=3)), \
+                patch.object(server, 'moderated_messages', {'101': None}), patch.object(server, 'moderated_users', {'42': None}):
+            self.sim.new_session('MODO_SIMULACION')
+            self.assertEqual(server.feed_cursor, 0)
+            self.assertEqual(server.moderation_revision, 0)
+            self.assertEqual(server.moderated_messages, {})
+            self.assertEqual(server.moderated_users, {})
+            self.assertEqual(server.live_lifecycle['revision'], 0)
+
     def test_requires_offline_and_blocks_live_until_deactivated(self):
         server.state['connected'] = True
         self.assertEqual(self.client.post('/simulation', json={'action': 'activate'}).status_code, 409)

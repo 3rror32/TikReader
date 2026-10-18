@@ -105,6 +105,17 @@ class ProductionTests(unittest.TestCase):
     def test_cross_origin_production_writes_rejected(self):
         self.assertEqual(self.client.post('/production/state',json={'emergency':True},headers={'Origin':'https://other.example'}).status_code,403)
 
+    def test_moderation_removes_only_matching_question_members_and_prepared_rows(self):
+        one = dict(id='m1', session=server.feed_session, platform='tiktok', upstream_id='101', user_id='42', user='@same', comment='¿Pregunta?')
+        two = dict(id='m2', session=server.feed_session, platform='tiktok', upstream_id='102', user_id='43', user='@same', comment='¿Pregunta?')
+        self.p.comment(one); self.p.comment(two)
+        self.p.remote_queue = [one, two]
+        self.p.remove_comments(lambda row: row.get('user_id') == '42')
+        group = next(iter(self.p.questions.values()))
+        self.assertEqual(group['count'], 1)
+        self.assertEqual(group['comment_id'], 'm2')
+        self.assertEqual([row['id'] for row in self.p.remote_queue], ['m2'])
+
     def test_redaction_keeps_ordinary_text(self):
         self.assertEqual(redact('Hola a todos'),'Hola a todos')
         self.assertNotIn('mail@example.com',redact('mail@example.com'))

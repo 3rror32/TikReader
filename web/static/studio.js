@@ -18,6 +18,25 @@ window.Studio = (() => {
   function pauseSystemVoice(){if(nativeVoiceReady)nativeVoice?.pause();else window.speechSynthesis?.pause();}
   function resumeSystemVoice(){if(nativeVoiceReady)nativeVoice?.resume();else window.speechSynthesis?.resume();}
   let session, cache = [], repeats = new Map(), gifts = new Map(), giftsReady = false;
+  const deletedMessages = new Set(), deletedUsers = new Set();
+  function originOf(data) { return {session:data.session,platform:data.platform,upstream_id:data.upstream_id || data.id,user_id:data.user_id}; }
+  function removed(origin) { return origin && origin.session === session && origin.platform === 'tiktok' && (deletedMessages.has(String(origin.upstream_id)) || deletedUsers.has(String(origin.user_id))); }
+  function moderate(data) {
+    if (data.session !== session) return;
+    for (const [values,target] of [[data.message_ids,deletedMessages],[data.user_ids,deletedUsers]]) {
+      for (const id of values || []) target.add(String(id));
+      while(target.size>2000)target.delete(target.values().next().value);
+    }
+    cache=cache.filter(item=>!removed(originOf(item)));
+    queue=queue.filter(item=>!removed(item.origin));
+    deferred=deferred.filter(item=>!removed(item.origin));
+    if (removed(currentItem?.origin)) {
+      epoch++; active=false; currentItem=null; currentUtterance=null;
+      cancelSystemVoice(); localPlayback?.pause(); localPlayback=null;
+      drain();
+    }
+    updateVoice();
+  }
   let queue = [], active = false, paused = false, epoch = 0, audio, lastAlert = 0, timer, voiceError = '';
   const holds = new Set();
   let voicePreview = false;
@@ -54,6 +73,7 @@ window.Studio = (() => {
   function ensure(next) {
     if (session === next) return;
     session = next; cache = []; repeats.clear(); gifts.clear(); giftsReady = false;
+    deletedMessages.clear(); deletedUsers.clear();
     queue = []; epoch++; active = false; if(!voicePreview)cancelSystemVoice(); localPlayback?.pause();localPlayback=null;updateVoice();
     currentItem=null;deferred=[];voiceLog.length=0;updateVoice();
   }
@@ -67,6 +87,7 @@ window.Studio = (() => {
   }
   function ingest(data, live) {
     ensure(data.session);
+    if (removed(originOf(data))) return false;
     if (data.kind && data.kind !== 'comment') {
       cache.push({...data}); if (cache.length > 200) cache.shift();
       return true;
@@ -82,7 +103,8 @@ window.Studio = (() => {
     if (live && $('tts-enabled').checked && canRead(data)) {
       const mode=$('tts-priority').value;
       const priority=(mode==='questions' && /[¿?]/.test(data.comment)) || (mode==='users' && $('priority-users').value.toLowerCase().split(',').map(s=>s.trim().replace(/^@/,'')).includes(data.user.toLowerCase().replace(/^@/,'')));
-      const read=text=>{if(session===data.session && $('tts-enabled').checked && canRead(data))speak(text,false,priority?1:0);};
+      const origin=originOf(data);
+      const read=text=>{if(session===data.session && !removed(origin) && $('tts-enabled').checked && canRead(data))speak(text,false,priority?1:0,'comment',origin);};
       const displayName=typeof data.display_name==='string'?data.display_name:'';
       const spokenName=$('tts-use-profile-name').checked&&displayName.trim()?displayName:data.user;
       if(window.ProductionUI)window.ProductionUI.readComment(spokenName===data.user?data:{...data,user:spokenName},read);
@@ -102,7 +124,8 @@ window.Studio = (() => {
   }
   function voiceSnapshot(){return {current:active?currentItem?.text||null:null,pending:queue.map(i=>({...i})),deferred:deferred.map(i=>({...i})),log:voiceLog.slice(0,20),status:window.I18n?.sourceText($('tts-state')) ?? $('tts-state').textContent};}
   function updateVoice() { const enabled=$('tts-enabled').checked||$('tts-gifts-enabled').checked||$('tts-greetings-enabled').checked;$('tts-state').textContent = voiceError || `${productionMuted?'Emisión silenciada':holds.size?'Voz en espera':paused ? 'Voz pausada' : active ? 'Leyendo' : enabled ? 'Voz activa' : 'Voz apagada'} · cola: ${queue.length}`;if($('saturation-state'))$('saturation-state').textContent=`${suppressed} lecturas omitidas`;const speaking=Boolean(active);if(!window.TikReaderVoiceState||window.TikReaderVoiceState.speaking!==speaking){window.TikReaderVoiceState={speaking};if(typeof window.dispatchEvent==='function'&&typeof CustomEvent==='function')window.dispatchEvent(new CustomEvent('tikreader:voice-state',{detail:{speaking}}));} }
-  function speak(text, test=false, priority=0, source='comment') {
+  function speak(text, test=false, priority=0, source='comment', origin=null) {
+    if (removed(origin)) return;
     if(productionMuted){suppressed++;voiceNote('Emisión silenciada por emergencia o escena',text);updateVoice();if(test)audioNotice('No se puede leer: la emisión está silenciada. Pulsa Reanudar voz y efectos y selecciona la escena Charla. Reanudar también habilita las fuentes públicas.');return;}
     if(test && Number($('tts-volume').value)<=0){audioNotice('No se puede escuchar: el volumen de Voz está en cero. Súbelo y vuelve a pulsar Leer.');return;}
     if(test && paused){audioNotice('La voz está pausada. Pulsa Continuar voz y vuelve a pulsar Leer.');return;}
@@ -112,7 +135,7 @@ window.Studio = (() => {
     if (!text.trim()){voiceNote('Texto vacío después de quitar emojis',text);updateVoice();return;}
     voiceError='';
     const cap=Math.max(1,Math.min(30,Number($('tts-cap')?.value)||10));
-    if (queue.length >= cap){const removed=queue.pop();voiceNote('Cola llena',removed.text);suppressed++;} queue.push({id:++voiceSerial,text:text.slice(0,400),test,priority,source,at:Date.now()}); queue.sort((a,b)=>b.priority-a.priority); drain(); updateVoice();
+    if (queue.length >= cap){const removed=queue.pop();voiceNote('Cola llena',removed.text);suppressed++;} queue.push({id:++voiceSerial,text:text.slice(0,400),test,priority,source,origin,at:Date.now()}); queue.sort((a,b)=>b.priority-a.priority); drain(); updateVoice();
   }
   function drain() {
     if (active || paused || holds.size || productionMuted || !queue.length) return;
@@ -189,7 +212,7 @@ window.Studio = (() => {
     if (data.kind && data.kind !== 'comment') return;
     if(data.answered)card.classList.add('answered');
     const actions=document.createElement('div');actions.className='comment-actions';
-    for(const [text,action] of [['📌 Destacar',()=>pin(data)],['✓ Respondido',async()=>{try{const result=await post({answered:data.id});window.LiveExperience?.state(result);const item=cache.find(c=>c.id===data.id);if(item)item.answered=true;card.classList.add('answered');notice('Comentario marcado como respondido.');}catch(e){notice(e.message);}}],['🔊 Leer',()=>speak(data.comment,true)]]) {
+    for(const [text,action] of [['📌 Destacar',()=>pin(data)],['✓ Respondido',async()=>{try{const result=await post({answered:data.id});window.LiveExperience?.state(result);const item=cache.find(c=>c.id===data.id);if(item)item.answered=true;card.classList.add('answered');notice('Comentario marcado como respondido.');}catch(e){notice(e.message);}}],['🔊 Leer',()=>speak(data.comment,true,0,'comment',originOf(data))]]) {
       const b=document.createElement('button');b.textContent=text;b.addEventListener('click',action);actions.append(b);
     }
     card.querySelector('.comment-body').append(actions);
@@ -303,7 +326,7 @@ window.Studio = (() => {
   configureStudioNavigation(document, tab => { if (tab === 'history') history(); });
   document.addEventListener('keydown',event=>{if(!event.altKey || event.shiftKey || event.ctrlKey || event.metaKey || event.target.isContentEditable || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName))return;const key=event.key.toLowerCase();if(['p','n','d'].includes(key)){event.preventDefault();if(key==='p')pause();if(key==='n')skip();if(key==='d'){const item=[...cache].reverse().find(item=>(!item.kind || item.kind === 'comment') && accepted(item));if(item)pin(item);}}});
   updateLocalAlert();voices();window.speechSynthesis?.addEventListener('voiceschanged',voices);setTimeout(refreshStudio,500);
-  return {ingest,decorate,gifts:giftUpdate,clearVoice:clearPreviousVoice,
+  return {ingest,decorate,moderate,beginSession:ensure,isDeleted:data=>data.session!==session||removed(originOf(data)),gifts:giftUpdate,clearVoice:clearPreviousVoice,
     voiceSnapshot,
     audioDiagnostics:()=>({paused,muted:productionMuted,holds:[...holds],enabled:$('tts-enabled').checked||$('tts-gifts-enabled').checked||$('tts-greetings-enabled').checked,volume:Number($('tts-volume').value),voices:window.speechSynthesis?.getVoices().length||0,status:window.I18n?.sourceText($('tts-state')) ?? $('tts-state').textContent}),
     editQueue(id,action){
@@ -316,7 +339,7 @@ window.Studio = (() => {
       updateVoice();return true;
     },
     greetAutomatic(user){if($('tts-greetings-enabled').checked && typeof user==='string' && user.trim())speak(`¡Hola, ${user.replace(/^@/, '').slice(0,80)}! Gracias por acompañarnos.`,false,0,'greeting');},
-    speakManual:text=>speak(text,true),
+    speakManual:(text,data)=>speak(text,true,0,data?'comment':'manual',data?originOf(data):null),
     beginVoicePreview(){if(productionMuted)return false;holds.add('voice-preview');clearPreviousVoice();voicePreview=true;return true;},
     endVoicePreview(){if(!voicePreview)return;voicePreview=false;holds.delete('voice-preview');if(holds.size||paused||productionMuted)pauseSystemVoice();else{resumeSystemVoice();drain();}updateVoice();},
     hold(reason,on){if(on){holds.add(reason);if(!voicePreview)pauseSystemVoice();localPlayback?.pause();}else{holds.delete(reason);if(!holds.size&&!paused&&!productionMuted){resumeSystemVoice();localPlayback?.play().catch(()=>{});drain();}}updateVoice();},

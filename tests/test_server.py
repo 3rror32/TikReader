@@ -501,6 +501,7 @@ class LiveLifecycleTests(unittest.TestCase):
     def test_incremental_feed_and_session_reset(self):
         server.comment_history.clear()
         server.comment_history.extend({"id": str(i), "sequence": i} for i in range(1, 201))
+        server.feed_cursor = 200
         client = server.app.test_client()
         full = client.get("/feed").get_json()
         response = client.get("/feed", query_string={"session": full["session"], "after": 199})
@@ -745,6 +746,7 @@ class FollowFeedTests(unittest.TestCase):
             stack.enter_context(patch.object(server, "comment_history", deque(maxlen=200)))
             stack.enter_context(patch.object(server, "seen_comment_ids", OrderedDict()))
             stack.enter_context(patch.object(server, "state", dict(server.state, comment_count=0)))
+            stack.enter_context(patch.object(server, "feed_cursor", 0))
             stack.enter_context(patch.object(server, "archive", None))
             emit = stack.enter_context(patch.object(server.socketio, "emit"))
             spies = [stack.enter_context(patch.object(owner, name)) for owner, name in (
@@ -770,6 +772,55 @@ class FollowFeedTests(unittest.TestCase):
             a = publisher({"user": "anonymous"})
             b = publisher({"user": "anonymous"})
             self.assertNotEqual(a["id"], b["id"])
+
+
+class NativeModerationTests(unittest.TestCase):
+    def test_lifecycle_snapshot_only_applies_to_authoritative_native_phase(self):
+        with patch.object(server, 'live_lifecycle', dict(state='disconnected', revision=0)), \
+                patch.object(server, 'state', dict(server.state, username='native', connected=False, connecting=False)):
+            self.assertIsNone(server.feed_snapshot().get('lifecycle'))
+            server.live_lifecycle.update(state='disconnected', revision=2)
+            server.state.update(connecting=True, retry_count=1)
+            self.assertIsNone(server.feed_snapshot().get('lifecycle'))
+            server.state.update(connecting=False, connected=True, username='youtube:channel')
+            self.assertIsNone(server.feed_snapshot().get('lifecycle'))
+            server.state.update(username='native')
+            for value in ('paused', 'ended'):
+                server.live_lifecycle['state'] = value
+                self.assertEqual(server.feed_snapshot()['lifecycle']['state'], value)
+
+    def test_exact_ids_tombstones_and_monotonic_cursor(self):
+        from collections import OrderedDict, deque
+        from types import SimpleNamespace as S
+        with patch.object(server, 'comment_history', deque(maxlen=200)), patch.object(server, 'feed_cursor', 0), \
+                patch.object(server, 'moderated_messages', OrderedDict()), patch.object(server, 'moderated_users', OrderedDict()), \
+                patch.object(server.socketio, 'emit'), patch.object(server.production, 'remove_comments'):
+            first = server.publish_activity_payload('follow', {'user': 'same'}, 'activity')
+            server.comment_history.append(dict(id='10', upstream_id='10', user_id='42', platform='tiktok', user='@same', sequence=2))
+            server.feed_cursor = 2
+            server.handle_moderation_event(S(delete_msg_ids=[10], delete_user_ids=[]), server.feed_session)
+            self.assertEqual([row['id'] for row in server.comment_history], [first['id']])
+            self.assertEqual(server.feed_snapshot()['cursor'], 2)
+            self.assertIsNone(server.publish_comment_payload(dict(id='10', platform='tiktok', upstream_id='10', comment='replay')))
+            third = server.publish_activity_payload('share', {'user': 'other'}, 'next')
+            self.assertEqual(third['sequence'], 3)
+            server.handle_moderation_event(S(delete_msg_ids=[], delete_user_ids=[42]), server.feed_session)
+            self.assertIsNone(server.publish_comment_payload(dict(id='new', platform='tiktok', user_id='42', comment='replay')))
+
+    def test_session_bound_lifecycle_pause_end_and_stale_callbacks(self):
+        with patch.object(server, 'live_lifecycle', dict(state='disconnected', revision=0)), \
+                patch.object(server, 'tiktok_run_token', 'current'), \
+                patch.object(server, 'state', dict(server.state)), patch.object(server.socketio, 'emit'):
+            server.set_live_lifecycle('live', server.feed_session, 'current')
+            server.set_live_lifecycle('paused', server.feed_session, 'current')
+            self.assertTrue(server.state['connected'])
+            self.assertIsNone(server.set_live_lifecycle('ended', 'old-session', 'current'))
+            self.assertIsNone(server.set_live_lifecycle('ended', server.feed_session, 'old-token'))
+            server.set_live_lifecycle('live', server.feed_session, 'current')
+            server.set_live_lifecycle('ended', server.feed_session, 'current')
+            server.set_live_lifecycle('disconnected', server.feed_session, 'current')
+            self.assertEqual(server.live_lifecycle['state'], 'ended')
+            self.assertFalse(server.state['connected'])
 
 
 if __name__ == "__main__":

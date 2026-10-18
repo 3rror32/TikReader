@@ -138,13 +138,25 @@ class Production:
             group = self.questions.get(key)
             if group is None:
                 group = dict(id=hashlib.sha256(key.encode()).hexdigest()[:20], text=text,
-                             comment_id=record['id'], users=[], count=0, answered=False)
+                             comment_id=record['id'], users=[], count=0, answered=False, records={})
                 self.questions[key] = group
             group['count'] += 1
+            group.setdefault('records', {})[record['id']] = {key: record.get(key) for key in ('id','user','session','platform','upstream_id','user_id')}
             if record['user'] not in group['users']:
                 group['users'].append(record['user'])
             if len(self.questions) > 200:
                 self.questions.popitem(last=False)
+
+    def remove_comments(self, matches):
+        """Remove only moderation-matched origins from derived operator state."""
+        self.remote_queue = [row for row in self.remote_queue if not matches(row)]
+        for key, group in list(self.questions.items()):
+            records = {identity: row for identity, row in group.get('records', {}).items() if not matches(row)}
+            if not records:
+                self.questions.pop(key, None)
+                continue
+            group.update(records=records, count=len(records), users=list(dict.fromkeys(row['user'] for row in records.values())),
+                         comment_id=next(iter(records)))
 
     def snapshot(self):
         return {**self.settings, 'session': self.r.feed_session}

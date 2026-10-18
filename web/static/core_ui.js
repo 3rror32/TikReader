@@ -16,6 +16,39 @@ let statsRevision = -1;
 let syncTimer;
 const statTimers = new Map();
 let stopIntent = null;
+const deletedMessages = new Set(), deletedUsers = new Set();
+let lifecycleRevision = -1;
+function receiveLiveStatus(data) {
+  if (data.platform !== 'tiktok' || !(data.revision > 0)) return;
+  if (data.session !== feedSession || data.revision < lifecycleRevision) return;
+  if (data.state === 'disconnected' && document.getElementById('btn-connect').dataset?.connectionState === 'connecting') return;
+  if (stopIntent && ['live','paused'].includes(data.state)) return;
+  lifecycleRevision = data.revision;
+  window.LivePresence?.lifecycle?.(data);
+  const connected = ['live','paused'].includes(data.state);
+  setButtons(connected);
+  showLiveBadge(data.state === 'live');
+  const labels={live:'🟢 Conectado',paused:'⏸ LIVE pausado por el anfitrión',ended:'LIVE finalizado',disconnected:'Se perdió la conexión con TikTok'};
+  if (labels[data.state]) setStatus(labels[data.state], connected ? 'ok' : '');
+}
+
+function isModerated(data) {
+  return data.platform === 'tiktok' &&
+    (deletedMessages.has(String(data.upstream_id || data.id)) || deletedUsers.has(String(data.user_id || '')));
+}
+
+function receiveModeration(data) {
+  if (data.session !== feedSession) return;
+  for (const [values, target] of [[data.message_ids,deletedMessages],[data.user_ids,deletedUsers]]) {
+    for (const value of values || []) target.add(String(value));
+    while (target.size > 2000) target.delete(target.values().next().value);
+  }
+  for (const card of [...document.getElementById('comment-feed').children]) {
+    if (isModerated({platform:card.dataset.platform,upstream_id:card.dataset.upstreamId,id:card.dataset.id,user_id:card.dataset.userId})) card.remove();
+  }
+  window.Studio?.moderate(data);
+  window.ProductionUI?.moderate?.(data);
+}
 
 function receiveComment(data, live = true) {
   if (data.session !== feedSession) {
@@ -24,9 +57,12 @@ function receiveComment(data, live = true) {
     giftVersion = -1;
     statsRevision = -1;
     seenComments.clear();
+    deletedMessages.clear(); deletedUsers.clear();
+    lifecycleRevision = -1;
     clearFeed();
+    window.Studio?.beginSession?.(data.session);
   }
-  if (seenComments.has(data.id)) return;
+  if (isModerated(data) || seenComments.has(data.id)) return;
   seenComments.add(data.id);
   if (seenComments.size > 1000) seenComments.delete(seenComments.values().next().value);
   if (!window.Studio || Studio.ingest(data, live)) addComment(data, live);
@@ -40,8 +76,13 @@ function receiveHistory(snapshot, incremental = false) {
     giftVersion = -1;
     statsRevision = -1;
     seenComments.clear();
+    deletedMessages.clear(); deletedUsers.clear();
+    lifecycleRevision = -1;
     clearFeed();
+    window.Studio?.beginSession?.(snapshot.session);
   }
+  if (snapshot.moderation) receiveModeration(snapshot.moderation);
+  if (snapshot.lifecycle) receiveLiveStatus(snapshot.lifecycle);
   snapshot.comments.forEach(data => receiveComment(data, readNew));
   if (snapshot.cursor !== undefined || snapshot.comments.length) historySession = snapshot.session;
   syncCursor = Math.max(syncCursor, snapshot.cursor || 0);
@@ -217,7 +258,7 @@ function formatCommentTime(timestamp) {
   return `${hour % 12 || 12}:${match[2]}:${match[3]} ${hour >= 12 ? 'PM' : 'AM'}`;
 }
 
-function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, badges, id, session, answered, platform_label, kind }, live = false) {
+function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, badges, id, session, answered, platform_label, kind, platform, upstream_id, user_id }, live = false) {
   const isActivity = Boolean(kind && kind !== 'comment');
   if (!isActivity) commentCount++;
 
@@ -232,6 +273,7 @@ function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, bad
   const card = document.createElement('div');
   card.className = isActivity ? 'comment-card feed-activity follow-activity' : 'comment-card';
   card.dataset.sequence = sequence || 0;
+  Object.assign(card.dataset, {id, session, platform:platform || '', upstreamId:upstream_id || id, userId:user_id || ''});
   card.innerHTML = `
     <div class="avatar" style="background:${getAvatarGrad(user)}">${escapeHtml(emoji || '💬')}</div>
     <div class="comment-body">
@@ -268,7 +310,7 @@ function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, bad
     } catch (_) { /* Keep the fallback avatar for invalid URLs. */ }
   }
 
-  if (!isActivity && window.Studio) Studio.decorate(card, {user, comment, id, session, answered});
+  if (!isActivity && window.Studio) Studio.decorate(card, {user, comment, id, session, answered, platform, upstream_id, user_id});
 
   // Recovery may arrive after a newer WebSocket event; preserve its order.
   const first = feed.firstElementChild;
@@ -449,7 +491,8 @@ socket.on('connecting', ({ username }) => {
   setStatus(`⏳ Conectando al live de @${username}…`);
 });
 
-socket.on('connected', ({ username }) => {
+socket.on('connected', ({ username, session }) => {
+  if (session && feedSession && session !== feedSession) return;
   if (stopIntent) return;
   hideError();
   setStatus(`🟢 Conectado a @${username}`, 'ok');
@@ -458,7 +501,8 @@ socket.on('connected', ({ username }) => {
   window.OperatorBoot?.tiktokLive();
 });
 
-socket.on('disconnected', ({ reason }) => {
+socket.on('disconnected', ({ reason, session }) => {
+  if (session && feedSession && session !== feedSession) return;
   window.OperatorBoot?.tiktokOffline();
   if (reason === 'Cerrando conexión') { setStatus('Cerrando conexión…'); return; }
   if (document.getElementById('status-bar').dataset.errorKind !== 'classified') {
@@ -490,6 +534,8 @@ socket.on('new_comment', (data) => {
   receiveComment(data);
 });
 socket.on('comment_history', receiveHistory);
+socket.on('comments_deleted', receiveModeration);
+socket.on('live_status', receiveLiveStatus);
 socket.on('participants_update', data => window.Participants?.render(data));
 
 socket.on('gift_history', receiveGifts);
@@ -497,6 +543,7 @@ socket.on('gift_history', receiveGifts);
 socket.on('stats_update', applyStats);
 
 socket.on('status', (s) => {
+  if (s.lifecycle && s.lifecycle.session === feedSession) { receiveLiveStatus(s.lifecycle); return; }
   // Counter snapshots arrive through stats_update and HTTP recovery.
   const button = document.getElementById('btn-connect');
   if (stopIntent && button.dataset.connectionState === 'disconnecting' && (s.connected || s.connecting)) return;

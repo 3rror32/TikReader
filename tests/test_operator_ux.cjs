@@ -258,12 +258,12 @@ function connection() {
   const presence = read('web/static/live_presence.js');
   const warning = presence.slice(presence.indexOf('  function syncWarning()'), presence.indexOf('  new MutationObserver(syncWarning)'));
   const state = presence.slice(presence.indexOf('  let mode ='), presence.indexOf('  // Preserve only collapsible'));
-  vm.runInContext(`const $=id=>document.getElementById(id); const translate=value=>window.I18n?.t?.(value)||value; const warning=$('connection-inline-status');
+  const localeStart = presence.indexOf("  window.addEventListener('tikreader:localechange'");
+  const localeHandler = localeStart >= 0 ? presence.slice(localeStart, presence.indexOf('  return {diagnostics')) : '';
+  vm.runInContext(`(()=>{const $=id=>document.getElementById(id); const translate=value=>window.I18n?.t?.(value)||value; const warning=$('connection-inline-status');
     const hero=$('hero'),persistent=$('session-persistent'),persistentLabel=$('persistent-label'),activity=$('activity');
     function syncLiveLight(){};${warning}\n${state}
-    window.LivePresence={attach,stats,requestStop:typeof requestStop==='function'?requestStop:undefined};`, context);
-  const localeStart = presence.indexOf("  window.addEventListener('tikreader:localechange'");
-  if (localeStart >= 0) vm.runInContext(presence.slice(localeStart, presence.indexOf('  return {diagnostics')), context);
+    window.LivePresence={attach,stats,lifecycle,requestStop:typeof requestStop==='function'?requestStop:undefined};globalThis.syncWarning=syncWarning;${localeHandler}})();`, context);
   vm.runInContext(read('web/static/core_ui.js'), context);
   element('username-input').value = ' @Creator ';
   return {window, context, element, notifications, emitted,
@@ -381,6 +381,25 @@ test('idle status acknowledges cancellation and a new connection resets old view
   app.event('connected', {username: 'NextCreator'});
   assert.equal(app.element('stat-viewers').textContent, '—');
   assert.equal(app.element('stat-viewers').closest().dataset.valueState, 'pending');
+});
+
+test('native recovery respects connection phases and preserves paused or ended state', () => {
+  const app=connection();
+  const recover=lifecycle=>app.event('comment_history',{session:'native',comments:[],cursor:0,lifecycle});
+  recover(null);
+  app.event('connecting',{username:'Creator'});
+  recover({platform:'tiktok',session:'native',state:'disconnected',revision:0});
+  assert.equal(app.element('btn-connect').dataset.connectionState,'connecting');
+  app.event('reconnecting',{username:'Creator',attempt:1,delay:1,maximum:3});
+  recover({platform:'tiktok',session:'native',state:'disconnected',revision:2});
+  assert.equal(app.context.document.body.dataset.liveState,'reconnecting');
+  assert.equal(app.element('btn-connect').dataset.connectionState,'connecting');
+  for (const [state,revision] of [['paused',3],['ended',4]]) {
+    recover({platform:'tiktok',session:'native',state,revision});
+    assert.equal(app.context.document.body.dataset.liveState,state);
+    recover(null);
+    assert.equal(app.context.document.body.dataset.liveState,state);
+  }
 });
 
 test('connection names and metric availability remain localized without becoming live counters', () => {
