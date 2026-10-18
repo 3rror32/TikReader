@@ -595,7 +595,7 @@ def publish_comment_payload(payload):
         seen_comment_ids[message_id] = None
         if len(seen_comment_ids) > 1000:
             seen_comment_ids.popitem(last=False)
-        payload["sequence"] = state["comment_count"] + 1
+        payload["sequence"] = comment_history[-1]["sequence"] + 1 if comment_history else 1
         comment_history.append(payload)
         state["comment_count"] += 1
         diagnostics["comment"] = time.time()
@@ -611,6 +611,26 @@ def publish_comment_payload(payload):
     chatbot.comment(payload)
     socketio.emit("new_comment", payload)
     publish_stats()
+    return payload
+
+
+def publish_follow_payload(record, message_id=None):
+    """Publish feed activity without invoking comment counters or automation."""
+    identity = f"follow:{message_id or uuid4().hex}"
+    payload = {"id": identity, "session": feed_session, "kind": "follow",
+               "user": "@" + str(record.get("user") or "Espectador").lstrip("@")[:159],
+               "comment": "empezó a seguirte", "emoji": "➕",
+               "timestamp": time.strftime("%H:%M:%S"), "occurred_at": time.time(),
+               "platform": "tiktok", "avatar_url": record.get("avatar_url")}
+    with feed_lock:
+        if identity in seen_comment_ids:
+            return
+        seen_comment_ids[identity] = None
+        if len(seen_comment_ids) > 1000:
+            seen_comment_ids.popitem(last=False)
+        payload["sequence"] = comment_history[-1]["sequence"] + 1 if comment_history else 1
+        comment_history.append(payload)
+    socketio.emit("new_comment", payload)
     return payload
 
 
@@ -992,6 +1012,8 @@ def run_tiktok_live(username: str):
                 async def on_extra(event, kind=kind):
                     message_id=getattr(getattr(event,'common',None),'msg_id',0) or uuid4().hex
                     extra_record={"user":getattr(getattr(event,"user",None),"unique_id",None), "avatar_url":avatar_url(getattr(event,"user",None))}
+                    if kind == "follow":
+                        publish_follow_payload(extra_record, message_id)
                     live_counters.event(kind,message_id,extra_record)
                     interactive.event(kind,extra_record,message_id)
                     points.event(kind,extra_record,message_id)

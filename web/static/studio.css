@@ -75,3 +75,7 @@ body::before{display:none}button,input,select{font:inherit}button,a,input,select
 @media(max-width:800px){#widget-customizer .customizer-body{grid-template-columns:1fr;gap:18px}#widget-customizer .customizer-preview{position:static}#widget-customizer iframe{height:260px}}
 @media(max-width:520px){#widget-customizer{width:calc(100vw - 16px);height:calc(100dvh - 16px);border-radius:14px}#widget-customizer .customizer-header{padding:16px}#widget-customizer h2{font-size:19px}#widget-customizer .customizer-body{padding:18px 16px}#widget-customizer .customizer-footer{padding:10px 16px 14px}#widget-customizer .customizer-footer-actions{flex-wrap:wrap;gap:8px}#widget-customizer .customizer-primary-actions{width:100%;display:grid;grid-template-columns:1fr 2fr}#widget-customizer .customizer-footer button,#widget-customizer .customizer-footer .customizer-save{min-width:0;width:100%;padding:10px}#widget-customizer .customizer-footer .customizer-reset{width:auto;min-height:32px;padding:4px 0}#widget-customizer .customizer-checks{grid-template-columns:1fr}}
 .key-recorder-area{grid-column:1/-1}.key-recorder-area input[readonly]{cursor:pointer;width:100%;box-sizing:border-box}.key-recorder-area input.recording{outline:2px solid #efb85d;background:#342919}.key-recorder-area>p{font-size:.8rem;margin:10px 0;color:#b9d5e6}
+
+/* Follow activity stays distinct from spoken comments. */
+.comment-card.follow-activity { border-left: 3px solid #68dfb1; background: rgba(104, 223, 177, .07); }
+.follow-activity .comment-text { color: #94dfc3; }

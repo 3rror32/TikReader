@@ -64,6 +64,18 @@ class ProductionTests(unittest.TestCase):
         self.assertEqual(len(groups[0]['users']),2)
         self.assertEqual(question_key('¿Qué hora es?'),question_key('QUE HORA ES?'))
 
+    def test_follow_activity_stays_private_and_has_no_remote_comment_actions(self):
+        token = self.client.post('/production/pair', json={}).get_json()['token']
+        headers = {'Authorization': 'Bearer ' + token}
+        comment = dict(id='comment', user='@viewer', comment='hola', sequence=1)
+        follow = dict(id='follow', kind='follow', user='@viewer', comment='empezó a seguirte', sequence=2)
+        with patch.object(server, 'comment_history', [comment, follow]):
+            self.assertEqual([c['id'] for c in self.client.get('/broadcast/feed').get_json()['comments']], ['comment'])
+            self.assertEqual([c['id'] for c in self.client.get('/remote/feed', headers=headers).get_json()['comments']], ['comment'])
+            for action in ('prepare', 'highlight'):
+                self.assertEqual(self.client.post('/remote/feed', headers=headers, json={'action': action, 'id': 'follow'}).status_code, 404)
+            self.assertEqual([c['id'] for c in server.feed_snapshot()['comments']], ['comment', 'follow'])
+
     def test_public_privacy_does_not_mutate_private_records(self):
         record={'id':'p','user':'@private','comment':'Visita https://example.com o llama 555-123-4567','avatar_url':'https://example.com/a.jpg','sequence':1}
         with patch.object(server,'comment_history',[record]):

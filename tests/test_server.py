@@ -732,6 +732,40 @@ class CommentDisplayNameTests(unittest.TestCase):
         self.assertEqual(missing["display_name"], "@account")
 
 
+class FollowFeedTests(unittest.TestCase):
+    def test_follow_dedup_recovery_sequence_and_comment_isolation(self):
+        from collections import OrderedDict, deque
+        from contextlib import ExitStack
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(server, "comment_history", deque(maxlen=200)))
+            stack.enter_context(patch.object(server, "seen_comment_ids", OrderedDict()))
+            stack.enter_context(patch.object(server, "state", dict(server.state, comment_count=0)))
+            stack.enter_context(patch.object(server, "archive", None))
+            emit = stack.enter_context(patch.object(server.socketio, "emit"))
+            spies = [stack.enter_context(patch.object(owner, name)) for owner, name in (
+                (server.production, "comment"), (server.creator_suite, "audience_event"),
+                (server.interactive, "event"), (server.overlay_animations, "event"),
+                (server.points, "event"), (server.user_info_overlay, "command"),
+                (server.spotify, "comment"), (server.chatbot, "comment"), (server, "publish_stats"))]
+            first = server.publish_comment_payload({"id": "same", "user": "@a", "comment": "hi"})
+            follow = server.publish_follow_payload({"user": "follower"}, "same")
+            self.assertIsNone(server.publish_follow_payload({"user": "follower"}, "same"))
+            last = server.publish_comment_payload({"id": "last", "user": "@b", "comment": "bye"})
+            self.assertEqual([first["sequence"], follow["sequence"], last["sequence"]], [1, 2, 3])
+            self.assertEqual(server.state["comment_count"], 2)
+            for spy in spies:
+                self.assertEqual(spy.call_count, 2)
+            self.assertEqual(follow["kind"], "follow")
+            self.assertEqual(follow["user"], "@follower")
+            self.assertEqual(emit.call_count, 3)
+            recovered = server.feed_snapshot(session=server.feed_session, after=1)
+            self.assertEqual([row["id"] for row in recovered["comments"]], [follow["id"], last["id"]])
+            self.assertEqual(recovered["cursor"], 3)
+            a = server.publish_follow_payload({"user": "anonymous"})
+            b = server.publish_follow_payload({"user": "anonymous"})
+            self.assertNotEqual(a["id"], b["id"])
+
+
 if __name__ == "__main__":
     unittest.main()
 

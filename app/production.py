@@ -314,19 +314,20 @@ class Production:
                     data = request.get_json(silent=True) or {}
                     if not isinstance(data, dict) or set(data) - {'action', 'id'} or data.get('action') not in ('highlight', 'prepare'):
                         return jsonify(error='Acción no permitida'), 403
-                    item = next((dict(c) for c in self.r.comment_history if c['id'] == data.get('id')), None)
+                    item = next((dict(c) for c in self.r.comment_history if c.get('kind') != 'follow' and c['id'] == data.get('id')), None)
                     if item is None:
                         return jsonify(error='Comentario no disponible'), 404
                     if data['action'] == 'highlight':
                         self.r.studio_state['highlight'] = item
                     elif not any(c['id'] == item['id'] for c in self.remote_queue):
                         self.remote_queue.append(item); self.remote_queue = self.remote_queue[-50:]
-                return jsonify(session=self.r.feed_session, comments=list(self.r.comment_history)[-100:], prepared=list(self.remote_queue))
+                return jsonify(session=self.r.feed_session, comments=[c for c in self.r.comment_history if c.get('kind') != 'follow'][-100:], prepared=list(self.remote_queue))
 
         @app.route('/broadcast/feed')
         def broadcast_feed():
             with self.r.feed_lock:
                 data = self.r.feed_snapshot()
+                data['comments'] = [c for c in data.get('comments', []) if c.get('kind') != 'follow']
                 if self.settings['emergency'] or self.settings['scene'] != 'talk':
                     data['comments'] = []; data['gifts'] = []
                 return jsonify(self.sanitize(data))

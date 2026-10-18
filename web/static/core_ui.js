@@ -217,8 +217,9 @@ function formatCommentTime(timestamp) {
   return `${hour % 12 || 12}:${match[2]}:${match[3]} ${hour >= 12 ? 'PM' : 'AM'}`;
 }
 
-function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, badges, id, session, answered, platform_label }, live = false) {
-  commentCount++;
+function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, badges, id, session, answered, platform_label, kind }, live = false) {
+  const isFollow = kind === 'follow';
+  if (!isFollow) commentCount++;
 
   // Remove empty state
   const es = document.getElementById('empty-state');
@@ -229,7 +230,7 @@ function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, bad
   const readingPosition = window.ChatNavigation?.capture();
 
   const card = document.createElement('div');
-  card.className = 'comment-card';
+  card.className = isFollow ? 'comment-card follow-activity' : 'comment-card';
   card.dataset.sequence = sequence || 0;
   card.innerHTML = `
     <div class="avatar" style="background:${getAvatarGrad(user)}">${escapeHtml(emoji || '💬')}</div>
@@ -246,7 +247,7 @@ function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, bad
     card.querySelector('.comment-user').prepend(chip);
   }
 
-  if (window.ChatExtras) {
+  if (!isFollow && window.ChatExtras) {
     window.ChatExtras.badges(card.querySelector('.comment-user'), badges);
     window.ChatExtras.greeting(card.querySelector('.comment-body'), user);
   }
@@ -267,7 +268,7 @@ function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, bad
     } catch (_) { /* Keep the fallback avatar for invalid URLs. */ }
   }
 
-  if (window.Studio) Studio.decorate(card, {user, comment, id, session, answered});
+  if (!isFollow && window.Studio) Studio.decorate(card, {user, comment, id, session, answered});
 
   // Recovery may arrive after a newer WebSocket event; preserve its order.
   const first = feed.firstElementChild;

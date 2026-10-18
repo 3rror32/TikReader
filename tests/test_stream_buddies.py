@@ -27,6 +27,12 @@ class BuddiesTests(unittest.TestCase):
         self.assertEqual(d['members'][0]['comment_id'], '2')
         self.assertNotIn('@alex', d['members'][0]['id'])
 
+    def test_follow_activity_does_not_replace_latest_comment_bubble(self):
+        self.r.comment_history.append(dict(id='follow', session='one', kind='follow', user='@Alex', comment='empezó a seguirte'))
+        member = self.buddies.snapshot()['members'][0]
+        self.assertEqual(member['comment'], '<b>último</b>')
+        self.assertEqual(member['comment_id'], '2')
+
     def test_settings_persist_validate_and_limit(self):
         for layout in ('vertical', 'horizontal'):
             self.assertEqual(self.client.post('/stream-buddies',json={'canvas_format':layout}).status_code,200)
