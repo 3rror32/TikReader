@@ -68,13 +68,15 @@ class ProductionTests(unittest.TestCase):
         token = self.client.post('/production/pair', json={}).get_json()['token']
         headers = {'Authorization': 'Bearer ' + token}
         comment = dict(id='comment', user='@viewer', comment='hola', sequence=1)
-        follow = dict(id='follow', kind='follow', user='@viewer', comment='empezó a seguirte', sequence=2)
-        with patch.object(server, 'comment_history', [comment, follow]):
+        activities = [dict(id=kind, kind=kind, user='@viewer', comment='actividad', sequence=i + 2)
+                      for i, kind in enumerate(('follow', 'share', 'subscribe', 'super_fan', 'super_fan_join'))]
+        with patch.object(server, 'comment_history', [comment, *activities]):
             self.assertEqual([c['id'] for c in self.client.get('/broadcast/feed').get_json()['comments']], ['comment'])
             self.assertEqual([c['id'] for c in self.client.get('/remote/feed', headers=headers).get_json()['comments']], ['comment'])
             for action in ('prepare', 'highlight'):
-                self.assertEqual(self.client.post('/remote/feed', headers=headers, json={'action': action, 'id': 'follow'}).status_code, 404)
-            self.assertEqual([c['id'] for c in server.feed_snapshot()['comments']], ['comment', 'follow'])
+                for activity in activities:
+                    self.assertEqual(self.client.post('/remote/feed', headers=headers, json={'action': action, 'id': activity['id']}).status_code, 404)
+            self.assertEqual([c['id'] for c in server.feed_snapshot()['comments']], ['comment', *[c['id'] for c in activities]])
 
     def test_public_privacy_does_not_mutate_private_records(self):
         record={'id':'p','user':'@private','comment':'Visita https://example.com o llama 555-123-4567','avatar_url':'https://example.com/a.jpg','sequence':1}

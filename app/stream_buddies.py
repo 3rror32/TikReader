@@ -89,7 +89,7 @@ class StreamBuddies:
             if not muted:
                 comments = {}
                 for c in self.r.comment_history:
-                    if c.get('kind') != 'follow' and str(c.get('session')) == session:
+                    if c.get('kind') in (None, 'comment') and str(c.get('session')) == session:
                         comments[str(c.get('user', '')).lstrip('@').casefold()] = c
                 ranked = sorted(self.r.gifter_diamonds.items(), key=lambda x: (-x[1], x[0]))
                 for user, coins in ranked:

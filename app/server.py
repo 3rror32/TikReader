@@ -614,12 +614,22 @@ def publish_comment_payload(payload):
     return payload
 
 
-def publish_follow_payload(record, message_id=None):
-    """Publish feed activity without invoking comment counters or automation."""
-    identity = f"follow:{message_id or uuid4().hex}"
-    payload = {"id": identity, "session": feed_session, "kind": "follow",
+ACTIVITY_LABELS = {
+    "follow": ("empezó a seguirte", "➕"),
+    "share": ("compartió el LIVE", "↗"),
+    "subscribe": ("se suscribió", "⭐"),
+    "super_fan": ("se convirtió en Super Fan", "💎"),
+    "super_fan_join": ("entró al LIVE como Super Fan", "💎"),
+}
+
+
+def publish_activity_payload(kind, record, message_id=None):
+    """Store operator activity without invoking comment counters or automation."""
+    label, emoji = ACTIVITY_LABELS[kind]
+    identity = f"{kind}:{message_id or uuid4().hex}"
+    payload = {"id": identity, "session": feed_session, "kind": kind,
                "user": "@" + str(record.get("user") or "Espectador").lstrip("@")[:159],
-               "comment": "empezó a seguirte", "emoji": "➕",
+               "comment": label, "emoji": emoji,
                "timestamp": time.strftime("%H:%M:%S"), "occurred_at": time.time(),
                "platform": "tiktok", "avatar_url": record.get("avatar_url")}
     with feed_lock:
@@ -632,6 +642,11 @@ def publish_follow_payload(record, message_id=None):
         comment_history.append(payload)
     socketio.emit("new_comment", payload)
     return payload
+
+
+def publish_follow_payload(record, message_id=None):
+    """Keep the original follow publisher compatible with existing integrations."""
+    return publish_activity_payload("follow", record, message_id)
 
 
 def _external_occurred_at(value):
@@ -1006,14 +1021,14 @@ def run_tiktok_live(username: str):
                     except (ValueError,TypeError,AttributeError,RuntimeError,sqlite3.Error):
                         logger.warning('battle_event_unavailable kind=%s',kind)
                 client.on(battle_type)(on_battle)
-        for event_name, kind in [('FollowEvent','follow'),('ShareEvent','share'),('SubNotifyEvent','subscribe')]:
+        for event_name, kind in [('FollowEvent','follow'),('ShareEvent','share'),('SubNotifyEvent','subscribe'),
+                                 ('SuperFanEvent','super_fan'),('SuperFanJoinEvent','super_fan_join')]:
             event_type=getattr(extra_events,event_name,None)
             if event_type:
                 async def on_extra(event, kind=kind):
                     message_id=getattr(getattr(event,'common',None),'msg_id',0) or uuid4().hex
                     extra_record={"user":getattr(getattr(event,"user",None),"unique_id",None), "avatar_url":avatar_url(getattr(event,"user",None))}
-                    if kind == "follow":
-                        publish_follow_payload(extra_record, message_id)
+                    publish_activity_payload(kind, extra_record, message_id)
                     live_counters.event(kind,message_id,extra_record)
                     interactive.event(kind,extra_record,message_id)
                     points.event(kind,extra_record,message_id)

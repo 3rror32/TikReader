@@ -28,7 +28,8 @@ class BuddiesTests(unittest.TestCase):
         self.assertNotIn('@alex', d['members'][0]['id'])
 
     def test_follow_activity_does_not_replace_latest_comment_bubble(self):
-        self.r.comment_history.append(dict(id='follow', session='one', kind='follow', user='@Alex', comment='empezó a seguirte'))
+        for kind in ('follow', 'share', 'subscribe', 'super_fan', 'super_fan_join'):
+            self.r.comment_history.append(dict(id=kind, session='one', kind=kind, user='@Alex', comment='actividad'))
         member = self.buddies.snapshot()['members'][0]
         self.assertEqual(member['comment'], '<b>último</b>')
         self.assertEqual(member['comment_id'], '2')

@@ -734,6 +734,11 @@ class CommentDisplayNameTests(unittest.TestCase):
 
 class FollowFeedTests(unittest.TestCase):
     def test_follow_dedup_recovery_sequence_and_comment_isolation(self):
+        for kind in ('follow', 'share', 'subscribe', 'super_fan', 'super_fan_join'):
+            with self.subTest(kind=kind):
+                self.check_activity_isolation(kind)
+
+    def check_activity_isolation(self, kind):
         from collections import OrderedDict, deque
         from contextlib import ExitStack
         with ExitStack() as stack:
@@ -748,21 +753,22 @@ class FollowFeedTests(unittest.TestCase):
                 (server.points, "event"), (server.user_info_overlay, "command"),
                 (server.spotify, "comment"), (server.chatbot, "comment"), (server, "publish_stats"))]
             first = server.publish_comment_payload({"id": "same", "user": "@a", "comment": "hi"})
-            follow = server.publish_follow_payload({"user": "follower"}, "same")
-            self.assertIsNone(server.publish_follow_payload({"user": "follower"}, "same"))
+            publisher = server.publish_follow_payload if kind == 'follow' else lambda record, message_id=None: server.publish_activity_payload(kind, record, message_id)
+            follow = publisher({"user": "follower"}, "same")
+            self.assertIsNone(publisher({"user": "follower"}, "same"))
             last = server.publish_comment_payload({"id": "last", "user": "@b", "comment": "bye"})
             self.assertEqual([first["sequence"], follow["sequence"], last["sequence"]], [1, 2, 3])
             self.assertEqual(server.state["comment_count"], 2)
             for spy in spies:
                 self.assertEqual(spy.call_count, 2)
-            self.assertEqual(follow["kind"], "follow")
+            self.assertEqual(follow["kind"], kind)
             self.assertEqual(follow["user"], "@follower")
             self.assertEqual(emit.call_count, 3)
             recovered = server.feed_snapshot(session=server.feed_session, after=1)
             self.assertEqual([row["id"] for row in recovered["comments"]], [follow["id"], last["id"]])
             self.assertEqual(recovered["cursor"], 3)
-            a = server.publish_follow_payload({"user": "anonymous"})
-            b = server.publish_follow_payload({"user": "anonymous"})
+            a = publisher({"user": "anonymous"})
+            b = publisher({"user": "anonymous"})
             self.assertNotEqual(a["id"], b["id"])
 
 

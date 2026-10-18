@@ -58,7 +58,7 @@ window.Studio = (() => {
     currentItem=null;deferred=[];voiceLog.length=0;updateVoice();
   }
   function accepted(data) {
-    if (data.kind === 'follow') return true;
+    if (data.kind && data.kind !== 'comment') return true;
     const text = `${data.user} ${data.comment}`.toLocaleLowerCase();
     const blocked = $('blocked-words').value.split(',').map(s=>s.trim().toLocaleLowerCase()).filter(Boolean);
     return !blocked.some(word=>text.includes(word)) && !($('antispam').checked && data.spam)
@@ -67,7 +67,7 @@ window.Studio = (() => {
   }
   function ingest(data, live) {
     ensure(data.session);
-    if (data.kind === 'follow') {
+    if (data.kind && data.kind !== 'comment') {
       cache.push({...data}); if (cache.length > 200) cache.shift();
       return true;
     }
@@ -186,7 +186,7 @@ window.Studio = (() => {
   async function post(data) {const r=await fetch('/studio/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw Error('No se pudo guardar');return r.json();}
   function pin(data) {post({highlight:data.id}).then(result=>{showState(result);notice('Comentario fijado.');}).catch(e=>notice(e.message));}
   function decorate(card,data) {
-    if (data.kind === 'follow') return;
+    if (data.kind && data.kind !== 'comment') return;
     if(data.answered)card.classList.add('answered');
     const actions=document.createElement('div');actions.className='comment-actions';
     for(const [text,action] of [['📌 Destacar',()=>pin(data)],['✓ Respondido',async()=>{try{const result=await post({answered:data.id});window.LiveExperience?.state(result);const item=cache.find(c=>c.id===data.id);if(item)item.answered=true;card.classList.add('answered');notice('Comentario marcado como respondido.');}catch(e){notice(e.message);}}],['🔊 Leer',()=>speak(data.comment,true)]]) {
@@ -301,7 +301,7 @@ window.Studio = (() => {
     });
   }
   configureStudioNavigation(document, tab => { if (tab === 'history') history(); });
-  document.addEventListener('keydown',event=>{if(!event.altKey || event.shiftKey || event.ctrlKey || event.metaKey || event.target.isContentEditable || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName))return;const key=event.key.toLowerCase();if(['p','n','d'].includes(key)){event.preventDefault();if(key==='p')pause();if(key==='n')skip();if(key==='d'){const item=[...cache].reverse().find(item=>item.kind !== 'follow' && accepted(item));if(item)pin(item);}}});
+  document.addEventListener('keydown',event=>{if(!event.altKey || event.shiftKey || event.ctrlKey || event.metaKey || event.target.isContentEditable || /INPUT|SELECT|TEXTAREA/.test(event.target.tagName))return;const key=event.key.toLowerCase();if(['p','n','d'].includes(key)){event.preventDefault();if(key==='p')pause();if(key==='n')skip();if(key==='d'){const item=[...cache].reverse().find(item=>(!item.kind || item.kind === 'comment') && accepted(item));if(item)pin(item);}}});
   updateLocalAlert();voices();window.speechSynthesis?.addEventListener('voiceschanged',voices);setTimeout(refreshStudio,500);
   return {ingest,decorate,gifts:giftUpdate,clearVoice:clearPreviousVoice,
     voiceSnapshot,

@@ -51,26 +51,28 @@ function setup() {
 
 const comment = n => ({id: String(n), session: 'A', sequence: n, user: 'viewer', comment: String(n), timestamp: '23:01:02'});
 
-test('follow activity renders escaped without comment actions or count', () => {
+for (const kind of ['follow', 'share', 'subscribe', 'super_fan', 'super_fan_join']) {
+test(`${kind} activity renders escaped without comment actions or count`, () => {
   const {context,feed} = setup();
   context.window.ChatExtras = {badges(){throw Error('badges');},greeting(){throw Error('greeting');}};
   context.window.Studio = {ingest:()=>true,decorate(){throw Error('comment actions');}};
   context.Studio = context.window.Studio;
-  context.receiveComment({...comment(1),kind:'follow',user:'@<img>',comment:'empezó a seguirte'},true);
+  context.receiveComment({...comment(1),kind,user:'@<img>',comment:'empezó a seguirte'},true);
   assert.match(feed.children[0].innerHTML, /&lt;img&gt;/);
   assert.match(feed.children[0].innerHTML, /empezó a seguirte/);
   assert.match(feed.children[0].className, /follow-activity/);
   assert.equal(vm.runInContext('commentCount',context),0);
 });
 
-test('follow activity bypasses comment filters and automatic speech', () => {
+test(`${kind} activity bypasses comment filters and automatic speech`, () => {
   const {studio,element,spoken}=setupStudio();
   element('tts-enabled').checked=true;
   element('questions-only').checked=true;
   element('blocked-words').value='follower';
-  assert.equal(studio.ingest({...comment(1),kind:'follow',user:'@follower',comment:'empezó a seguirte'},true),true);
+  assert.equal(studio.ingest({...comment(1),kind,user:'@follower',comment:'empezó a seguirte'},true),true);
   assert.equal(spoken.length,0);
 });
+}
 
 test('chat extras render safe badges and greet through local manual voice only', () => {
   function element() {
@@ -150,16 +152,18 @@ function setupStudio(savedPreferences = {}, productionUI = null, rendering = {})
   return {studio:window.Studio,element,spoken,speechSynthesis,storage,event:name=>listeners[name]?.()};
 }
 
-test('follow activity survives filter rerenders without speech', () => {
+for (const kind of ['follow', 'share', 'subscribe', 'super_fan', 'super_fan_join']) {
+test(`${kind} activity survives filter rerenders without speech`, () => {
   const rendered=[];
   const {studio,element,spoken}=setupStudio({},null,{clearFeed(){rendered.length=0;},addComment:item=>rendered.push(item)});
-  studio.ingest({...comment(1),kind:'follow',user:'@follower',comment:'empezó a seguirte'},true);
+  studio.ingest({...comment(1),kind,user:'@follower',comment:'empezó a seguirte'},true);
   element('chat-search').value='no match';
   element('chat-search').oninput();
   assert.equal(rendered.length,1);
-  assert.equal(rendered[0].kind,'follow');
+  assert.equal(rendered[0].kind,kind);
   assert.equal(spoken.length,0);
 });
+}
 
 test('automatic voice holds and session updates do not interrupt a manual preview', () => {
   const {studio,speechSynthesis,event}=setupStudio();
