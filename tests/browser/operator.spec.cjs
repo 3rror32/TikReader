@@ -235,34 +235,31 @@ test('platform settings use named inline gears and focus the matching credential
   }
 });
 
-test('all 23 themes retain named controls, focus, and reload-persistent preferences', async ({ operator }) => {
-  test.setTimeout(120000);
-  const { page, signalBackendReady } = operator;
-  expect(await page.locator('#skin-select option').evaluateAll(nodes => nodes.map(node => node.value).sort())).toEqual([...themes].sort());
-  for (const theme of themes) {
-    await test.step(theme, async () => {
-      await chooseTheme(page, theme);
-      await expect(page.getByRole('combobox', { name: 'Tema de la cabina' })).toHaveValue(theme);
-      await page.reload();
-      await signalBackendReady();
-      await expect(page.locator('html')).toHaveAttribute('data-skin', theme);
-      await navigate(page, 'live');
-      const input = page.getByRole('textbox', { name: 'Usuario de TikTok', exact: true });
-      await input.focus();
-      await page.keyboard.press('Tab');
-      await expect(page.getByRole('button', { name: 'Conectar', exact: true })).toBeFocused();
-      const focus = await page.locator(':focus').evaluate(node => {
-        const css = getComputedStyle(node);
-        return { outline: parseFloat(css.outlineWidth), style: css.outlineStyle, size: parseFloat(css.fontSize) };
-      });
-      expect(focus.outline).toBeGreaterThanOrEqual(2);
-      expect(focus.style).not.toBe('none');
-      expect(focus.size).toBeGreaterThanOrEqual(12);
+for (const theme of themes) {
+  test(`${theme} retains named controls, focus, and reload-persistent preferences`, async ({ operator }) => {
+    const { page, signalBackendReady } = operator;
+    expect(await page.locator('#skin-select option').evaluateAll(nodes => nodes.map(node => node.value).sort())).toEqual([...themes].sort());
+    await chooseTheme(page, theme);
+    await expect(page.getByRole('combobox', { name: 'Tema de la cabina' })).toHaveValue(theme);
+    await page.reload();
+    await signalBackendReady();
+    await expect(page.locator('html')).toHaveAttribute('data-skin', theme);
+    await navigate(page, 'live');
+    const input = page.getByRole('textbox', { name: 'Usuario de TikTok', exact: true });
+    await input.focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Conectar', exact: true })).toBeFocused();
+    const focus = await page.locator(':focus').evaluate(node => {
+      const css = getComputedStyle(node);
+      return { outline: parseFloat(css.outlineWidth), style: css.outlineStyle, size: parseFloat(css.fontSize) };
     });
-  }
-  await expect.poll(() => operator.preferences['tikreader.skin']).toBe('dragon');
-  expect(operator.errors).toEqual([]);
-});
+    expect(focus.outline).toBeGreaterThanOrEqual(2);
+    expect(focus.style).not.toBe('none');
+    expect(focus.size).toBeGreaterThanOrEqual(12);
+    await expect.poll(() => operator.preferences['tikreader.skin']).toBe(theme);
+    expect(operator.errors).toEqual([]);
+  });
+}
 
 test('comment text size controls clamp, apply only to messages, and persist across reloads', async ({ operator }) => {
   const { page } = operator;
@@ -527,6 +524,10 @@ for (const code of ['NOT_LIVE', 'NETWORK_ERROR']) {
 
 for (const theme of representative) {
   test(`${theme}: visual baseline, narrow/short recovery, genuine browser zoom`, async ({ operator }, testInfo) => {
+    // Windows Server's OS font rasterization differs for these two themes.
+    // Keep the independently reviewed hosted references separate from local ones.
+    const baseline = process.env.GITHUB_ACTIONS === 'true' && ['dark', 'swiss-brutalist'].includes(theme)
+      ? ['windows-server', `${theme}.png`] : `${theme}.png`;
     const { page } = operator;
     await chooseTheme(page, theme);
     await navigate(page, 'live');
@@ -610,24 +611,29 @@ for (const theme of representative) {
     await testInfo.attach('reviewed-zoom-capture', { path: review, contentType: 'image/png' });
     await expectRecoveryActionInsideFeed();
     try {
-      await expect(captureBoundary).toHaveScreenshot(`${theme}.png`, operator.captureOptions());
+      await expect(captureBoundary).toHaveScreenshot(baseline, operator.captureOptions());
     } catch (error) {
       const actual = testInfo.outputPath(`${theme}-actual.png`);
-      await diagnoseCaptureDifference(page, fs.readFileSync(testInfo.snapshotPath(`${theme}.png`)),
+      await diagnoseCaptureDifference(page, fs.readFileSync(testInfo.snapshotPath(...(Array.isArray(baseline) ? baseline : [baseline]))),
         fs.existsSync(actual) ? fs.readFileSync(actual) : image, theme);
       throw error;
     }
     expect(await page.evaluate(() => innerWidth)).toBe(before.width);
-    await operator.zoom(1);
+    // The fixture closes this dedicated context; resetting zoom adds no coverage.
     expect(operator.errors).toEqual([]);
   });
 }
 
 test('synthetic credentials are redacted from captures and excluded from preference persistence', async ({ operator }, testInfo) => {
   const { page } = operator;
+  // Fit the complete section inside its scrollport; locator screenshots of an
+  // overflowing section also capture the unrelated workspace border behind it.
+  await page.setViewportSize({ width: 1600, height: 1600 });
   await page.locator('details:has([data-platform-settings="youtube"]) > summary').click();
   await page.locator('[data-platform-settings="youtube"]').click();
   await expect(page).toHaveURL(/#platform-integrations$/);
+  // Shell completes destination autofocus asynchronously after navigation.
+  await expect(page.locator('#youtube-api-key')).toBeFocused();
   const secret = 'fixture-secret-NEVER-PERSIST';
   await page.locator('#youtube-api-key').fill(secret);
   await page.locator('#kick-client-id').fill('fixture-client-id');
@@ -638,7 +644,18 @@ test('synthetic credentials are redacted from captures and excluded from prefere
   await expect(page.locator('#youtube-api-key')).toHaveAttribute('type', 'password');
   // Equal pixels for unequal secret lengths prove our capture mask, without OCR claims.
   const credentialPage = page.locator('[data-section="platform-integrations"]');
-  await page.evaluate(() => document.activeElement.blur());
+  const captureGeometry = await credentialPage.evaluate(node => {
+    const section = node.getBoundingClientRect();
+    const scrollport = node.closest('.config-content').getBoundingClientRect();
+    return { top: section.top, bottom: section.bottom, left: section.left, right: section.right,
+      portTop: scrollport.top, portBottom: scrollport.bottom, portLeft: scrollport.left, portRight: scrollport.right };
+  });
+  expect(captureGeometry.top).toBeGreaterThanOrEqual(captureGeometry.portTop);
+  expect(captureGeometry.bottom).toBeLessThanOrEqual(captureGeometry.portBottom);
+  expect(captureGeometry.left).toBeGreaterThanOrEqual(captureGeometry.portLeft);
+  expect(captureGeometry.right).toBeLessThanOrEqual(captureGeometry.portRight);
+  await page.locator('#platform-back-live').focus();
+  await expect(page.locator('#platform-back-live')).toBeFocused();
   const first = await operator.stableScreenshot(credentialPage);
   await page.locator('#youtube-api-key').fill('different-fixture-secret-with-another-length');
   await page.locator('#kick-client-id').fill('another-fixture-client-id');
@@ -646,12 +663,20 @@ test('synthetic credentials are redacted from captures and excluded from prefere
   await page.locator('#twitch-token').fill('another-fixture-private-secret');
   await page.locator('#twitch-nickname').fill('another-fixture-private-nickname');
   await page.locator('#kick-webhook-path').evaluate(node => { node.textContent = '/hooks/kick/fixture-secret-OTHER-PRIVATE'; });
-  await page.evaluate(() => document.activeElement.blur());
+  await page.locator('#platform-back-live').focus();
+  await expect(page.locator('#platform-back-live')).toBeFocused();
   const second = await operator.stableScreenshot(credentialPage);
   await testInfo.attach('credentials-first-masked', { body: first, contentType: 'image/png' });
   await testInfo.attach('credentials-second-masked', { body: second, contentType: 'image/png' });
   await diagnoseCaptureDifference(page, first, second, 'masked-credentials', credentialPage);
   expect(second.equals(first)).toBe(true);
+  // The whole section remains sensitive to a single visible character.
+  const heading = page.locator('#platform-integrations-title');
+  const headingText = await heading.textContent();
+  await heading.evaluate(node => { node.textContent += 'X'; });
+  const visibleCanary = await operator.stableScreenshot(credentialPage);
+  expect(visibleCanary.equals(second)).toBe(false);
+  await heading.evaluate((node, value) => { node.textContent = value; }, headingText);
   await chooseTheme(page, 'dark');
   await expect.poll(() => operator.preferences['tikreader.skin']).toBe('dark');
   const persisted = JSON.stringify({ server: operator.preferences,
