@@ -51,7 +51,9 @@ window.LiveExperience = (() => {
   const next = make('p', 'Sin comentarios pendientes'); next.id = 'live-voice-next';
   const nowRow = make('div', '', 'live-voice-message'); nowRow.append(make('span', 'Ahora'), current);
   const nextRow = make('div', '', 'live-voice-message'); nextRow.append(make('span', 'Después'), next);
+  nowRow.id = 'live-voice-now-row'; nextRow.id = 'live-voice-next-row';
   overview.append(top, nowRow, nextRow);
+  $('voice-visible').hidden = true;
   const queue = make('details', '', 'live-voice-queue');
   const heading = make('summary', 'Cola de lectura · 0');
   const skip = make('button', 'Saltar lectura actual'); skip.type = 'button';
@@ -84,10 +86,14 @@ window.LiveExperience = (() => {
     const clearHadFocus = document.activeElement === clearPending;
     queueSignature = signature;
     heading.textContent = `Cola de lectura · ${snapshot.pending.length}`;
-    status.textContent = snapshot.status;
+    status.textContent = snapshot.status.replace(/ · cola: \d+$/, '');
     count.textContent = `${snapshot.pending.length} ${snapshot.pending.length === 1 ? 'pendiente' : 'pendientes'}`;
-    current.textContent = snapshot.current || 'Sin lectura en curso';
-    next.textContent = snapshot.pending[0]?.text || 'Sin comentarios pendientes';
+    count.hidden = !snapshot.pending.length;
+    current.textContent = snapshot.current || '';
+    next.textContent = snapshot.pending[0]?.text || '';
+    nowRow.hidden = !snapshot.current;
+    nextRow.hidden = !snapshot.pending.length;
+    overview.classList.toggle('is-idle', !snapshot.current && !snapshot.pending.length);
     skip.hidden = !snapshot.current;
     clearPending.disabled = !snapshot.pending.length;
     rows.replaceChildren();

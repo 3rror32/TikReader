@@ -316,6 +316,18 @@ html body .live-columns .live-reading-controls [data-live-icon] { gap: 0; }
 .live-voice-message { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; margin-top: 6px; }
 .live-voice-message > span { color: var(--text-muted); }
 .live-voice-message p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.live-voice-overview.is-idle {
+  padding: 3px 14px;
+  border-left: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.live-voice-overview.is-idle .live-voice-status { font-weight: 400; }
+.live-columns .live-voice-overview [hidden],
+.live-columns #voice-visible[hidden],
+#comment-feed #empty-state { display: none; }
 html body .live-columns #focus-gifts-toggle[hidden] { display: none; }
 html body .live-columns #focus-gifts-toggle {
   width: auto; flex: 0 0 auto; gap: 6px; font-size: 11px; padding: 7px 10px;

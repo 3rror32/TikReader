@@ -83,9 +83,9 @@ test('focus mode keeps voice queue visible and restores gifts and layout at ever
   await expect(page.locator('#live-voice-count')).toHaveText('0 pendientes');
   await page.evaluate(() => window.__voiceReadings.at(-1).onerror({error:'fixture-error'}));
   await expect(page.locator('#live-voice-status')).toContainText('fixture-error');
-  await expect(page.locator('#live-voice-current')).toHaveText('Sin lectura en curso');
+  await expect(page.locator('#live-voice-now-row')).toBeHidden();
   await page.evaluate(() => Studio.clearVoice());
-  await expect(page.locator('#live-voice-next')).toHaveText('Sin comentarios pendientes');
+  await expect(page.locator('#live-voice-next-row')).toBeHidden();
 });
 
 test('queue management reorders, removes and clears pending without interrupting current speech', async ({ operator }) => {
@@ -159,6 +159,65 @@ test('queue management reorders, removes and clears pending without interrupting
     await expect(page.locator('#chat-search')).toBeFocused();
     await expect(page.locator('#live-voice-current')).toHaveText('Nueva lectura tras vaciar');
   }
+});
+
+test('compact voice keeps idle comments quiet and preserves actual reading and errors', async ({ operator }, testInfo) => {
+  const {page}=operator;
+  const overview=page.locator('.live-voice-overview');
+  const capture=async name=>{
+    const mobile=(await page.viewportSize()).width===390;
+    const focus=page.locator('#concentration-toggle');
+    if(mobile){await focus.focus();await page.keyboard.press('Enter');}
+    await page.screenshot({path:testInfo.outputPath(name)});
+    if(mobile){await focus.focus();await page.keyboard.press('Enter');}
+  };
+  const expectQuiet=async()=>{
+    await expect(page.locator('#comment-feed #empty-state')).toBeHidden();
+    await expect(page.locator('#comment-feed .empty-state-action')).toBeHidden();
+    await expect(page.locator('#btn-connect')).toBeVisible();
+    await expect(page.locator('#voice-visible')).toBeHidden();
+    await expect(page.locator('#live-voice-now-row')).toBeHidden();
+    await expect(page.locator('#live-voice-next-row')).toBeHidden();
+    await expect(page.locator('#live-voice-count')).toBeHidden();
+    await expect(page.locator('#live-voice-status')).not.toContainText('cola:');
+    expect((await overview.boundingBox()).height).toBeLessThanOrEqual(30);
+  };
+  for(const width of [390,900,1440]){
+    await page.setViewportSize({width,height:1000});
+    await page.keyboard.press('Escape');
+    await expectQuiet();
+    await capture(`compact-idle-${width}.png`);
+    await page.evaluate(()=>clearFeed());await expectQuiet();
+    await page.evaluate(()=>window.__operatorSocket.receive('reconnecting',{username:'fixture_operator',delay:5}));
+    await expect(page.locator('#comment-feed #empty-state')).toBeHidden();
+    await classifiedError(operator);
+    await expect(page.locator('#comment-feed #empty-state')).toBeHidden();
+    await expect(page.locator('#btn-connect')).toBeVisible();
+  }
+  await page.evaluate(()=>{
+    window.__compactReadings=[];
+    window.SpeechSynthesisUtterance=class {constructor(text){this.text=text;}};
+    speechSynthesis.getVoices=()=>[{voiceURI:'compact-fixture',name:'Fixture',lang:'es-MX',localService:true}];
+    speechSynthesis.speak=utterance=>window.__compactReadings.push(utterance);
+    speechSynthesis.cancel=()=>{};speechSynthesis.pause=()=>{};speechSynthesis.resume=()=>{};
+    document.querySelector('#tts-voice').append(new Option('Fixture','compact-fixture'));
+    document.querySelector('#tts-voice').value='compact-fixture';document.querySelector('#tts-volume').value='0.7';
+    for(const reason of Studio.audioDiagnostics().holds)Studio.hold(reason,false);
+    const releaseHold=Studio.hold.bind(Studio);Studio.hold=reason=>releaseHold(reason,false);
+    Studio.speakManual('Comentario en lectura');Studio.speakManual('Comentario siguiente');
+  });
+  await expect(page.locator('#live-voice-current')).toHaveText('Comentario en lectura');
+  await expect(page.locator('#live-voice-next')).toHaveText('Comentario siguiente');
+  await expect(page.locator('#live-voice-count')).toHaveText('1 pendiente');
+  for(const width of [390,1440]){
+    await page.setViewportSize({width,height:1000});
+    await page.keyboard.press('Escape');
+    await capture(`compact-active-${width}.png`);
+  }
+  await page.evaluate(()=>window.__compactReadings[0].onerror({error:'fixture-error'}));
+  await expect(page.locator('#live-voice-status')).toContainText('fixture-error');
+  await expect(page.locator('#live-voice-status')).toHaveAttribute('role','status');
+  await expect(page.locator('#live-voice-now-row')).toBeHidden();
 });
 
 test('About identifies source development without inventing a packaged build', async ({ operator }) => {
@@ -869,16 +928,9 @@ for (const theme of representative) {
     const expectRecoveryActionInsideFeed = async () => {
       const feed = page.locator('#comment-feed');
       const recoveryAction = feed.locator('.empty-state-action');
-      await expect(recoveryAction).toBeVisible();
+      await expect(recoveryAction).toBeHidden();
+      await expect(page.locator('#btn-connect')).toBeVisible();
       expect(await feed.evaluate(node => node.scrollTop)).toBe(0);
-      const feedBounds = await feed.boundingBox();
-      const actionBounds = await recoveryAction.boundingBox();
-      expect(feedBounds).not.toBeNull();
-      expect(actionBounds).not.toBeNull();
-      expect(actionBounds.x).toBeGreaterThanOrEqual(feedBounds.x);
-      expect(actionBounds.x + actionBounds.width).toBeLessThanOrEqual(feedBounds.x + feedBounds.width);
-      expect(actionBounds.y).toBeGreaterThanOrEqual(feedBounds.y);
-      expect(actionBounds.y + actionBounds.height).toBeLessThanOrEqual(feedBounds.y + feedBounds.height);
     };
     await expectRecoveryActionInsideFeed();
     const review = testInfo.outputPath(`${theme}-review.png`);

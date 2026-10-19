@@ -49,9 +49,14 @@ test('voice summary remains outside collapsed management and reflects safe curre
   assert.equal(ui.get('live-voice-current').textContent, '<img onerror=alert(1)>');
   assert.equal(ui.get('live-voice-next').textContent, 'Siguiente mensaje');
   assert.equal(ui.get('live-voice-count').textContent, '1 pendiente');
-  assert.equal(ui.get('live-voice-status').textContent, 'Voz pausada · cola: 1');
+  assert.equal(ui.get('live-voice-status').textContent, 'Voz pausada');
   ui.set({current: null, pending: [], status: 'Error de voz: no disponible'});
-  assert.equal(ui.get('live-voice-current').textContent, 'Sin lectura en curso');
-  assert.equal(ui.get('live-voice-next').textContent, 'Sin comentarios pendientes');
+  assert.equal(ui.get('live-voice-current').textContent, '');
+  assert.equal(ui.get('live-voice-next').textContent, '');
   assert.equal(ui.get('live-voice-count').textContent, '0 pendientes');
+  assert.equal(ui.get('live-voice-count').hidden, true);
+  assert.equal(ui.get('live-voice-now-row').hidden, true);
+  assert.equal(ui.get('live-voice-next-row').hidden, true);
+  assert.equal(ui.get('live-voice-status').textContent, 'Error de voz: no disponible');
+  assert.equal(ui.get('voice-visible').hidden, true);
 });
