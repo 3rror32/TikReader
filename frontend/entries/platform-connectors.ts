@@ -3,7 +3,7 @@ export {};
 type Platform = "youtube" | "twitch" | "kick";
 type CredentialRow = { platform: Platform; configured: boolean; nickname?: string; webhook_path?: string };
 type CredentialSnapshot = { platforms: CredentialRow[]; storage: "windows-user" | "memory" };
-type PlatformState = { platform: Platform; state: "disconnected" | "connecting" | "connected" | "error"; channel: string; error?: { title?: string } };
+type PlatformState = { platform: Platform; state: "disconnected" | "connecting" | "connected" | "reconnecting" | "error"; channel: string; attempt?: number; retry_delay?: number; error?: { title?: string } };
 type PlatformSnapshot = { platforms: PlatformState[] };
 
 declare global {
@@ -90,9 +90,9 @@ if (root && typeof socket !== "undefined") {
     for (const item of snapshot.platforms) {
       const card = platformRoot.querySelector<HTMLElement>(`[data-platform-card="${item.platform}"]`);
       if (!card) continue;
-      const busy = item.state === "connecting" || item.state === "connected";
+      const busy = item.state === "connecting" || item.state === "connected" || item.state === "reconnecting";
       card.classList.toggle("is-connected", item.state === "connected");
-      card.classList.toggle("is-connecting", item.state === "connecting");
+      card.classList.toggle("is-connecting", item.state === "connecting" || item.state === "reconnecting");
       const connect = card.querySelector<HTMLButtonElement>("[data-platform-connect]");
       const stop = card.querySelector<HTMLButtonElement>("[data-platform-stop]");
       if (connect) connect.disabled = busy || !configured[item.platform];
@@ -101,6 +101,7 @@ if (root && typeof socket !== "undefined") {
       if (!status) continue;
       if (item.state === "connected") { status.textContent = `Conectado · ${item.channel || "en vivo"}`; active += 1; connectedNames.push(names[item.platform]); }
       else if (item.state === "connecting") { status.textContent = "Conectando…"; active += 1; }
+      else if (item.state === "reconnecting") { status.textContent = `Reconectando… intento ${item.attempt || 1} en ${item.retry_delay || 1} s`; active += 1; }
       else if (item.state === "error") status.textContent = item.error?.title || "Error de conexión";
       else status.textContent = configured[item.platform] ? "Listo para conectar" : "Falta configurar";
     }

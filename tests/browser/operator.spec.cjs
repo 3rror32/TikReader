@@ -233,6 +233,17 @@ test('platform settings use named inline gears and focus the matching credential
     await expect(gear).toHaveAttribute('title', `Cambiar configuración de ${name}`);
     await expect(gear.locator('svg')).toHaveCount(1);
   }
+  await page.evaluate(() => window.__operatorSocket.receive('platform_status', {
+    platforms: [{ platform: 'youtube', state: 'reconnecting', channel: 'Fixture', attempt: 2, retry_delay: 4 }]
+  }));
+  const card = page.locator('[data-platform-card="youtube"]');
+  await expect(card.locator('[data-platform-connect]')).toBeDisabled();
+  await expect(card.locator('[data-platform-stop]')).toBeVisible();
+  await expect(page.locator('#youtube-platform-status')).toHaveText('Reconectando… intento 2 en 4 s');
+  await expect(page.locator('#platform-connectors')).toHaveAttribute('data-active', '1');
+  await card.locator('[data-platform-stop]').click();
+  expect(await page.evaluate(() => window.__operatorSocket.sent.filter(row => row.event === 'stop_platform').at(-1).payload))
+    .toEqual({ platform: 'youtube' });
 });
 
 for (const theme of themes) {

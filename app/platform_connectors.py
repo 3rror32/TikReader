@@ -23,8 +23,9 @@ from platform_credentials import CredentialStoreError
 class ConnectorError(RuntimeError):
     """An actionable error safe to show in the local UI."""
 
-    def __init__(self, code: str, title: str, detail: str):
+    def __init__(self, code: str, title: str, detail: str, *, retryable=False):
         super().__init__(detail)
+        self.retryable = retryable
         self.code = code
         self.title = title
         self.detail = detail
@@ -142,9 +143,9 @@ class YouTubeConnector:
                 detail = _text(body.get("error", {}).get("message"), 300) or detail
             except (ValueError, AttributeError):
                 pass
-            raise ConnectorError("YOUTUBE_API", "No se pudo consultar YouTube", detail) from exc
+            raise ConnectorError("YOUTUBE_API", "No se pudo consultar YouTube", detail, retryable=exc.code in {500, 502, 503, 504}) from exc
         except (URLError, TimeoutError, OSError) as exc:
-            raise ConnectorError("YOUTUBE_NETWORK", "YouTube no responde", "Comprueba internet e inténtalo nuevamente.") from exc
+            raise ConnectorError("YOUTUBE_NETWORK", "YouTube no responde", "Comprueba internet e inténtalo nuevamente.", retryable=True) from exc
 
     def run(self):
         video = self._get("videos", {"part": "snippet,liveStreamingDetails", "id": self.video_id})
@@ -226,6 +227,7 @@ class TwitchConnector:
     def run(self):
         try:
             from websockets.sync.client import connect
+            from websockets.exceptions import ConnectionClosedError
         except ImportError as exc:
             raise ConnectorError("TWITCH_LIBRARY", "Conector de Twitch no disponible", "Reinstala las dependencias de TikReader.") from exc
         try:
@@ -260,8 +262,8 @@ class TwitchConnector:
                             self.callbacks.comment(record)
         except ConnectorError:
             raise
-        except (OSError, TimeoutError) as exc:
-            raise ConnectorError("TWITCH_NETWORK", "No se pudo conectar a Twitch", "Comprueba internet, el canal y el token OAuth.") from exc
+        except (OSError, TimeoutError, ConnectionClosedError) as exc:
+            raise ConnectorError("TWITCH_NETWORK", "No se pudo conectar a Twitch", "Comprueba internet, el canal y el token OAuth.", retryable=True) from exc
         finally:
             self.socket = None
 
@@ -405,7 +407,7 @@ class PlatformManager:
 
     def active(self) -> bool:
         with self.lock:
-            return any(item["state"] in {"connecting", "connected"} for item in self.statuses.values())
+            return any(item["state"] in {"connecting", "connected", "reconnecting"} for item in self.statuses.values())
 
     def _publish(self):
         self.runtime.socketio.emit("platform_status", self.snapshot())
@@ -426,11 +428,14 @@ class PlatformManager:
         config = {**protected, **{key: value for key, value in config.items() if value not in (None, "")}}
         self.stop(platform)
         stop = threading.Event()
+        worker = {"stop": stop, "config": config, "type": connector_type,
+                  "started": False, "seen": set()}
         callbacks = ConnectorCallbacks(
-            connected=lambda data: self._connected(platform, data),
-            comment=lambda data: self.runtime.handle_external_comment(platform, data),
-            support=lambda data: self.runtime.handle_external_support(platform, data),
+            connected=lambda data: self._connected(platform, worker, data),
+            comment=lambda data: self._event(platform, worker, data, False),
+            support=lambda data: self._event(platform, worker, data, True),
         )
+        worker["callbacks"] = callbacks
         try:
             connector = connector_type(config, callbacks, stop)
             preparation_error = self.runtime.prepare_external_session(
@@ -441,24 +446,78 @@ class PlatformManager:
             return exc.payload()
         with self.lock:
             self.statuses[platform] = {"platform": platform, "state": "connecting", "channel": "", "error": None}
-            thread = threading.Thread(target=self._run, args=(platform, connector, stop), daemon=True,
+            thread = threading.Thread(target=self._run, args=(platform, worker), daemon=True,
                                       name=f"{platform}-live-chat")
-            self.workers[platform] = {"thread": thread, "stop": stop, "connector": connector}
+            worker.update(thread=thread, connector=connector)
+            self.workers[platform] = worker
             thread.start()
         self._publish()
         return None
 
-    def _connected(self, platform: str, data: dict):
-        self.runtime.begin_session_metrics()
+    def _current(self, platform, worker):
+        return self.workers.get(platform) is worker and not worker["stop"].is_set()
+
+    def _event(self, platform, worker, data, support):
+        # Serialize admission with replacement so a stopped generation cannot publish.
         with self.lock:
+            if not self._current(platform, worker):
+                return
+            identity = (support, data.get("id"))
+            if identity[1] and identity in worker["seen"]:
+                return
+            if identity[1]:
+                worker["seen"].add(identity)
+                if len(worker["seen"]) > 5000:
+                    worker["seen"] = {identity}
+            handler = self.runtime.handle_external_support if support else self.runtime.handle_external_comment
+            handler(platform, data)
+
+    def _connected(self, platform: str, worker, data: dict):
+        with self.lock:
+            if not self._current(platform, worker):
+                return
+            if not worker["started"]:
+                self.runtime.begin_session_metrics()
+                worker["started"] = True
             self.statuses[platform] = {"platform": platform, "state": "connected",
                                        "channel": _text(data.get("channel"), 120), "error": None}
-        self._publish()
+            self._publish()
 
-    def _run(self, platform: str, connector, stop: threading.Event):
+    def _run(self, platform: str, worker):
         error = None
+        stop = worker["stop"]
         try:
-            connector.run()
+            for attempt in range(5):
+                with self.lock:
+                    if not self._current(platform, worker):
+                        return
+                try:
+                    worker["connector"].run()
+                    break  # Normal stream completion is terminal.
+                except ConnectorError as exc:
+                    error = exc.payload()
+                    transient = exc.retryable or exc.code in {"YOUTUBE_NETWORK", "TWITCH_NETWORK"}
+                    # Kick subscription POST has an ambiguous outcome on network failure.
+                    if not transient or platform == "kick" or attempt == 4:
+                        break
+                    delay = 2 ** attempt
+                    with self.lock:
+                        if not self._current(platform, worker):
+                            return
+                        self.statuses[platform].update(state="reconnecting", error=None,
+                                                       attempt=attempt + 1, retry_delay=delay)
+                        self._publish()
+                    close = getattr(worker["connector"], "close", None)
+                    if close:
+                        close()
+                    if stop.wait(delay):
+                        return
+                    connector = worker["type"](worker["config"], worker["callbacks"], stop)
+                    with self.lock:
+                        if not self._current(platform, worker):
+                            return
+                        worker["connector"] = connector
+                    error = None
         except ConnectorError as exc:
             error = exc.payload()
         except Exception:
@@ -466,30 +525,28 @@ class PlatformManager:
                      "detail": "El conector terminó inesperadamente. Intenta conectarlo de nuevo."}
         finally:
             with self.lock:
-                current = self.workers.get(platform)
-                if current and current.get("stop") is stop:
+                if self._current(platform, worker):
                     self.workers.pop(platform, None)
                     self.statuses[platform] = {"platform": platform, "state": "error" if error else "disconnected",
                                                "channel": "", "error": error}
-            self._publish()
-            self.runtime.external_platform_stopped()
+                    self._publish()
+                    self.runtime.external_platform_stopped()
 
     def stop(self, platform: str) -> bool:
         platform = str(platform or "").casefold()
         with self.lock:
             worker = self.workers.pop(platform, None)
-        if not worker:
-            return False
-        worker["stop"].set()
+            if not worker:
+                return False
+            worker["stop"].set()
+            self.statuses[platform] = {"platform": platform, "state": "disconnected", "channel": "", "error": None}
+            self._publish()
+            self.runtime.external_platform_stopped()
         close = getattr(worker["connector"], "close", None)
         if close:
             close()
         if worker["thread"] is not threading.current_thread():
             worker["thread"].join(timeout=4)
-        with self.lock:
-            self.statuses[platform] = {"platform": platform, "state": "disconnected", "channel": "", "error": None}
-        self._publish()
-        self.runtime.external_platform_stopped()
         return True
 
     def stop_all(self):
