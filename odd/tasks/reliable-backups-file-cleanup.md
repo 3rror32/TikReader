@@ -35,7 +35,7 @@ User accepted the next improvements and explicitly requested a working file-clea
 - Prior feature broad suite and six unattributed screenshot differences remain pending; do not claim they were fixed here.
 
 ## Progress and evidence
-Implementation completed and independently verified; local work-unit commit identities pending recording. Existing clear-view/history controls remain distinct. Cleanup covers app data/pycache, source runtime/pycache, and orphan known WAV files inside app-owned generated-audio folders; minimum age 24 hours. New RVC workspaces use that folder and remain protected while active. No arbitrary OS temporary-directory scans, historical system-temp orphan deletion, or browser/download/model cache deletion.
+Implementation completed and independently verified. Existing clear-view/history controls remain distinct. Cleanup covers app data/pycache, source runtime/pycache, and orphan known WAV files inside app-owned generated-audio folders; minimum age 24 hours. New RVC workspaces use that folder and remain protected while active. No arbitrary OS temporary-directory scans, historical system-temp orphan deletion, or browser/download/model cache deletion.
 
 ## Observed verification
 - Meaningful RED then GREEN: backup success/scheduling failures, queue saturation priorities, generated cleanup, safe TTS error diagnostics, and legacy migration.
@@ -51,4 +51,4 @@ Implementation completed and independently verified; local work-unit commit iden
 - Native RDD unavailable and Engram mirror pending as above. No claimed native approval.
 
 ## Local slices and next step
-Four coherent source slices planned: backup reliability; voice priority/diagnostics; protected generated cleanup backend; control-center cleanup/backup UI. Record local commit identities, then deliver with the known verification limits. Runtime cleanup requires the user's explicit confirmation inside the app. Publishing, PRs, and merges remain unauthorized.
+Four coherent local source slices recorded: T1 backup reliability `d14fd8a`; T2/T4 voice priority/diagnostics `f825ad7`; T3 protected cleanup backend `787488d`; T1/T3 control-center cleanup/backup UI `4450e6a`. No PRs created. Each slice has native assessment unavailable; independent functional/security verification is recorded above without a native approval claim. Runtime cleanup requires the user's explicit confirmation inside the app. Publishing, PRs, and merges remain unauthorized.
