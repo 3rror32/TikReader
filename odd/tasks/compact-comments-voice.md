@@ -10,8 +10,8 @@ Screenshot provided by user shows duplicate voice state and a large idle summary
 Branch codex/recovery-safety-build-identity. Forecast 100–220 authored additions/deletions, one coherent work unit; ask-on-risk above approximately 400. Existing unrelated theme edits in index.html/creator.html/theme styles/tests and a separate operator browser hunk must be preserved and excluded from commits. Spanish UI copy matches current app, code/tests English. No remote operations.
 
 ## Tasks
-- [ ] CV1: Compact comments and voice presentation with meaningful regression checks, then commit owned work.
-- [ ] CV2: Independently verify rendered idle/active/mobile layouts and close tracking.
+- [x] CV1: Compact comments and voice presentation with meaningful regression checks; commit a4dbeaa.
+- [x] CV2: Independently verify rendered idle/active/mobile layouts; closure evidence below.
 
 ## Acceptance criteria
 - No visible comments connection prompt/CTA, including after clearing, reconnect and errors; main connection controls remain.
@@ -34,5 +34,8 @@ Observed RED: UI regression found the duplicated `Voz pausada · cola: 1` instea
 
 Updated only the affected existing theme recovery helper to expect the comments CTA hidden and main connect visible. Unrelated concurrent theme edits remain untouched and excluded from this feature commit. Independent verification and parent spot check remain pending; Engram mirror remains pending. Owned work stays below the 400-line advisory threshold.
 
+## Closure
+Independent verifier observed 74/74 Node tests and 3/3 browser cases passing. No additional test title matched the theme filter, so no extra theme suite run is claimed. Verified prompt suppression across initial/clear/reconnect/error states, primary connection controls, <=30 px idle overview, actual messages/counts/errors and preserved pause/hold wording. Inspected normal desktop and focused mobile idle/active renders; no findings. Parent reran tests/test_live_experience.cjs (2/2 passed). Implementation a4dbeaa contains 147 authored additions/deletions. Concurrent unrelated theme edits remain preserved; tests used the live tree. Engram mirror unavailable/pending, RDD unknown and native assessment unavailable; no native receipt. Physical audio and real LIVE remain unverified.
+
 ## Next step
-Independent verifier checks this candidate; parent records commit identity and closes observed tasks.
+Ready for user use. No push or publication performed.
