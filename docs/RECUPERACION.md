@@ -11,4 +11,10 @@ El código se respalda por separado con `py -3 app/maintenance.py backup`. El mo
 
 También puedes usar `py -3 app/data_recovery.py backup respaldo.zip` y `py -3 app/data_recovery.py restore respaldo.zip`.
 
+Antes de recuperar se revisan el esquema SQLite y su versión original, los ajustes necesarios para iniciar, los miembros del ZIP y sus checksums. Se admiten las versiones de esquema 1 y 2 con las columnas compatibles; una versión futura o un ajuste inválido detiene la recuperación sin reemplazar la base ni los medios. Los ajustes JSON desconocidos compatibles se conservan; no se corrigen ni recortan silenciosamente.
+
+La comprobación de espacio suma, por unidad, el contenido sin comprimir, la preparación temporal, las copias para deshacer cambios, la base SQLite y el respaldo de seguridad previo. También incluye la unidad de modelos de voz si está separada y una reserva de **64 MB por unidad**. Se vuelve a comprobar antes de reemplazar archivos; otra aplicación puede consumir espacio después, por lo que esta revisión no garantiza disponibilidad permanente.
+
+Un respaldo nuevo se escribe primero en un archivo parcial único junto al destino. Se verifican otra vez el manifest, los checksums y la base antes de publicarlo. Si el destino ya existe o aparece mientras se crea la copia, se conserva y la operación falla: nunca se sobrescribe. Un fallo elimina únicamente los parciales creados por esa operación; el respaldo de seguridad previo se conserva si falla la recuperación.
+
 Los nuevos contadores quedan asociados a la sesión y aparecen en el resumen exportado. Reiniciar o abrir otro LIVE no borra los totales históricos; una sesión nueva comienza en cero. No se pueden reconstruir eventos que versiones anteriores nunca guardaron.
