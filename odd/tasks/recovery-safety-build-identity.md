@@ -48,4 +48,4 @@ All four tasks implemented and independently checked. Authored feature delta 1,3
 - Per-volume free-space estimates cannot reserve disk space against concurrent consumers.
 
 ## Local slices and next step
-Record recovery safeguards as T1/T2, staged checker as T3, and build identity/About as T4. Deliver local changes with known limits, pending Engram mirror and unavailable native review honestly recorded. Installer creation, publication, PRs, and merges require separate authorization.
+Local slices recorded: T1/T2 recovery safeguards `d9fc83c`; T3 staged checker `48418c3`; T4 build identity/About `353ce3c`. Delivery remains local with known limits, pending Engram mirror and unavailable native review honestly recorded. Installer creation, publication, PRs, and merges require separate authorization.
