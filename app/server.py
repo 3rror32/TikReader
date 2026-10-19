@@ -181,6 +181,8 @@ seen_comment_ids = OrderedDict()
 gift_history = OrderedDict()
 recovered_gifts = OrderedDict()
 gift_counts = OrderedDict()
+gift_streaks = OrderedDict()
+gift_message_keys = OrderedDict()
 seen_like_ids = OrderedDict()
 gift_revision = 0
 gift_catalog = OrderedDict()
@@ -847,6 +849,40 @@ def handle_external_support(platform, data):
     return record
 
 
+def gift_event_key(event, username, gift_id, streakable, ongoing, count):
+    """Resolve cumulative streak updates without treating each message as a gift.
+
+    Missing protocol identifiers require a bounded heuristic: the same sender
+    and gift share a streak until completion or 30 seconds
+    without updates. Replay mappings live in the same bounded cache as counts.
+    """
+    message_id = getattr(getattr(event, "common", None), "msg_id", 0)
+    identity = (feed_session, username, gift_id)
+    message_key = (*identity, str(message_id)) if message_id else None
+    if message_key in gift_message_keys:
+        return gift_message_keys[message_key]
+    group_id = getattr(event, "group_id", 0)
+    # The protocol declares log_id but does not promise streak stability.
+    # It must not split cumulative updates when a transport log ID changes.
+    if streakable and group_id:
+        key = f"group:{feed_session}:{username}:{gift_id}:{group_id}"
+    elif streakable:
+        now = time.monotonic()
+        previous = gift_streaks.get(identity)
+        if (previous is None or now - previous['seen'] > 30
+                or previous['ended']):
+            key = f"streak:{username}:{gift_id}:{uuid4().hex}"
+        else:
+            key = previous['key']
+        remember_id(gift_streaks, identity, dict(
+            key=key, seen=now, ended=not ongoing))
+    else:
+        key = f"message:{message_id or uuid4().hex}"
+    if message_key:
+        remember_id(gift_message_keys, message_key, key)
+    return key
+
+
 def handle_gift_event(event, update_catalog=True):
     global gift_revision
     user = getattr(event, "user", None)
@@ -857,19 +893,15 @@ def handle_gift_event(event, update_catalog=True):
     if update_catalog:
         gift_catalog[str(gift_id)]={'id':str(gift_id),'name':getattr(gift,'name',None) or f'Regalo #{gift_id}',
             'diamonds':max(0,int(getattr(gift,'diamond_count',0) or 0)),'image_url':image_url(getattr(gift,'image',None))}
-    group_id = getattr(event, "group_id", 0)
-    message_id = getattr(getattr(event, "common", None), "msg_id", 0)
     streakable = getattr(gift, "type", 0) == 1
     ongoing = streakable and not bool(getattr(event, "repeat_end", 0))
-    # Without a group ID, count only the final streak notification.
-    if ongoing and not group_id:
-        return
-    key = (f"group:{username}:{gift_id}:{group_id}" if streakable and group_id
-           else f"message:{message_id or uuid4().hex}")
     count = max(1, getattr(event, "repeat_count", 0) or 1)
     with feed_lock:
+        key = gift_event_key(event, username, gift_id, streakable, ongoing, count)
         previous = gift_counts.get(key, 0)
         count = max(count, previous)
+        if key in gift_history and not gift_history[key].get("ongoing", False):
+            ongoing = False  # A replay cannot reopen an already completed streak.
         remember_id(gift_counts, key, count)
         state["gift_count"] += count - previous
         gifter_totals[username] = gifter_totals.get(username, 0) + count - previous
@@ -1121,7 +1153,11 @@ def run_tiktok_live(username: str):
         @client.on(GiftEvent)
         async def on_gift(event):
             if not current_run(): return
-            handle_gift_event(event)
+            try:
+                handle_gift_event(event)
+            except Exception:
+                logger.exception("gift_event_processing_failed")
+                raise
 
         @client.on(JoinEvent)
         async def on_join(event):
