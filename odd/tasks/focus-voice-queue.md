@@ -10,8 +10,8 @@ The existing queue is initially collapsed; concentration hides gifts without an 
 One coherent work unit on the current feature branch `codex/recovery-safety-build-identity`. Forecast: 250–380 authored changed lines; strategy: ask-on-risk if exceeding approximately 400. Route: delegated direct; preparation and multiple non-trivial files require a bounded writer. Exploration completed read-only using CodeGraph and targeted reads. Parent spot check confirmed existing controls in live_experience.js.
 
 ## Tasks
-- [ ] FQ1: Improve focus controls and add always-visible current/next/pending voice summary, with regression checks and one work-unit commit.
-- [ ] FQ2: Independently verify behavior, responsive layout, and focused regression commands; record limitations.
+- [x] FQ1: Improve focus controls and add always-visible current/next/pending voice summary; implementation `ae0dd55`, mobile correction `8d4febb`.
+- [x] FQ2: Independently verify behavior, responsive layout, and focused regression commands; closure evidence below.
 
 ## Acceptance criteria
 - Existing concentration preference and keyboard-accessible exit work across reload and repeated toggles.
@@ -37,5 +37,8 @@ Source-mutating normalizers: none applicable to these plain JS/CSS changes. `git
 
 Work-unit commit: `ae0dd55` (244 additions / 4 deletions). Independent verification then found candidate-caused nested feed clipping at 390 px after the gifts label expanded; document-level overflow checks had missed the nested scroll offset. Bounded correction makes the focus toolbar and its action group wrap within the available mobile width, preserving desktop styles. New browser assertions verify feed scrollWidth/clientWidth, zero scrollLeft, and summary bounds after showing/hiding gifts and exiting focus at 390/900/1440. Observed RED: nested feed measured 400 px against 372 px available. Observed GREEN: focus browser 1/1 passed, Node 2/2 and 70/70 passed, and `git diff --check` passed. Correction adds approximately 30 authored lines, keeping cumulative work below 400; correction commit identity is recorded by parent after commit creation. Independent correction readback remains pending.
 
+## Closure
+Independent verification observed 72/72 Node tests and the browser focus test passing. After correction `8d4febb`, independent browser recheck passed 1/1 at 390/900/1440; supplemental 390px keyboard open/close/exit checks retained scrollLeft=0 and scrollWidth=clientWidth=372. Rendered mobile screenshot inspected at `runtime/operator-browser/focus-verify-fixed-390.png`; long current/next text and focus outlines remain visible. No remaining findings. Parent reran the two new regressions successfully and git diff --check passed. Work units total 275 authored additions/deletions, below the chain threshold. Missing work-unit skill fallback discovery completed without a replacement. Engram mirror remains unavailable/pending. Native RDD state unknown and assessment unavailable; no receipt or native approval claimed. Physical audio and a real LIVE connection were not verified; speech/backend were mocked.
+
 ## Next step
-Independent verifier checks the completed candidate and parent records closure. Native assessment unavailable means no receipt or native approval is claimed.
+Ready for user use and optional real LIVE/audio smoke check. No push or publication performed.
