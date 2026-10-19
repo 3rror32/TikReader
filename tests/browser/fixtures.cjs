@@ -73,6 +73,7 @@ function template(preferences) {
   const html = include('index.html')
     .replace(/{{ \{'values':[\s\S]*?\| tojson }}/, JSON.stringify({ values: preferences, keys: preferenceKeys }))
     .replace(/{{ app_version[^}]*}}/g, 'browser-fixture')
+    .replace(/{{ build_identity_text[^}]*}}/g, 'Desarrollo local · identidad de paquete no disponible.')
     .replace(/{{ 'true' if lan_enabled else 'false' }}/g, 'false')
     .replace(/{{ lan_view_token[^}]*}}/g, '');
   if (/{{|{%/.test(html)) throw new Error('Fixture must explicitly render every production template expression.');

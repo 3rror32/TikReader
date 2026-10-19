@@ -1188,6 +1188,7 @@
         </div>
         <dl class="about-facts">
           <div><dt>Versión</dt><dd>{{ app_version | default('1.0.0.1', true) }} Beta</dd></div>
+          <div><dt>Compilación</dt><dd id="about-build-identity">{{ build_identity_text | default('Desarrollo local · identidad de paquete no disponible.', true) }}</dd></div>
           <div><dt>Estado</dt><dd>Versión en pruebas. Algunas funciones pueden cambiar o presentar errores.</dd></div>
           <div><dt>Funcionamiento</dt><dd>El panel se ejecuta en este equipo y se conecta al LIVE que tú indiques.</dd></div>
           <div><dt>Historial</dt><dd>Los comentarios y perfiles públicos recibidos se guardan localmente para tus sesiones y análisis.</dd></div>

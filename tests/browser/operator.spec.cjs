@@ -9,6 +9,14 @@ const themes = ['original', 'broadcast-console', 'creator-pop', 'studio-rundown'
 const representative = ['original', 'light', 'dark', 'broadcast-console',
   'creator-pop', 'swiss-brutalist', 'tactile-scrapbook'];
 
+test('About identifies source development without inventing a packaged build', async ({ operator }) => {
+  const { page } = operator;
+  await page.evaluate(() => window.Shell.show('about'));
+  await expect(page.locator('[data-section="about"]')).toBeVisible();
+  await expect(page.locator('#about-build-identity')).toHaveText('Desarrollo local · identidad de paquete no disponible.');
+  await expect(page.locator('[data-section="about"]')).toContainText('Compilación');
+});
+
 test('backup management selects old copies, protects newest, and confirms deletion explicitly', async ({ operator }) => {
   const { page } = operator;
   let scans = 0, deletions = 0, failScan = false;

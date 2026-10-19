@@ -10,6 +10,16 @@ from platform_credentials import PlatformCredentialStore
 
 
 class ReleaseTests(unittest.TestCase):
+    def test_diagnostics_exposes_only_sanitized_build_identity(self):
+        from types import SimpleNamespace
+        from release_support import diagnostic
+        runtime = SimpleNamespace(TIKTOKLIVE_VERSION='unknown', state={}, archive=None,
+                                  local_tts=SimpleNamespace(ready=lambda: False), secret='private-secret')
+        identity = {'mode': 'development', 'package_id': None, 'source_revision': None}
+        with patch('release_support.load_build_info', return_value=identity):
+            result = diagnostic(runtime)
+        self.assertEqual(result['build_info'], identity)
+        self.assertNotIn('private-secret', str(result))
     def test_platform_credentials_are_protected_and_public_status_never_reveals_them(self):
         with tempfile.TemporaryDirectory() as folder:
             target = Path(folder) / 'credentials.bin'

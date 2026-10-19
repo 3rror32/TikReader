@@ -1,6 +1,9 @@
 """Build a clean Windows x64 payload; never package workspace user data."""
 import hashlib
 import json
+import os
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 import shutil
 import subprocess
@@ -26,6 +29,35 @@ SPEECH_MODEL_LINE_ENDING_PATHS = frozenset({
     'ivector/online_cmvn.conf',
     'ivector/splice.conf',
 })
+
+
+def source_provenance():
+    unknown = {'source_revision': None, 'source_dirty': None, 'provenance': 'unavailable'}
+    try:
+        revision = subprocess.run(['git','rev-parse','HEAD'],cwd=ROOT,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=10,check=True).stdout.strip()
+        if not re.fullmatch(r'(?:[0-9a-f]{40}|[0-9a-f]{64})', revision):
+            return unknown
+        status = subprocess.run(['git','status','--porcelain','--untracked-files=normal'],cwd=ROOT,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=10,check=True)
+        return {'source_revision': revision, 'source_dirty': bool(status.stdout.strip()), 'provenance': 'git'}
+    except (OSError, subprocess.SubprocessError):
+        return unknown
+
+
+def build_identity(payload, version, channel='beta'):
+    epoch = os.environ.get('SOURCE_DATE_EPOCH')
+    try:
+        instant = datetime.fromtimestamp(int(epoch),timezone.utc) if epoch is not None else datetime.now(timezone.utc)
+        if epoch is not None and (not epoch.isdecimal() or instant.year < 1970):
+            raise ValueError()
+    except (ValueError, OverflowError, OSError):
+        raise ValueError('SOURCE_DATE_EPOCH must be a supported nonnegative UTC timestamp.') from None
+    info = {'schema': 1, 'release_version': version, 'channel': channel,
+            'built_at': instant.strftime('%Y-%m-%dT%H:%M:%SZ'), **source_provenance()}
+    files = {path.relative_to(payload).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+             for path in sorted(Path(payload).rglob('*')) if path.is_file() and path.relative_to(payload).as_posix() != 'distribution.json'
+             and '__pycache__' not in path.parts and path.suffix != '.pyc'}
+    info['package_id'] = hashlib.sha256(json.dumps({'files':files,'provenance':info},sort_keys=True,separators=(',',':')).encode('utf-8')).hexdigest()
+    return info
 
 
 def build_overlays():
@@ -127,7 +159,8 @@ def build():
     sys.path.insert(0, str(ROOT / 'app'))
     from app_config import APP_VERSION
     (PAYLOAD / 'distribution.json').write_text(json.dumps({'version': APP_VERSION, 'channel': 'beta',
-        'python': PY_VERSION, 'python_sha256': PY_SHA256, 'architecture': 'x64'}), encoding='utf-8')
+        'python': PY_VERSION, 'python_sha256': PY_SHA256, 'architecture': 'x64',
+        'build_info': build_identity(PAYLOAD, APP_VERSION)}), encoding='utf-8')
     forbidden = [p for p in PAYLOAD.rglob('*') if p.name in ('.env', '.flask-secret', 'history.sqlite3') or p.suffix in ('.pth', '.onnx', '.index')]
     # Python's isolation files end in ._pth, not .pth. Personal voice weights
     # never ship; the approved Vosk model uses its own verified manifest.

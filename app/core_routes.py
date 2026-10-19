@@ -4,15 +4,18 @@ from pathlib import Path
 from flask import jsonify, render_template, request
 
 from app_config import APP_VERSION
+from build_info import load_build_info, display_build_info
 
 
 def register_core_routes(app, runtime, root: Path):
     """Registra la superficie básica usando el módulo runtime como dependencia."""
 
+    identity = load_build_info(root)
+
     @app.get("/")
     def index():
         from release_support import saved_preferences, PREFERENCE_KEYS
-        return render_template("index.html", app_version=APP_VERSION,
+        return render_template("index.html", app_version=APP_VERSION, build_identity_text=display_build_info(identity),
                                saved_preferences=saved_preferences(runtime), preference_keys=sorted(PREFERENCE_KEYS),
                                lan_enabled=runtime.runtime_config_value.lan_enabled,
                                lan_view_token=runtime.production.view_token)
@@ -46,6 +49,7 @@ def register_core_routes(app, runtime, root: Path):
         ), default=0)
         return jsonify(
             app_version=APP_VERSION,
+            build_info=identity,
             tiktoklive_available=runtime.TIKTOKLIVE_AVAILABLE,
             tiktoklive_version=runtime.TIKTOKLIVE_VERSION,
             build=build,

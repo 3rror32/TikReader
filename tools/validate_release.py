@@ -4,19 +4,25 @@ import os
 import re
 from pathlib import Path
 import subprocess
+import sys
 import time
 import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / 'app'))
+from build_info import read_build_info
 PAYLOAD = ROOT / 'release' / 'TikReader'
 DATA = ROOT / 'release' / ('validation-data-' + str(time.time_ns()))
 URL = 'http://127.0.0.1:5198'
 
 
 def packaged_version():
-    version = json.loads((PAYLOAD / 'distribution.json').read_text(encoding='utf-8')).get('version')
+    metadata = json.loads((PAYLOAD / 'distribution.json').read_text(encoding='utf-8'))
+    version = metadata.get('version') if isinstance(metadata, dict) else None
     if not isinstance(version, str) or not re.fullmatch(r'\d+\.\d+\.\d+\.\d+', version):
         raise ValueError('La versión del manifiesto del paquete no es válida.')
+    if 'build_info' in metadata and read_build_info(PAYLOAD)['status'] != 'known':
+        raise ValueError('La identidad del paquete no es válida.')
     return version
 
 
@@ -49,6 +55,7 @@ def start(log):
 
 def main():
     expected_version = packaged_version()
+    expected_identity = read_build_info(PAYLOAD)
     report = {'scope': 'Paquete aislado en el equipo de desarrollo; no sustituye Windows limpio.', 'checks': []}
     process = None
     if DATA.exists():
@@ -57,7 +64,13 @@ def main():
         with (ROOT / 'release' / 'validation-server.log').open('w', encoding='utf-8') as log:
             process = start(log)
             report['checks'].append('Inicio con Python incluido y sin Python del sistema en PATH')
-            assert api('/version')['app_version'] == expected_version, 'La versión en ejecución difiere del manifiesto.'
+            version = api('/version')
+            assert version['app_version'] == expected_version, 'La versión en ejecución difiere del manifiesto.'
+            if expected_identity['status'] == 'known':
+                assert version.get('build_info') == expected_identity, 'La identidad en ejecución difiere del manifiesto.'
+                report['checks'].append('Identidad inmutable del paquete coincide con el manifiesto')
+            else:
+                report['checks'].append('Paquete heredado: identidad inmutable no disponible')
             assert api('/microphone-captions/engine')['available']
             report['checks'].append('Motor Vosk y modelo español incluidos')
             assert not api('/local-tts')['ready']

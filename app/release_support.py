@@ -7,6 +7,7 @@ import secrets
 from collections import deque
 from flask import jsonify, request
 from app_config import APP_VERSION
+from build_info import load_build_info
 from app_paths import data_dir, installed, ROOT
 from generated_cleanup import GeneratedCleanup
 from backup_cleanup import BackupCleanup
@@ -31,6 +32,7 @@ def saved_preferences(runtime):
 def diagnostic(runtime):
     # Explicit fields only: never serialize config, paths, exceptions or logs.
     return {'application': 'TikReader', 'version': APP_VERSION, 'channel': 'beta',
+            'build_info': load_build_info(ROOT),
             'generated_at': int(time.time()), 'python': platform.python_version(),
             'os': platform.system(), 'architecture': platform.machine(),
             'installed': installed(), 'tiktoklive_version': runtime.TIKTOKLIVE_VERSION,
