@@ -9,6 +9,63 @@ const themes = ['original', 'broadcast-console', 'creator-pop', 'studio-rundown'
 const representative = ['original', 'light', 'dark', 'broadcast-console',
   'creator-pop', 'swiss-brutalist', 'tactile-scrapbook'];
 
+test('backup management selects old copies, protects newest, and confirms deletion explicitly', async ({ operator }) => {
+  const { page } = operator;
+  let scans = 0, deletions = 0, failScan = false;
+  const files = [
+    { id: 'newest', name: 'tikreader-auto-20260104-000000-dddddddd.sqlite3', bytes: 4096, selectable: false, reason: 'Más reciente de este tipo; se conserva también cualquier empate.' },
+    { id: 'old-a', name: 'tikreader-auto-20260103-000000-cccccccc.sqlite3', bytes: 1024, selectable: true, reason: '' },
+    { id: 'old-b', name: 'tikreader-auto-20260102-000000-bbbbbbbb.sqlite3', bytes: 2048, selectable: true, reason: '' },
+    { id: 'unselected', name: 'tikreader-auto-20260101-000000-aaaaaaaa.sqlite3', bytes: 512, selectable: true, reason: '' },
+  ].map(row => ({ ...row, kind: 'automatic', type: 'Historial automático', modified_at: 1700000000 }));
+  await page.route('**/system/control-center', route => route.fulfill({ json: {
+    readiness: { ready: true, checks: [], summary: { ok: 0, warn: 0, fail: 0 } },
+    components: { components: [], free_bytes: 1024, scope: 'Synthetic inventory', busy: false },
+    operations: { production: {}, streamerbot: {}, hotkeys: {}, spotify: {}, catalog: {}, connection: { platforms: [] } },
+    backups: { enabled: false, interval_hours: 24, keep: 7, last_at: 0, next_at: 0, last_error: '', last_file: '' },
+    lan: { enabled: false }, update: { version: 'fixture', installed: false, rollback_backups: 0 }
+  } }));
+  await page.route('**/system/backup-cleanup', async route => {
+    if (route.request().method() === 'POST') {
+      deletions += 1;
+      expect(route.request().postDataJSON()).toEqual({ confirm: true, token: 'synthetic-backups', selected: ['old-a', 'old-b'] });
+      await route.fulfill({ json: { deleted: 1, bytes: 2048, skipped: 0,
+        failures: [{ id: 'old-a', error: 'No se pudo eliminar; puede estar en uso.' }] } });
+      return;
+    }
+    scans += 1;
+    if (failScan) { await route.fulfill({ status: 503, json: { error: 'Lista no disponible.' } }); return; }
+    await route.fulfill({ json: { token: 'synthetic-backups', files: files.filter(row => !deletions || row.id !== 'old-b'), limited: false, max_selected: 50 } });
+  });
+  await page.evaluate(() => window.Shell.show('control-center'));
+  const pane = page.locator('[data-section="control-center"]');
+  await expect(pane).toContainText('Conservar 7 se aplica después de un respaldo automático correcto');
+  await pane.getByRole('button', { name: 'Administrar respaldos', exact: true }).click();
+  const management = pane.locator('.backup-management');
+  await expect(management).toBeVisible();
+  await expect(management.getByRole('checkbox', { name: `Seleccionar ${files[0].name}`, exact: true })).toBeDisabled();
+  await expect(management).toContainText('Más reciente de este tipo');
+  await management.getByRole('checkbox', { name: `Seleccionar ${files[1].name}`, exact: true }).check();
+  await management.getByRole('checkbox', { name: `Seleccionar ${files[2].name}`, exact: true }).check();
+  await expect(management).toContainText('2 respaldos seleccionados · 3 KB');
+  expect(deletions).toBe(0);
+  await management.getByRole('button', { name: 'Eliminar selección', exact: true }).click();
+  await expect(management).toContainText('¿Eliminar 2 respaldos seleccionados (3 KB)?');
+  await management.getByRole('button', { name: 'Cancelar eliminación de respaldos' }).click();
+  expect(deletions).toBe(0);
+  await management.getByRole('button', { name: 'Eliminar selección', exact: true }).click();
+  await management.getByRole('button', { name: 'Confirmar eliminación de respaldos' }).click();
+  await expect(management).toContainText('Eliminados: 1 respaldos · tamaño eliminado: 2 KB');
+  await expect(management).toContainText(`${files[1].name}: No se pudo eliminar; puede estar en uso.`);
+  await expect(management.getByRole('status')).toContainText('3 respaldos reconocidos');
+  expect(scans).toBe(2);
+  failScan = true;
+  await management.getByRole('button', { name: 'Actualizar lista de respaldos' }).click();
+  await expect(management.getByRole('status')).toHaveText('Lista no disponible.');
+  await expect(management.getByRole('button', { name: 'Eliminar selección', exact: true })).toBeDisabled();
+  expect(deletions).toBe(1);
+});
+
 test('control center previews generated cleanup, confirms explicitly, and reports actual results', async ({ operator }) => {
   const { page } = operator;
   let scans = 0, deletes = 0, failScan = false;

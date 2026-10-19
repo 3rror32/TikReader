@@ -234,11 +234,96 @@ function renderContinuity(backups: Backups, update: UpdateSafety): void {
     button("Crear respaldo ahora", async () => { await request("/history/automatic-backups/run", "POST", {}); notify("Respaldo manual de la base de datos creado."); await refresh(); }), node("small", detail), node("p", schedule));
   if (backups.last_attempt_at) backupCard.append(node("small", `Último intento: ${new Date(backups.last_attempt_at * 1000).toLocaleString()}`));
   if (backups.last_error || backups.status_error) backupCard.append(node("p", [backups.last_error, backups.status_error].filter(Boolean).join(" · ")));
+  backupCard.append(node("p", `Conservar ${backups.keep} se aplica después de un respaldo automático correcto; no elimina copias al guardar esta opción.`),
+    button("Administrar respaldos", async () => { backupManagement.hidden = false; await listBackups(); }));
   const updateCard = node("article", undefined, "setting-card continuity-card");
   updateCard.append(node("h3", "Actualizaciones seguras"), node("p", `Versión ${update.version} · ${update.installed ? "usa el instalador verificado" : "acepta paquetes verificados"}.`),
     node("small", `${update.rollback_backups} respaldos de código disponibles para recuperación.`));
-  continuity.replaceChildren(backupCard, updateCard);
+  continuity.replaceChildren(backupCard, updateCard, backupManagement);
 }
+
+type BackupFile = { id: string; name: string; kind: string; type: string; modified_at: number; bytes: number; selectable: boolean; reason: string };
+type BackupPreview = { token: string; files: BackupFile[]; limited: boolean; max_selected: number; scope: string };
+type BackupDeletion = { deleted: number; bytes: number; skipped: number; failures: { id: string; error: string }[] };
+const backupManagement = node("article", undefined, "setting-card backup-management");
+backupManagement.hidden = true;
+const backupStatus = node("p");
+backupStatus.setAttribute("role", "status");
+const backupRows = node("tbody");
+const backupTable = node("table");
+const backupHead = node("tr");
+for (const label of ["Seleccionar", "Archivo", "Tipo", "Última modificación", "Tamaño lógico", "Protección"]) backupHead.append(node("th", label));
+const backupHeader = node("thead"); backupHeader.append(backupHead); backupTable.append(backupHeader, backupRows);
+const backupScroll = node("div");
+backupScroll.style.overflow = "auto"; backupScroll.style.maxHeight = "30rem"; backupScroll.tabIndex = 0;
+backupScroll.setAttribute("role", "region"); backupScroll.setAttribute("aria-label", "Lista de respaldos y su protección"); backupScroll.append(backupTable);
+const backupTotals = node("p", "0 respaldos seleccionados · 0 B");
+backupTotals.setAttribute("aria-live", "polite");
+const backupResults = node("div"); backupResults.setAttribute("aria-live", "polite");
+const backupConfirmation = node("div"); backupConfirmation.hidden = true;
+const backupConfirmationText = node("p");
+let backupPreview: BackupPreview | null = null;
+let backupBusy = false;
+const backupSelected = new Set<string>();
+function setBackupBusy(value: boolean): void {
+  backupBusy = value; backupManagement.setAttribute("aria-busy", String(value));
+  for (const control of backupManagement.querySelectorAll<HTMLInputElement | HTMLButtonElement>("input,button")) control.disabled = value;
+  for (const checkbox of backupRows.querySelectorAll<HTMLInputElement>("input")) checkbox.disabled = value || !backupPreview?.files.find(row => row.id === checkbox.value)?.selectable;
+  backupDelete.disabled = value || backupSelected.size === 0;
+}
+function selectedBackupSize(): number { return backupPreview?.files.filter(row => backupSelected.has(row.id)).reduce((sum, row) => sum + row.bytes, 0) || 0; }
+function updateBackupTotals(): void {
+  backupConfirmation.hidden = true;
+  backupTotals.textContent = `${backupSelected.size} respaldos seleccionados · ${formatBytes(selectedBackupSize())}`;
+  backupDelete.disabled = backupBusy || backupSelected.size === 0;
+}
+async function listBackups(): Promise<void> {
+  if (backupBusy) return;
+  setBackupBusy(true); backupPreview = null; backupSelected.clear(); updateBackupTotals();
+  backupStatus.textContent = "Revisando respaldos reconocidos…";
+  try {
+    backupPreview = await request<BackupPreview>("/system/backup-cleanup");
+    backupRows.replaceChildren(...backupPreview.files.map(file => {
+      const row = node("tr");
+      const selection = node("td"), checkbox = node("input"); checkbox.type = "checkbox"; checkbox.value = file.id;
+      checkbox.setAttribute("aria-label", `Seleccionar ${file.name}`); checkbox.disabled = !file.selectable;
+      checkbox.onchange = () => {
+        if (checkbox.checked && backupSelected.size >= (backupPreview?.max_selected || 50)) { checkbox.checked = false; backupStatus.textContent = `Selecciona hasta ${backupPreview?.max_selected || 50} respaldos por operación.`; return; }
+        if (checkbox.checked) backupSelected.add(file.id); else backupSelected.delete(file.id);
+        updateBackupTotals();
+      };
+      selection.append(checkbox); const filename = node("td", file.name); filename.style.overflowWrap = "anywhere";
+      row.append(selection, filename, node("td", file.type), node("td", new Date(file.modified_at * 1000).toLocaleString()), node("td", formatBytes(file.bytes)), node("td", file.reason || "Antiguo; disponible para seleccionar."));
+      return row;
+    }));
+    backupStatus.textContent = `${backupPreview.files.length} respaldos reconocidos.${backupPreview.limited ? " Análisis incompleto: no se habilita ninguna eliminación." : " El más reciente de cada tipo y los archivos de menos de 24 horas permanecen protegidos."}`;
+  } catch (error) {
+    backupRows.replaceChildren(); backupStatus.textContent = error instanceof Error ? error.message : "No se pudo revisar la lista.";
+  } finally { setBackupBusy(false); }
+}
+const backupRefresh = button("Actualizar lista de respaldos", listBackups);
+const backupDelete = button("Eliminar selección", () => {
+  if (!backupPreview || !backupSelected.size || backupBusy) return;
+  backupConfirmationText.textContent = `¿Eliminar ${backupSelected.size} respaldos seleccionados (${formatBytes(selectedBackupSize())})? No se puede deshacer. Las copias protegidas se conservan.`;
+  backupConfirmation.hidden = false;
+});
+const backupConfirm = button("Confirmar eliminación de respaldos", async () => {
+  if (!backupPreview || !backupSelected.size || backupBusy) return;
+  const token = backupPreview.token, selected = [...backupSelected], names = new Map(backupPreview.files.map(row => [row.id, row.name]));
+  setBackupBusy(true); backupConfirmation.hidden = true;
+  try {
+    const result = await request<BackupDeletion>("/system/backup-cleanup", "POST", { confirm: true, token, selected });
+    backupResults.replaceChildren(node("p", `Eliminados: ${result.deleted} respaldos · tamaño eliminado: ${formatBytes(result.bytes)}. Omitidos por cambios o protección: ${result.skipped}. Fallos: ${result.failures.length}.`),
+      ...result.failures.map(item => node("p", `${names.get(item.id) || "Respaldo seleccionado"}: ${item.error}`)));
+    setBackupBusy(false); await listBackups();
+  } catch (error) {
+    backupPreview = null; backupSelected.clear(); updateBackupTotals();
+    backupStatus.textContent = error instanceof Error ? error.message : "No se pudo confirmar la eliminación.";
+  } finally { setBackupBusy(false); }
+});
+backupConfirmation.append(backupConfirmationText, backupConfirm, button("Cancelar eliminación de respaldos", () => { backupConfirmation.hidden = true; }));
+backupManagement.append(node("h3", "Administrar respaldos"), node("p", "Solo copias reconocidas en las carpetas administradas por TikReader. Tamaño lógico y fecha de última modificación; no se buscan exportaciones en otras carpetas."),
+  backupRefresh, button("Cerrar lista de respaldos", () => { backupManagement.hidden = true; }), backupStatus, backupScroll, backupTotals, backupDelete, backupConfirmation, backupResults);
 
 type CleanupPreview = { token: string; count: number; bytes: number; limited: boolean; scan_failures: number; scope: string };
 type CleanupResult = { deleted: number; bytes: number; skipped: number; failures: { item: number; kind: string; error: string }[] };
