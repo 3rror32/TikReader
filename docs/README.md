@@ -65,8 +65,27 @@ Pruebas de internacionalización: `node --test tests/test_i18n.cjs`.
 python tools/check_changes.py
 ```
 
-El comando ejecuta las pruebas Python, las pruebas del navegador, la compilación
-TypeScript/Vite, Ruff, cobertura y la comprobación del instalador. La aplicación conserva registros
+El comando ejecuta etapas identificadas de pruebas Python y Node, sintaxis JavaScript,
+compilación TypeScript/Vite y comprobación del instalador en modo `CheckOnly`. Ruff y
+cobertura se marcan explícitamente como omitidos si no están disponibles. Para ver
+las etapas usa `python tools/check_changes.py --list-stages`; para ejecutar una sola,
+`--stage javascript-syntax`; para continuar desde una etapa, `--from-stage frontend-build`.
+`--watch` conserva el modo de repetir al cambiar archivos. Las etapas anteriores no
+ejecutadas aparecen como tales, nunca como aprobadas; cobertura conserva sus pasos previos.
+
+Cada etapa anuncia inicio, fin, duración y un límite generoso de espera. Los resultados
+y la salida se guardan en `runtime/check-changes`, con hasta ocho ejecuciones y 2 MB
+por etapa. Un tiempo agotado termina únicamente el proceso hijo de esa etapa y sus
+descendientes; no termina otros servidores o ventanas. Estas etapas no sustituyen las
+pruebas visuales de Playwright.
+
+Los paquetes nuevos incluyen una identidad calculada a partir del contenido y la
+procedencia de compilación: revisión, estado de cambios locales, versión, canal y fecha
+UTC. `SOURCE_DATE_EPOCH` fija esta fecha para compilaciones reproducibles. Acerca de,
+`/version` y el diagnóstico muestran la identidad; los paquetes anteriores indican
+que no está disponible y el código fuente se identifica como desarrollo local.
+
+La aplicación conserva registros
 técnicos rotativos durante 30 días en `data/logs`; la salida redirigida del proceso
 se limita a 2 MB por archivo con cuatro copias. El tráfico HTTP normal no se
 registra línea por línea y los registros no deben contener comentarios ni nombres
