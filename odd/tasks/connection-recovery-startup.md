@@ -30,7 +30,7 @@ Old connector workers can publish after replacement; transient failures currentl
 - Branch: codex/connection-recovery-startup; initial reviewed boundary: branch point.
 - Forecast: approximately 410–630 authored changed lines, generated files excluded; heuristic only.
 - Strategy: ask-on-risk; user selected stacked-to-main (2026-10-18). Prepare coherent local work-unit commits for chained delivery toward main; remote PR creation, push, and merge remain unauthorized.
-- Work-unit commits: source ready, pending local recording; connection lifecycle/recovery forms one coherent unit and optional loading forms a second unit. No PRs created.
+- Work-unit commits: T1/T2 `a9713c6` (connection lifecycle/recovery); T3 `3abdd16` (optional loading and startup order). These are two local slices toward main; no PRs created. Native assessment unavailable for each slice; independent checks recorded below.
 - Native RDD status/assessment: unavailable because gentle-ai is absent from PATH and checked local executable locations. No mode preference changed. Treat risk as high for independent verification; do not claim native approval.
 - Engram mirror odd/connection-recovery-startup/tasks: pending; no Engram tools available.
 - Registry skill work-unit-commits points to a missing file; no fallback found in checked skill roots. Implementation can proceed without this optional helper.
@@ -50,4 +50,4 @@ Implementation and independent verification completed. Authored implementation d
 - Startup-adjacent fix: production socket consumer now loads after core socket initialization; regression test covers the order.
 
 ## Next step
-Record two local work-unit commits, preserve pending Engram mirror and unavailable native review honestly, and deliver local changes with broad-check and visual-reference limitations. Future publication or PR creation requires explicit authorization.
+Local implementation recorded in two work-unit commits. Resolve broad-check and visual-reference limitations before release validation; real-platform validation, pending Engram mirror, and native review remain unverified/unavailable. Future publication or PR creation requires explicit authorization.
