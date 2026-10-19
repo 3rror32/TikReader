@@ -76,6 +76,83 @@ def _identity(info):
     return info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
 
 
+@contextmanager
+def inspected_file(candidate, delete=False):
+    """Hold the inspected file against Windows writes/renames until the operation ends."""
+    path = candidate.path
+    if not _safe(path, candidate.root):
+        yield None
+        return
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or _identity(info) != candidate.identity:
+        yield None
+        return
+    if os.name != 'nt':
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+        try:
+            yield fd if _identity(os.fstat(fd)) == candidate.identity and _safe(path, candidate.root) else None
+        finally:
+            os.close(fd)
+        return
+    import ctypes
+    from ctypes import wintypes
+    import msvcrt
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    create = kernel.CreateFileW
+    create.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
+                       wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    create.restype = wintypes.HANDLE
+    # FILE_SHARE_READ excludes active writers and prevents replacement/deletion during inspection.
+    handle = create(str(path), 0x80000000 | (0x10000 if delete else 0), 1, None, 3, 0x00200000, None)
+    if handle == wintypes.HANDLE(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+    except Exception:
+        close = kernel.CloseHandle
+        close.argtypes = [wintypes.HANDLE]
+        close(handle)
+        raise
+    try:
+        final = kernel.GetFinalPathNameByHandleW
+        final.argtypes = [wintypes.HANDLE, wintypes.LPWSTR, wintypes.DWORD, wintypes.DWORD]
+        final.restype = wintypes.DWORD
+        buffer = ctypes.create_unicode_buffer(32768)
+        length = final(handle, buffer, len(buffer), 0)
+        matched = (0 < length < len(buffer) and
+                   os.path.normcase(buffer.value.removeprefix('\\\\?\\')) == os.path.normcase(str(path)))
+        info = os.fstat(fd)
+        if (not matched or _identity(info)[:4] != candidate.identity[:4] or info.st_nlink != 1 or
+                not _safe(path, candidate.root)):
+            yield None
+        else:
+            yield fd
+    finally:
+        os.close(fd)
+
+
+def delete_inspected(candidate):
+    with inspected_file(candidate, delete=True) as fd:
+        if fd is None:
+            return False
+        if os.name != 'nt':
+            if not _safe(candidate.path, candidate.root) or _identity(candidate.path.lstat()) != candidate.identity:
+                return False
+            candidate.path.unlink()
+            return True
+        import ctypes
+        from ctypes import wintypes
+        import msvcrt
+        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        remove = kernel.SetFileInformationByHandle
+        remove.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+        remove.restype = wintypes.BOOL
+        disposition = wintypes.BOOL(True)
+        if not remove(msvcrt.get_osfhandle(fd), 4, ctypes.byref(disposition), ctypes.sizeof(disposition)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        return True
+
+
 class GeneratedCleanup:
     def __init__(self, root=ROOT):
         self.root = Path(root).absolute()
@@ -145,45 +222,7 @@ class GeneratedCleanup:
                 'scope': 'Solo caché Python y audio temporal generado de más de 24 horas; se conservan archivos activos y datos personales.'}
 
     def _delete(self, candidate):
-        path = candidate.path
-        if os.name != 'nt':
-            # Revalidate ancestors and file identity immediately before unlink.
-            if not _safe(path, candidate.root) or _identity(path.lstat()) != candidate.identity:
-                return False
-            path.unlink()
-            return True
-        # Delete the inspected Windows handle, never a substituted path or junction target.
-        import ctypes
-        from ctypes import wintypes
-        import msvcrt
-        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
-        create = kernel.CreateFileW
-        create.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
-                           wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
-        create.restype = wintypes.HANDLE
-        handle = create(str(path), 0x80000000 | 0x10000, 3, None, 3, 0x00200000, None)
-        if handle == wintypes.HANDLE(-1).value:
-            raise ctypes.WinError(ctypes.get_last_error())
-        fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
-        try:
-            if _identity(os.fstat(fd))[:4] != candidate.identity[:4] or not _safe(path, candidate.root):
-                return False
-            final = kernel.GetFinalPathNameByHandleW
-            final.argtypes = [wintypes.HANDLE, wintypes.LPWSTR, wintypes.DWORD, wintypes.DWORD]
-            final.restype = wintypes.DWORD
-            buffer = ctypes.create_unicode_buffer(32768)
-            length = final(handle, buffer, len(buffer), 0)
-            if not 0 < length < len(buffer) or os.path.normcase(buffer.value.removeprefix('\\\\?\\')) != os.path.normcase(str(path)):
-                return False
-            disposition = wintypes.BOOL(True)
-            remove = kernel.SetFileInformationByHandle
-            remove.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
-            remove.restype = wintypes.BOOL
-            if not remove(handle, 4, ctypes.byref(disposition), ctypes.sizeof(disposition)):
-                raise ctypes.WinError(ctypes.get_last_error())
-            return True
-        finally:
-            os.close(fd)
+        return delete_inspected(candidate)
 
     def clean(self, token):
         with LOCK:

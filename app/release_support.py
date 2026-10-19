@@ -9,6 +9,7 @@ from flask import jsonify, request
 from app_config import APP_VERSION
 from app_paths import data_dir, installed, ROOT
 from generated_cleanup import GeneratedCleanup
+from backup_cleanup import BackupCleanup
 from platform_credentials import CredentialStoreError, PlatformCredentialStore
 from runtime_env import read_runtime_env, write_runtime_env
 from readiness import inspect as inspect_readiness
@@ -45,6 +46,27 @@ def diagnostic(runtime):
 
 def register_release_routes(app, runtime):
     generated_cleanup = GeneratedCleanup(ROOT)
+    backup_cleanup = BackupCleanup(ROOT)
+
+    @app.route('/system/backup-cleanup', methods=['GET', 'POST'])
+    def cleanup_backups():
+        origin = request.headers.get('Origin')
+        if (not runtime.production.local() or request.headers.get('Sec-Fetch-Site') == 'cross-site' or
+                (origin and origin.rstrip('/') != request.host_url.rstrip('/'))):
+            return jsonify(error='Solo disponible desde este equipo y esta aplicación.'), 403
+        if request.method == 'GET':
+            return jsonify(backup_cleanup.scan())
+        if request.content_length is None or request.content_length > 8192:
+            return jsonify(error='La selección excede el tamaño permitido.'), 413
+        values = request.get_json(silent=True)
+        if (not isinstance(values, dict) or set(values) != {'confirm', 'token', 'selected'} or
+                values.get('confirm') is not True or not isinstance(values.get('token'), str)):
+            return jsonify(error='Confirma una selección de la lista actual.'), 400
+        try:
+            return jsonify(backup_cleanup.clean(values['token'], values['selected']))
+        except ValueError as exc:
+            return jsonify(error=str(exc)), 409
+
 
     @app.route('/system/generated-cleanup', methods=['GET', 'POST'])
     def cleanup_generated():
