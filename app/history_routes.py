@@ -39,8 +39,11 @@ def register_history_routes(app, runtime):
     def backup_history():
         if not runtime.archive:
             return jsonify(error="Historial no disponible"), 503
-        with runtime.feed_lock:
-            target = make_archive_backup()
+        try:
+            with runtime.feed_lock:
+                target = make_archive_backup()
+        except (OSError, sqlite3.Error):
+            return jsonify(error="No se pudo crear el respaldo. Revisa espacio y disponibilidad del historial."), 409
         return send_file(target, as_attachment=True, download_name=target.name)
 
     @app.route("/history/automatic-backups", methods=["GET", "POST"])
@@ -53,6 +56,8 @@ def register_history_routes(app, runtime):
                 manager.configure(request.get_json(silent=True))
             except ValueError as exc:
                 return jsonify(error=str(exc)), 400
+            except (OSError, sqlite3.Error):
+                return jsonify(error="No se pudo guardar la programación del respaldo."), 409
         return jsonify(manager.snapshot())
 
     @app.post("/history/automatic-backups/run")
@@ -62,8 +67,8 @@ def register_history_routes(app, runtime):
             return jsonify(error="Respaldos automáticos no disponibles"), 503
         try:
             target = manager.create(manual=True)
-        except (OSError, ValueError) as exc:
-            return jsonify(error=str(exc)), 409
+        except (OSError, ValueError, sqlite3.Error):
+            return jsonify(error="No se pudo crear el respaldo. Revisa espacio y disponibilidad del historial."), 409
         return jsonify(ok=True, file=target.name, **manager.snapshot())
 
     @app.delete("/history/<session>")

@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import sqlite3
 from pathlib import Path
 from unittest.mock import patch
 import server
@@ -7,6 +8,19 @@ from history_store import HistoryStore
 
 
 class AdvancedTests(unittest.TestCase):
+    def test_manual_backup_routes_handle_sqlite_errors_without_private_details(self):
+        client = server.app.test_client()
+        with tempfile.TemporaryDirectory() as folder:
+            archive = HistoryStore(Path(folder) / 'history.sqlite3')
+            with patch.object(server, 'archive', archive), patch.object(archive, 'backup', side_effect=sqlite3.OperationalError('private-path')):
+                result = client.post('/history/backup', json={})
+        self.assertEqual(result.status_code, 409)
+        self.assertNotIn('private-path', result.text)
+        with patch.object(server.automatic_backups, 'create', side_effect=sqlite3.OperationalError('private-path')):
+            result = client.post('/history/automatic-backups/run', json={})
+        self.assertEqual(result.status_code, 409)
+        self.assertNotIn('private-path', result.text)
+
     def test_restore_validates_merges_and_protects_current(self):
         import io
         with tempfile.TemporaryDirectory() as directory:

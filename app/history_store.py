@@ -3,6 +3,7 @@ import json
 import sqlite3
 from pathlib import Path
 from contextlib import contextmanager, closing
+from uuid import uuid4
 
 
 class HistoryStore:
@@ -133,12 +134,15 @@ class HistoryStore:
             return [dict(session=s,kind=k,record=json.loads(p),host=h,started=t) for s,k,p,h,t in rows]
 
     def backup(self, target):
-        with self.connect() as source:
-            destination=sqlite3.connect(str(target))
-            try:
-                source.backup(destination)
-            finally:
-                destination.close()
+        target = Path(target)
+        partial = target.with_name(target.name + '.partial-' + uuid4().hex)
+        try:
+            with self.connect() as source:
+                with closing(sqlite3.connect(str(partial))) as destination:
+                    source.backup(destination)
+            partial.replace(target)
+        finally:
+            partial.unlink(missing_ok=True)
 
     def delete_session(self, session):
         with self.connect() as db:
