@@ -10,8 +10,8 @@ The queue already supports front/remove, but lacks adjacent reordering and safe 
 Delegated direct: preparation and multi-file behavior require a bounded writer. Read-only explorer used CodeGraph first, then targeted reads because lexical results were unrelated. Parent spot check: current editQueue and queue renderer. Branch: codex/recovery-safety-build-identity. Forecast 250–380 authored changed lines; one coherent work unit, ask-on-risk above approximately 400. Registry skill work-unit-commits unavailable after fallback discovery; frontend-design available.
 
 ## Tasks
-- [ ] QM1: Extend engine/UI with safe up/down/remove/clear pending and keyboard focus retention, verified and committed as one work unit.
-- [ ] QM2: Independently verify behavior and mobile controls; close tracking with exact evidence.
+- [x] QM1: Extend engine/UI with safe up/down/remove/clear pending and keyboard focus retention; implementation `9db8acf`, label correction `cd6dddd`.
+- [x] QM2: Independently verify behavior and mobile controls; closure evidence below.
 
 ## Acceptance criteria
 - Up/down changes pending order; boundary/missing IDs are harmless. Subsequent ordinary arrivals do not undo the manual move.
@@ -37,5 +37,8 @@ Concurrent unrelated dragon-theme changes appeared during this work, including a
 
 Initial implementation commit: `9db8acf` (196 additions / 8 deletions). Independent screenshot inspection found that the shared icon decorator replaced queue button labels with icons, including identical ellipses for Subir/Bajar/Vaciar pendientes. Bounded correction marks all queue buttons with the existing `data-live-label` opt-out, preserving readable text and wrapping without altering other live controls. New browser regression measures actual computed font size and text-range dimensions/bounds for every queue button at 390/900/1440. Observed RED: Saltar lectura actual had computed font size 0. Observed GREEN: all queue labels render at least 11 px and fit their buttons; both focused browser cases pass (35.5 s), all 74 Node tests pass, and diff checks pass. No new scope or engine change. Final independent visual readback remains pending; parent records correction identity after creation.
 
+## Closure
+Independent verifier observed 74/74 Node tests and 2/2 browser tests. After label correction `cd6dddd`, independent focused browser rerun again passed 2/2. Rendered screenshots at 390/1440 show six readable Spanish action labels at 14 px; regression covers 390/900/1440. Nested feed scrollWidth equals clientWidth and scrollLeft remains zero. No remaining findings. Parent spot check reran tests/test_live_experience.cjs successfully (2/2). Implementation and correction total 221 authored additions/deletions, below the chain threshold. Concurrent unrelated theme edits remain preserved in the worktree and were excluded from the feature commits; browser verification used that live tree. Engram mirror remains unavailable/pending; native assessment unavailable, RDD unknown, no receipt or native approval claimed. Physical audio and a real LIVE connection remain unverified.
+
 ## Next step
-Independent verifier checks this candidate, then parent records commit identity and closes the observed tasks.
+Ready for user use and optional real LIVE/audio smoke check. No push or publication performed.
