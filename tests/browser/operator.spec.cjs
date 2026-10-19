@@ -25,8 +25,22 @@ test('focus mode keeps voice queue visible and restores gifts and layout at ever
     await page.keyboard.press('Enter');
     await expect(page.locator('.gifts-column')).toBeVisible();
     await expect(gifts).toHaveAttribute('aria-expanded', 'true');
+    const assertFeedBounds = async () => {
+      const bounds = await page.locator('.feed-wrap').evaluate(feed => {
+        const box = feed.getBoundingClientRect();
+        const summary = feed.querySelector('.live-voice-overview').getBoundingClientRect();
+        return {width:feed.clientWidth, scrollWidth:feed.scrollWidth, scrollLeft:feed.scrollLeft,
+          left:box.left, right:box.right, summaryLeft:summary.left, summaryRight:summary.right};
+      });
+      expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.width + 1);
+      expect(bounds.scrollLeft).toBe(0);
+      expect(bounds.summaryLeft).toBeGreaterThanOrEqual(bounds.left);
+      expect(bounds.summaryRight).toBeLessThanOrEqual(bounds.right);
+    };
+    await assertFeedBounds();
     await gifts.click();
     await expect(page.locator('.gifts-column')).toBeHidden();
+    await assertFeedBounds();
     await expect(page.locator('.live-voice-overview')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     await page.reload();
@@ -35,6 +49,7 @@ test('focus mode keeps voice queue visible and restores gifts and layout at ever
     await page.locator('#concentration-toggle').click();
     await expect(page.locator('.session-panel')).toBeVisible();
     await expect(gifts).toBeHidden();
+    await assertFeedBounds();
   }
   await page.evaluate(() => {
     window.__voiceReadings = [];

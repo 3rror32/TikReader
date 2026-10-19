@@ -35,5 +35,7 @@ Observed RED: both new deterministic focus/voice-summary regressions failed agai
 
 Source-mutating normalizers: none applicable to these plain JS/CSS changes. `git diff --check` passed. Work-unit skill fallback found no replacement; ordinary Conventional Commit used. Independent verification and parent spot check remain pending; Engram mirror remains pending.
 
+Work-unit commit: `ae0dd55` (244 additions / 4 deletions). Independent verification then found candidate-caused nested feed clipping at 390 px after the gifts label expanded; document-level overflow checks had missed the nested scroll offset. Bounded correction makes the focus toolbar and its action group wrap within the available mobile width, preserving desktop styles. New browser assertions verify feed scrollWidth/clientWidth, zero scrollLeft, and summary bounds after showing/hiding gifts and exiting focus at 390/900/1440. Observed RED: nested feed measured 400 px against 372 px available. Observed GREEN: focus browser 1/1 passed, Node 2/2 and 70/70 passed, and `git diff --check` passed. Correction adds approximately 30 authored lines, keeping cumulative work below 400; correction commit identity is recorded by parent after commit creation. Independent correction readback remains pending.
+
 ## Next step
 Independent verifier checks the completed candidate and parent records closure. Native assessment unavailable means no receipt or native approval is claimed.
