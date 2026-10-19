@@ -88,6 +88,67 @@ test('focus mode keeps voice queue visible and restores gifts and layout at ever
   await expect(page.locator('#live-voice-next')).toHaveText('Sin comentarios pendientes');
 });
 
+test('queue management reorders, removes and clears pending without interrupting current speech', async ({ operator }) => {
+  const {page}=operator;
+  await page.evaluate(() => {
+    window.__queueReadings=[];
+    window.SpeechSynthesisUtterance=class {constructor(text){this.text=text;}};
+    speechSynthesis.getVoices=()=>[{voiceURI:'queue-fixture',name:'Fixture',lang:'es-MX',localService:true}];
+    speechSynthesis.speak=utterance=>window.__queueReadings.push(utterance);
+    speechSynthesis.cancel=()=>{};speechSynthesis.pause=()=>{};speechSynthesis.resume=()=>{};
+    document.querySelector('#tts-voice').append(new Option('Fixture','queue-fixture'));
+    document.querySelector('#tts-voice').value='queue-fixture';
+    document.querySelector('#tts-volume').value='0.7';
+    for(const reason of Studio.audioDiagnostics().holds)Studio.hold(reason,false);
+    const releaseHold=Studio.hold.bind(Studio);Studio.hold=reason=>releaseHold(reason,false);
+  });
+  const disclosure=page.locator('button[aria-controls="live-reading-queue"]');
+  await disclosure.click();
+  const queue=page.locator('.live-voice-queue');
+  const action=(id,name)=>queue.locator(`[data-queue-id="${id}"][data-queue-action="${name}"]`);
+  const clear=page.locator('#live-queue-clear');
+  await expect(clear).toBeDisabled();
+  for(const width of [390,900,1440]){
+    await page.setViewportSize({width,height:1000});
+    const ids=await page.evaluate(()=>{
+      Studio.clearVoice();
+      Studio.speakManual('Lectura que continúa');
+      for(const text of ['Primero','<img src=x onerror=alert(1)>','Último '+ 'x'.repeat(150)])Studio.speakManual(text);
+      return Studio.voiceSnapshot().pending.map(item=>item.id);
+    });
+    await expect(action(ids[0],'up')).toBeDisabled();
+    await expect(action(ids[2],'down')).toBeDisabled();
+    await expect(queue.locator('img')).toHaveCount(0);
+    await action(ids[0],'down').focus();await page.keyboard.press('Enter');
+    await expect(action(ids[0],'down')).toBeFocused();
+    await expect(page.locator('#live-voice-next')).toHaveText('<img src=x onerror=alert(1)>');
+    await action(ids[0],'remove').focus();await page.keyboard.press('Enter');
+    await expect(action(ids[2],'remove')).toBeFocused();
+    await expect(page.locator('#live-voice-count')).toHaveText('2 pendientes');
+    // Automatic progress removes the focused item and chooses a neighboring action.
+    await action(ids[1],'remove').focus();
+    await page.evaluate(()=>window.__queueReadings.at(-1).onend());
+    await expect(action(ids[2],'remove')).toBeFocused();
+    await expect(page.locator('#live-voice-count')).toHaveText('1 pendiente');
+    const bounds=await queue.evaluate(node=>{
+      const feed=node.closest('.feed-wrap'),box=feed.getBoundingClientRect();
+      return {width:feed.clientWidth,scroll:feed.scrollWidth,left:feed.scrollLeft,
+        outside:[...node.querySelectorAll('button')].some(button=>{const r=button.getBoundingClientRect();return r.left<box.left||r.right>box.right;})};
+    });
+    expect(bounds.scroll).toBeLessThanOrEqual(bounds.width+1);expect(bounds.left).toBe(0);expect(bounds.outside).toBe(false);
+    const current=await page.locator('#live-voice-current').textContent();
+    await clear.focus();await page.keyboard.press('Enter');
+    await expect(clear).toBeDisabled();await expect(disclosure).toBeFocused();
+    await expect(page.locator('#live-voice-current')).toHaveText(current);
+    await expect(page.locator('#live-voice-count')).toHaveText('0 pendientes');
+    await page.evaluate(()=>Studio.speakManual('Nueva lectura tras vaciar'));
+    await page.locator('#chat-search').focus();
+    await page.evaluate(()=>window.__queueReadings.at(-1).onend());
+    await expect(page.locator('#chat-search')).toBeFocused();
+    await expect(page.locator('#live-voice-current')).toHaveText('Nueva lectura tras vaciar');
+  }
+});
+
 test('About identifies source development without inventing a packaged build', async ({ operator }) => {
   const { page } = operator;
   await page.evaluate(() => window.Shell.show('about'));

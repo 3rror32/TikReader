@@ -241,6 +241,49 @@ test('the final expired queued message clears the snapshot after a voice hold', 
   assert.match(studio.voiceSnapshot().status,/cola: 0/);
 });
 
+test('adjacent queue moves survive ordinary arrivals without discarding automatic priority', () => {
+  const {studio,element,spoken}=setupStudio();
+  element('tts-enabled').checked=true;
+  element('tts-priority').value='questions';
+  studio.ingest(comment(1),true);
+  studio.ingest({...comment(2),comment:'¿Prioridad?'},true);
+  studio.ingest(comment(3),true);
+  const [priority,ordinary]=studio.voiceSnapshot().pending;
+  assert.equal(studio.editQueue(priority.id,'up'),false);
+  assert.equal(studio.editQueue(ordinary.id,'down'),false);
+  assert.equal(studio.editQueue(9999,'up'),false);
+  assert.equal(studio.editQueue(ordinary.id,'unknown'),false);
+  assert.equal(studio.editQueue(ordinary.id,'up'),true);
+  studio.ingest(comment(4),true);
+  assert.deepEqual(Array.from(studio.voiceSnapshot().pending,item=>item.id),[ordinary.id,priority.id,4]);
+  assert.equal(studio.editQueue(ordinary.id,'down'),true);
+  spoken[0].onend();
+  assert.equal(studio.voiceSnapshot().current,priority.text);
+});
+
+test('clear pending preserves active callbacks, paused holds and deferred messages', () => {
+  const {studio,element,spoken}=setupStudio();
+  studio.speakManual('Actual');
+  studio.speakManual('Para después');
+  studio.editQueue(studio.voiceSnapshot().pending[0].id,'later');
+  studio.speakManual('Pendiente');
+  element('tts-pause').onclick();
+  studio.hold('test',true);
+  const before=studio.voiceSnapshot(), diagnostics=studio.audioDiagnostics();
+  assert.equal(studio.clearPendingVoice(),1);
+  assert.equal(studio.clearPendingVoice(),0);
+  assert.equal(studio.voiceSnapshot().current,'Actual');
+  assert.deepEqual(studio.voiceSnapshot().deferred,before.deferred);
+  assert.deepEqual(studio.voiceSnapshot().log,before.log);
+  assert.equal(studio.audioDiagnostics().paused,diagnostics.paused);
+  assert.deepEqual(studio.audioDiagnostics().holds,diagnostics.holds);
+  studio.hold('test',false);
+  element('tts-pause').onclick();
+  studio.speakManual('Nuevo');
+  spoken[0].onend();
+  assert.equal(studio.voiceSnapshot().current,'Nuevo');
+});
+
 for (const kind of ['follow', 'share', 'subscribe', 'super_fan', 'super_fan_join']) {
 test(`${kind} activity survives filter rerenders without speech`, () => {
   const rendered=[];

@@ -57,14 +57,29 @@ window.LiveExperience = (() => {
   const skip = make('button', 'Saltar lectura actual'); skip.type = 'button';
   skip.onclick = () => { $('tts-skip').click(); notify('Lectura saltada.'); };
   const rows = make('div');
-  queue.append(heading, skip, rows);
+  const clearPending = make('button', 'Vaciar pendientes'); clearPending.type = 'button';
+  clearPending.id = 'live-queue-clear';
+  clearPending.onclick = () => {
+    const removed = window.Studio.clearPendingVoice();
+    notify(removed ? 'Pendientes retirados. La lectura actual continúa.' : 'No hay comentarios pendientes.');
+    refreshQueue();
+  };
+  const queueTools = make('div', '', 'live-queue-tools'); queueTools.append(skip, clearPending);
+  queue.append(heading, make('p', 'Organiza los pendientes. Al vaciarlos, la lectura actual continúa.'), queueTools, rows);
   document.querySelector('.voice-dock').after(queue);
   document.querySelector('.voice-dock').after(overview);
   let queueSignature = '';
+  let queueControls = [];
+  function focusQueueSummary() {
+    const toggle = document.querySelector('[aria-controls="live-reading-queue"]');
+    (toggle || heading).focus();
+  }
   function refreshQueue() {
     const snapshot = window.Studio.voiceSnapshot();
     const signature = JSON.stringify([snapshot.current, snapshot.pending, snapshot.status]);
     if (signature === queueSignature) return;
+    const focusedControl = queueControls.find(control => control.node === document.activeElement);
+    const clearHadFocus = document.activeElement === clearPending;
     queueSignature = signature;
     heading.textContent = `Cola de lectura · ${snapshot.pending.length}`;
     status.textContent = snapshot.status;
@@ -72,23 +87,40 @@ window.LiveExperience = (() => {
     current.textContent = snapshot.current || 'Sin lectura en curso';
     next.textContent = snapshot.pending[0]?.text || 'Sin comentarios pendientes';
     skip.hidden = !snapshot.current;
+    clearPending.disabled = !snapshot.pending.length;
     rows.replaceChildren();
-    for (const item of snapshot.pending) {
+    queueControls = [];
+    for (const [index, item] of snapshot.pending.entries()) {
       const row = make('div', '', 'live-queue-row');
-      row.append(make('span', item.text));
-      for (const [label, action] of [['Siguiente', 'front'], ['Quitar', 'remove']]) {
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', `Pendiente ${index + 1}: ${item.text}`);
+      row.append(make('span', `${index + 1}. ${item.text}`, 'live-queue-text'));
+      const actions = make('div', '', 'live-queue-actions');
+      for (const [label, action] of [['Subir', 'up'], ['Bajar', 'down'], ['Siguiente', 'front'], ['Quitar', 'remove']]) {
         const button = make('button', label); button.type = 'button';
+        button.dataset.queueId = String(item.id); button.dataset.queueAction = action;
+        button.disabled = (action === 'up' || action === 'front') && index === 0 || action === 'down' && index === snapshot.pending.length - 1;
         button.setAttribute('aria-label', `${label}: ${item.text}`);
         button.onclick = () => {
           const done = window.Studio.editQueue(item.id, action);
-          notify(done ? action === 'remove' ? 'Comentario retirado de la cola.' : 'Comentario colocado como siguiente.' : 'Ese comentario ya no está pendiente.');
+          notify(done ? action === 'remove' ? 'Comentario retirado de la cola.' : 'Orden de lectura actualizado.' : 'El comentario ya no está pendiente o no puede moverse en esa dirección.');
           refreshQueue();
         };
-        row.append(button);
+        queueControls.push({node:button, id:item.id, action, index});
+        actions.append(button);
       }
+      row.append(actions);
       rows.append(row);
     }
     if (!snapshot.pending.length) rows.append(make('p', 'No hay comentarios pendientes de lectura.'));
+    if (focusedControl) {
+      const sameItem = queueControls.filter(control => control.id === focusedControl.id);
+      const neighbor = queueControls.filter(control => control.index === Math.min(focusedControl.index, snapshot.pending.length - 1));
+      const candidates = sameItem.length ? sameItem : neighbor;
+      const target = candidates.find(control => control.action === focusedControl.action && !control.node.disabled)
+        || candidates.find(control => !control.node.disabled);
+      if (target) target.node.focus(); else focusQueueSummary();
+    } else if (clearHadFocus && clearPending.disabled) focusQueueSummary();
   }
   new MutationObserver(refreshQueue).observe($('tts-state'), {childList:true,characterData:true,subtree:true});
   refreshQueue();

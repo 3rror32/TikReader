@@ -332,11 +332,19 @@ window.Studio = (() => {
   updateLocalAlert();voices();window.speechSynthesis?.addEventListener('voiceschanged',voices);setTimeout(refreshStudio,500);
   return {ingest,decorate,moderate,beginSession:ensure,isDeleted:data=>data.session!==session||removed(originOf(data)),gifts:giftUpdate,clearVoice:clearPreviousVoice,
     voiceSnapshot,
+    clearPendingVoice(){const count=queue.length;queue=[];updateVoice();return count;},
     audioDiagnostics:()=>({paused,muted:productionMuted,holds:[...holds],enabled:$('tts-enabled').checked||$('tts-gifts-enabled').checked||$('tts-greetings-enabled').checked,volume:Number($('tts-volume').value),voices:window.speechSynthesis?.getVoices().length||0,status:window.I18n?.sourceText($('tts-state')) ?? $('tts-state').textContent}),
     editQueue(id,action){
       if(action==='restore'){const i=deferred.findIndex(x=>x.id===id);if(i<0||queue.length>=30)return false;const item=deferred.splice(i,1)[0];item.at=Date.now();item.test=true;item.priority=100;queue.unshift(item);drain();updateVoice();return true;}
       const index=queue.findIndex(x=>x.id===id);if(index<0)return false;const item=queue[index];
       if(action==='front'){queue.splice(index,1);item.priority=100;item.at=Date.now();queue.unshift(item);}
+      else if(action==='up'||action==='down'){
+        const adjacent=index+(action==='up'?-1:1);if(adjacent<0||adjacent>=queue.length)return false;
+        const other=queue[adjacent];
+        // Keep positional priority slots sorted so future arrivals preserve manual order.
+        [item.priority,other.priority]=[other.priority,item.priority];
+        [queue[index],queue[adjacent]]=[other,item];
+      }
       else if(action==='remove'){queue.splice(index,1);voiceNote('Retirado manualmente de la cola',item.text);}
       else if(action==='later'){queue.splice(index,1);deferred.push(item);if(deferred.length>30)deferred.shift();}
       else return false;

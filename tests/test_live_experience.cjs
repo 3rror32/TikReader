@@ -7,11 +7,11 @@ function setup(saved = 'false') {
   const nodes = [], storage = new Map([['tikreader.concentration', saved]]);
   const element = tag => {
     const classes = new Set();
-    const node = {tag, children: [], attributes: {}, hidden: false, textContent: '',
+    const node = {tag, children: [], attributes: {}, dataset: {}, hidden: false, textContent: '',
       classList: {toggle(name, on) { on ? classes.add(name) : classes.delete(name); }, contains: name => classes.has(name)},
       append(...items) { this.children.push(...items); }, after(item) { nodes.push(item); },
       setAttribute(name, value) { this.attributes[name] = value; },
-      replaceChildren(...items) { this.children = items; }, click() { this.onclick?.(); }};
+      replaceChildren(...items) { this.children = items; }, click() { this.onclick?.(); }, focus() { document.activeElement = this; }};
     nodes.push(node); return node;
   };
   const roots = new Map(), body = element('body');

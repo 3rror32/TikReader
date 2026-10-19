@@ -93,6 +93,11 @@ body[data-live-state=live] #btn-stop{padding:8px 12px;font-size:12px}
 .live-voice-queue p{margin:9px 0;color:#bfd0de;overflow-wrap:anywhere}
 .live-queue-row{display:flex;align-items:center;gap:7px;padding:8px 0;border-top:1px solid #293b4c}
 .live-queue-row span{flex:1;min-width:0;overflow-wrap:anywhere}
+.live-queue-row { flex-wrap: wrap; }
+.live-queue-text { flex-basis: 100%; }
+.live-queue-actions,.live-queue-tools { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.live-voice-queue button:disabled { opacity: .45; cursor: default; }
+.live-voice-queue button:focus-visible { outline: 2px solid var(--skin-accent, #86dfbe); outline-offset: 2px; }
 .live-voice-queue button,.live-session-summary button{background:#233b42;border:1px solid #497367;color:#d0f3e2;border-radius:7px;padding:7px 10px;cursor:pointer}
 body.concentration:not(.config-view) .app>.session-panel,body.concentration:not(.config-view):not(.focus-show-gifts) .gifts-column,body.concentration:not(.config-view) .app-sidebar{display:none!important}
 body.concentration:not(.config-view) .app{margin-left:0;width:100%;grid-template-rows:auto minmax(0,1fr)}
