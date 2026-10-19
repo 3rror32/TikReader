@@ -9,6 +9,70 @@ const themes = ['original', 'broadcast-console', 'creator-pop', 'studio-rundown'
 const representative = ['original', 'light', 'dark', 'broadcast-console',
   'creator-pop', 'swiss-brutalist', 'tactile-scrapbook'];
 
+test('focus mode keeps voice queue visible and restores gifts and layout at every width', async ({ operator }) => {
+  const { page } = operator;
+  for (const width of [390, 900, 1440]) {
+    await page.setViewportSize({width, height: 1000});
+    const focus = page.locator('#concentration-toggle');
+    await focus.focus();
+    await page.keyboard.press('Enter');
+    await expect(focus).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.session-panel')).toBeHidden();
+    await expect(page.locator('.gifts-column')).toBeHidden();
+    const gifts = page.locator('#focus-gifts-toggle');
+    await expect(gifts).toHaveText('Mostrar regalos');
+    await gifts.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.gifts-column')).toBeVisible();
+    await expect(gifts).toHaveAttribute('aria-expanded', 'true');
+    await gifts.click();
+    await expect(page.locator('.gifts-column')).toBeHidden();
+    await expect(page.locator('.live-voice-overview')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.reload();
+    await operator.signalBackendReady();
+    await expect(page.locator('#concentration-toggle')).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('#concentration-toggle').click();
+    await expect(page.locator('.session-panel')).toBeVisible();
+    await expect(gifts).toBeHidden();
+  }
+  await page.evaluate(() => {
+    window.__voiceReadings = [];
+    window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+    speechSynthesis.getVoices = () => [{voiceURI:'fixture-local', name:'Fixture', lang:'es-MX', localService:true}];
+    speechSynthesis.speak = utterance => window.__voiceReadings.push(utterance);
+    speechSynthesis.pause = () => {};
+    speechSynthesis.resume = () => {};
+    speechSynthesis.cancel = () => {};
+    document.querySelector('#tts-voice').append(new Option('Fixture', 'fixture-local'));
+    document.querySelector('#tts-voice').value = 'fixture-local';
+    for (const reason of Studio.audioDiagnostics().holds) Studio.hold(reason, false);
+    // This isolated fixture has no backend audio-owner heartbeat.
+    const releaseHold = Studio.hold.bind(Studio);
+    Studio.hold = reason => releaseHold(reason, false);
+    document.querySelector('#tts-volume').value = '0.7';
+    Studio.speakManual('Mensaje actual');
+    Studio.speakManual('<img src=x onerror=alert(1)>');
+  });
+  await expect(page.locator('#live-voice-current')).toHaveText('Mensaje actual');
+  await expect(page.locator('#live-voice-next')).toHaveText('<img src=x onerror=alert(1)>');
+  await expect(page.locator('#live-voice-next img')).toHaveCount(0);
+  await expect(page.locator('#live-voice-count')).toHaveText('1 pendiente');
+  await expect(page.locator('.live-voice-queue')).not.toHaveAttribute('open');
+  await expect(page.locator('.live-voice-overview')).toBeVisible();
+  await page.locator('#voice-pause').click();
+  await expect(page.locator('#live-voice-status')).toContainText('Voz pausada');
+  await page.locator('#voice-pause').click();
+  await page.locator('#voice-next').click();
+  await expect(page.locator('#live-voice-current')).toHaveText('<img src=x onerror=alert(1)>');
+  await expect(page.locator('#live-voice-count')).toHaveText('0 pendientes');
+  await page.evaluate(() => window.__voiceReadings.at(-1).onerror({error:'fixture-error'}));
+  await expect(page.locator('#live-voice-status')).toContainText('fixture-error');
+  await expect(page.locator('#live-voice-current')).toHaveText('Sin lectura en curso');
+  await page.evaluate(() => Studio.clearVoice());
+  await expect(page.locator('#live-voice-next')).toHaveText('Sin comentarios pendientes');
+});
+
 test('About identifies source development without inventing a packaged build', async ({ operator }) => {
   const { page } = operator;
   await page.evaluate(() => window.Shell.show('about'));

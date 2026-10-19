@@ -94,7 +94,7 @@ body[data-live-state=live] #btn-stop{padding:8px 12px;font-size:12px}
 .live-queue-row{display:flex;align-items:center;gap:7px;padding:8px 0;border-top:1px solid #293b4c}
 .live-queue-row span{flex:1;min-width:0;overflow-wrap:anywhere}
 .live-voice-queue button,.live-session-summary button{background:#233b42;border:1px solid #497367;color:#d0f3e2;border-radius:7px;padding:7px 10px;cursor:pointer}
-body.concentration:not(.config-view) .app>.session-panel,body.concentration:not(.config-view) .gifts-column,body.concentration:not(.config-view) .app-sidebar{display:none!important}
+body.concentration:not(.config-view) .app>.session-panel,body.concentration:not(.config-view):not(.focus-show-gifts) .gifts-column,body.concentration:not(.config-view) .app-sidebar{display:none!important}
 body.concentration:not(.config-view) .app{margin-left:0;width:100%;grid-template-rows:auto minmax(0,1fr)}
 body.concentration:not(.config-view) .live-columns{grid-template-columns:minmax(0,1fr)}
 .live-notifications{position:fixed;right:18px;bottom:18px;z-index:150;display:grid;gap:8px;max-width:min(430px,calc(100vw - 36px));pointer-events:none}

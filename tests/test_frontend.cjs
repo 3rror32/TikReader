@@ -218,6 +218,29 @@ function setupStudio(savedPreferences = {}, productionUI = null, rendering = {})
   return {studio:window.Studio,element,spoken,speechSynthesis,storage,event:name=>listeners[name]?.()};
 }
 
+test('synchronous voice startup errors immediately refresh the visible snapshot', () => {
+  const {studio,speechSynthesis}=setupStudio();
+  speechSynthesis.speak=()=>{throw Error('device unavailable');};
+  studio.speakManual('Prueba');
+  assert.equal(studio.voiceSnapshot().current,null);
+  assert.match(studio.voiceSnapshot().status,/No se pudo iniciar la voz/);
+});
+
+test('the final expired queued message clears the snapshot after a voice hold', () => {
+  let now = 1000;
+  class Clock extends Date { static now() { return now; } }
+  const {studio,element}=setupStudio({},null,{Date:Clock});
+  element('tts-enabled').checked=true;
+  studio.hold('test',true);
+  studio.ingest(comment(1),true);
+  assert.equal(studio.voiceSnapshot().pending.length,1);
+  now += 60000;
+  studio.hold('test',false);
+  assert.equal(studio.voiceSnapshot().pending.length,0);
+  assert.equal(studio.voiceSnapshot().current,null);
+  assert.match(studio.voiceSnapshot().status,/cola: 0/);
+});
+
 for (const kind of ['follow', 'share', 'subscribe', 'super_fan', 'super_fan_join']) {
 test(`${kind} activity survives filter rerenders without speech`, () => {
   const rendered=[];

@@ -18,24 +18,48 @@ window.LiveExperience = (() => {
   const focus = make('button', 'Concentración', 'feed-btn');
   focus.type = 'button'; focus.id = 'concentration-toggle';
   document.querySelector('.feed-actions').append(focus);
+  const giftsToggle = make('button', 'Mostrar regalos', 'feed-btn');
+  giftsToggle.type = 'button'; giftsToggle.id = 'focus-gifts-toggle';
+  const giftsColumn = document.querySelector('.gifts-column');
+  giftsColumn.id ||= 'live-focus-gifts';
+  giftsToggle.setAttribute('aria-controls', giftsColumn.id);
+  document.querySelector('.feed-actions').append(giftsToggle);
+  let showGifts = false;
   let focused = false;
   try { focused = localStorage.getItem('tikreader.concentration') === 'true'; } catch (_) {}
   function focusMode() {
     document.body.classList.toggle('concentration', focused);
     focus.textContent = focused ? 'Salir de concentración' : 'Concentración';
     focus.setAttribute('aria-pressed', String(focused));
+    if (!focused) showGifts = false;
+    document.body.classList.toggle('focus-show-gifts', focused && showGifts);
+    giftsToggle.hidden = !focused;
+    giftsToggle.textContent = showGifts ? 'Ocultar regalos' : 'Mostrar regalos';
+    giftsToggle.setAttribute('aria-expanded', String(focused && showGifts));
   }
+  giftsToggle.onclick = () => { showGifts = !showGifts; focusMode(); };
   focus.onclick = () => { focused = !focused; focusMode(); try { localStorage.setItem('tikreader.concentration', String(focused)); } catch (_) {} };
   focusMode();
 
+  const overview = make('section', '', 'live-voice-overview');
+  overview.setAttribute('aria-label', 'Lectura por voz');
+  const status = make('p', '', 'live-voice-status'); status.id = 'live-voice-status';
+  status.setAttribute('role', 'status');
+  const count = make('span', '', 'live-voice-count'); count.id = 'live-voice-count';
+  const top = make('div', '', 'live-voice-overview-head'); top.append(status, count);
+  const current = make('p', 'Sin lectura en curso'); current.id = 'live-voice-current';
+  const next = make('p', 'Sin comentarios pendientes'); next.id = 'live-voice-next';
+  const nowRow = make('div', '', 'live-voice-message'); nowRow.append(make('span', 'Ahora'), current);
+  const nextRow = make('div', '', 'live-voice-message'); nextRow.append(make('span', 'Después'), next);
+  overview.append(top, nowRow, nextRow);
   const queue = make('details', '', 'live-voice-queue');
   const heading = make('summary', 'Cola de lectura · 0');
-  const current = make('p', 'Sin lectura en curso');
   const skip = make('button', 'Saltar lectura actual'); skip.type = 'button';
   skip.onclick = () => { $('tts-skip').click(); notify('Lectura saltada.'); };
   const rows = make('div');
-  queue.append(heading, current, skip, rows);
+  queue.append(heading, skip, rows);
   document.querySelector('.voice-dock').after(queue);
+  document.querySelector('.voice-dock').after(overview);
   let queueSignature = '';
   function refreshQueue() {
     const snapshot = window.Studio.voiceSnapshot();
@@ -43,7 +67,10 @@ window.LiveExperience = (() => {
     if (signature === queueSignature) return;
     queueSignature = signature;
     heading.textContent = `Cola de lectura · ${snapshot.pending.length}`;
-    current.textContent = snapshot.current ? `Leyendo: ${snapshot.current}` : 'Sin lectura en curso';
+    status.textContent = snapshot.status;
+    count.textContent = `${snapshot.pending.length} ${snapshot.pending.length === 1 ? 'pendiente' : 'pendientes'}`;
+    current.textContent = snapshot.current || 'Sin lectura en curso';
+    next.textContent = snapshot.pending[0]?.text || 'Sin comentarios pendientes';
     skip.hidden = !snapshot.current;
     rows.replaceChildren();
     for (const item of snapshot.pending) {
