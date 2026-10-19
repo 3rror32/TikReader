@@ -47,3 +47,14 @@ test('independent fallback watches for a missing boot controller and gates retry
   assert.match(fallbackSource, /observer\?\.disconnect\(\)/);
   assert.match(boot, /if \(window\.__operatorBootRecoveryFailed\) return/);
 });
+
+test('optional game tools are deferred until navigation', () => {
+ const html = read('web/templates/index.html');
+ assert.doesNotMatch(html, /<script src="\/static\/(minecraft|game_hotkeys)\.js"/);
+ assert.match(html, /src="\/static\/optional_tools\.js/);
+});
+
+test('production socket consumers load after core socket initialization', () => {
+ const html = read('web/templates/index.html');
+ assert.ok(html.indexOf('src="/static/core_ui.js') < html.indexOf('src="/static/production.js'));
+});

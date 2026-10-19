@@ -284,6 +284,10 @@ window.Shell=(()=>{
  function show(key,{history:historyMode='push',focus=true}={}){
   const requested=resolveRoute(typeof key==='string'?key:'');
   const route=requested||resolveRoute('live');
+  if(window.OptionalTools?.has(route.viewKey)&&!views.has(route.viewKey)){
+   const placeholder=document.createElement('section');placeholder.className='studio-pane';placeholder.dataset.section=route.viewKey;
+   add(route.viewKey,placeholder);window.OptionalTools.load(route.viewKey,placeholder);
+  }
   const hash='#'+route.key;
   if(location.hash!==hash){
    const replace=!requested||historyMode!=='push';

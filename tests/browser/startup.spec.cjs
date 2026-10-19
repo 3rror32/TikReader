@@ -1,5 +1,34 @@
 const { test, expect } = require('./fixtures');
 
+test('optional tools load on demand, recover failure, and preserve navigation', async ({ operator }) => {
+  const { page } = operator;
+  expect(await page.locator('script[src="/static/minecraft.js"], script[src="/static/game_hotkeys.js"]').count()).toBe(0);
+  let requests = 0;
+  await page.route('**/static/minecraft.js', async route => {
+    requests += 1;
+    if (requests === 1) await route.abort();
+    else await route.fallback();
+  });
+  await page.evaluate(() => window.Shell.show('minecraft'));
+  const pane = page.locator('.config-content > [data-section="minecraft"]');
+  await expect(pane.getByRole('button', { name: 'Reintentar', exact: true })).toBeVisible();
+  await pane.getByRole('button', { name: 'Reintentar', exact: true }).click();
+  await expect(pane.getByRole('heading', { name: 'Minecraft Java por RCON' })).toBeVisible();
+  await page.evaluate(() => { window.Shell.show('game-hotkeys'); window.Shell.show('live'); });
+  await expect.poll(() => page.locator('[data-section="game-hotkeys"]').count()).toBe(1);
+  await expect(page).toHaveURL(/#live$/);
+  await expect(page.locator('.live-columns')).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/#game-hotkeys$/);
+  await expect(page.locator('.config-content > [data-section="game-hotkeys"]')).toBeVisible();
+  await page.evaluate(() => window.Shell.show('minecraft'));
+  expect(requests).toBe(2);
+  await page.reload();
+  await operator.signalBackendReady();
+  await expect(pane.getByRole('heading', { name: 'Minecraft Java por RCON' })).toBeVisible();
+  await expect(page).toHaveURL(/#minecraft$/);
+});
+
 test.describe('operator startup evidence', () => {
   test.use({ operatorStartupScenario: { deferNavigation: true, delayPath: '/static/shell.js', delayMs: 250 } });
 
