@@ -46,4 +46,4 @@ Implementation and independent verification completed. 633 authored changed line
 - No operator backups scanned/deleted, network access, installation, or baseline changes.
 
 ## Local slices and next step
-Record backend/shared safeguards/tests as T1 and control-center UI/bundle/browser coverage as T2. Feature operates on six recognized app-managed backup groups only, protects newest-per-type/all ties/recent files, and requires explicit in-app confirmation. External exported ZIPs stay outside scope. Delivery remains local; installer update, publication, PR, and merge require separate authorization.
+Recorded T1 backend/shared safeguards/tests in `0b8c135` and T2 control-center UI/bundle/browser coverage in `1d6e657`. Feature operates on six recognized app-managed backup groups only, protects newest-per-type/all ties/recent files, and requires explicit in-app confirmation. External exported ZIPs stay outside scope. Delivery remains local; installer update, publication, PR, and merge require separate authorization.
