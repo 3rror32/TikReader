@@ -9,6 +9,55 @@ const themes = ['original', 'broadcast-console', 'creator-pop', 'studio-rundown'
 const representative = ['original', 'light', 'dark', 'broadcast-console',
   'creator-pop', 'swiss-brutalist', 'tactile-scrapbook'];
 
+test('control center previews generated cleanup, confirms explicitly, and reports actual results', async ({ operator }) => {
+  const { page } = operator;
+  let scans = 0, deletes = 0, failScan = false;
+  await page.route('**/system/control-center', route => route.fulfill({ json: {
+    readiness: { ready: true, checks: [], summary: { ok: 0, warn: 0, fail: 0 } },
+    components: { components: [], free_bytes: 1024, scope: 'Synthetic inventory', busy: false },
+    operations: { production: {}, streamerbot: {}, hotkeys: {}, spotify: {}, catalog: {}, connection: { platforms: [] } },
+    backups: { enabled: true, interval_hours: 24, keep: 7, last_at: 0, last_attempt_at: 1000,
+      next_at: 2000, last_error: 'No se pudo crear el respaldo.', last_file: '' },
+    lan: { enabled: false }, update: { version: 'fixture', installed: false, rollback_backups: 0 }
+  } }));
+  await page.route('**/system/generated-cleanup', async route => {
+    if (route.request().method() === 'POST') {
+      deletes += 1;
+      expect(route.request().postDataJSON()).toEqual({ confirm: true, token: 'synthetic-preview' });
+      await route.fulfill({ json: { deleted: 1, bytes: 1024, skipped: 1,
+        failures: [{ item: 3, kind: 'audio', error: 'No se pudo eliminar; puede estar en uso.' }] } });
+      return;
+    }
+    scans += 1;
+    if (failScan) { await route.fulfill({ status: 503, json: { error: 'Análisis no disponible.' } }); return; }
+    await route.fulfill({ json: { token: 'synthetic-preview', count: deletes ? 0 : 3, bytes: deletes ? 0 : 4096,
+      limited: false, scan_failures: 0, scope: 'Synthetic files only' } });
+  });
+  await page.evaluate(() => window.Shell.show('control-center'));
+  const pane = page.locator('[data-section="control-center"]');
+  await expect(pane).toContainText('Todavía no se ha creado un respaldo correcto.');
+  await expect(pane).toContainText('Solo incluyen la base de datos');
+  await expect(pane).toContainText('Último intento:');
+  const cleanup = pane.locator('.generated-cleanup-card');
+  await cleanup.getByRole('button', { name: 'Liberar espacio', exact: true }).click();
+  await expect(cleanup.getByRole('status')).toContainText('3 archivos');
+  expect(deletes).toBe(0);
+  await cleanup.getByRole('button', { name: 'Cancelar limpieza' }).click();
+  expect(deletes).toBe(0);
+  await cleanup.getByRole('button', { name: 'Liberar espacio', exact: true }).click();
+  await cleanup.getByRole('button', { name: 'Confirmar limpieza' }).click();
+  await expect(cleanup).toContainText('Eliminados: 1 archivos · tamaño eliminado: 1 KB');
+  await expect(cleanup).toContainText('Omitidos por cambios o uso: 1. Fallos: 1.');
+  await expect(cleanup).toContainText('Archivo 3 (audio temporal)');
+  await expect(cleanup.getByRole('status')).toContainText('0 archivos');
+  expect(scans).toBe(3);
+  failScan = true;
+  await cleanup.getByRole('button', { name: 'Liberar espacio', exact: true }).click();
+  await expect(cleanup.getByRole('status')).toHaveText('Análisis no disponible.');
+  await expect(cleanup.getByRole('button', { name: 'Confirmar limpieza' })).toBeHidden();
+  expect(deletes).toBe(1);
+});
+
 async function navigate(page, key, keyboard = false) {
   if (await page.locator('.app-sidebar').evaluate(node => node.inert)) {
     const headerMenu = page.locator('#menu-toggle');

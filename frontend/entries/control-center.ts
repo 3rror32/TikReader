@@ -35,7 +35,7 @@ type Operations = {
   connection: { connected: boolean; platforms: { platform: string; state: string }[] };
 };
 type LanAccess = { enabled: boolean; token: string; port: number; scope: string; fingerprint: string; readers: { address: string; last_seen: number }[] };
-type Backups = { enabled: boolean; interval_hours: number; keep: number; last_at: number; last_file: string; last_error: string; next_at: number; starts_disabled: boolean };
+type Backups = { enabled: boolean; interval_hours: number; keep: number; last_at: number; last_file: string; last_error: string; last_attempt_at?: number; status_error?: string; scope?: string; next_at: number; starts_disabled: boolean };
 type UpdateSafety = { version: string; installed: boolean; rollback_backups: number; method: string };
 type Hotkeys = { authorized: boolean; paused: boolean };
 type ControlSnapshot = { readiness: Readiness; components: Components; backups: Backups; lan: LanAccess; operations: Operations; update: UpdateSafety };
@@ -68,6 +68,7 @@ async function request<T>(url: string, method = "GET", body?: unknown): Promise<
 }
 
 const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${Math.max(0, Math.round(bytes))} B`;
   if (bytes < 1024 ** 2) return `${Math.max(0, Math.round(bytes / 1024))} KB`;
   if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(0)} MB`;
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
@@ -225,15 +226,74 @@ function renderContinuity(backups: Backups, update: UpdateSafety): void {
   const keep = node("select") as HTMLSelectElement;
   for (const value of [3, 7, 14, 30]) { const option = node("option", `Conservar ${value}`) as HTMLOptionElement; option.value = String(value); keep.append(option); }
   keep.value = String(backups.keep);
-  const detail = backups.last_at ? `Último: ${new Date(backups.last_at * 1000).toLocaleString()}${backups.last_error ? ` · ${backups.last_error}` : ""}` : "Todavía no se ha creado un respaldo automático.";
-  backupCard.append(node("h3", "Respaldos automáticos"), node("p", "Desactivados inicialmente. Al activarlos, el primer respaldo se programa para la frecuencia elegida."), toggleLabel, frequency, keep,
+  const detail = backups.last_at ? `Último respaldo correcto: ${new Date(backups.last_at * 1000).toLocaleString()}` : "Todavía no se ha creado un respaldo correcto.";
+  const schedule = backups.enabled && backups.next_at ? `Próximo intento: ${new Date(backups.next_at * 1000).toLocaleString()}` : "Programación desactivada.";
+  backupCard.append(node("h3", "Respaldos automáticos"), node("p", "Al activarlos, el primer respaldo se programa para la frecuencia elegida."),
+    node("p", backups.scope || "Solo incluyen la base de datos del historial y sus ajustes guardados; no incluyen medios, modelos, credenciales ni archivos externos."), toggleLabel, frequency, keep,
     button("Guardar opción", async () => { await request("/history/automatic-backups", "POST", { enabled: toggle.checked, interval_hours: Number(frequency.value), keep: Number(keep.value) }); notify(toggle.checked ? "Respaldos automáticos activados." : "Respaldos automáticos desactivados."); await refresh(); }),
-    button("Crear respaldo ahora", async () => { await request("/history/automatic-backups/run", "POST", {}); notify("Respaldo manual creado."); await refresh(); }), node("small", detail));
+    button("Crear respaldo ahora", async () => { await request("/history/automatic-backups/run", "POST", {}); notify("Respaldo manual de la base de datos creado."); await refresh(); }), node("small", detail), node("p", schedule));
+  if (backups.last_attempt_at) backupCard.append(node("small", `Último intento: ${new Date(backups.last_attempt_at * 1000).toLocaleString()}`));
+  if (backups.last_error || backups.status_error) backupCard.append(node("p", [backups.last_error, backups.status_error].filter(Boolean).join(" · ")));
   const updateCard = node("article", undefined, "setting-card continuity-card");
   updateCard.append(node("h3", "Actualizaciones seguras"), node("p", `Versión ${update.version} · ${update.installed ? "usa el instalador verificado" : "acepta paquetes verificados"}.`),
     node("small", `${update.rollback_backups} respaldos de código disponibles para recuperación.`));
   continuity.replaceChildren(backupCard, updateCard);
 }
+
+type CleanupPreview = { token: string; count: number; bytes: number; limited: boolean; scan_failures: number; scope: string };
+type CleanupResult = { deleted: number; bytes: number; skipped: number; failures: { item: number; kind: string; error: string }[] };
+const cleanupCard = node("article", undefined, "setting-card generated-cleanup-card");
+const cleanupStatus = node("p", "Analiza los archivos antes de confirmar la limpieza.");
+cleanupStatus.setAttribute("role", "status");
+const cleanupResult = node("div");
+cleanupResult.setAttribute("aria-live", "polite");
+const cleanupConfirmation = node("div", undefined, "component-actions");
+cleanupConfirmation.hidden = true;
+let cleanupPreview: CleanupPreview | null = null;
+let cleanupBusy = false;
+const cleanupScan = button("Liberar espacio", async () => {
+  if (cleanupBusy) return;
+  cleanupResult.replaceChildren();
+  await scanCleanup();
+});
+const cleanupConfirm = button("Confirmar limpieza", async () => {
+  if (cleanupBusy || !cleanupPreview) return;
+  setCleanupBusy(true);
+  cleanupConfirmation.hidden = true;
+  try {
+    const result = await request<CleanupResult>("/system/generated-cleanup", "POST", { confirm: true, token: cleanupPreview.token });
+    cleanupResult.replaceChildren(node("p", `Eliminados: ${result.deleted} archivos · tamaño eliminado: ${formatBytes(result.bytes)}. Omitidos por cambios o uso: ${result.skipped}. Fallos: ${result.failures.length}.`),
+      ...result.failures.map(item => node("p", `Archivo ${item.item} (${item.kind === "audio" ? "audio temporal" : "caché"}): ${item.error}`)));
+    cleanupPreview = null;
+    await scanCleanup();
+  } catch (error) {
+    cleanupPreview = null;
+    cleanupStatus.textContent = error instanceof Error ? error.message : "No se pudo completar la limpieza.";
+  } finally { setCleanupBusy(false); }
+});
+const cleanupCancel = button("Cancelar limpieza", () => { cleanupPreview = null; cleanupConfirmation.hidden = true; cleanupStatus.textContent = "Limpieza cancelada; no se eliminó ningún archivo."; });
+function setCleanupBusy(value: boolean): void {
+  cleanupBusy = value;
+  cleanupScan.disabled = value;
+  cleanupConfirm.disabled = value;
+  cleanupCancel.disabled = value;
+  cleanupCard.setAttribute("aria-busy", String(value));
+}
+async function scanCleanup(): Promise<void> {
+  setCleanupBusy(true);
+  cleanupConfirmation.hidden = true;
+  cleanupStatus.textContent = "Analizando caché y audio temporal…";
+  try {
+    cleanupPreview = await request<CleanupPreview>("/system/generated-cleanup");
+    cleanupStatus.textContent = `${cleanupPreview.count} archivos · ${formatBytes(cleanupPreview.bytes)} recuperables.${cleanupPreview.limited ? " Análisis parcial; vuelve a analizar después para revisar más archivos." : ""}${cleanupPreview.scan_failures ? ` No se pudieron revisar ${cleanupPreview.scan_failures} ubicaciones.` : ""}`;
+    cleanupConfirmation.hidden = cleanupPreview.count === 0;
+  } catch (error) {
+    cleanupPreview = null;
+    cleanupStatus.textContent = error instanceof Error ? error.message : "No se pudieron analizar los archivos.";
+  } finally { setCleanupBusy(false); }
+}
+cleanupConfirmation.append(node("p", "¿Eliminar los archivos recuperables de este análisis? Esta acción no se puede deshacer."), cleanupConfirm, cleanupCancel);
+cleanupCard.append(node("h3", "Caché y audio temporal"), node("p", "Solo caché Python y audio generado de más de 24 horas. Se conservan archivos activos, medios, modelos, historial, ajustes, respaldos y descargas."), cleanupScan, cleanupStatus, cleanupConfirmation, cleanupResult);
 
 let refreshing = false;
 async function refresh(): Promise<void> {
@@ -273,7 +333,7 @@ controls.append(
 pane.append(heading, signal, statusText,
   sectionTitle("01 · PREPARACIÓN", "Ruta de señal", "Requisitos del servicio, almacenamiento, historial y emisión."), readinessGrid,
   sectionTitle("02 · OPERACIÓN", "Herramientas conectadas", "Accesos rápidos; abrir esta pantalla no conecta servicios."), operations, controls,
-  sectionTitle("03 · ESPACIO", "Componentes locales", "Instala solo lo que uses y recupera espacio sin tocar tu historial."), components,
+  sectionTitle("03 · ESPACIO", "Componentes locales", "Instala solo lo que uses y recupera espacio sin tocar tu historial."), components, cleanupCard,
   sectionTitle("04 · CONTINUIDAD", "Respaldos y actualizaciones", "Estas opciones permanecen bajo tu control."), continuity,
   sectionTitle("05 · ACTIVIDAD", "Notificaciones recientes", "Mensajes operativos de esta sesión del panel."),
   button("Vaciar notificaciones", () => { noticeHistory = []; notices.replaceChildren(); }), notices);
