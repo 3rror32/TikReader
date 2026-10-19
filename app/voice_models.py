@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 import re
 import subprocess
-import tempfile
 import atexit
 import queue
 import threading
@@ -14,6 +13,7 @@ from uuid import uuid4
 
 from flask import jsonify, request, send_file
 from app_paths import data_dir, voice_models_dir
+from generated_cleanup import audio_workspace
 
 
 class VoiceModels:
@@ -232,7 +232,7 @@ class VoiceModels:
         if not status['ready']:
             raise RuntimeError(status['detail'])
         model, index = self.resolve_model(model_id)
-        with tempfile.TemporaryDirectory(prefix='tikreader-voice-') as folder:
+        with audio_workspace(self.root) as folder:
             source = Path(folder) / 'source.wav'
             target = Path(folder) / 'converted.wav'
             if self.keep_warm:

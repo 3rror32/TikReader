@@ -7,7 +7,8 @@ import secrets
 from collections import deque
 from flask import jsonify, request
 from app_config import APP_VERSION
-from app_paths import data_dir, installed
+from app_paths import data_dir, installed, ROOT
+from generated_cleanup import GeneratedCleanup
 from platform_credentials import CredentialStoreError, PlatformCredentialStore
 from runtime_env import read_runtime_env, write_runtime_env
 from readiness import inspect as inspect_readiness
@@ -43,6 +44,22 @@ def diagnostic(runtime):
 
 
 def register_release_routes(app, runtime):
+    generated_cleanup = GeneratedCleanup(ROOT)
+
+    @app.route('/system/generated-cleanup', methods=['GET', 'POST'])
+    def cleanup_generated():
+        if not runtime.production.local():
+            return jsonify(error='Solo disponible desde este equipo.'), 403
+        if request.method == 'GET':
+            return jsonify(generated_cleanup.scan())
+        values = request.get_json(silent=True)
+        if not isinstance(values, dict) or set(values) != {'confirm', 'token'} or values.get('confirm') is not True or not isinstance(values.get('token'), str):
+            return jsonify(error='Analiza y confirma los archivos antes de liberar espacio.'), 400
+        try:
+            return jsonify(generated_cleanup.clean(values['token']))
+        except ValueError as exc:
+            return jsonify(error=str(exc)), 409
+
     if not getattr(runtime, 'platform_credentials', None):
         runtime.platform_credentials = PlatformCredentialStore()
 
