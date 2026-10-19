@@ -55,9 +55,11 @@ window.LiveExperience = (() => {
   const queue = make('details', '', 'live-voice-queue');
   const heading = make('summary', 'Cola de lectura · 0');
   const skip = make('button', 'Saltar lectura actual'); skip.type = 'button';
+  skip.setAttribute('data-live-label', 'true');
   skip.onclick = () => { $('tts-skip').click(); notify('Lectura saltada.'); };
   const rows = make('div');
   const clearPending = make('button', 'Vaciar pendientes'); clearPending.type = 'button';
+  clearPending.setAttribute('data-live-label', 'true');
   clearPending.id = 'live-queue-clear';
   clearPending.onclick = () => {
     const removed = window.Studio.clearPendingVoice();
@@ -98,6 +100,7 @@ window.LiveExperience = (() => {
       const actions = make('div', '', 'live-queue-actions');
       for (const [label, action] of [['Subir', 'up'], ['Bajar', 'down'], ['Siguiente', 'front'], ['Quitar', 'remove']]) {
         const button = make('button', label); button.type = 'button';
+        button.setAttribute('data-live-label', 'true');
         button.dataset.queueId = String(item.id); button.dataset.queueAction = action;
         button.disabled = (action === 'up' || action === 'front') && index === 0 || action === 'down' && index === snapshot.pending.length - 1;
         button.setAttribute('aria-label', `${label}: ${item.text}`);

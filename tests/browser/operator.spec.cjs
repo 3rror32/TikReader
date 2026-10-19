@@ -119,6 +119,18 @@ test('queue management reorders, removes and clears pending without interrupting
     await expect(action(ids[0],'up')).toBeDisabled();
     await expect(action(ids[2],'down')).toBeDisabled();
     await expect(queue.locator('img')).toHaveCount(0);
+    const labels=await queue.locator('button').evaluateAll(buttons=>buttons.map(button=>{
+      const style=getComputedStyle(button),range=document.createRange();range.selectNodeContents(button);
+      const text=range.getBoundingClientRect(),box=button.getBoundingClientRect();
+      return {label:button.textContent,fontSize:parseFloat(style.fontSize),textWidth:text.width,textHeight:text.height,
+        fits:text.left>=box.left&&text.right<=box.right&&text.top>=box.top&&text.bottom<=box.bottom};
+    }));
+    for(const label of labels){
+      expect(label.fontSize,`${label.label} font size`).toBeGreaterThanOrEqual(11);
+      expect(label.textWidth,`${label.label} rendered text`).toBeGreaterThan(0);
+      expect(label.textHeight,`${label.label} rendered height`).toBeGreaterThan(0);
+      expect(label.fits,`${label.label} label fits button`).toBe(true);
+    }
     await action(ids[0],'down').focus();await page.keyboard.press('Enter');
     await expect(action(ids[0],'down')).toBeFocused();
     await expect(page.locator('#live-voice-next')).toHaveText('<img src=x onerror=alert(1)>');

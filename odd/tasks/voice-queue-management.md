@@ -35,5 +35,7 @@ Observed RED: adjacent move returned false and clear-pending API was missing. Ob
 
 Concurrent unrelated dragon-theme changes appeared during this work, including a separate browser-test hunk. They were preserved and excluded from this feature commit; final repository cleanliness cannot be claimed. Owned work is approximately 180 authored lines plus this recovery document, below the 400-line advisory threshold. Independent verification and parent command spot check remain pending. Engram mirror remains pending.
 
+Initial implementation commit: `9db8acf` (196 additions / 8 deletions). Independent screenshot inspection found that the shared icon decorator replaced queue button labels with icons, including identical ellipses for Subir/Bajar/Vaciar pendientes. Bounded correction marks all queue buttons with the existing `data-live-label` opt-out, preserving readable text and wrapping without altering other live controls. New browser regression measures actual computed font size and text-range dimensions/bounds for every queue button at 390/900/1440. Observed RED: Saltar lectura actual had computed font size 0. Observed GREEN: all queue labels render at least 11 px and fit their buttons; both focused browser cases pass (35.5 s), all 74 Node tests pass, and diff checks pass. No new scope or engine change. Final independent visual readback remains pending; parent records correction identity after creation.
+
 ## Next step
 Independent verifier checks this candidate, then parent records commit identity and closes the observed tasks.
