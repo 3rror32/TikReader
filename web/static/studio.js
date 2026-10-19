@@ -135,7 +135,11 @@ window.Studio = (() => {
     if (!text.trim()){voiceNote('Texto vacío después de quitar emojis',text);updateVoice();return;}
     voiceError='';
     const cap=Math.max(1,Math.min(30,Number($('tts-cap')?.value)||10));
-    if (queue.length >= cap){const removed=queue.pop();voiceNote('Cola llena',removed.text);suppressed++;} queue.push({id:++voiceSerial,text:text.slice(0,400),test,priority,source,origin,at:Date.now()}); queue.sort((a,b)=>b.priority-a.priority); drain(); updateVoice();
+    queue.push({id:++voiceSerial,text:text.slice(0,400),test,priority,source,origin,at:Date.now()});
+    // Stable sorting keeps queued ties ahead of the new reading and preserves manual ordering.
+    queue.sort((a,b)=>b.priority-a.priority);
+    for(const omitted of queue.splice(cap)){voiceNote('Cola llena',omitted.text);suppressed++;}
+    drain(); updateVoice();
   }
   function drain() {
     if (active || paused || holds.size || productionMuted || !queue.length) return;

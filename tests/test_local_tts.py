@@ -4,12 +4,39 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import wave
+import queue
+from unittest.mock import Mock
 
 from flask import Flask
 from local_tts import LocalTTS, VOICES
 
 
 class LocalTTSTest(unittest.TestCase):
+    def test_worker_diagnostics_are_allowlisted_and_never_log_payloads(self):
+        for code, expected in [('SYNTHESIS_FAILED', 'SYNTHESIS_FAILED'),
+                               ('private-user-path-secret', 'WORKER_PROTOCOL')]:
+            with self.subTest(code=code):
+                self.tts.process = Mock()
+                self.tts.replies = queue.Queue()
+                self.tts.replies.put({'error': 'private-chat-secret', 'diagnostic': {'code': code, 'phase': 'secret'}})
+                with patch.object(self.tts, 'ready', return_value=True), patch.object(self.tts, 'start'), \
+                        patch.object(self.tts, 'close'), self.assertLogs('tikreader', level='WARNING') as logs:
+                    result = self.client.post('/local-tts/render', json={'voice': 'ef_dora', 'text': 'private-chat-secret'})
+                self.assertEqual(result.json['code'], expected)
+                self.assertEqual(result.json['phase'], 'synthesis')
+                self.assertNotIn('private-', str(result.json) + str(logs.output))
+                self.tts.process = None
+
+    def test_missing_runtime_returns_safe_actionable_diagnostic(self):
+        with patch.object(self.tts, 'ready', return_value=False):
+            with self.assertLogs('tikreader', level='WARNING') as logs:
+                result = self.client.post('/local-tts/render', json={'voice': 'ef_dora', 'text': 'private-chat-secret'})
+        self.assertEqual(result.status_code, 503)
+        self.assertEqual(result.json['code'], 'RUNTIME_MISSING')
+        self.assertEqual(result.json['phase'], 'startup')
+        self.assertIn('Instala', result.json['error'])
+        self.assertNotIn('private-chat-secret', str(logs.output) + str(result.json))
+
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)

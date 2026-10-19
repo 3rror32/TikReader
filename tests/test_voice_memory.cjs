@@ -68,3 +68,15 @@ test('quick Homero selector activates the bundled RVC voice and informed GPU con
  assert.deepEqual({...selected},{id:'rvc-homero_simpson_la',name:'Homero · lectura por IA',engine:'rvc',model:'homero_simpson_la',pitch:0,rate:1});
  assert.equal(shown,1);assert.equal(updated,1);assert.match(context.status.textContent,/Homero/);
 });
+
+test('full voice queue compares incoming priority and keeps older equal-priority items',()=>{
+ const source=fs.readFileSync(path.join(root,'web/static/studio.js'),'utf8');
+ const elements={'tts-cap':{value:'2'},'no-emoji':{checked:false}};
+ const context=vm.createContext({queue:[{id:1,text:'first',priority:2},{id:2,text:'second',priority:2}],voiceSerial:2,
+ suppressed:0,productionMuted:false,voiceError:'',removed:()=>false,window:{},$:id=>elements[id],voiceNote(){},drain(){},updateVoice(){}});
+ vm.runInContext(source.slice(source.indexOf('  function speak('),source.indexOf('  function drain()')),context);
+ context.speak('low',false,0);assert.deepEqual(Array.from(context.queue,x=>x.text),['first','second']);
+ context.speak('equal',false,2);assert.deepEqual(Array.from(context.queue,x=>x.text),['first','second']);
+ context.speak('higher',false,3);assert.deepEqual(Array.from(context.queue,x=>x.text),['higher','first']);
+ assert.equal(context.suppressed,3);
+});

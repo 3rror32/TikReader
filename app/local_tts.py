@@ -4,6 +4,8 @@ import base64
 import io
 import json
 import math
+import logging
+from time import monotonic
 import os
 from pathlib import Path
 import queue
@@ -26,6 +28,37 @@ GROUPS = [
 VOICES = {key: {'id': key, 'name': key.split('_', 1)[1].title(), 'language': label,
                 'lang': lang, 'gender': 'Femenina' if key[1] == 'f' else 'Masculina'}
           for label, lang, keys in GROUPS for key in keys.split()}
+
+
+VOICE_ERRORS = {
+    'RUNTIME_MISSING': 'Instala el motor Kokoro desde Voz y vuelve a probar.',
+    'ENGINE_LOAD': 'Kokoro no pudo cargar sus modelos. Revisa la instalación del motor local.',
+    'WORKER_START': 'No se pudo iniciar Kokoro. Reinicia TikReader y revisa la instalación local.',
+    'WORKER_EXITED': 'El motor local se cerró. Vuelve a probar la voz.',
+    'VOICE_TIMEOUT': 'La voz local agotó la espera. Reduce el texto o reinicia el motor.',
+    'INVALID_JOB': 'El motor rechazó la solicitud. Vuelve a seleccionar la voz.',
+    'SYNTHESIS_FAILED': 'Kokoro no pudo generar audio. Vuelve a seleccionar la voz y pulsa Probar.',
+    'INVALID_AUDIO': 'El motor devolvió audio inválido. Reinicia la voz local y vuelve a probar.',
+    'WORKER_PROTOCOL': 'El motor local no respondió correctamente. Reinicia TikReader.',
+}
+
+
+class LocalVoiceError(RuntimeError):
+    def __init__(self, code, phase, elapsed_ms):
+        self.code = code if isinstance(code, str) and code in VOICE_ERRORS else 'WORKER_PROTOCOL'
+        self.phase = phase if phase in {'startup', 'synthesis', 'protocol'} else 'protocol'
+        self.elapsed_ms = max(0, min(600000, int(elapsed_ms)))
+        super().__init__(VOICE_ERRORS[self.code])
+
+    def payload(self):
+        return {'error': str(self), 'code': self.code, 'phase': self.phase, 'elapsed_ms': self.elapsed_ms}
+
+
+def worker_error(reply, phase, started):
+    diagnostic = reply.get('diagnostic', {}) if isinstance(reply, dict) else {}
+    if not isinstance(diagnostic, dict):
+        diagnostic = {}
+    return LocalVoiceError(diagnostic.get('code'), phase, (monotonic() - started) * 1000)
 
 
 class LocalTTS:
@@ -77,11 +110,13 @@ class LocalTTS:
                     except ValueError:
                         continue
             finally:
-                replies.put({'error': 'El motor local se cerró.'})
+                replies.put({'diagnostic': {'code': 'WORKER_EXITED'}})
 
         threading.Thread(target=read, daemon=True).start()
-        if not replies.get(timeout=60).get('ready'):
-            raise RuntimeError('No se pudo cargar Kokoro.')
+        started = monotonic()
+        reply = replies.get(timeout=60)
+        if not isinstance(reply, dict) or not reply.get('ready'):
+            raise worker_error(reply, 'startup', started)
 
     def render(self, text, voice, speed):
         if not isinstance(text, str) or not 1 <= len(text.strip()) <= 400:
@@ -90,24 +125,43 @@ class LocalTTS:
             raise ValueError('Voz local desconocida.')
         if isinstance(speed, bool) or not isinstance(speed, (int, float)) or not math.isfinite(speed) or not .6 <= speed <= 1.6:
             raise ValueError('La velocidad debe estar entre 0.6 y 1.6.')
+        started = monotonic()
         if not self.ready():
-            raise RuntimeError('Falta instalar el motor local Kokoro.')
+            error = LocalVoiceError('RUNTIME_MISSING', 'startup', 0)
+            self._diagnostic(error)
+            raise error
         with self.lock:
+            phase = "startup"
             try:
                 self.start()
+                phase = "synthesis"
                 self.process.stdin.write(json.dumps({'text': text.strip(), 'voice': voice,
                                                     'speed': speed, 'lang': VOICES[voice]['lang']}) + '\n')
                 self.process.stdin.flush()
                 reply = self.replies.get(timeout=90)
-                if 'audio' not in reply:
-                    raise RuntimeError('Falló la síntesis local.')
-                audio = base64.b64decode(reply['audio'], validate=True)
+                if not isinstance(reply, dict) or 'audio' not in reply:
+                    raise worker_error(reply, phase, started)
+                try:
+                    audio = base64.b64decode(reply['audio'], validate=True)
+                except (ValueError, TypeError):
+                    raise LocalVoiceError('INVALID_AUDIO', 'protocol', (monotonic() - started) * 1000)
                 if len(audio) < 44 or audio[:4] != b'RIFF':
-                    raise RuntimeError('Audio local inválido.')
+                    raise LocalVoiceError('INVALID_AUDIO', 'protocol', (monotonic() - started) * 1000)
                 return audio
-            except Exception:
+            except Exception as exc:
+                if isinstance(exc, LocalVoiceError):
+                    error = exc
+                else:
+                    code = 'VOICE_TIMEOUT' if isinstance(exc, queue.Empty) else 'WORKER_START' if phase == 'startup' else 'SYNTHESIS_FAILED'
+                    error = LocalVoiceError(code, phase, (monotonic() - started) * 1000)
+                self._diagnostic(error)
                 self.close()
-                raise
+                raise error from None
+
+    @staticmethod
+    def _diagnostic(error):
+        logging.getLogger('tikreader').warning('local_voice_failure code=%s phase=%s elapsed_ms=%d',
+                                              error.code, error.phase, error.elapsed_ms)
 
     def register(self, app):
         @app.get('/local-tts/credits')
@@ -127,6 +181,8 @@ class LocalTTS:
                 return jsonify(error='Solicitud inválida.'), 400
             try:
                 audio = self.render(data.get('text'), data.get('voice'), data.get('speed', 1))
+            except LocalVoiceError as exc:
+                return jsonify(exc.payload()), 503
             except ValueError as exc:
                 return jsonify(error=str(exc)), 400
             except (RuntimeError, OSError, subprocess.SubprocessError, queue.Empty):
