@@ -56,3 +56,26 @@ The current interface exposes a large pending control beside a separate disconne
 ## Progress and next step
 
 TCB-1 is implemented; the status-refresh correction is green in the focused browser regression. TCB-2 remains partial until the seven out-of-scope visual baselines are reconciled. RDD could not be assessed because the `gentle-ai` executable is unavailable in this environment.
+
+## TCB-3 — Restore single-control pending cancellation
+
+- [x] Restore one visible button with distinct unplugged/plugged shapes; the same pending button cancels once.
+- Route: delegated direct; multi-file behavior, icon markup, and regression checks.
+- Forecast: about 150 additional authored changed lines, below the 400-line delivery forecast.
+- Preserve TCB-2 partial baseline evidence and unrelated dirty changes.
+- Checks: deterministic connection and accessibility checks plus focused Playwright connection/cancel regressions.
+- Engram mirror remains pending because memory tools are unavailable.
+- Commit pending parent isolation review; native assessment unavailable because gentle-ai is absent.
+
+- Outcome: main control uses `Conectar`, `Cancelar conexión`, `Desconectar`, and `Desconectando…`; pending cancellation remains busy and keyboard actionable. Removed the CSS rule exposing a second pending-cancel control. The compatibility stop node remains hidden and outside the tab order, preserving computed display state for integrations.
+- RED: `node tests/test_connection_button_states.cjs` observed 2/4 failures before implementation: pending main activation did not cancel, and distinct icon groups were absent.
+- GREEN: `node tests/test_connection_button_states.cjs` passed 4/4; `node tests/test_theme_accessibility.cjs` passed 10/10.
+- Browser verification: `npm run test:operator -- tests/browser/operator.spec.cjs --grep 'pending connection|one connection control|connection intent'` passed 3/3 after final normalization, covering forced colors, reduced motion, keyboard cancellation/focus, distinct visible plug shapes, exact-once stop, and delayed status/connected events after cancellation.
+- Structural check: `git diff --check` passed. Existing TCB-2 seven visual baseline failures remain pending; no baselines updated or unrelated tests rerun.
+- Environment: the system Python alias was unavailable; the attempted edit made no source changes, and editing continued with available Node runtime.
+- Next step: parent independent verification and isolation review; commit remains pending and Engram mirror unavailable.
+
+- Independent verification: separate verifier observed connection unit 4/4, accessibility 10/10, and focused browser 3/3 passes; parent spot check observed connection unit 4/4.
+- Local compatibility adjustment: the pre-existing appended Dragon contrast test now targets the visible `#btn-connect` instead of hidden `#btn-stop`; its entire appended test remains outside this connection work-unit commit.
+- Additional command: `npm run test:operator -- tests/browser/operator.spec.cjs --grep 'dragon keeps text readable across live and settings surfaces at desktop and mobile widths'` failed 1/1 on `#app-sidebar [data-section-nav].active` text contrast (1.086 versus minimum 4.5), after the connection contrast checks passed. This unrelated theme failure remains pending.
+- Delivery fallback: work-unit-commits skill was unavailable; ordinary Git selective staging isolates this task from pre-existing theme edits. Native review remains unavailable; no approval is asserted.

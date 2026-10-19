@@ -200,25 +200,22 @@ function setConnectionState(state) {
   const button = document.getElementById('btn-connect');
   const transitioning = state === 'connecting' || state === 'disconnecting';
   const simulated = document.body.classList.contains('simulation-active');
-  const labels = {disconnected: 'Conectar', connecting: 'Conectando…', connected: 'Desconectar', disconnecting: 'Desconectando…'};
+  const labels = {disconnected: 'Conectar', connecting: 'Cancelar conexión', connected: 'Desconectar', disconnecting: 'Desconectando…'};
   button.dataset.connectionState = state;
   button.dataset.connected = String(state === 'connected');
   button.classList.toggle('is-connecting', state === 'connecting');
   button.classList.toggle('is-disconnecting', state === 'disconnecting');
   button.setAttribute('aria-busy', String(transitioning));
-  button.setAttribute('aria-disabled', String(transitioning || simulated));
+  button.setAttribute('aria-disabled', String(state === 'disconnecting' || simulated));
   button.querySelector('.connect-button__label').textContent = labels[state];
   button.querySelector('.connect-button__icon').dataset.state = state;
   button.disabled = simulated;
   document.getElementById('btn-stop').style.display = state === 'disconnected' ? 'none' : 'inline-flex';
   const cancel = document.getElementById('btn-stop');
-  const pending = state === 'connecting';
-  const restoreFocus = !pending && document.activeElement === cancel;
-  cancel.dataset.pendingCancel = String(pending);
-  cancel.setAttribute('aria-hidden', String(!pending));
-  cancel.tabIndex = pending ? 0 : -1;
-  cancel.disabled = !pending;
-  cancel.textContent = 'Cancelar conexión';
+  const restoreFocus = document.activeElement === cancel;
+  cancel.setAttribute('aria-hidden', 'true');
+  cancel.tabIndex = -1;
+  cancel.disabled = true;
   if (restoreFocus) button.focus();
 }
 
@@ -336,8 +333,9 @@ function escapeHtml(s) {
 function startLive() {
   const button = document.getElementById('btn-connect');
   const state = button.dataset.connectionState || 'disconnected';
-  if (state === 'connected') { stopLive(); return; }
-  if (state !== 'disconnected' || button.disabled || document.body.classList.contains('simulation-active')) return;
+  if (button.disabled || document.body.classList.contains('simulation-active')) return;
+  if (state === 'connected' || state === 'connecting') { stopLive(); return; }
+  if (state !== 'disconnected') return;
   if (!socket.connected) { setStatus('Sin conexión con el servidor.', 'err'); return; }
   hideError();
   const u = document.getElementById('username-input').value.trim().replace(/^@/, '');

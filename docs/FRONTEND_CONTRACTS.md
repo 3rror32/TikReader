@@ -94,8 +94,11 @@ only after computed-style and browser parity evidence identifies it as redundant
 matching declarations in different state or theme contexts alone are not proof.
 
 Connection intent and confirmed TikTok connection are separate. Pending attempts
-offer a keyboard-accessible cancel action that sends the existing `stop_live`
-request once. Timed activity text reports observed events without announcing
+offer cancellation through the same keyboard-accessible connection button,
+which sends the existing `stop_live` request once. The compatibility stop node
+remains hidden and outside the tab order. Distinct separated and joined plug
+shapes identify disconnected and connected states without relying on color.
+Timed activity text reports observed events without announcing
 each elapsed second or interpreting silence as disconnection. Diagnostic copy
 uses only the allowlisted `/diagnostics/export` response; clipboard failures offer
 the existing download and never expose exception text or raw logs.

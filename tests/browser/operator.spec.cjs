@@ -708,7 +708,9 @@ test('pending connection can be cancelled once with the keyboard', async ({ oper
   await page.locator('#username-input').fill('fixture_operator');
   await page.locator('#btn-connect').click();
   await page.evaluate(() => window.__operatorSocket.receive('connecting', {username:'fixture_operator'}));
-  const cancel = page.getByRole('button', {name:'Cancelar conexión', exact:true});
+  const cancel = page.locator('#btn-connect');
+  await expect(cancel).toHaveAccessibleName('Cancelar conexión');
+  await expect(page.locator('#btn-stop')).toBeHidden();
   await expect(cancel).toBeVisible();
   await cancel.focus();
   await expect(cancel).toBeFocused();
@@ -735,17 +737,17 @@ test('one connection control handles disconnected, connecting, connected and dis
   await expect(control).toHaveAccessibleName('Conectar');
   await expect(control).toHaveAttribute('aria-busy', 'false');
   await expect(control).toHaveAttribute('data-connection-state', 'disconnected');
+  await expect(control.locator('.connect-button__unplugged')).toBeVisible();
+  await expect(control.locator('.connect-button__plugged')).toBeHidden();
   await expect(page.locator('#btn-stop')).toBeHidden();
   await control.focus();
   await control.click();
   await expect(control).toBeFocused();
-  await expect(control).toHaveAccessibleName('Conectando…');
+  await expect(control).toHaveAccessibleName('Cancelar conexión');
   await expect(control).toHaveAttribute('aria-busy', 'true');
-  await expect(control).toHaveAttribute('aria-disabled', 'true');
+  await expect(control).toHaveAttribute('aria-disabled', 'false');
   await expect(control).toHaveAttribute('data-connection-state', 'connecting');
-  await expect(page.locator('#btn-stop')).toBeVisible();
-  await expect(page.locator('#btn-stop')).toHaveAccessibleName('Cancelar conexión');
-  await control.evaluate(node => node.click());
+  await expect(page.locator('#btn-stop')).toBeHidden();
   expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'start_live').length)).toBe(1);
 
   await page.evaluate(() => window.__operatorSocket.receive('connected', { username: 'fixture_operator' }));
@@ -753,6 +755,8 @@ test('one connection control handles disconnected, connecting, connected and dis
   await expect(control).toBeEnabled();
   await expect(control).toHaveAttribute('aria-busy', 'false');
   await expect(control).toHaveAttribute('data-connection-state', 'connected');
+  await expect(control.locator('.connect-button__unplugged')).toBeHidden();
+  await expect(control.locator('.connect-button__plugged')).toBeVisible();
   await expect(page.locator('#btn-stop')).toBeHidden();
   await control.click();
   await expect(control).toHaveAccessibleName('Desconectando…');
@@ -783,7 +787,7 @@ test('connection intent, unknown viewers, confirmed zero and single classified a
   await expect(page.locator('body')).toHaveAttribute('data-live-state', 'idle');
   await page.evaluate(() => window.__operatorSocket.receive('connecting', { username: 'fixture_operator' }));
   await expect(page.locator('body')).toHaveAttribute('data-live-state', 'connecting');
-  await expect(page.locator('#btn-connect')).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('#btn-connect')).toHaveAttribute('aria-disabled', 'false');
   expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'start_live')))
     .toEqual([{ event: 'start_live', payload: { username: 'fixture_operator' } }]);
   await page.evaluate(() => window.__operatorSocket.receive('connected', { username: 'fixture_operator' }));
