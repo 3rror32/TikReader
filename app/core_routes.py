@@ -70,6 +70,9 @@ def register_core_routes(app, runtime, root: Path):
     def stop_live():
         if not runtime.production.local():
             return jsonify(error="Solo disponible desde este equipo"), 403
+        manager = getattr(runtime, "platform_manager", None)
+        if manager:
+            manager.stop_all()
         stopped = runtime.stop_live_connection()
         if stopped:
             runtime.state.update(connected=False, connecting=False)

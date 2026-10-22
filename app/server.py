@@ -833,6 +833,8 @@ def handle_external_support(platform, data):
                   "identity": f"{platform}:{str(data.get('user_id') or username).casefold()[:160]}"}
         state["gift_count"] += 1
         gift_history[key] = record
+        while len(gift_history) > 100:
+            gift_history.popitem(last=False)
         gift_revision += 1
         if archive:
             archive.save(feed_session, "gift", record)
