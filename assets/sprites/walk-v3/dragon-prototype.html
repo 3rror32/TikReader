@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Fire dragon walking prototype</title>
+<style>body{margin:20px;background:#14212b;color:#ecf3f6;font:16px system-ui}canvas{display:block;max-width:100%;height:auto;image-rendering:pixelated}p{color:#abc0cb}a{color:#9ad9ff}</style>
+<h1>Fire dragon: four independent legs</h1>
+<p>Slow and normal walking in both directions. Distance controls the pose. Reload to replay. This prototype changes only fantasia-0.</p>
+<canvas id="playback" width="1280" height="600"></canvas>
+<p>Hind chains: hip → stifle → hock → paw. Fore chains: shoulder → elbow → wrist → paw. The original wing, tail, head and body remain coherent.</p>
+<script>
+const canvas=document.querySelector('canvas'),ctx=canvas.getContext('2d'),image=new Image();
+const panels=[{speed:4,dir:1},{speed:4,dir:-1},{speed:18,dir:1},{speed:18,dir:-1}];
+let metadata,tracks,start,ready=false,paused=false;
+Promise.all([fetch('manifest.json').then(r=>r.json()),fetch('joint-tracks.json').then(r=>r.json())]).then(([m,t])=>{
+ metadata=m['fantasia-0'];tracks=t['fantasia-0'];image.onload=()=>{ready=true;requestAnimationFrame(tick)};image.src='fantasia-0.png?v=dragon-prototype-1';
+});
+function drawSprite(context,frame,x,y,direction){
+ context.save();context.translate(x+(direction<0?256:0),y);context.scale(direction*2,2);context.imageSmoothingEnabled=false;
+ context.drawImage(image,frame*128,0,128,128,0,0,128,128);context.restore();
+}
+function tick(now){
+ if(start===undefined)start=now;
+ if(!paused){
+  const elapsed=Math.max(0,(now-start)/1000);ctx.fillStyle='#14212b';ctx.fillRect(0,0,canvas.width,canvas.height);
+  panels.forEach((panel,i)=>{
+   const px=(i%2)*640,py=Math.floor(i/2)*300,distance=elapsed*panel.speed,phase=(distance/(metadata.stride*128))%1;
+   panel.frame=Math.floor(phase*metadata.frames);panel.distance=distance;
+   const travel=(distance*2)%340,x=px+(panel.dir>0?20+travel:364-travel);
+   ctx.fillStyle='#abc0cb';ctx.font='18px system-ui';ctx.fillText(`${panel.speed===4?'Slow':'Normal'} · ${panel.dir>0?'right':'left'} · pose ${panel.frame}`,px+18,py+28);
+   ctx.fillStyle='#537282';ctx.fillRect(px+10,py+276,620,1);drawSprite(ctx,panel.frame,x,py+36,panel.dir);
+  });
+ }
+ requestAnimationFrame(tick);
+}
+function chronologicalSheet(){
+ const sheet=document.createElement('canvas');sheet.width=1536;sheet.height=1200;const c=sheet.getContext('2d');c.fillStyle='#20313b';c.fillRect(0,0,sheet.width,sheet.height);
+ for(let frame=0;frame<metadata.frames;frame++){
+  const x=(frame%6)*256,y=Math.floor(frame/6)*300,swing=tracks[frame].find(leg=>!leg.support);
+  c.font='15px system-ui';c.fillStyle='#eaf3f6';c.fillText(`${String(frame).padStart(2,'0')} · ${swing?.name||'support'}`,x+8,y+21);
+  c.fillStyle='#537282';c.fillRect(x,y+276,256,1);drawSprite(c,frame,x,y+36,1);
+ }
+ return sheet.toDataURL('image/png').split(',')[1];
+}
+</script></html>

@@ -3,6 +3,7 @@
 The user authorized Python sprite preparation. Preserve v1/v2; publish v3 only
 after inspecting the contact sheets and checking every gait's support pattern.
 """
+import argparse
 import json
 import math
 from pathlib import Path
@@ -87,6 +88,10 @@ def mesh_warp(layer, source_nodes, target_nodes):
 
 
 def rig(key):
+    if key.startswith('fantasia-'):
+        import dragon_buddies
+        if dragon_buddies.supports(key):
+            return dragon_buddies.rig(key)
     base=DEST/f'base/{key}.png'
     source = Image.open(base if base.exists() else ROOT/f'assets/sprites/walk/{key}.png').convert('RGBA').crop((0,0,128,128))
     image = np.array(source)
@@ -182,6 +187,10 @@ def rig(key):
 
 
 def build(key):
+    if key.startswith('fantasia-'):
+        import dragon_buddies
+        if dragon_buddies.supports(key):
+            return dragon_buddies.build(key,save_sprite,mesh_warp,solve_knee)
     source,kind,torso,specs,legs,stance=rig(key)
     leg_height=specs[0]['foot'][1]-specs[0]['root'][1]
     amplitude=min(10.,max(2.,leg_height*(.40 if kind=='biped' else .22)))
@@ -250,9 +259,20 @@ def build(key):
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    selector=parser.add_mutually_exclusive_group()
+    selector.add_argument('--character',action='append',help='Regenerate only the named character; repeatable.')
+    selector.add_argument('--theme',help='Regenerate only one collection, for example fantasia.')
+    args=parser.parse_args()
     DEST.mkdir(exist_ok=True)
-    manifest={};tracks={};all_frames={}
+    selected=set(args.character or [])
+    partial=bool(selected or args.theme)
+    manifest=json.loads((DEST/'manifest.json').read_text()) if partial else {}
+    tracks=json.loads((DEST/'joint-tracks.json').read_text()) if partial else {}
+    all_frames={};changed=set()
     for path in sorted((ROOT/'assets/sprites/walk').glob('*.png')):
+        if partial and path.stem not in selected and not (args.theme and path.stem.startswith(args.theme+'-')):
+            continue
         overrides=json.loads((DEST/'authored-overrides.json').read_text()) if (DEST/'authored-overrides.json').exists() else {}
         if path.stem in overrides:
             meta=overrides[path.stem]
@@ -262,14 +282,20 @@ def main():
         else:
             frames,meta,trace=build(path.stem)
         manifest[path.stem]=meta;tracks[path.stem]=trace;all_frames[path.stem]=frames
+        changed.add(path.stem)
+    if selected-changed or not changed:
+        parser.error('No source sprites matched: '+', '.join(sorted(selected-changed)))
     save_data(json.dumps(manifest,indent=2),DEST/'manifest.json')
     save_data('globalThis.BUDDY_WALK_METADATA='+json.dumps(manifest)+';\n',ROOT/'web/static/buddies_walk_metadata.js')
     save_data(json.dumps(tracks),DEST/'joint-tracks.json')
-    themes=sorted({key.rsplit('-',1)[0] for key in manifest})
+    themes=sorted({key.rsplit('-',1)[0] for key in changed})
     for theme in themes:
         board=Image.new('RGB',(128*8,150*10),'#26343d');draw=ImageDraw.Draw(board)
         for row in range(10):
             key=f'{theme}-{row}'
+            if key not in all_frames:
+                strip=Image.open(DEST/f'{key}.png')
+                all_frames[key]=[strip.crop((i*128,0,(i+1)*128,128)) for i in range(manifest[key]['frames'])]
             draw.text((5,row*150+2),key+' / '+manifest[key]['anatomy'],fill='white')
             for col,f in enumerate(range(0,FRAMES,3)):
                 im=all_frames[key][round(f/FRAMES*len(all_frames[key]))%len(all_frames[key])];board.paste(im,(128*col,row*150+20),im)
@@ -277,7 +303,7 @@ def main():
     # Real-time review in a browser: individual cycles, adjustable speed,
     # source drawings, single-step, and both directions. No streaming data.
     save_data('globalThis.REVIEW_DATA='+json.dumps(manifest)+';',DEST/'review-data.js')
-    print(f'Prepared {len(manifest)} anatomy-specific cycles ({sum(m["frames"] for m in manifest.values())} frames; authored overrides preserved).')
+    print(f'Prepared {len(changed)} selected cycles; preserved {len(manifest)-len(changed)} existing cycles and authored overrides.')
 
 
 if __name__=='__main__':main()

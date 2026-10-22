@@ -105,3 +105,19 @@ The generator skips `authored-overrides.json` entries without modifying their
 PNG files. `node tools/qa_all_buddies.cjs` needs the local preview on port 5000;
 it checks all eighty characters, all collections at four overlay speeds, and
 complete representative cycles at slow/normal speed in both directions.
+
+## Fire-dragon prototype
+
+`fantasia-0` has an explicit rig in `walk-v3/dragon-rigs.json`. Four separately
+masked source legs replace the two generic duplicated cutouts. Fore limbs use
+shoulder, elbow, wrist and paw; hind limbs use hip, stifle, hock and paw.
+The body makes a small coherent weight transfer while support paws remain planted.
+No new limb artwork was painted. Other dragons keep their existing cycles
+until this single-character prototype passes independent visual review.
+
+Regenerate only the prototype with `python tools/anatomical_buddies.py --character fantasia-0`.
+After all dragon rigs are reviewed, `--theme fantasia` restricts generation to
+dragons while preserving every other collection and its metadata. The prototype
+preview is `walk-v3/dragon-prototype.html`; `node tools/qa_dragon_buddies.cjs`
+records actual translated playback at slow/normal speeds in both directions
+and captures all chronological poses. Numeric checks do not establish visual approval.

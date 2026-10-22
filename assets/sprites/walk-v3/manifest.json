@@ -284,7 +284,8 @@
     "stride": 0.11458333333333333,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-1": {
     "frames": 24,
