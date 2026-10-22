@@ -319,6 +319,11 @@ class MainWindow(QMainWindow):
         self.gift_version = -1
         self.seen_comments: set[str] = set()
         self.closing = False
+        self._close_confirmation_pending = False
+        self._close_confirmed = False
+        self._close_dialog_open = False
+        self._close_confirmation_generation = 0
+        self._close_confirmation_timer = None
 
         web_data = data_dir() / "qt-webengine"
         web_data.mkdir(parents=True, exist_ok=True)
@@ -756,16 +761,95 @@ class MainWindow(QMainWindow):
     def request_close(self):
         self.close()
 
+    def _request_themed_close_confirmation(self):
+        self._close_confirmation_generation += 1
+        generation = self._close_confirmation_generation
+        self._close_confirmation_pending = True
+        colors_script = """(() => {
+          const body = getComputedStyle(document.body);
+          const probe = document.createElement('span');
+          document.body.append(probe);
+          const token = name => {
+            probe.style.color = `var(${name})`;
+            return getComputedStyle(probe).color;
+          };
+          const colors = {
+            raised: token('--skin-raised'), accent: token('--skin-accent'),
+            accent_ink: token('--skin-accent-ink'), border: token('--skin-border'), text: body.color
+          };
+          probe.remove();
+          return colors;
+        })()"""
+        self.studio.page().runJavaScript(
+            colors_script, lambda colors, request_id=generation:
+                self._show_themed_close_confirmation(colors, request_id)
+        )
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+        timer.timeout.connect(
+            lambda request_id=generation: self._show_themed_close_confirmation(None, request_id)
+        )
+        self._close_confirmation_timer = timer
+        timer.start(500)
+
+    def _finish_close_confirmation(self, request_id):
+        if request_id != self._close_confirmation_generation or not self._close_confirmation_pending:
+            return False
+        self._close_confirmation_pending = False
+        timer, self._close_confirmation_timer = self._close_confirmation_timer, None
+        if timer is not None:
+            timer.stop()
+            timer.deleteLater()
+        return True
+
+    def _show_themed_close_confirmation(self, colors, request_id):
+        if (request_id != self._close_confirmation_generation or not self._close_confirmation_pending or
+                self._close_dialog_open):
+            return
+        import re
+
+        colors = colors if isinstance(colors, dict) else {}
+        safe_color = lambda value: value if isinstance(value, str) and re.fullmatch(
+            r"(?:#[0-9a-fA-F]{3,8}|rgba?\([0-9.,%\s]+\))", value
+        ) else ""
+        raised, accent = safe_color(colors.get("raised")), safe_color(colors.get("accent"))
+        accent_ink = safe_color(colors.get("accent_ink"))
+        border, text = safe_color(colors.get("border")), safe_color(colors.get("text"))
+        dialog = QMessageBox(self)
+        dialog.setIcon(QMessageBox.Icon.Question)
+        dialog.setWindowTitle("Cerrar TikReader")
+        dialog.setText("¿Quieres cerrar TikReader y desconectar el LIVE?")
+        dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        dialog.setDefaultButton(QMessageBox.StandardButton.No)
+        if all((raised, accent, accent_ink, border, text)):
+            dialog.setStyleSheet(
+                f"QMessageBox {{ background-color: {raised}; color: {text}; }}"
+                f"QMessageBox QLabel {{ color: {text}; }}"
+                f"QMessageBox QPushButton {{ background-color: {accent}; color: {accent_ink}; "
+                f"border: 1px solid {border}; padding: 7px 16px; border-radius: 6px; }}"
+                f"QMessageBox QPushButton:hover {{ border-color: {accent}; }}"
+            )
+        self._close_dialog_open = True
+        answer = dialog.exec()
+        self._close_dialog_open = False
+        if not self._finish_close_confirmation(request_id):
+            return
+        if answer == QMessageBox.StandardButton.Yes:
+            self._close_confirmed = True
+            self.close()
+
     def closeEvent(self, event):
         if self.closing:
             event.accept()
             return
-        answer = QMessageBox.question(self, "Cerrar TikReader", "¿Quieres cerrar TikReader y desconectar el LIVE?",
-                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                                      QMessageBox.StandardButton.No)
-        if answer != QMessageBox.StandardButton.Yes:
+        if self._close_confirmation_pending:
             event.ignore()
             return
+        if not self._close_confirmed:
+            event.ignore()
+            self._request_themed_close_confirmation()
+            return
+        self._close_confirmed = False
         try:
             self.api.post("/system/exit", {"confirm": True})
         except DesktopApiError as exc:

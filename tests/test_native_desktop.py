@@ -1,3 +1,4 @@
+import ast
 import io
 import json
 import tempfile
@@ -55,6 +56,146 @@ class DesktopApiTests(unittest.TestCase):
 
 
 class DesktopWindowSafetyTests(unittest.TestCase):
+    @staticmethod
+    def _close_behavior_harness(response, api_error=None):
+        source = (Path(__file__).resolve().parents[1] / 'app' / 'desktop_window.py').read_text(
+            encoding='utf-8'
+        )
+        tree = ast.parse(source)
+        window = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'MainWindow')
+        methods = {node.name: node for node in window.body if isinstance(node, ast.FunctionDef) and node.name in {
+            '_request_themed_close_confirmation', '_finish_close_confirmation',
+            '_show_themed_close_confirmation', 'closeEvent'
+        }}
+
+        class Event:
+            def __init__(self): self.accepted = self.ignored = False
+            def accept(self): self.accepted = True
+            def ignore(self): self.ignored = True
+
+        class Timer:
+            @staticmethod
+            def singleShot(_milliseconds, _callback): pass
+            def __init__(self, parent): self.callback = None; self.stopped = False
+            def setSingleShot(self, _value): pass
+            @property
+            def timeout(self): return self
+            def connect(self, callback): self.callback = callback
+            def start(self, _milliseconds): pass
+            def stop(self): self.stopped = True
+            def deleteLater(self): self.deleted = True
+
+        class Dialog:
+            instances = []
+            StandardButton = type('StandardButton', (), {'Yes': 1, 'No': 2})
+            Icon = type('Icon', (), {'Question': 3})
+            def __init__(self, owner):
+                self.owner = owner; self.response = response; self.stylesheet = ''; self.default = None
+                type(self).instances.append(self)
+            def setIcon(self, _value): pass
+            def setWindowTitle(self, _value): pass
+            def setText(self, _value): pass
+            def setStandardButtons(self, _value): pass
+            def setDefaultButton(self, value): self.default = value
+            def setStyleSheet(self, value): self.stylesheet = value
+            def exec(self):
+                self.pending_during_modal = self.owner._close_confirmation_pending
+                self.modal_event = Event()
+                self.owner.closeEvent(self.modal_event)
+                return self.response
+
+        class Api:
+            def __init__(self): self.calls = []
+            def post(self, *args):
+                self.calls.append(args)
+                if api_error: raise api_error
+
+        class Poll:
+            def __init__(self): self.stopped = False
+            def stop(self): self.stopped = True
+
+        class Page:
+            def __init__(self): self.callbacks = []; self.scripts = []
+            def runJavaScript(self, script, callback): self.scripts.append(script); self.callbacks.append(callback)
+
+        class Studio:
+            def __init__(self): self.web_page = Page()
+            def page(self): return self.web_page
+
+        error_type = type(api_error) if api_error else type('DesktopApiError', (Exception,), {})
+        namespace = {'QMessageBox': Dialog, 'QTimer': Timer, 'DesktopApiError': error_type}
+        for name, node in methods.items():
+            module = ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[]))
+            exec(compile(module, '<desktop-close-method>', 'exec'), namespace)
+
+        class Window:
+            _request_themed_close_confirmation = namespace['_request_themed_close_confirmation']
+            _finish_close_confirmation = namespace['_finish_close_confirmation']
+            _show_themed_close_confirmation = namespace['_show_themed_close_confirmation']
+            closeEvent = namespace['closeEvent']
+            def __init__(self):
+                self.closing = self._close_confirmation_pending = self._close_confirmed = False
+                self._close_dialog_open = False
+                self._close_confirmation_generation = 0
+                self._close_confirmation_timer = None
+                self.api = Api(); self.poll = Poll(); self.studio = Studio()
+            def close(self): self.close_event = Event(); self.closeEvent(self.close_event)
+            def show_error(self, _message): pass
+
+        Dialog.instances.clear()
+        return Window(), Event, Dialog
+
+    def test_close_confirmation_blocks_duplicate_close_during_modal_and_uses_accent_ink(self):
+        window, Event, Dialog = self._close_behavior_harness(2)
+        window.closeEvent(Event())
+        callback = window.studio.web_page.callbacks[-1]
+        callback({'raised': '#222222', 'accent': '#ffffff', 'accent_ink': '#111111',
+                  'border': '#555555', 'text': '#fefefe'})
+
+        self.assertTrue(Dialog.instances[0].pending_during_modal)
+        self.assertTrue(Dialog.instances[0].modal_event.ignored)
+        self.assertFalse(window._close_confirmation_pending)
+        self.assertEqual(Dialog.instances[0].default, Dialog.StandardButton.No)
+        self.assertIn('color: #111111', Dialog.instances[0].stylesheet)
+        self.assertIn('--skin-accent-ink', window.studio.web_page.scripts[0])
+
+    def test_stale_theme_callback_cannot_open_dialog_for_a_later_close_request(self):
+        window, Event, Dialog = self._close_behavior_harness(2)
+        window.closeEvent(Event())
+        first_callback = window.studio.web_page.callbacks[-1]
+        first_callback({'raised': '#222222', 'accent': '#ffffff', 'accent_ink': '#111111',
+                        'border': '#555555', 'text': '#fefefe'})
+        self.assertFalse(window._close_confirmation_pending)
+
+        window.closeEvent(Event())
+        second_callback = window.studio.web_page.callbacks[-1]
+        first_callback({'raised': '#111111', 'accent': '#222222', 'accent_ink': '#ffffff',
+                        'border': '#444444', 'text': '#eeeeee'})
+        self.assertTrue(window._close_confirmation_pending)
+        self.assertEqual(len(Dialog.instances), 1)
+        second_callback({'raised': '#222222', 'accent': '#ffffff', 'accent_ink': '#111111',
+                         'border': '#555555', 'text': '#fefefe'})
+        self.assertEqual(len(Dialog.instances), 2)
+
+    def test_yes_requests_exit_but_no_does_not(self):
+        for answer, should_exit in ((1, True), (2, False)):
+            with self.subTest(answer=answer):
+                window, Event, _Dialog = self._close_behavior_harness(answer)
+                window.closeEvent(Event())
+                window.studio.web_page.callbacks[-1]({'raised': '#222222', 'accent': '#ffffff',
+                    'accent_ink': '#111111', 'border': '#555555', 'text': '#fefefe'})
+                self.assertEqual(bool(window.api.calls), should_exit)
+
+    def test_yes_still_allows_exit_when_backend_is_unreachable(self):
+        error = type('DesktopApiError', (Exception,), {'unreachable': True})('offline')
+        window, Event, _Dialog = self._close_behavior_harness(1, api_error=error)
+        window.closeEvent(Event())
+        window.studio.web_page.callbacks[-1]({'raised': '#222222', 'accent': '#ffffff',
+            'accent_ink': '#111111', 'border': '#555555', 'text': '#fefefe'})
+        self.assertTrue(window.closing)
+        self.assertTrue(window.poll.stopped)
+        self.assertTrue(window.close_event.accepted)
+
     def test_windows_launcher_uses_nonblocking_powershell_process_validation(self):
         root = Path(__file__).resolve().parents[1]
         script = (root / 'Iniciar TikReader.cmd').read_text(encoding='utf-8')
