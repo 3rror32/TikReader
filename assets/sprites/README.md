@@ -3,8 +3,9 @@
 Ocho colecciones de diez personajes distintos: dragones, dinosaurios, robots,
 mascotas, goblins, elfos, monstruos y personas chibi. Todo en pixel art.
 
-Los recursos activos están en `walk-v3/`: 80 tiras PNG RGBA de 3072 × 128 px,
-con 24 poses y una imagen independiente de reposo por personaje. Los ciclos se
+Los recursos activos están en `walk-v3/`: 79 tiras PNG RGBA de 3072 × 128 px
+con 24 poses, más el caballero `chibis-0` de 1536 × 128 px con 12 poses
+dibujadas. Son 1,908 fotogramas y una imagen de reposo por personaje. Los ciclos se
 preparan con `tools/anatomical_buddies.py`: cadera, rodilla, tobillo y pie
 articulados, textura por segmentos, apoyo fijo y elevación durante el avance.
 
@@ -55,7 +56,7 @@ para inspección; ese fondo no se incorpora al LIVE.
 - La vista privada tiene datos ficticios; guardar publica la configuración.
 
 Validación: `tests/test_stream_buddies.py`, `tests/test_stream_buddies.cjs` y
-`tools/qa_buddies.cjs`. Se verificaron transparencia RGBA, 1,920 fotogramas
+`tools/qa_buddies.cjs`. Se verificaron transparencia RGBA, 1,908 fotogramas
 distintos, asignación sin repeticiones prematuras, estabilidad de sesión,
 límite de crecimiento y visualización en 390 × 844 y 1280 × 720.
 
@@ -73,3 +74,34 @@ plantado, proximidad de los píxeles al suelo y continuidad del cierre del ciclo
 `tools/qa_all_buddies.cjs` reproduce los 80 en el servidor local y prueba
 velocidades 0, 10, 40 y 100 en el overlay. Estos controles verifican geometría
 y reproducción; la naturalidad visual sigue siendo un criterio artístico.
+
+## Walking mechanics and regeneration
+
+Bipeds follow contact → down → passing → up, repeated on the other leg.
+Image Y increases downward: the pelvis sinks after contact and reaches its
+highest position before the next contact. Both feet travel through a shared
+pelvis center, rather than shuffling around the separated foot positions of
+the source drawing. Knees articulate while swing feet lift clear of the ground.
+
+Quadrupeds use a lateral four-beat walk: far hind → far fore → near hind →
+near fore. Each leg supports the body for 75% of the cycle; three paws remain
+planted while one swings. Near/far layers share the ground line and use color
+depth to distinguish the limbs. The rabbit uses this deliberate slow walk
+rather than a hop. Dinosaur gait classification follows each drawing; the
+four-legged robots use the same mechanically stable support order.
+
+Playback remains distance driven: planted feet move backward by exactly the
+character's forward displacement. Per-character metadata controls strip width,
+frame count and stride, including the preserved twelve-frame knight override.
+PNG publication is atomic so local previews never read a half-written strip.
+
+References: [biped poses](https://www.hyperpad.com/documentation/art-studio-tutorial-create-a-walk-animation),
+[canine walk](https://vanat.ahc.umn.edu/gaits/walk.html),
+[lateral footfalls](https://horses.extension.org/horse-walk/).
+
+Run `python -m pytest tests/test_buddies_gait.py -q`, then
+`python tools/anatomical_buddies.py` and `python tools/verify_buddies_walk.py`.
+The generator skips `authored-overrides.json` entries without modifying their
+PNG files. `node tools/qa_all_buddies.cjs` needs the local preview on port 5000;
+it checks all eighty characters, all collections at four overlay speeds, and
+complete representative cycles at slow/normal speed in both directions.

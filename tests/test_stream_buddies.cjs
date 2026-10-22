@@ -1,12 +1,12 @@
 process.chdir(require('node:path').resolve(__dirname, '..'));
 const fs=require('node:fs'),vm=require('node:vm'),test=require('node:test'),assert=require('node:assert/strict');
-function setup(){
+function setup(options={}){
  let now=0,frame,message;const nodes=[];
  function node(){const n={style:{},dataset:{},children:[],hidden:false,offsetWidth:200,append(...xs){this.children.push(...xs)},remove(){this.removed=true},getAttribute(k){return this[k]}};nodes.push(n);return n;}
  const stage=node();stage.clientWidth=640;stage.clientHeight=360;
  const settings={theme:'todos',font:'Verdana',font_size:20,line_spacing:120,letter_spacing:0,max_friends:3,base_size:100,max_size:250,bubbles:true,speech_duration:4,speed:150,show_names:true};
- const config={textContent:JSON.stringify({settings,characters:[{id:'cat',theme:'mascotas'}]})};const parent={};
- vm.runInNewContext(fs.readFileSync('web/static/stream_buddies.js','utf8'),{document:{getElementById:id=>id==='buddies'?stage:config,createElement:node},location:{search:'?preview=1',origin:'http://local'},URLSearchParams,performance:{now:()=>now},requestAnimationFrame:fn=>frame=fn,setInterval(){},addEventListener:(type,fn)=>message=fn,parent});
+ const config={textContent:JSON.stringify({settings,characters:options.characters||[{id:'cat',theme:'mascotas'}]})};const parent={};
+ vm.runInNewContext(fs.readFileSync('web/static/stream_buddies.js','utf8'),{BUDDY_WALK_METADATA:options.metadata,document:{getElementById:id=>id==='buddies'?stage:config,createElement:node},location:{search:'?preview=1',origin:'http://local'},URLSearchParams,performance:{now:()=>now},requestAnimationFrame:fn=>frame=fn,setInterval(){},addEventListener:(type,fn)=>message=fn,parent});
  return {nodes,stage,step(t){now=t;frame(t)},preview(s){message({origin:'http://local',source:parent,data:{type:'buddies-preview',settings:s}})}};
 }
 test('sprites travel horizontally, reverse at edges and speech expires',()=>{
@@ -16,6 +16,16 @@ test('sprites travel horizontally, reverse at edges and speech expires',()=>{
  assert.notDeepEqual(actors.map(n=>n.style.transform),initial);
  for(const a of actors){const x=Number(a.style.transform.match(/translate(?:3d|X)\(([-.\d]+)px/)[1]);assert.ok(x>=0&&x<=640-parseFloat(a.style.width));}
  assert.ok(s.nodes.filter(n=>n.className==='buddy-speech').every(n=>n.hidden));
+});
+
+test('authored twelve-frame knight uses its own frame count and idle sprite',()=>{
+ const context={};vm.runInNewContext(fs.readFileSync('web/static/buddies_walk_metadata.js','utf8'),context);
+ const metadata=context.BUDDY_WALK_METADATA;assert.equal(metadata['chibis-0'].frames,12);assert.equal(metadata['chibis-0'].authored,true);
+ const s=setup({characters:[{id:'chibis-0',theme:'chibis'}],metadata});s.preview({max_friends:1});
+ const art=s.nodes.find(n=>n.className==='buddy-art'&&!n.removed),img=art.children[0],poses=new Set();
+ for(let i=0;i<600;i++){s.step(i*16);const frame=Number(art.dataset.frame);poses.add(frame);assert.ok(frame>=0&&frame<12);assert.equal(img.style.transform,`translate3d(${-frame*100/12}%,0,0)`)}
+ assert.equal(poses.size,12);assert.equal(img.style.width,'1200%');
+ s.preview({speed:0});s.step(10000);assert.equal(art.dataset.frame,'0');assert.equal(img.style.width,'100%');assert.match(img.src,/chibis-0-idle\.png/);
 });
 test('private preview respects participant limit and zero speed',()=>{
  const s=setup();s.preview({max_friends:1,speed:0});s.step(0);

@@ -30,6 +30,16 @@ def main():
             report.append(dict(character=key,frames=count,authored=True,validation='RGBA, bounds and visual pose review; no synthetic joint trace'))
             continue
         trace=traces[key]
+        assert len(trace)==count,(key,'trace frame count')
+        if gait['anatomy']=='biped':
+            contact,down,passing,up=[trace[i][0]['root'][1] for i in (0,3,6,9)]
+            assert down>contact and down>passing>up and up<contact,(key,'pelvis pose order')
+            separation=[f[0]['foot'][0]-f[1]['foot'][0] for f in trace]
+            assert min(separation)<0<max(separation),(key,'feet never pass')
+        if gait['legs']==4:
+            touchdowns=[(i,leg) for i,frame in enumerate(trace) for leg,p in enumerate(frame)
+                        if p['support'] and not trace[i-1][leg]['support']]
+            assert touchdowns==[(0,0),(6,1),(12,2),(18,3)],(key,'lateral footfall order')
         supports=[sum(leg['support'] for leg in frame) for frame in trace]
         assert min(supports)>=(3 if gait['legs']==4 else 1),(key,'airborne walk')
         max_drift=0.
@@ -40,13 +50,13 @@ def main():
             assert np.ptp([p['foot'][1] for _,p in support])<.001,(key,'floating foot')
             for (i,p),(j,q) in zip(support,support[1:]):
                 if j==i+1 and q['phase']>p['phase']:
-                    drift=abs(q['foot'][0]-p['foot'][0]+gait['stride']*128/24)
+                    drift=abs(q['foot'][0]-p['foot'][0]+gait['stride']*128/count)
                     max_drift=max(max_drift,drift)
                     assert drift<.001,(key,'sliding planted foot')
             assert any(not f[leg]['support'] for f in trace),(key,'leg never swings')
-        report.append(dict(character=key,anatomy=gait['anatomy'],legs=gait['legs'],frames=24,min_supports=min(supports),planted_foot_drift=round(max_drift,6),loop_seam=round(changes[-1],5)))
+        report.append(dict(character=key,anatomy=gait['anatomy'],legs=gait['legs'],frames=count,min_supports=min(supports),planted_foot_drift=round(max_drift,6),loop_seam=round(changes[-1],5)))
     (DEST/'validation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
-    print(f'{len(report)} cycles passed: 1,920 RGBA frames, support, fixed bone lengths, planted feet and loop continuity.')
+    print(f'{len(report)} cycles passed: {sum(g["frames"] for g in meta.values())} RGBA frames, pose order, support, fixed bone lengths, planted feet and loop continuity.')
 
 
 if __name__=='__main__':main()

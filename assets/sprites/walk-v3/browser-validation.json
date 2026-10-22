@@ -1,44 +1,814 @@
 {
+  "characters": 80,
+  "frames": 1908,
   "results": [
     {
+      "character": "chibis-0",
+      "frames": 12,
+      "observed": 12
+    },
+    {
+      "character": "chibis-1",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "chibis-2",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "chibis-3",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "chibis-4",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "chibis-5",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "chibis-6",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "chibis-7",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "chibis-8",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "chibis-9",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-0",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-1",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-2",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-3",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-4",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-5",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-6",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-7",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-8",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "cyborgs-9",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-0",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-1",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-2",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-3",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-4",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-5",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-6",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-7",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-8",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "dinosaurios-9",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-0",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-1",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-2",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-3",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-4",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-5",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-6",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-7",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-8",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "elfos-9",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-0",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-1",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-2",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-3",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-4",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-5",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-6",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-7",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-8",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "fantasia-9",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-0",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-1",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-2",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-3",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-4",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-5",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-6",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-7",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-8",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "goblins-9",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-0",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-1",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-2",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-3",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-4",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-5",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-6",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-7",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-8",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "mascotas-9",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-0",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-1",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-2",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-3",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-4",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-5",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-6",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-7",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-8",
+      "frames": 24,
+      "observed": 24
+    },
+    {
+      "character": "monstruos-9",
+      "frames": 24,
+      "observed": 24
+    }
+  ],
+  "directional": [
+    {
+      "speed": 4,
+      "direction": 1,
+      "cycles": [
+        {
+          "character": "chibis-2",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "cyborgs-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "cyborgs-6",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "dinosaurios-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "dinosaurios-1",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "mascotas-0",
+          "frames": 24,
+          "observed": 24
+        }
+      ]
+    },
+    {
+      "speed": 4,
+      "direction": -1,
+      "cycles": [
+        {
+          "character": "chibis-2",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "cyborgs-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "cyborgs-6",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "dinosaurios-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "dinosaurios-1",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "mascotas-0",
+          "frames": 24,
+          "observed": 24
+        }
+      ]
+    },
+    {
+      "speed": 18,
+      "direction": 1,
+      "cycles": [
+        {
+          "character": "chibis-2",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "cyborgs-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "cyborgs-6",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "dinosaurios-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "dinosaurios-1",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "mascotas-0",
+          "frames": 24,
+          "observed": 24
+        }
+      ]
+    },
+    {
+      "speed": 18,
+      "direction": -1,
+      "cycles": [
+        {
+          "character": "chibis-2",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "cyborgs-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "cyborgs-6",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "dinosaurios-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "dinosaurios-1",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "mascotas-0",
+          "frames": 24,
+          "observed": 24
+        }
+      ]
+    }
+  ],
+  "overlay": [
+    {
       "theme": "chibis",
+      "speed": 10,
       "characters": 10,
-      "minObservedPoses": 12
+      "frameCounts": [
+        24,
+        12
+      ]
+    },
+    {
+      "theme": "chibis",
+      "speed": 40,
+      "characters": 10,
+      "frameCounts": [
+        24,
+        12
+      ]
+    },
+    {
+      "theme": "chibis",
+      "speed": 100,
+      "characters": 10,
+      "frameCounts": [
+        24,
+        12
+      ]
+    },
+    {
+      "theme": "chibis",
+      "speed": 0,
+      "characters": 10,
+      "frameCounts": [
+        24,
+        12
+      ]
     },
     {
       "theme": "cyborgs",
+      "speed": 10,
       "characters": 10,
-      "minObservedPoses": 11
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "cyborgs",
+      "speed": 40,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "cyborgs",
+      "speed": 100,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "cyborgs",
+      "speed": 0,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
     },
     {
       "theme": "dinosaurios",
+      "speed": 10,
       "characters": 10,
-      "minObservedPoses": 12
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "dinosaurios",
+      "speed": 40,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "dinosaurios",
+      "speed": 100,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "dinosaurios",
+      "speed": 0,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
     },
     {
       "theme": "elfos",
+      "speed": 10,
       "characters": 10,
-      "minObservedPoses": 9
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "elfos",
+      "speed": 40,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "elfos",
+      "speed": 100,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "elfos",
+      "speed": 0,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
     },
     {
       "theme": "fantasia",
+      "speed": 10,
       "characters": 10,
-      "minObservedPoses": 15
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "fantasia",
+      "speed": 40,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "fantasia",
+      "speed": 100,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "fantasia",
+      "speed": 0,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
     },
     {
       "theme": "goblins",
+      "speed": 10,
       "characters": 10,
-      "minObservedPoses": 11
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "goblins",
+      "speed": 40,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "goblins",
+      "speed": 100,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "goblins",
+      "speed": 0,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
     },
     {
       "theme": "mascotas",
+      "speed": 10,
       "characters": 10,
-      "minObservedPoses": 14
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "mascotas",
+      "speed": 40,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "mascotas",
+      "speed": 100,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "mascotas",
+      "speed": 0,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
     },
     {
       "theme": "monstruos",
+      "speed": 10,
       "characters": 10,
-      "minObservedPoses": 9
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "monstruos",
+      "speed": 40,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "monstruos",
+      "speed": 100,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
+    },
+    {
+      "theme": "monstruos",
+      "speed": 0,
+      "characters": 10,
+      "frameCounts": [
+        24
+      ]
     }
   ],
   "errors": []

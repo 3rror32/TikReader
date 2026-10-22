@@ -18,6 +18,26 @@ FRAMES = 24
 SIZE = 128
 
 
+def save_sprite(image, path):
+    # A preview may still be reading the previous sprite. Publish a complete
+    # PNG atomically instead of truncating the image being served.
+    pending=path.with_suffix('.pending.png')
+    try:
+        image.save(pending,optimize=True)
+        pending.replace(path)
+    finally:
+        pending.unlink(missing_ok=True)
+
+
+def save_data(text, path):
+    pending=path.with_name(path.stem+'.pending'+path.suffix)
+    try:
+        pending.write_text(text,encoding='utf-8')
+        pending.replace(path)
+    finally:
+        pending.unlink(missing_ok=True)
+
+
 def anatomy(key):
     theme, number = key.rsplit('-', 1)
     number = int(number)
@@ -139,11 +159,18 @@ def rig(key):
     if kind=='quadruped':
         belly=y1-max(7,round((y1-y0)*.13))
         torso[belly:,max(0,left-13):min(128,right+14)]=0
+    if kind=='biped':
+        # Remove the old splayed calves as well as the tapered limb masks.
+        # Keep a small pelvis overlap, and preserve tails/accessories outside
+        # the leg region rather than leaving static scraps beside moving feet.
+        torso[hip+3:,max(x0,left-15):min(x1,right+16)]=0
     if key=='cyborgs-6':
         torso[hip:]=0
     # Two visible legs produce near/far articulated layers for four-legged art.
     if kind=='quadruped':
-        legs=[(0,.0,True),(1,.25,True),(0,.5,False),(1,.75,False)]
+        # Touchdowns: far hind -> far fore -> near hind -> near fore.
+        # Offsets advance local phase, so their order is the reverse of contact.
+        legs=[(0,.0,True),(1,.75,True),(0,.5,False),(1,.25,False)]
         stance=.75
     elif kind=='tripod':
         legs=[(0,0,True),(1,1/3,True),(0,2/3,False)]
@@ -157,19 +184,23 @@ def rig(key):
 def build(key):
     source,kind,torso,specs,legs,stance=rig(key)
     leg_height=specs[0]['foot'][1]-specs[0]['root'][1]
-    amplitude=min(7.,max(2.,leg_height*.22))
+    amplitude=min(10.,max(2.,leg_height*(.40 if kind=='biped' else .22)))
     if kind=='robed':
         amplitude=2.5
     if key=='cyborgs-6':
         amplitude=3.
-    lift=min(6.,max(2.,leg_height*.25))
+    lift=min(7.,max(2.,leg_height*.30))
     stride=2*amplitude/stance
+    center_x=sum(spec['foot'][0] for spec in specs)/len(specs)
     frames=[];tracks=[]
     for frame in range(FRAMES):
         phase=frame/FRAMES
         # A walk has no aerial bounce: slight pelvis motion, then independently
         # solved legs keep the supporting toes on the same ground line.
-        bob=2+(.65 if kind=='quadruped' else 1.0)*(1-math.cos(4*math.pi*phase))
+        # Image Y increases downward. Landing sinks at 1/8 cycle; passing
+        # rises at 1/4 and the up pose precedes the next contact at 3/8.
+        bob=(2+.65*(1-math.cos(8*math.pi*phase)) if kind=='quadruped'
+             else (4 if kind=='biped' else 2)+math.sin(4*math.pi*phase))
         torso_shift=np.array([0.,bob])
         back=[];front=[];track=[]
         for index,offset,far in legs:
@@ -185,9 +216,15 @@ def build(key):
                 v=-stride*(1-stance)
                 dx=(2*u**3-3*u*u+1)*(-amplitude)+(u**3-2*u*u+u)*v+(-2*u**3+3*u*u)*amplitude+(u**3-u*u)*v
                 dy=-lift*math.sin(math.pi*u)**2
-            depth=np.array([-3.,-1.]) if far else np.zeros(2)
+            depth=np.array([0. if kind=='biped' else -4.,0.]) if far else np.zeros(2)
             root=spec['root']+torso_shift+depth
             foot=spec['foot']+np.array([dx,dy+spec['baseline_adjust']])+depth
+            if kind=='biped':
+                # Artwork often starts in a wide contact pose. Reusing those
+                # two X origins makes feet shuffle in separate lanes forever;
+                # both feet must pass under the pelvis during the cycle.
+                root[0]=center_x+(-4 if index==0 else 4)+depth[0]
+                foot[0]=center_x+dx+depth[0]
             if key=='cyborgs-6' and far:
                 foot[0]+=18 if index==0 else -18
             knee=solve_knee(root,foot,spec['lengths'],spec['bend'])
@@ -207,8 +244,8 @@ def build(key):
         frames.append(canvas);tracks.append(track)
     strip=Image.new('RGBA',(128*FRAMES,128))
     for f,im in enumerate(frames):strip.alpha_composite(im,(f*128,0))
-    strip.save(DEST/f'{key}.png',optimize=True)
-    source.save(DEST/f'{key}-idle.png',optimize=True)
+    save_sprite(strip,DEST/f'{key}.png')
+    save_sprite(source,DEST/f'{key}-idle.png')
     return frames,dict(frames=FRAMES,stride=stride/128,anatomy=kind,legs=len(legs),stance=stance),tracks
 
 
@@ -225,9 +262,9 @@ def main():
         else:
             frames,meta,trace=build(path.stem)
         manifest[path.stem]=meta;tracks[path.stem]=trace;all_frames[path.stem]=frames
-    (DEST/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
-    (ROOT/'web/static/buddies_walk_metadata.js').write_text('globalThis.BUDDY_WALK_METADATA='+json.dumps(manifest)+';\n',encoding='utf-8')
-    (DEST/'joint-tracks.json').write_text(json.dumps(tracks),encoding='utf-8')
+    save_data(json.dumps(manifest,indent=2),DEST/'manifest.json')
+    save_data('globalThis.BUDDY_WALK_METADATA='+json.dumps(manifest)+';\n',ROOT/'web/static/buddies_walk_metadata.js')
+    save_data(json.dumps(tracks),DEST/'joint-tracks.json')
     themes=sorted({key.rsplit('-',1)[0] for key in manifest})
     for theme in themes:
         board=Image.new('RGB',(128*8,150*10),'#26343d');draw=ImageDraw.Draw(board)
@@ -236,11 +273,11 @@ def main():
             draw.text((5,row*150+2),key+' / '+manifest[key]['anatomy'],fill='white')
             for col,f in enumerate(range(0,FRAMES,3)):
                 im=all_frames[key][round(f/FRAMES*len(all_frames[key]))%len(all_frames[key])];board.paste(im,(128*col,row*150+20),im)
-        board.save(DEST/f'review-{theme}.png')
+        save_sprite(board,DEST/f'review-{theme}.png')
     # Real-time review in a browser: individual cycles, adjustable speed,
     # source drawings, single-step, and both directions. No streaming data.
-    (DEST/'review-data.js').write_text('globalThis.REVIEW_DATA='+json.dumps(manifest)+';',encoding='utf-8')
-    print(f'Prepared {len(manifest)} anatomy-specific cycles with {FRAMES} frames each.')
+    save_data('globalThis.REVIEW_DATA='+json.dumps(manifest)+';',DEST/'review-data.js')
+    print(f'Prepared {len(manifest)} anatomy-specific cycles ({sum(m["frames"] for m in manifest.values())} frames; authored overrides preserved).')
 
 
 if __name__=='__main__':main()

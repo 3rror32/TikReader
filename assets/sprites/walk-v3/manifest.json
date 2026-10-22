@@ -15,98 +15,98 @@
   },
   "chibis-2": {
     "frames": 24,
-    "stride": 0.1265,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "chibis-3": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "chibis-4": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "chibis-5": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "chibis-6": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "chibis-7": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "chibis-8": {
     "frames": 24,
-    "stride": 0.1265,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "chibis-9": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "cyborgs-0": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "cyborgs-1": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "cyborgs-2": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "cyborgs-3": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "cyborgs-4": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "cyborgs-5": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
@@ -120,28 +120,28 @@
   },
   "cyborgs-7": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "cyborgs-8": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "cyborgs-9": {
     "frames": 24,
-    "stride": 0.14583333333333334,
+    "stride": 0.15583333333333335,
     "anatomy": "quadruped",
     "legs": 4,
     "stance": 0.75
   },
   "dinosaurios-0": {
     "frames": 24,
-    "stride": 0.088,
+    "stride": 0.16,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
@@ -169,7 +169,7 @@
   },
   "dinosaurios-4": {
     "frames": 24,
-    "stride": 0.077,
+    "stride": 0.14,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
@@ -183,35 +183,35 @@
   },
   "dinosaurios-6": {
     "frames": 24,
-    "stride": 0.121,
+    "stride": 0.22000000000000003,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "dinosaurios-7": {
     "frames": 24,
-    "stride": 0.1155,
+    "stride": 0.21000000000000002,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "dinosaurios-8": {
     "frames": 24,
-    "stride": 0.0935,
+    "stride": 0.17,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "dinosaurios-9": {
     "frames": 24,
-    "stride": 0.0935,
+    "stride": 0.17,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "elfos-0": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
@@ -225,7 +225,7 @@
   },
   "elfos-2": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
@@ -246,28 +246,28 @@
   },
   "elfos-5": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "elfos-6": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "elfos-7": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "elfos-8": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
@@ -351,70 +351,70 @@
   },
   "goblins-0": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-1": {
     "frames": 24,
-    "stride": 0.121,
+    "stride": 0.22000000000000003,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-2": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-3": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-4": {
     "frames": 24,
-    "stride": 0.1265,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-5": {
     "frames": 24,
-    "stride": 0.1265,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-6": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-7": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-8": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "goblins-9": {
     "frames": 24,
-    "stride": 0.1375,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
@@ -435,7 +435,7 @@
   },
   "mascotas-2": {
     "frames": 24,
-    "stride": 0.14583333333333334,
+    "stride": 0.15125,
     "anatomy": "quadruped",
     "legs": 4,
     "stance": 0.75
@@ -477,7 +477,7 @@
   },
   "mascotas-8": {
     "frames": 24,
-    "stride": 0.14583333333333334,
+    "stride": 0.15125,
     "anatomy": "quadruped",
     "legs": 4,
     "stance": 0.75
@@ -498,63 +498,63 @@
   },
   "monstruos-1": {
     "frames": 24,
-    "stride": 0.1265,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "monstruos-2": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "monstruos-3": {
     "frames": 24,
-    "stride": 0.1155,
+    "stride": 0.21000000000000002,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "monstruos-4": {
     "frames": 24,
-    "stride": 0.1265,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "monstruos-5": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "monstruos-6": {
     "frames": 24,
-    "stride": 0.11000000000000001,
+    "stride": 0.2,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "monstruos-7": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "monstruos-8": {
     "frames": 24,
-    "stride": 0.1265,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
   },
   "monstruos-9": {
     "frames": 24,
-    "stride": 0.132,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
