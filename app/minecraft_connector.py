@@ -2,6 +2,7 @@
 import ipaddress
 import logging
 import queue
+import re
 import socket
 import struct
 import threading
@@ -113,8 +114,28 @@ class MinecraftConnector:
             self.note('Minecraft: cola llena')
             return False
 
-    def note(self, text):
-        self.log.insert(0, {'at': time.time(), 'text': text})
+    @staticmethod
+    def response_outcome(command, response):
+        # RCON has no success flag. Recognize narrow vanilla feedback only;
+        # localized, plugin-defined, empty or mixed feedback stays unconfirmed.
+        text = response.strip()
+        if re.match(r'^(?:Unknown or incomplete command|Unknown command|Incorrect argument for command|'
+                    r'No player was found|No entity was found|'
+                    r'No targets matched selector|You do not have permission)(?:[\s.,:]|$)', text):
+            return 'rejected'
+        verb = command.strip().split(maxsplit=1)[0] if command.strip() else ''
+        patterns = {
+            'list': r'There are \d+ of a max of \d+ players online: ?[^\r\n]*',
+            'summon': r'Summoned new [^\r\n]+',
+            'give': r'Gave \d+ \[[^\r\n]+\] to [^\r\n]+',
+            'weather': r'Set the weather to (?:clear|rain|thunder)',
+        }
+        if verb in patterns and re.fullmatch(patterns[verb], text):
+            return 'success'
+        return 'unconfirmed'
+
+    def note(self, text, **details):
+        self.log.insert(0, {'at': time.time(), 'text': text, **details})
         del self.log[50:]
 
     def run_job(self, job):
@@ -122,15 +143,20 @@ class MinecraftConnector:
         with self.lock:
             try:
                 if not self.authorized or revision != self.revision or session != getattr(self.r,'feed_session',None) or time.monotonic()-created > 10:
-                    self.note('Minecraft: acción cancelada o caducada')
+                    self.note('Minecraft: acción cancelada o caducada', alias=alias, outcome='cancelled', response='')
                 elif self.r.production.settings['emergency'] or self.r.production.settings.get('scene','talk') != 'talk':
-                    self.note('Minecraft: acción cancelada por emergencia')
+                    self.note('Minecraft: acción cancelada por emergencia', alias=alias, outcome='cancelled', response='')
                 else:
                     response = self.execute(command)
-                    self.note(f'Minecraft aceptó {alias}: {response or "sin respuesta"}')
+                    outcome = self.response_outcome(command, response)
+                    labels = {'success': 'Éxito confirmado', 'rejected': 'Comando rechazado', 'unconfirmed': 'Sin confirmar'}
+                    self.note(f'{labels[outcome]} · {alias}: {response or "sin respuesta"}',
+                              alias=alias, outcome=outcome, response=response)
             except Exception as exc:
                 logger.exception('Minecraft RCON execution failed for alias %s', alias)
-                self.note(f'Minecraft no confirmó {alias}: {type(exc).__name__}')
+                outcome = 'connection_error' if isinstance(exc, OSError) else 'unconfirmed'
+                self.note(f'Minecraft no confirmó {alias}: {type(exc).__name__}',
+                          alias=alias, outcome=outcome, response='')
 
     def worker(self):
         while True:
