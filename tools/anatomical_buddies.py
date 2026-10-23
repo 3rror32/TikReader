@@ -42,7 +42,9 @@ def save_data(text, path):
 def anatomy(key):
     theme, number = key.rsplit('-', 1)
     number = int(number)
-    if theme in ('fantasia', 'mascotas'):
+    if theme == 'mascotas':
+        return 'biped' if number in (3, 4, 7, 8) else 'quadruped'
+    if theme == 'fantasia':
         return 'quadruped'
     if theme == 'dinosaurios':
         return 'quadruped' if number in (1, 2, 3, 5) else 'biped'
@@ -88,6 +90,9 @@ def mesh_warp(layer, source_nodes, target_nodes):
 
 
 def rig(key):
+    import animal_buddies
+    if animal_buddies.supports(key):
+        return animal_buddies.rig(key)
     if key.startswith('fantasia-'):
         import dragon_buddies
         if dragon_buddies.supports(key):
@@ -187,6 +192,9 @@ def rig(key):
 
 
 def build(key):
+    import animal_buddies
+    if animal_buddies.supports(key):
+        return animal_buddies.build(key,save_sprite,mesh_warp,solve_knee)
     if key.startswith('fantasia-'):
         import dragon_buddies
         if dragon_buddies.supports(key):

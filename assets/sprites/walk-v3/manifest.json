@@ -141,17 +141,19 @@
   },
   "dinosaurios-0": {
     "frames": 24,
-    "stride": 0.16,
+    "stride": 0.2,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-1": {
     "frames": 24,
-    "stride": 0.09166666666666667,
+    "stride": 0.08333333333333333,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-2": {
     "frames": 24,
@@ -431,10 +433,11 @@
   },
   "mascotas-0": {
     "frames": 24,
-    "stride": 0.11916666666666666,
+    "stride": 0.07291666666666667,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-1": {
     "frames": 24,
@@ -459,10 +462,11 @@
   },
   "mascotas-4": {
     "frames": 24,
-    "stride": 0.11916666666666666,
-    "anatomy": "quadruped",
-    "legs": 4,
-    "stance": 0.75
+    "stride": 0.275,
+    "anatomy": "biped",
+    "legs": 2,
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-5": {
     "frames": 24,

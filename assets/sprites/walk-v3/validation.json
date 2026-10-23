@@ -183,7 +183,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.1203
+    "loop_seam": 0.03583
   },
   {
     "character": "dinosaurios-1",
@@ -192,7 +192,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.01764
+    "loop_seam": 0.04187
   },
   {
     "character": "dinosaurios-2",
@@ -543,7 +543,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.03748
+    "loop_seam": 0.04388
   },
   {
     "character": "mascotas-1",
@@ -574,12 +574,12 @@
   },
   {
     "character": "mascotas-4",
-    "anatomy": "quadruped",
-    "legs": 4,
+    "anatomy": "biped",
+    "legs": 2,
     "frames": 24,
-    "min_supports": 3,
+    "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.04083
+    "loop_seam": 0.1933
   },
   {
     "character": "mascotas-5",

@@ -132,3 +132,23 @@ fit their body height to their limb lengths and align paws to the ground.
 An explicitly masked white background hole is removed from the purple dragon's
 generated output; the input artwork is preserved. Numeric checks do not establish
 visual approval, and partially occluded far limbs keep their original visibility.
+
+## Animal prototypes
+
+`walk-v3/animal-rigs.json` fits four source-pose rigs: the biped T. rex and
+upright raccoon, plus the quadruped Triceratops and cat. Held forepaws remain
+hands on upright pets. Each animated limb uses a distinct original texture,
+an individual hip/shoulder root, knee/elbow, ankle and paw. Foot masks include
+the original one-pixel outlines so stationary source toes cannot remain behind.
+The Triceratops has one narrowly scoped neutral background-hole exclusion;
+white fur, teeth and claws are preserved. The original atlases remain unchanged.
+
+`python tools/anatomical_buddies.py --character dinosaurios-0 --character
+dinosaurios-1 --character mascotas-0 --character mascotas-4` regenerates only
+the four prototypes. `walk-v3/animal-walk-review.html` and
+`node tools/qa_animal_buddies.cjs` show all four at twice source resolution,
+with actual travel, slow/normal speeds and both directions. The recording uses
+the production distance/stride calculation and 1.8-cycle-per-second cap.
+Chronological sheets and `animal-prototype-validation.json` accompany the movie.
+The remaining sixteen animals require individual fitting and visual acceptance;
+these prototype checks do not establish their source-limb recoverability.
