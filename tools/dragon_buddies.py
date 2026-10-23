@@ -29,6 +29,12 @@ def rig(key):
     aligned = Image.new("RGBA", (128, 128))
     aligned.alpha_composite(source, (0, shift))
     pixels = np.array(aligned)
+    # Remove only explicitly identified opaque background holes in source art.
+    for polygon in definition.get("transparent_polygons", []):
+        mask = np.zeros((128, 128), dtype=np.uint8)
+        cv2.fillPoly(mask, [(np.array(polygon, dtype=np.int32) + [0, shift]).astype(np.int32)], 255)
+        pixels[mask > 0] = 0
+    aligned = Image.fromarray(pixels)
     torso = pixels.copy()
     specs = []
     for limb in definition["limbs"]:
@@ -38,17 +44,19 @@ def rig(key):
         cv2.fillPoly(mask, [polygon.astype(np.int32)], 255)
         layer = pixels.copy()
         layer[mask == 0] = 0
+        baseline = 120 - (np.flatnonzero(layer[:, :, 3].any(axis=1))[-1] + 1) if definition.get("align_ground") else 0
         torso[mask > 0] = 0
         root, knee, ankle, paw = points
         sections = [root + [0, -6], root, knee, ankle, paw + [0, 3]]
         nodes = [[point + [-16, 0], point + [16, 0]] for point in sections]
         specs.append({**limb, "points": points, "root": root, "foot": ankle,
-                      "layer": layer, "nodes": nodes,
+                      "layer": layer, "nodes": nodes, "baseline": baseline,
                       "lengths": [np.linalg.norm(knee-root), np.linalg.norm(ankle-knee)]})
     legs = [(i, limb["offset"], limb["far"]) for i, limb in enumerate(specs)]
     # The flattened source contains isolated claws just beyond the leg masks.
     # Below the belly this area belongs exclusively to legs, never the torso.
-    torso[108 + shift:, 36:117] = 0
+    left, top, right = definition.get("clear", [36, 108, 117])
+    torso[top + shift:, left:right] = 0
     return aligned, "quadruped", torso, specs, legs, .75
 
 
@@ -61,8 +69,8 @@ def build(key, save_sprite, mesh_warp, solve_knee):
     for frame in range(FRAMES):
         phase = frame / FRAMES
         # Small four-beat weight transfer, anchored to anatomical shoulders/hips.
-        bob = 2 + .45 * (1 - math.cos(8 * math.pi * phase))
-        body_matrix = cv2.getRotationMatrix2D((75, 92), .65*math.sin(4*math.pi*phase), 1)
+        bob = definition.get("bob_base", 2) + definition.get("bob_amount", .45) * (1 - math.cos(8 * math.pi * phase))
+        body_matrix = cv2.getRotationMatrix2D(tuple(definition.get("pivot", [75, 92])), definition.get("pitch", .65)*math.sin(4*math.pi*phase), 1)
         body_matrix[1, 2] += bob
         layers, trace = [], []
         for index, offset, far in legs:
@@ -75,9 +83,9 @@ def build(key, save_sprite, mesh_warp, solve_knee):
                 velocity = -stride * (1 - stance)
                 dx = ((2*u**3-3*u*u+1)*(-amplitude) + (u**3-2*u*u+u)*velocity
                       + (-2*u**3+3*u*u)*amplitude + (u**3-u*u)*velocity)
-                dy = -lift * math.sin(math.pi*u)**2
+                dy = -limb.get("lift", lift) * math.sin(math.pi*u)**2
             root = body_matrix @ np.append(limb["root"], 1)
-            ankle = np.array([limb["rest_x"] + dx, limb["foot"][1] + dy])
+            ankle = np.array([limb["rest_x"] + dx, limb["foot"][1] + limb["baseline"] + dy])
             knee = solve_knee(root, ankle, limb["lengths"], limb["bend"])
             paw = ankle + limb["points"][3] - limb["foot"]
             sections = [root + [0, -6], root, knee, ankle, paw + [0, 3]]

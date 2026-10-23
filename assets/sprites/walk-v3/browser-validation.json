@@ -434,6 +434,11 @@
           "observed": 24
         },
         {
+          "character": "fantasia-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
           "character": "mascotas-0",
           "frames": 24,
           "observed": 24
@@ -466,6 +471,11 @@
         },
         {
           "character": "dinosaurios-1",
+          "frames": 24,
+          "observed": 24
+        },
+        {
+          "character": "fantasia-0",
           "frames": 24,
           "observed": 24
         },
@@ -506,6 +516,11 @@
           "observed": 24
         },
         {
+          "character": "fantasia-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
           "character": "mascotas-0",
           "frames": 24,
           "observed": 24
@@ -542,6 +557,11 @@
           "observed": 24
         },
         {
+          "character": "fantasia-0",
+          "frames": 24,
+          "observed": 24
+        },
+        {
           "character": "mascotas-0",
           "frames": 24,
           "observed": 24
@@ -555,8 +575,8 @@
       "speed": 10,
       "characters": 10,
       "frameCounts": [
-        24,
-        12
+        12,
+        24
       ]
     },
     {
@@ -564,8 +584,8 @@
       "speed": 40,
       "characters": 10,
       "frameCounts": [
-        24,
-        12
+        12,
+        24
       ]
     },
     {
@@ -573,8 +593,8 @@
       "speed": 100,
       "characters": 10,
       "frameCounts": [
-        24,
-        12
+        12,
+        24
       ]
     },
     {
@@ -582,8 +602,8 @@
       "speed": 0,
       "characters": 10,
       "frameCounts": [
-        24,
-        12
+        12,
+        24
       ]
     },
     {

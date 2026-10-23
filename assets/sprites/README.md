@@ -112,12 +112,23 @@ complete representative cycles at slow/normal speed in both directions.
 masked source legs replace the two generic duplicated cutouts. Fore limbs use
 shoulder, elbow, wrist and paw; hind limbs use hip, stifle, hock and paw.
 The body makes a small coherent weight transfer while support paws remain planted.
-No new limb artwork was painted. Other dragons keep their existing cycles
-until this single-character prototype passes independent visual review.
+No new limb artwork was painted. This prototype passed independent review;
+its PNG and rig remain unchanged while the other nine receive individual rigs.
 
 Regenerate only the prototype with `python tools/anatomical_buddies.py --character fantasia-0`.
 After all dragon rigs are reviewed, `--theme fantasia` restricts generation to
 dragons while preserving every other collection and its metadata. The prototype
-preview is `walk-v3/dragon-prototype.html`; `node tools/qa_dragon_buddies.cjs`
-records actual translated playback at slow/normal speeds in both directions
-and captures all chronological poses. Numeric checks do not establish visual approval.
+preview remains `walk-v3/dragon-prototype.html`. All ten are selectable in
+`walk-v3/dragon-walk-review.html`, with a full-grid view and optional joint overlay.
+`node tools/qa_dragon_buddies.cjs` records all ten visibly at twice source
+resolution, slow/normal speeds and both directions, and captures each full cycle.
+`node tools/qa_all_buddies.cjs --no-screenshots` checks all eighty sprites and
+runtime metadata without replacing other collections' review images.
+
+Each dragon has its own source masks, shoulder/hip positions and rest paws.
+The rock dragon uses shorter steps, lower lift and reduced body pitch; the
+green dragon's short far forelimb has its own lower swing lift. Other variants
+fit their body height to their limb lengths and align paws to the ground.
+An explicitly masked white background hole is removed from the purple dragon's
+generated output; the input artwork is preserved. Numeric checks do not establish
+visual approval, and partially occluded far limbs keep their original visibility.

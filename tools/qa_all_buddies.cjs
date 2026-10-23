@@ -2,6 +2,7 @@ process.env.PLAYWRIGHT_BROWSERS_PATH ||= require('node:path').resolve(__dirname,
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const base='http://localhost:5000',dest='assets/sprites/walk-v3';
+const capture=!process.argv.includes('--no-screenshots');
 const themes=['chibis','cyborgs','dinosaurios','elfos','fantasia','goblins','mascotas','monstruos'];
 
 (async()=>{
@@ -20,9 +21,9 @@ const themes=['chibis','cyborgs','dinosaurios','elfos','fantasia','goblins','mas
     return visible.map((a,i)=>({character:a.key,frames:a.meta.frames,observed:sets[i].size}));
    });
    assert.ok(observed.every(a=>a.observed>=Math.min(8,a.frames)),theme);
-   await page.screenshot({path:dest+'/browser-'+theme+'.png',fullPage:true});results.push(...observed);
+   if(capture)await page.screenshot({path:dest+'/browser-'+theme+'.png',fullPage:true});results.push(...observed);
   }
-  const representatives=['chibis-2','mascotas-0','dinosaurios-0','dinosaurios-1','cyborgs-0','cyborgs-6'],directional=[];
+  const representatives=['chibis-2','mascotas-0','dinosaurios-0','dinosaurios-1','cyborgs-0','cyborgs-6','fantasia-0'],directional=[];
   for(const speed of [4,18])for(const direction of [1,-1]){
    const observed=await page.evaluate(async({representatives,speed,direction})=>{
     $('speed').value=String(speed);$('travel').checked=false;
@@ -33,7 +34,7 @@ const themes=['chibis','cyborgs','dinosaurios','elfos','fantasia','goblins','mas
     return visible.map((a,i)=>({character:a.key,frames:a.meta.frames,observed:sets[i].size}));
    },{representatives,speed,direction});
    assert.ok(observed.every(a=>a.observed===a.frames),JSON.stringify({speed,direction,observed}));
-   await page.screenshot({path:`${dest}/browser-representatives-${speed}-${direction}.png`,fullPage:true});
+   if(capture)await page.screenshot({path:`${dest}/browser-representatives-${speed}-${direction}.png`,fullPage:true});
    directional.push({speed,direction,cycles:observed});
   }
   await page.goto(base+'/widget/stream-buddies?preview=1');

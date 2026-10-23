@@ -372,7 +372,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.0191
+    "loop_seam": 0.02374
   },
   {
     "character": "fantasia-2",
@@ -381,7 +381,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02899
+    "loop_seam": 0.02118
   },
   {
     "character": "fantasia-3",
@@ -390,7 +390,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02496
+    "loop_seam": 0.14685
   },
   {
     "character": "fantasia-4",
@@ -399,7 +399,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02374
+    "loop_seam": 0.02808
   },
   {
     "character": "fantasia-5",
@@ -408,7 +408,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.04297
+    "loop_seam": 0.01874
   },
   {
     "character": "fantasia-6",
@@ -417,7 +417,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02014
+    "loop_seam": 0.01868
   },
   {
     "character": "fantasia-7",
@@ -426,7 +426,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.03943
+    "loop_seam": 0.02234
   },
   {
     "character": "fantasia-8",
@@ -435,7 +435,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02417
+    "loop_seam": 0.164
   },
   {
     "character": "fantasia-9",
@@ -444,7 +444,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02039
+    "loop_seam": 0.02264
   },
   {
     "character": "goblins-0",

@@ -289,66 +289,75 @@
   },
   "fantasia-1": {
     "frames": 24,
-    "stride": 0.11458333333333333,
+    "stride": 0.10416666666666667,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-2": {
     "frames": 24,
-    "stride": 0.12375000000000001,
+    "stride": 0.09375,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-3": {
     "frames": 24,
-    "stride": 0.09625,
+    "stride": 0.0625,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-4": {
     "frames": 24,
-    "stride": 0.11458333333333333,
+    "stride": 0.10416666666666667,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-5": {
     "frames": 24,
-    "stride": 0.11916666666666666,
+    "stride": 0.09375,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-6": {
     "frames": 24,
-    "stride": 0.11,
+    "stride": 0.09375,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-7": {
     "frames": 24,
-    "stride": 0.12375000000000001,
+    "stride": 0.09375,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-8": {
     "frames": 24,
-    "stride": 0.11458333333333333,
+    "stride": 0.08333333333333333,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "fantasia-9": {
     "frames": 24,
-    "stride": 0.11458333333333333,
+    "stride": 0.09375,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-four-limb"
   },
   "goblins-0": {
     "frames": 24,
