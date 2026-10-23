@@ -40,8 +40,13 @@ def main():
             touchdowns=[(i,leg) for i,frame in enumerate(trace) for leg,p in enumerate(frame)
                         if p['support'] and not trace[i-1][leg]['support']]
             assert touchdowns==[(0,0),(6,1),(12,2),(18,3)],(key,'lateral footfall order')
+        if gait['anatomy']=='tripod':
+            assert gait['legs']==3 and gait['stance']==.75,(key,'tripod anatomy')
+            touchdowns=[(i,leg) for i,frame in enumerate(trace) for leg,p in enumerate(frame)
+                        if p['support'] and not trace[i-1][leg]['support']]
+            assert touchdowns==[(0,0),(8,1),(16,2)],(key,'serial tripod footfall order')
         supports=[sum(leg['support'] for leg in frame) for frame in trace]
-        assert min(supports)>=(3 if gait['legs']==4 else 1),(key,'airborne walk')
+        assert min(supports)>=(3 if gait['legs']==4 else 2 if gait['legs']==3 else 1),(key,'airborne walk')
         max_drift=0.
         for leg in range(gait['legs']):
             bones=np.array([[np.linalg.norm(np.array(f[leg]['root'])-f[leg]['knee']),np.linalg.norm(np.array(f[leg]['foot'])-f[leg]['knee'])] for f in trace])

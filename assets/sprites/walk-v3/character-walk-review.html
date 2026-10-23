@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><title>Character walking review</title><link rel="icon" href="data:,">
+<style>body{margin:16px;background:#14212b;color:#ecf3f6;font:16px system-ui}canvas{display:block;max-width:100%;height:auto;image-rendering:pixelated}nav{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:16px 0}select,button{font:inherit;padding:6px}p{color:#abc0cb}</style>
+<h1>Nine fitted characters and authored knight control</h1>
+<nav><label>Character <select id="animal"></select></label><label>Speed <select id="speed"><option value="4">Slow</option><option value="18">Normal</option></select></label><label>Direction <select id="direction"><option value="1">Right</option><option value="-1">Left</option></select></label><label><input id="grid" type="checkbox">Show all ten</label><label><input id="joints" type="checkbox">Show limb chains</label><button id="pause">Pause</button></nav>
+<p>Nine original-textured morphology prototypes. Robes retain their hems; robot pads stay rigid. Three-beat tripod timing is stylized animation, not a physical stability proof. The knight retains twelve authored frames. Playback uses production distance, stride and cycle limits.</p>
+<canvas id="playback" width="640" height="360"></canvas>
+<script>
+const $=id=>document.getElementById(id),canvas=$('playback'),ctx=canvas.getContext('2d'),actors=[];
+let manifest,tracks,ready=false,start,paused=false,speed=4,direction=1;
+Promise.all([fetch('manifest.json').then(r=>r.json()),fetch('joint-tracks.json').then(r=>r.json())]).then(async([m,t])=>{
+ manifest=m;tracks=t;
+ for(const key of ["chibis-0", "chibis-2", "chibis-1", "goblins-4", "elfos-1", "cyborgs-1", "cyborgs-2", "cyborgs-6", "cyborgs-9", "monstruos-0"]){
+  const option=document.createElement('option'),image=new Image();option.value=key;option.textContent=key;$('animal').append(option);
+  const loaded=new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject});image.src=key+'.png?v=character-walk-1';await loaded;actors.push({key,image,meta:m[key],frame:0,distance:0});
+ }
+ ready=true;requestAnimationFrame(tick);
+});
+function setCase(settings){
+ speed=settings.speed;direction=settings.direction;$('speed').value=String(speed);$('direction').value=String(direction);$('grid').checked=settings.grid;
+ canvas.width=settings.grid?1280:640;canvas.height=settings.grid?1560:360;start=performance.now();paused=false;$('pause').textContent='Pause';
+}
+for(const id of ['animal','speed','direction','grid'])$(id).onchange=()=>setCase({speed:Number($('speed').value),direction:Number($('direction').value),grid:$('grid').checked});
+$('pause').onclick=()=>{paused=!paused;$('pause').textContent=paused?'Play':'Pause';if(!paused)start=performance.now()};
+function drawSprite(c,actor,frame,x,y,dir,overlay=false){
+ c.save();c.translate(x+(dir<0?256:0),y);c.scale(dir*2,2);c.imageSmoothingEnabled=false;c.drawImage(actor.image,frame*128,0,128,128,0,0,128,128);
+ if(overlay&&!actor.meta.authored)for(const leg of tracks[actor.key][frame]){
+  c.strokeStyle=leg.name.endsWith('hind')?'#72edff':'#ff90d5';c.lineWidth=.8;c.beginPath();c.moveTo(...leg.root);c.lineTo(...leg.knee);c.lineTo(...leg.foot);c.lineTo(...leg.paw);c.stroke();
+ }
+ c.restore();
+}
+function tick(now){
+ if(start===undefined)start=now;
+ if(!paused){
+  const elapsed=Math.max(0,(now-start)/1000),visible=$('grid').checked?actors:actors.filter(a=>a.key===$('animal').value);
+  ctx.fillStyle='#14212b';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#ecf3f6';ctx.font='20px system-ui';ctx.fillText(`${speed===4?'Slow':'Normal'} · ${direction>0?'right':'left'} · distance-coupled playback`,18,30);
+  visible.forEach((actor,i)=>{
+   const px=$('grid').checked?(i%2)*640:0,py=60+Math.floor(i/2)*300;
+   actor.distance=elapsed*Math.min(speed,actor.meta.stride*128*1.8);actor.frame=Math.floor(((actor.distance/(actor.meta.stride*128))%1)*actor.meta.frames);
+   const travel=(actor.distance*2)%340,x=px+(direction>0?20+travel:364-travel);
+   ctx.fillStyle='#abc0cb';ctx.font='16px system-ui';ctx.fillText(`${actor.key} · pose ${actor.frame}`,px+18,py+24);ctx.fillStyle='#537282';ctx.fillRect(px+10,py+276,620,1);
+   drawSprite(ctx,actor,actor.frame,x,py+36,direction,$('joints').checked);
+  });
+ }
+ requestAnimationFrame(tick);
+}
+function chronologicalSheet(key){
+ const actor=actors.find(a=>a.key===key),sheet=document.createElement('canvas');sheet.width=1536;sheet.height=Math.ceil(actor.meta.frames/6)*300;const c=sheet.getContext('2d');c.fillStyle='#20313b';c.fillRect(0,0,sheet.width,sheet.height);
+ for(let frame=0;frame<actor.meta.frames;frame++){
+  const x=(frame%6)*256,y=Math.floor(frame/6)*300,swing=tracks[key]?.[frame]?.find(leg=>!leg.support);
+  c.font='15px system-ui';c.fillStyle='#eaf3f6';c.fillText(`${key} · ${String(frame).padStart(2,'0')} · ${swing?.name||'support'}`,x+7,y+21);
+  c.fillStyle='#537282';c.fillRect(x,y+276,256,1);drawSprite(c,actor,frame,x,y+36,1);
+ }
+ return sheet.toDataURL('image/png').split(',')[1];
+}
+</script></html>

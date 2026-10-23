@@ -172,3 +172,28 @@ and `animal-walk-validation.json` cover slow/normal speed in both directions.
 The committed `animal-prototype-*` proof remains unchanged. Regenerate the
 sixteen additions with repeated `--character` selectors to retain those four
 accepted prototypes and all other collections byte-for-byte.
+
+## Character morphology gate
+
+`walk-v3/character-rigs.json` fits nine original-pose prototypes: chibis-1/2,
+goblins-4, elfos-1, cyborgs-1/2/6/9 and monstruos-0. The separate character
+renderer preserves actual boot/pad pixels with rigid translations while the
+source-textured chain above each fitted collar bends. Robes keep their complete
+decorated hems over concealed chains; the two original boots step behind them.
+Every mask is individually fitted, including the original calf/toe outlines.
+No new artwork, cloned limbs or blanket bright-pixel cleanup is used.
+
+Cyborgs-6 uses four distinct radial source chains. Cyborgs-9 has three actual
+support pads and serial touchdown frames 0/8/16, stance .75 and at least two
+planted supports. The restrained three-beat transfer is a stylized gait, not a
+physical balancing certification. The authored chibis-0 remains unchanged.
+
+Repeat `--character` for the nine keys with `tools/anatomical_buddies.py`;
+selected generation preserves the other 71 metadata/trace entries.
+`walk-v3/character-walk-review.html` shows all nine plus the twelve-frame knight
+control at twice source size, actual translation, both directions and speeds
+4/18. `node tools/qa_character_buddies.cjs` records all forty complete cases,
+per-character chronological sheets and a WebM using production stride/cap
+behavior. Variable-rate recordings require sequential timestamp decoding; a
+decoder's nominal FPS is not measured capture throughput.
+The other forty mutable characters require their later rollout gate.

@@ -51,7 +51,7 @@ def anatomy(key):
     if theme == 'cyborgs' and number == 6:
         return 'quadruped'
     if theme == 'cyborgs' and number == 9:
-        return 'quadruped'
+        return 'tripod'
     if (theme == 'elfos' and number in (1, 3, 4, 9)) or (theme == 'chibis' and number == 1):
         return 'robed'
     if theme == 'monstruos' and number == 0:
@@ -90,6 +90,9 @@ def mesh_warp(layer, source_nodes, target_nodes):
 
 
 def rig(key):
+    import character_buddies
+    if character_buddies.supports(key):
+        return character_buddies.rig(key)
     import animal_buddies
     if animal_buddies.supports(key):
         return animal_buddies.rig(key)
@@ -192,6 +195,9 @@ def rig(key):
 
 
 def build(key):
+    import character_buddies
+    if character_buddies.supports(key):
+        return character_buddies.build(key,save_sprite,mesh_warp,solve_knee)
     import animal_buddies
     if animal_buddies.supports(key):
         return animal_buddies.build(key,save_sprite,mesh_warp,solve_knee)

@@ -12,7 +12,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.19659
+    "loop_seam": 0.00836
   },
   {
     "character": "chibis-2",
@@ -21,7 +21,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.16382
+    "loop_seam": 0.17279
   },
   {
     "character": "chibis-3",
@@ -102,7 +102,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.08459
+    "loop_seam": 0.03558
   },
   {
     "character": "cyborgs-2",
@@ -111,7 +111,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.23401
+    "loop_seam": 0.05023
   },
   {
     "character": "cyborgs-3",
@@ -147,7 +147,7 @@
     "frames": 24,
     "min_supports": 3,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.04651
+    "loop_seam": 0.04041
   },
   {
     "character": "cyborgs-7",
@@ -169,12 +169,12 @@
   },
   {
     "character": "cyborgs-9",
-    "anatomy": "quadruped",
-    "legs": 4,
+    "anatomy": "tripod",
+    "legs": 3,
     "frames": 24,
-    "min_supports": 3,
+    "min_supports": 2,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.04413
+    "loop_seam": 0.04736
   },
   {
     "character": "dinosaurios-0",
@@ -282,7 +282,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.21686
+    "loop_seam": 0.00256
   },
   {
     "character": "elfos-2",
@@ -489,7 +489,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.16559
+    "loop_seam": 0.17426
   },
   {
     "character": "goblins-5",
@@ -633,7 +633,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.26392
+    "loop_seam": 0.2392
   },
   {
     "character": "monstruos-1",

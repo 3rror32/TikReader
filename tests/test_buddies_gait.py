@@ -30,7 +30,7 @@ def test_biped_pelvis_descends_after_contact_then_rises_before_next_contact(cycl
     assert contact == pytest.approx(next_contact)
 
 
-@pytest.mark.parametrize("character", ["mascotas-0", "fantasia-0", "dinosaurios-1", "cyborgs-9"])
+@pytest.mark.parametrize("character", ["mascotas-0", "fantasia-0", "dinosaurios-1", "cyborgs-6"])
 def test_quadruped_walk_uses_lateral_four_beat_touchdowns(cycle, character):
     _, meta, tracks = cycle(character)
     # Layer order: far hind, far fore, near hind, near fore. A lateral walk
