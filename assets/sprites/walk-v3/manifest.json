@@ -24,59 +24,52 @@
   },
   "chibis-3": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "chibis-4": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "chibis-5": {
     "frames": 24,
-    "stride": 0.2,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "chibis-6": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "chibis-7": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "chibis-8": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "chibis-9": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "cyborgs-0": {
     "frames": 24,
@@ -385,35 +378,31 @@
   },
   "goblins-0": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "goblins-1": {
     "frames": 24,
-    "stride": 0.15,
-    "anatomy": "robed",
+    "stride": 0.22000000000000003,
+    "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "goblins-2": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "goblins-3": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "goblins-4": {
     "frames": 24,
@@ -425,43 +414,38 @@
   },
   "goblins-5": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.23000000000000004,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "goblins-6": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.24000000000000005,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "goblins-7": {
     "frames": 24,
-    "stride": 0.175,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "goblins-8": {
     "frames": 24,
-    "stride": 0.15,
+    "stride": 0.25,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "goblins-9": {
     "frames": 24,
-    "stride": 0.15,
-    "anatomy": "robed",
+    "stride": 0.25,
+    "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625,
-    "rig": "explicit-character-limbs"
+    "stance": 0.625
   },
   "mascotas-0": {
     "frames": 24,

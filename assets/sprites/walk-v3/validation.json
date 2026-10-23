@@ -30,7 +30,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02539
+    "loop_seam": 0.20239
   },
   {
     "character": "chibis-4",
@@ -39,7 +39,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02802
+    "loop_seam": 0.18793
   },
   {
     "character": "chibis-5",
@@ -48,7 +48,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.03845
+    "loop_seam": 0.18164
   },
   {
     "character": "chibis-6",
@@ -57,7 +57,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.0257
+    "loop_seam": 0.18304
   },
   {
     "character": "chibis-7",
@@ -66,7 +66,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02203
+    "loop_seam": 0.18219
   },
   {
     "character": "chibis-8",
@@ -75,7 +75,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02716
+    "loop_seam": 0.15411
   },
   {
     "character": "chibis-9",
@@ -84,7 +84,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.01886
+    "loop_seam": 0.18518
   },
   {
     "character": "cyborgs-0",
@@ -453,16 +453,16 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.03558
+    "loop_seam": 0.19043
   },
   {
     "character": "goblins-1",
-    "anatomy": "robed",
+    "anatomy": "biped",
     "legs": 2,
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.00665
+    "loop_seam": 0.13141
   },
   {
     "character": "goblins-2",
@@ -471,7 +471,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02722
+    "loop_seam": 0.2132
   },
   {
     "character": "goblins-3",
@@ -480,7 +480,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02368
+    "loop_seam": 0.20074
   },
   {
     "character": "goblins-4",
@@ -498,7 +498,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.01996
+    "loop_seam": 0.16602
   },
   {
     "character": "goblins-6",
@@ -507,7 +507,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02393
+    "loop_seam": 0.19452
   },
   {
     "character": "goblins-7",
@@ -516,7 +516,7 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.02051
+    "loop_seam": 0.21631
   },
   {
     "character": "goblins-8",
@@ -525,16 +525,16 @@
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.01636
+    "loop_seam": 0.17462
   },
   {
     "character": "goblins-9",
-    "anatomy": "robed",
+    "anatomy": "biped",
     "legs": 2,
     "frames": 24,
     "min_supports": 1,
     "planted_foot_drift": 0.0,
-    "loop_seam": 0.01672
+    "loop_seam": 0.21539
   },
   {
     "character": "mascotas-0",
