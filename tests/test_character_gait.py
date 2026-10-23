@@ -7,7 +7,9 @@ import pytest
 spec = importlib.util.spec_from_file_location('character_generator', Path(__file__).resolve().parents[1]/'tools/anatomical_buddies.py')
 generator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(generator)
-CHARACTERS = {'chibis-2':2,'chibis-1':2,'goblins-4':2,'elfos-1':2,'cyborgs-1':2,'cyborgs-2':2,'cyborgs-6':4,'cyborgs-9':3,'monstruos-0':2}
+PROTOTYPES = {'chibis-2':2,'chibis-1':2,'goblins-4':2,'elfos-1':2,'cyborgs-1':2,'cyborgs-2':2,'cyborgs-6':4,'cyborgs-9':3,'monstruos-0':2}
+ROLLOUT = {**{f'chibis-{i}':2 for i in range(3,10)}, **{f'goblins-{i}':2 for i in range(10) if i!=4}}
+CHARACTERS = {**PROTOTYPES, **ROLLOUT}
 
 @pytest.mark.parametrize('key,count', CHARACTERS.items())
 def test_individual_chains_have_original_source_provenance_and_clear_old_feet(key,count):
@@ -105,3 +107,42 @@ def test_original_boot_collar_and_pad_are_rigid_pixel_translations(monkeypatch,k
 def test_inspected_diagonal_upper_boot_outlines_follow_their_leg(key,region):
     left,top,right,bottom=region
     assert not generator.rig(key)[2][top:bottom,left:right,3].any()
+
+@pytest.mark.parametrize('key,left,right', [
+    ('chibis-3',(31,105,51,120),(66,105,91,120)),
+    ('chibis-4',(31,107,49,120),(66,106,88,120)),
+    ('chibis-5',(35,104,56,120),(69,105,95,120)),
+    ('chibis-6',(23,106,42,119),(57,108,80,121)),
+    ('chibis-7',(39,109,55,120),(69,109,91,120)),
+    ('chibis-8',(25,109,43,120),(60,111,83,122)),
+    ('chibis-9',(35,110,51,120),(66,110,88,120)),
+    ('goblins-0',(32,108,52,120),(71,106,95,120)),
+    ('goblins-1',(25,111,45,121),(64,111,84,121)),
+    ('goblins-2',(21,110,42,120),(63,111,88,120)),
+    ('goblins-3',(29,110,49,120),(74,110,99,120)),
+    ('goblins-5',(29,108,46,120),(71,108,93,120)),
+    ('goblins-6',(39,110,57,121),(79,110,103,121)),
+    ('goblins-7',(30,109,51,121),(68,109,94,121)),
+    ('goblins-8',(28,110,48,121),(66,110,88,121)),
+    ('goblins-9',(32,110,53,121),(75,109,97,121)),
+])
+def test_rollout_original_calf_and_toe_outline_moves_with_each_chain(key,left,right):
+    import character_buddies
+    assert character_buddies.supports(key), 'An explicit original-pixel rig is required.'
+    torso=character_buddies.rig(key)[2]
+    for x0,y0,x1,y1 in (left,right):
+        assert not torso[y0:y1,x0:x1,3].any(), 'Original toes must not remain stationary.'
+
+@pytest.mark.parametrize('key,region', [
+    ('chibis-3',(83,102,89,105)),('chibis-4',(51,102,56,106)),
+    ('chibis-5',(84,99,87,104)),('chibis-6',(47,101,51,106)),
+    ('chibis-7',(82,105,89,108)),('chibis-8',(75,106,82,108)),
+    ('chibis-9',(80,106,86,108)),('goblins-0',(99,104,105,110)),
+    ('goblins-1',(77,109,81,111)),('goblins-2',(44,105,47,108)),
+    ('goblins-3',(91,106,97,108)),('goblins-5',(26,112,28,116)),
+    ('goblins-6',(91,105,96,108)),('goblins-7',(82,106,91,108)),
+    ('goblins-8',(81,107,86,109)),('goblins-9',(90,105,95,108)),
+])
+def test_inspected_rollout_diagonal_calf_and_toe_edges_are_not_in_torso(key,region):
+    x0,y0,x1,y1=region
+    assert not generator.rig(key)[2][y0:y1,x0:x1,3].any()

@@ -1,0 +1,85 @@
+{
+  "theme": "chibis",
+  "frames": 2880,
+  "requestedFps": 60,
+  "decoderReportedFps": 60.0,
+  "duration": 52.085,
+  "averageDecodedFps": 55.29423058462129,
+  "samples": [
+    {
+      "seconds": 3.154,
+      "requestedSeconds": 3.1482849999996834,
+      "speed": 4,
+      "direction": 1
+    },
+    {
+      "seconds": 10.521,
+      "requestedSeconds": 10.494049999999813,
+      "speed": 4,
+      "direction": 1
+    },
+    {
+      "seconds": 17.853,
+      "requestedSeconds": 17.839814999999945,
+      "speed": 4,
+      "direction": 1
+    },
+    {
+      "seconds": 24.153000000000002,
+      "requestedSeconds": 24.13616499999994,
+      "speed": 4,
+      "direction": -1
+    },
+    {
+      "seconds": 31.486,
+      "requestedSeconds": 31.479549999999815,
+      "speed": 4,
+      "direction": -1
+    },
+    {
+      "seconds": 38.835,
+      "requestedSeconds": 38.822934999999674,
+      "speed": 4,
+      "direction": -1
+    },
+    {
+      "seconds": 42.735,
+      "requestedSeconds": 42.73114500000011,
+      "speed": 18,
+      "direction": 1
+    },
+    {
+      "seconds": 44.519,
+      "requestedSeconds": 44.50365000000037,
+      "speed": 18,
+      "direction": 1
+    },
+    {
+      "seconds": 46.28500000000001,
+      "requestedSeconds": 46.276155000000635,
+      "speed": 18,
+      "direction": 1
+    },
+    {
+      "seconds": 47.802,
+      "requestedSeconds": 47.79602000000011,
+      "speed": 18,
+      "direction": -1
+    },
+    {
+      "seconds": 49.585,
+      "requestedSeconds": 49.56940000000037,
+      "speed": 18,
+      "direction": -1
+    },
+    {
+      "seconds": 51.351,
+      "requestedSeconds": 51.34278000000063,
+      "speed": 18,
+      "direction": -1
+    }
+  ],
+  "characters": 10,
+  "sampledOnly": true,
+  "continuousViewing": false
+}

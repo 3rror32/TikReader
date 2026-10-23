@@ -197,3 +197,5 @@ per-character chronological sheets and a WebM using production stride/cap
 behavior. Variable-rate recordings require sequential timestamp decoding; a
 decoder's nominal FPS is not measured capture throughput.
 The other forty mutable characters require their later rollout gate.
+
+WALK-7 adds individually fitted original-pixel chains for chibis 3-9 and goblins 0-3 and 5-9. Source boot collars and pads translate rigidly while the original upper chains bend; props, aprons, coat hems, and the mechanic's detached wrench pieces stay attached. The accepted nine prototypes and twelve-frame authored knight remain unchanged. The local character review accepts `?theme=chibis` or `?theme=goblins` and optional `&select=chibis-5`; it defaults to chibis. Run `node tools/qa_character_buddies.cjs chibis` and `node tools/qa_character_buddies.cjs goblins` for separate ten-actor, twice-source-size recordings with all four production-speed/direction cases. `character-walk-<theme>-*` proof is separate from the frozen `character-prototype-*` evidence.
