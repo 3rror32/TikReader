@@ -152,3 +152,23 @@ the production distance/stride calculation and 1.8-cycle-per-second cap.
 Chronological sheets and `animal-prototype-validation.json` accompany the movie.
 The remaining sixteen animals require individual fitting and visual acceptance;
 these prototype checks do not establish their source-limb recoverability.
+
+All twenty dinosaurs and pets now have individual explicit rigs. Dinosaurs
+0/4/6/7/8/9 and pets 3/4/7/8 are bipeds; the others are quadrupeds. Selected
+alternate original poses recover occluded far forelimbs for the stegosaur,
+long-neck dinosaur, corgi and rabbit. The clean long-neck base uses pose 3.
+Source forepaws remain held hands on the four upright pets.
+
+The hedgehog keeps its original body and three drawn limb regions. Its fourth,
+far-hind limb is new generated artwork in
+`animal-art/mascotas-6-far-hind-v1.png`; the matching prompt sidecar records its
+provenance. The raw 1254-square transparent image remains unchanged. Native
+nearest-neighbor import fits a 128-square logical cell, with a narrow component
+mask excluding faint stray alpha and a two-pixel upward placement adjustment.
+
+The animal review and QA now show all twenty at twice source resolution in a
+1280-by-3060 canvas. `animal-walk-playback.webm`, twenty chronological sheets
+and `animal-walk-validation.json` cover slow/normal speed in both directions.
+The committed `animal-prototype-*` proof remains unchanged. Regenerate the
+sixteen additions with repeated `--character` selectors to retain those four
+accepted prototypes and all other collections byte-for-byte.

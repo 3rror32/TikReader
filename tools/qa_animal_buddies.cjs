@@ -4,15 +4,15 @@ const dest='assets/sprites/walk-v3',url='http://127.0.0.1:5000/static/stream-bud
 (async()=>{
  const browser=await chromium.launch({headless:true});
  try{
-  const page=await browser.newPage({viewport:{width:1320,height:1000}}),errors=[],httpErrors=[];
+  const page=await browser.newPage({viewport:{width:1320,height:3400}}),errors=[],httpErrors=[];
   page.on('pageerror',error=>errors.push(error.message));page.on('response',response=>{if(response.status()>=400)httpErrors.push({url:response.url(),status:response.status()})});
-  await page.goto(url);await page.waitForFunction(()=>ready&&actors.length===4);
+  await page.goto(url);await page.waitForFunction(()=>ready&&actors.length===20);
   await page.evaluate(()=>setCase({speed:4,direction:1,grid:true}));
-  const bounds=await page.locator('canvas').boundingBox();assert.ok(bounds.y+bounds.height<=1000,'Every animal prototype must be visible in the recording viewport.');
+  const bounds=await page.locator('canvas').boundingBox();assert.ok(bounds.y+bounds.height<=3400,'Every animal prototype must be visible in the recording viewport.');
   const result=await page.evaluate(async()=>{
-   // Every case shows all four actual sprites at twice source resolution.
+   // Every case shows all twenty actual sprites at twice source resolution.
    const cases=[];
-   const chunks=[],recorder=new MediaRecorder(canvas.captureStream(60),{mimeType:'video/webm;codecs=vp8',videoBitsPerSecond:12000000});
+   const chunks=[],recorder=new MediaRecorder(canvas.captureStream(60),{mimeType:'video/webm;codecs=vp8',videoBitsPerSecond:18000000});
    recorder.ondataavailable=event=>{if(event.data.size)chunks.push(event.data)};
    const recording=new Promise(resolve=>recorder.onstop=async()=>{
     const bytes=new Uint8Array(await new Blob(chunks,{type:'video/webm'}).arrayBuffer());let text='';
@@ -32,10 +32,10 @@ const dest='assets/sprites/walk-v3',url='http://127.0.0.1:5000/static/stream-bud
    return {video,cases};
   });
   assert.ok(result.cases.every(c=>c.cycles.every(a=>a.observed.length===24&&a.distance>20)),JSON.stringify(result.cases));assert.deepEqual(errors,[]);assert.deepEqual(httpErrors,[]);
-  fs.writeFileSync(dest+'/animal-prototype-playback.webm',Buffer.from(result.video,'base64'));
-  for(const key of ["dinosaurios-0","dinosaurios-1","mascotas-0","mascotas-4"])fs.writeFileSync(`${dest}/animal-prototype-${key}-poses.png`,Buffer.from(await page.evaluate(key=>chronologicalSheet(key),key),'base64'));
-  await page.screenshot({path:dest+'/animal-prototype-browser.png',fullPage:true});
-  const report={characters:4,visibleCanvas:bounds,cases:result.cases,errors,httpErrors,preview:url};
-  fs.writeFileSync(dest+'/animal-prototype-validation.json',JSON.stringify(report,null,2));console.log(JSON.stringify({characters:4,cases:4,completeCycles:16,errors,httpErrors}));
+  fs.writeFileSync(dest+'/animal-walk-playback.webm',Buffer.from(result.video,'base64'));
+  for(const key of ["dinosaurios","mascotas"].flatMap(theme=>Array.from({length:10},(_,i)=>`${theme}-${i}`)))fs.writeFileSync(`${dest}/animal-walk-${key}-poses.png`,Buffer.from(await page.evaluate(key=>chronologicalSheet(key),key),'base64'));
+  await page.screenshot({path:dest+'/animal-walk-browser.png',fullPage:true});
+  const report={characters:20,visibleCanvas:bounds,cases:result.cases,errors,httpErrors,preview:url};
+  fs.writeFileSync(dest+'/animal-walk-validation.json',JSON.stringify(report,null,2));console.log(JSON.stringify({characters:20,cases:4,completeCycles:80,errors,httpErrors}));
  }finally{await browser.close()}
 })().catch(error=>{console.error(error);process.exitCode=1});

@@ -11,6 +11,46 @@ spec = importlib.util.spec_from_file_location(
 generator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(generator)
 PROTOTYPES = {"dinosaurios-0": 2, "dinosaurios-1": 4, "mascotas-0": 4, "mascotas-4": 2}
+ANIMALS = {**{f"dinosaurios-{i}": (4 if i in (1, 2, 3, 5) else 2) for i in range(10)},
+           **{f"mascotas-{i}": (2 if i in (3, 4, 7, 8) else 4) for i in range(10)}}
+
+
+@pytest.mark.parametrize("key,count", ANIMALS.items())
+def test_every_animal_has_explicit_individual_source_limbs(key, count):
+    import animal_buddies
+    assert animal_buddies.supports(key), key
+    _, kind, _, limbs, legs, _ = generator.rig(key)
+    assert kind == ("quadruped" if count == 4 else "biped")
+    assert len(limbs) == len(legs) == count
+    assert len({limb["layer"].tobytes() for limb in limbs}) == count
+    assert all(np.count_nonzero(limb["layer"][:, :, 3]) >= 12 for limb in limbs)
+
+
+def test_hedgehog_imports_the_new_far_hind_component_without_erasing_its_body():
+    import animal_buddies
+    assert animal_buddies.supports("mascotas-6")
+    source, _, torso, limbs, _, _ = generator.rig("mascotas-6")
+    added = [limb for limb in limbs if limb.get("texture")]
+    assert len(added) == 1 and added[0]["name"] == "far_hind"
+    assert added[0]["layer"][:, :, 3].max() > 200
+    original_masks = np.logical_or.reduce([limb["mask"] > 0 for limb in limbs if not limb.get("texture")])
+    assert np.array_equal(np.array(source)[~original_masks], torso[~original_masks])
+
+
+@pytest.mark.parametrize("key", [key for key in ANIMALS if key not in PROTOTYPES])
+def test_recovered_source_joint_bends_are_not_mirrored(key):
+    for limb in generator.rig(key)[3]:
+        root, knee, ankle, _ = limb["points"]
+        delta = ankle-root
+        assert np.dot(knee-root, [delta[1], -delta[0]])*limb["bend"] >= 0
+
+
+def test_long_neck_tail_remains_attached_through_the_whole_cycle(monkeypatch):
+    from scipy import ndimage
+    monkeypatch.setattr(generator, "save_sprite", lambda *args, **kwargs: None)
+    for frame in generator.build("dinosaurios-3")[0]:
+        labels, _ = ndimage.label(np.array(frame)[:, :, 3] > 127)
+        assert np.count_nonzero(np.bincount(labels.ravel())[1:] > 20) == 1
 
 
 def test_triceratops_does_not_carry_opaque_background_between_its_legs():
@@ -24,6 +64,9 @@ def test_triceratops_does_not_carry_opaque_background_between_its_legs():
     ("dinosaurios-0", (39, 105, 81)), ("dinosaurios-1", (35, 105, 108)),
     ("mascotas-0", (26, 102, 104)), ("mascotas-4", (48, 109, 106)),
     ("mascotas-4", (70, 104, 106)),
+    ("mascotas-3", (42, 106, 69)), ("mascotas-7", (33, 106, 69)),
+    ("mascotas-8", (24, 109, 54)),
+    ("dinosaurios-9", (35, 99, 63)),
 ])
 def test_torso_contains_no_stationary_calf_or_toe_outlines(key, region):
     left, top, right = region
@@ -57,7 +100,7 @@ def test_animal_limbs_are_unique_drawn_textures_and_torso_has_no_old_feet(key, c
         assert np.array_equal(limb["layer"][limb["mask"] > 0], np.array(source)[limb["mask"] > 0])
 
 
-@pytest.mark.parametrize("key,count", PROTOTYPES.items())
+@pytest.mark.parametrize("key,count", ANIMALS.items())
 def test_animals_render_reachable_moving_paws_and_bipeds_pass_under_pelvis(monkeypatch, key, count):
     monkeypatch.setattr(generator, "save_sprite", lambda *args, **kwargs: None)
     frames, meta, traces = generator.build(key)

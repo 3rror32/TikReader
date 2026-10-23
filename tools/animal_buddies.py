@@ -48,6 +48,9 @@ def rig(key):
     aligned.alpha_composite(source, (0, shift))
     pixels = np.array(aligned)
     torso = pixels.copy()
+    protected = np.zeros((128, 128), dtype=np.uint8)
+    for polygon in definition.get("preserve_polygons", []):
+        cv2.fillPoly(protected, [np.array(polygon, dtype=np.int32) + [0, shift]], 255)
     limbs = []
     for limb in definition["limbs"]:
         points = np.array(limb["points"], dtype=float) + [0, shift]
@@ -57,9 +60,23 @@ def rig(key):
         # one-pixel dark edges that extend beyond the main calf silhouette.
         left, top, right, bottom = limb["foot_region"]
         mask[top+shift:bottom+shift, left:right] = 255
+        mask[protected > 0] = 0
         layer = pixels.copy()
+        if "texture" in limb:
+            part = Image.open(DEST / limb["texture"]).convert("RGBA").resize((128, 128), Image.Resampling.NEAREST)
+            placed = Image.new("RGBA", (128, 128))
+            dx, dy = limb.get("texture_shift", [0, 0])
+            placed.alpha_composite(part, (dx, dy+shift))
+            layer = np.array(placed)
+        elif "source_pose" in limb:
+            index = limb["source_pose"]
+            part = atlas.crop((index*128, 0, (index+1)*128, 128))
+            placed = Image.new("RGBA", (128, 128))
+            placed.alpha_composite(part, (0, shift))
+            layer = np.array(placed)
         layer[mask == 0] = 0
-        torso[mask > 0] = 0
+        if not limb.get("texture") and "source_pose" not in limb:
+            torso[mask > 0] = 0
         root, knee, ankle, paw = points
         top = limb.get("cap", 6)
         sections = [root + [0, -top], root, knee, ankle, paw + [0, 4]]
@@ -97,7 +114,7 @@ def render(key, mesh_warp, solve_knee):
                 dx = ((2*u**3-3*u*u+1)*(-amplitude) + (u**3-2*u*u+u)*velocity
                       + (-2*u**3+3*u*u)*amplitude + (u**3-u*u)*velocity)
                 dy = -limb.get("lift", lift)*math.sin(math.pi*u)**2
-            root = limb["root"] + [0, bob]
+            root = np.array(limb.get("target_root", limb["root"]), dtype=float) + [0, bob]
             if "hip_spacing" in definition:
                 root[0] = pelvis + (-.5 if far else .5)*definition["hip_spacing"]
             rest_x = pelvis if kind == "biped" else limb["rest_x"]

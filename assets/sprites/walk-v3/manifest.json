@@ -157,59 +157,67 @@
   },
   "dinosaurios-2": {
     "frames": 24,
-    "stride": 0.09625,
+    "stride": 0.08333333333333333,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-3": {
     "frames": 24,
-    "stride": 0.13749999999999998,
+    "stride": 0.07291666666666667,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-4": {
     "frames": 24,
-    "stride": 0.14,
+    "stride": 0.175,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-5": {
     "frames": 24,
-    "stride": 0.07791666666666668,
+    "stride": 0.07291666666666667,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-6": {
     "frames": 24,
-    "stride": 0.22000000000000003,
+    "stride": 0.2,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-7": {
     "frames": 24,
-    "stride": 0.21000000000000002,
+    "stride": 0.2,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-8": {
     "frames": 24,
-    "stride": 0.17,
+    "stride": 0.2,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "dinosaurios-9": {
     "frames": 24,
-    "stride": 0.17,
+    "stride": 0.175,
     "anatomy": "biped",
     "legs": 2,
-    "stance": 0.625
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "elfos-0": {
     "frames": 24,
@@ -441,24 +449,27 @@
   },
   "mascotas-1": {
     "frames": 24,
-    "stride": 0.11916666666666666,
+    "stride": 0.0625,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-2": {
     "frames": 24,
-    "stride": 0.15125,
+    "stride": 0.05833333333333333,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-3": {
     "frames": 24,
-    "stride": 0.14208333333333334,
-    "anatomy": "quadruped",
-    "legs": 4,
-    "stance": 0.75
+    "stride": 0.25,
+    "anatomy": "biped",
+    "legs": 2,
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-4": {
     "frames": 24,
@@ -470,38 +481,43 @@
   },
   "mascotas-5": {
     "frames": 24,
-    "stride": 0.11916666666666666,
+    "stride": 0.0625,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-6": {
     "frames": 24,
-    "stride": 0.13749999999999998,
+    "stride": 0.052083333333333336,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-7": {
     "frames": 24,
-    "stride": 0.11,
-    "anatomy": "quadruped",
-    "legs": 4,
-    "stance": 0.75
+    "stride": 0.25,
+    "anatomy": "biped",
+    "legs": 2,
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-8": {
     "frames": 24,
-    "stride": 0.15125,
-    "anatomy": "quadruped",
-    "legs": 4,
-    "stance": 0.75
+    "stride": 0.225,
+    "anatomy": "biped",
+    "legs": 2,
+    "stance": 0.625,
+    "rig": "explicit-animal-limbs"
   },
   "mascotas-9": {
     "frames": 24,
-    "stride": 0.13749999999999998,
+    "stride": 0.07291666666666667,
     "anatomy": "quadruped",
     "legs": 4,
-    "stance": 0.75
+    "stance": 0.75,
+    "rig": "explicit-animal-limbs"
   },
   "monstruos-0": {
     "frames": 24,
