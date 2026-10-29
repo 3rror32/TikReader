@@ -10,7 +10,7 @@ import time
 from collections import OrderedDict, deque
 from flask import jsonify, request
 from minecraft_bedrock import BedrockBridge
-from minecraft_presets import PresetJob, catalog, commands_for, mappings, limits, name_format, donor_name
+from minecraft_presets import PresetJob, catalog, commands_for, mappings, limits, name_format, donor_name, command_cost, is_spawn
 
 logger = logging.getLogger(__name__)
 
@@ -126,17 +126,17 @@ class MinecraftConnector:
             while len(self.final_gifts) > 1000:self.final_gifts.popitem(last=False)
             selected = self.matching_presets(str(record.get('gift_id', '')))
             if selected:
-                self.admit_presets(selected, record.get('user'), automatic=True)
+                self.admit_presets(selected, record.get('user'), automatic=True, gift_count=record.get('count', 1))
 
     def matching_presets(self, gift_id):
         return tuple(key for key, row in mappings(self.config.get('presets')).items()
                      if row['enabled'] and row['gift_id'] == gift_id)
 
     def enqueue_preset(self, preset_id, automatic=False):
-        commands_for(preset_id, self.edition)  # Validate immutable IDs even when admission is blocked.
+        command_cost(preset_id, None, 1)  # Validate IDs without building commands.
         return self.admit_presets((preset_id,), 'Prueba', automatic)
 
-    def admit_presets(self, selected, donor, automatic=False):
+    def admit_presets(self, selected, donor, automatic=False, gift_count=1):
         with self.preset_lock:
             now = time.monotonic()
             settings = limits(self.config.get('limits'))
@@ -148,12 +148,12 @@ class MinecraftConnector:
                 self.preset_owner = None
             self.preset_usage = deque(entry for entry in self.preset_usage
                                       if entry['finished'] is None or now - entry['finished'] < 60)
-            commands, labels = [], []
+            if type(gift_count) is not int or not 1 <= gift_count <= 1_000_000:
+                self.admission_reason = 'Cantidad de regalos inválida. Activación descartada.'
+                self.note(self.admission_reason, outcome='cancelled', alias='regalo', response='')
+                return False
             rows = mappings(self.config.get('presets'))
-            for key in selected:
-                sequence = commands_for(key, self.edition, donor, self.config.get('name_format', 'modern'))
-                commands.extend(sequence)
-                labels.extend([key] * len(sequence))
+            cost = sum(command_cost(key, rows[key].get('quantity'), gift_count) for key in selected)
             reason = ''
             if not selected:reason = 'No hay acciones activas para este regalo.'
             elif (not self.authorized_now() or self.r.production.settings['emergency'] or
@@ -165,17 +165,25 @@ class MinecraftConnector:
                 reason = 'Hay una acción pendiente o en ejecución. Regalo descartado.'
             elif self.last_preset_at is not None and now - self.last_preset_at < settings['interval']:
                 reason = 'Espera el intervalo mínimo. Regalo descartado.'
-            elif sum(entry['cost'] for entry in self.preset_usage) + len(commands) > settings['per_minute']:
+            elif sum(entry['cost'] for entry in self.preset_usage) + cost > settings['per_minute']:
                 reason = 'Límite de efectos por minuto alcanzado. Regalo descartado.'
             if reason:
                 self.admission_reason = reason
                 self.note(reason, outcome='cancelled', alias='regalo', response='')
                 return False
+            commands, labels = [], []
+            for key in selected:
+                sequence = commands_for(key, self.edition, donor, self.config.get('name_format', 'modern'),
+                                        quantity=rows[key].get('quantity'))
+                repeats = gift_count if is_spawn(key) else 1
+                commands.extend(sequence * repeats)
+                labels.extend([key] * (len(sequence) * repeats))
             owner = object()
             job = PresetJob(selected[0], tuple(commands), now, getattr(self.r, 'feed_session', None),
                             self.revision, self.edition, self.preset_generation,
                             self.authorized_generation, automatic, tuple(selected), donor_name(donor),
-                            owner, tuple(labels))
+                            owner, tuple(labels), gift_count,
+                            tuple((key, rows[key].get('quantity', 1)) for key in selected))
             try:
                 self.jobs.put_nowait(job)
             except queue.Full:
@@ -183,7 +191,7 @@ class MinecraftConnector:
                 self.note(self.admission_reason, outcome='cancelled', alias='regalo', response='')
                 return False
             self.preset_owner = owner
-            self.preset_usage.append({'owner': owner, 'cost': len(commands), 'finished': None})
+            self.preset_usage.append({'owner': owner, 'cost': cost, 'finished': None})
             self.last_preset_at = now
             self.admission_reason = ''
             return True
@@ -382,6 +390,8 @@ class MinecraftConnector:
                     edition = data.get('edition', 'java')
                     if edition not in ('java', 'bedrock'):raise ValueError('Edición inválida')
                     config = self.profiles[edition] if data.get('select_only') is True else self.validate(data)
+                    if 'presets' in data:
+                        config['presets'] = mappings(data['presets'], self.profiles[edition].get('presets'))
                     for key in ('presets', 'limits', 'name_format'):
                         if key not in config and key in self.profiles[edition]:
                             config[key] = self.profiles[edition][key]
@@ -412,10 +422,9 @@ class MinecraftConnector:
             try:
                 if not isinstance(data, dict) or set(data) != {'edition', 'presets'}:
                     raise ValueError('Configuración de acciones inválida')
-                clean = mappings(data['presets'])
                 with self.preset_lock:
                     if data['edition'] != self.edition:return jsonify(error='La edición cambió. Actualiza antes de guardar.'),409
-                    self.config['presets'] = clean
+                    self.config['presets'] = mappings(data['presets'], self.config.get('presets'))
                     self.profiles[self.edition] = self.config
                     self.preset_generation += 1
                 self._persist()

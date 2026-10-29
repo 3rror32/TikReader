@@ -3,14 +3,17 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 
-function setup({holdInitial=false,failInitial=false,oldBackend=false}={}){
+function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantities=false}={}){
   const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=failInitial,hold=holdInitial,release;
   const requests=[];let heldPost,releasePost;
   const java={host:'localhost',port:25575,commands:{probe:'list'}},bedrock={commands:{bed:'say hello'}};
   const presetCatalog=[['tnt_rain','Lluvia de TNT'],['zombie','Zombi'],['rain','Lluvia'],['thunder','Tormenta'],['night','Noche'],['diamonds','Diamantes'],['speed','Velocidad II'],['jump','Salto II'],['heal','Curación II']].map(([id,name])=>({id,name,description:id==='tnt_rain'?'5 TNT sobre el jugador más cercano.':'Efecto fijo'}));
+  const spawnIds=['tnt_rain','zombie','skeleton','creeper','spider','pig','cow','sheep','chicken'];
+  for(const [id,name] of [['skeleton','Esqueleto'],['creeper','Creeper'],['spider','Araña'],['pig','Cerdo'],['cow','Vaca'],['sheep','Oveja'],['chicken','Gallina']])presetCatalog.push({id,name,description:'Mob'});
+  for(const row of presetCatalog)if(spawnIds.includes(row.id))Object.assign(row,{quantity_min:1,quantity_max:20,quantity_default:row.id==='tnt_rain'?5:1});
   const defaults=()=>Object.fromEntries(presetCatalog.map(p=>[p.id,{gift_id:'',gift_name:'',enabled:false}]));
   java.presets=defaults();bedrock.presets=defaults();let giftCatalog=[{id:'1',name:'Rose',diamonds:1}];
-  let state={edition:'java',authorization_mode:'checkbox',profiles:{java,bedrock},config:java,preset_catalog:oldBackend?undefined:presetCatalog,presets:java.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
+  let state={edition:'java',authorization_mode:'checkbox',profiles:{java,bedrock},config:java,preset_catalog:oldBackend?undefined:oldQuantities?presetCatalog.map(({id,name,description})=>({id,name,description})):presetCatalog,presets:java.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
   class Element {
     constructor(tag){this.tagName=tag;this.textContent='';this.value='';this.children=[];this.dataset={};this.events={};this.hidden=false;this.isConnected=true;nodes.push(this);}
     append(...items){this.children.push(...items);for(const item of items)item.parentElement=this;}
@@ -186,7 +189,7 @@ test('uncertain selection keeps controls guarded until polling confirms the actu
 
 test('quick-action rows use stable gifts, persist enabled state and preserve edition mappings',async()=>{
   const s=setup();await s.flush();
-  assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,9);
+  assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,16);
   const gift=s.preset('tnt_rain','gift'),enabled=s.preset('tnt_rain','enabled');
   assert.ok(gift['aria-label'].includes('Lluvia de TNT'));assert.equal(enabled.checked,false);
   gift.value='1';await gift.events.change();await s.flush();
@@ -214,12 +217,12 @@ test('preset saves share the operation boundary and uncertain saves reconcile ac
   assert.ok(s.requests.some(r=>r.path==='/minecraft/presets/stop'));
 });
 
-test('all nine default actions exist synchronously and survive unavailable or old APIs',async()=>{
+test('all sixteen default actions exist synchronously and survive unavailable or old APIs',async()=>{
   for(const options of [{holdInitial:true},{failInitial:true},{oldBackend:true}]){
     const s=setup(options);
-    assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,9);
+    assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,16);
     assert.ok(s.nodes.some(n=>n.textContent==='Acciones predeterminadas'));
-    await s.flush();assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,9);
+    await s.flush();assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,16);
     if(options.holdInitial){s.release();await s.flush();}
     else assert.equal(s.preset('tnt_rain','gift').disabled,true);
     assert.ok(!s.nodes.some(n=>n.textContent.includes('Escribe AUTORIZAR')));
@@ -273,4 +276,30 @@ test('safety settings keep edition drafts and reconcile uncertain saves without 
  s.catalog([]);await s.click('Actualizar regalos');
  const gift=s.preset('zombie','gift');gift.value='saved';await gift.events.change();
  assert.ok(s.field('Regalo para simular').children.some(o=>o.value==='saved'&&o.textContent.includes('guardado')));
+});
+
+test('spawn quantities are visible, autosave per edition and preserve typing during polling',async()=>{
+ const s=setup();await s.flush();
+ assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,16);
+ const quantity=s.nodes.find(n=>n.dataset.presetQuantity==='zombie');assert.ok(quantity);
+ assert.equal(Number(quantity.value),1);assert.equal(quantity['aria-label'],'Cantidad de Zombi');
+ quantity.value='2';quantity.events.input();await s.tick();assert.equal(quantity.value,'2');
+ await quantity.events.change();await s.flush();
+ assert.equal(s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data.presets.zombie.quantity,2);
+ const gift=s.preset('zombie','gift');gift.value='1';await gift.events.change();
+ assert.equal(s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data.presets.zombie.quantity,2);
+ await s.edition('bedrock');assert.equal(Number(quantity.value),1);
+ await s.edition('java');assert.equal(Number(quantity.value),2);
+ assert.ok(!s.nodes.some(n=>n.dataset.presetQuantity==='rain'));
+});
+
+test('old quantity capability blocks mutation and uncertain quantity saves recover actual numbers',async()=>{
+ const old=setup({oldQuantities:true});await old.flush();
+ assert.equal(old.nodes.filter(n=>n.dataset.quickAction).length,16);
+ assert.ok(old.preset('zombie','gift').disabled);
+ const s=setup();await s.flush();const quantity=s.nodes.find(n=>n.dataset.presetQuantity==='pig');
+ quantity.value='4';quantity.events.input();s.holdPost('/minecraft/presets');const saving=quantity.events.change();await s.flush();
+ const count=s.requests.length;await s.edition('bedrock');await s.click('Probar Cerdo');assert.equal(s.requests.length,count);
+ s.fail(true);s.releasePost();await saving;await s.flush();assert.ok(quantity.disabled);
+ s.fail(false);await s.tick();assert.equal(Number(quantity.value),4);assert.equal(quantity.disabled,false);
 });

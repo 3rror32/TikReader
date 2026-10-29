@@ -51,7 +51,7 @@ class PresetTests(unittest.TestCase):
         rules={key:{'gift_id':'1','gift_name':'Rose','enabled':True} for key in ('tnt_rain','zombie')}
         self.client.post('/minecraft/presets',json={'edition':'java','presets':rules})
         with patch('minecraft_connector.time.monotonic',return_value=100) as clock:
-            self.gift(count=999);job=self.mc.jobs.get_nowait()
+            self.gift(count=1);job=self.mc.jobs.get_nowait()
             self.assertEqual(len(job.commands),6)
             with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(job)
             self.assertFalse(self.mc.enqueue_preset('rain'))
@@ -189,9 +189,88 @@ class PresetTests(unittest.TestCase):
                 self.now=1064
                 self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
 
+    def test_quantity_migration_validation_and_old_mapping_posts_preserve_numbers(self):
+        from minecraft_presets import mappings
+        rows=mappings()
+        self.assertEqual(rows['tnt_rain']['quantity'],5)
+        self.assertEqual(rows['zombie']['quantity'],1)
+        self.assertFalse(rows['chicken']['enabled'])
+        body={'edition':'java','presets':{'zombie':{'gift_id':'1','enabled':True,'quantity':2}}}
+        self.assertEqual(self.client.post('/minecraft/presets',json=body).status_code,200)
+        self.save(preset='zombie')
+        self.assertEqual(self.mc.config['presets']['zombie']['quantity'],2)
+        self.save(preset='rain')
+        self.assertEqual(self.mc.config['presets']['zombie']['quantity'],2)
+        self.client.post('/minecraft',json={'commands':{},'presets':{'rain':{'enabled':False}}})
+        self.assertEqual(self.mc.config['presets']['zombie']['quantity'],2)
+        self.client.post('/minecraft',json={'edition':'bedrock','select_only':True})
+        self.assertEqual(self.client.get('/minecraft').get_json()['presets']['zombie']['quantity'],1)
+        self.client.post('/minecraft',json={'edition':'java','select_only':True})
+        self.assertEqual(self.client.get('/minecraft').get_json()['presets']['zombie']['quantity'],2)
+        for value in (True,False,0,21,2.0,'2',None):
+            body['presets']['zombie']['quantity']=value
+            self.assertEqual(self.client.post('/minecraft/presets',json=body).status_code,400)
+        self.assertEqual(self.client.post('/minecraft/presets',json={'edition':'java','presets':{'rain':{'quantity':2}}}).status_code,400)
+
+    def test_spawn_quantity_multiplies_only_final_gift_count_and_is_cost_first(self):
+        rules={key:{'gift_id':'1','enabled':True,'quantity':2} for key in ('zombie','tnt_rain')}
+        rules['rain']={'gift_id':'1','enabled':True}
+        self.assertEqual(self.client.post('/minecraft/presets',json={'edition':'java','presets':rules}).status_code,200)
+        self.gift(count=3,ongoing=True);self.assertTrue(self.mc.jobs.empty())
+        self.gift(count=3);self.gift(count=3)
+        job=self.mc.jobs.get_nowait()
+        self.assertEqual(len(job.commands),13)
+        self.assertEqual(job.gift_count,3)
+        self.assertEqual(dict(job.quantities),{'tnt_rain':2,'zombie':2,'rain':1})
+        self.assertEqual(sum('summon minecraft:zombie' in command for command in job.commands),6)
+        self.assertEqual(sum('summon minecraft:tnt' in command for command in job.commands),6)
+        self.assertEqual(job.commands.count('weather rain'),1)
+        with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(job)
+        self.now+=3
+        with patch('minecraft_connector.commands_for') as build:
+            self.gift('oversize',count=10**100)
+            self.assertTrue(self.mc.jobs.empty());build.assert_not_called()
+        with patch('minecraft_connector.commands_for') as build:
+            self.assertFalse(self.mc.admit_presets(('rain',),'Ana',gift_count=10**100))
+            build.assert_not_called()
+        for index,value in enumerate((True,False,0,-1,1.5,'3',None)):
+            with patch('minecraft_connector.commands_for') as build:
+                self.gift('bad-count'+str(index),count=value)
+                self.assertTrue(self.mc.jobs.empty());build.assert_not_called()
+
+    def test_all_allowlisted_mobs_use_literal_name_codecs_and_exact_quantities(self):
+        from minecraft_presets import commands_for
+        for mob in ('zombie','skeleton','creeper','spider','pig','cow','sheep','chicken'):
+            for edition,style in (('java','modern'),('java','legacy'),('bedrock','modern')):
+                with self.subTest(mob=mob,edition=edition,style=style):
+                    sequence=commands_for(mob,edition,'Ana',style,quantity=2)
+                    self.assertEqual(len(sequence),2)
+                    self.assertTrue(all('minecraft:'+mob in command and 'Ana' in command for command in sequence))
+                    if edition=='bedrock':self.assertIn('"Ana" ~2 ~ ~',sequence[0])
+                    elif style=='modern':self.assertIn('CustomName:{text:"Ana"}',sequence[0])
+                    else:self.assertIn('CustomName:',sequence[0])
+        for quantity in (1,5,20):
+            sequence=commands_for('tnt_rain','bedrock',quantity=quantity)
+            self.assertEqual(len(sequence),quantity)
+            self.assertTrue(all('summon minecraft:tnt ' in command for command in sequence))
+
+    def test_manual_tests_use_saved_quantity_when_disabled_and_simulation_uses_one_gift(self):
+        body={'edition':'java','presets':{'pig':{'gift_id':'1','gift_name':'Rose','enabled':False,'quantity':3}}}
+        self.assertEqual(self.client.post('/minecraft/presets',json=body).status_code,200)
+        self.assertEqual(self.client.post('/minecraft/presets/test',json={'edition':'java','id':'pig'}).status_code,200)
+        job=self.mc.jobs.get_nowait();self.assertEqual(len(job.commands),3)
+        self.assertEqual(job.gift_count,1)
+        with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(job)
+        self.now+=3
+        self.save(preset='pig')
+        response=self.client.post('/minecraft/presets/simulate',json={'edition':'java','gift_id':'1','user':'Ana'})
+        self.assertEqual(response.status_code,200)
+        job=self.mc.jobs.get_nowait();self.assertEqual(len(job.commands),3)
+        self.assertTrue(all('Ana' in command for command in job.commands))
+
     def test_catalog_defaults_and_validated_local_only_mapping_updates(self):
         snapshot=self.client.get('/minecraft').get_json()
-        self.assertEqual(len(snapshot['preset_catalog']),9)
+        self.assertEqual(len(snapshot['preset_catalog']),16)
         self.assertTrue(all(not row['enabled'] and not row['gift_id'] for row in snapshot['presets'].values()))
         with patch.object(self.mc.bedrock,'close') as close:
             revision=self.mc.revision;self.assertEqual(self.save().status_code,200)
@@ -206,8 +285,8 @@ class PresetTests(unittest.TestCase):
                 self.assertEqual(self.client.post(endpoint,json={}).status_code,403)
 
     def test_final_gifts_are_deduplicated_by_id_and_session_not_name_or_count(self):
-        self.save();self.gift(ongoing=True,count=100);self.assertTrue(self.mc.jobs.empty())
-        self.gift(count=100);self.gift(count=101);self.assertEqual(self.mc.jobs.qsize(),1)
+        self.save();self.gift(ongoing=True,count=1);self.assertTrue(self.mc.jobs.empty())
+        self.gift(count=1);self.gift(count=2);self.assertEqual(self.mc.jobs.qsize(),1)
         self.gift('different-id',gift_id='2');self.assertEqual(self.mc.jobs.qsize(),1)
         with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(self.mc.jobs.get_nowait())
         self.now+=3
@@ -217,14 +296,16 @@ class PresetTests(unittest.TestCase):
         self.mc.authorized=False;self.gift('unauthorized');self.mc.authorized=True;self.gift('unauthorized')
         self.assertEqual(self.mc.jobs.qsize(),1)
 
-    def test_five_tnt_commands_are_one_atomic_job_without_quantity_multiplier(self):
-        self.save();self.gift(count=1000000);self.assertEqual(self.mc.jobs.qsize(),1)
+    def test_default_five_tnt_commands_remain_atomic_and_reject_oversized_streaks(self):
+        self.save();self.gift(count=1000000);self.assertTrue(self.mc.jobs.empty())
+        self.gift('bounded',count=1);self.assertEqual(self.mc.jobs.qsize(),1)
         job=self.mc.jobs.get_nowait()
         with patch.object(self.mc,'execute',return_value='custom feedback') as execute:
             self.mc.run_job(job)
         self.assertEqual(execute.call_count,5)
         self.assertEqual(len({call.args[0] for call in execute.call_args_list}),5)
-        self.assertTrue(all(row['outcome']=='unconfirmed' for row in self.mc.log))
+        self.assertTrue(all(row['outcome']=='unconfirmed' for row in self.mc.log[:5]))
+        self.assertEqual(self.mc.log[5]['outcome'],'cancelled')
         self.now+=3
         self.mc.jobs=queue.Queue(1);self.gift('fills-queue');self.gift('full-queue')
         self.assertEqual(self.mc.jobs.qsize(),1)
@@ -311,7 +392,7 @@ class PresetTests(unittest.TestCase):
                  animation_studio=service,overlay_animations=service,archive=None,feed_session='A',
                  publish_gift_history=noop,publish_stats=noop,gift_revision=0,minecraft=self.mc)
         exec(compile(ast.Module(body=[node],type_ignores=[]),'app/server.py','exec'),env)
-        self.save();event=S(user=S(unique_id='sender'),gift=S(id=1,name='Rose',type=1,diamond_count=1),
+        self.save(preset='zombie');event=S(user=S(unique_id='sender'),gift=S(id=1,name='Rose',type=1,diamond_count=1),
                             gift_id=1,repeat_count=5,repeat_end=False)
         env['handle_gift_event'](event,update_catalog=False);self.assertTrue(self.mc.jobs.empty())
         event.repeat_end=True;env['handle_gift_event'](event,update_catalog=False)

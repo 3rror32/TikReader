@@ -7,7 +7,7 @@
  function field(label,type='text',parent=pane){const l=el('label',label),n=el(type==='textarea'?'textarea':'input');if(type!=='textarea')n.type=type;n.addEventListener('input',()=>edited.add(n));l.append(n);parent.append(l);return n}
  function disclosure(title){const node=el('details');node.append(el('summary',title));return node;}
  let busy=false,uncertain=false,operationSerial=0;const actionButtons=[],extraControls=[];
- function syncControls(){for(const input of extraControls)input.disabled=busy||uncertain||!backendReady;for(const b of actionButtons)b.disabled=busy||uncertain||(b.needsBackend&&!backendReady);edition.disabled=busy||uncertain||!backendReady;permission.disabled=busy||uncertain||!backendReady;for(const row of presetRows.values()){row.gift.disabled=busy||uncertain||!backendReady;row.enabled.disabled=busy||uncertain||!backendReady||!row.gift.value;}}
+ function syncControls(){for(const input of extraControls)input.disabled=busy||uncertain||!backendReady;for(const b of actionButtons)b.disabled=busy||uncertain||(b.needsBackend&&!backendReady);edition.disabled=busy||uncertain||!backendReady;permission.disabled=busy||uncertain||!backendReady;for(const row of presetRows.values()){row.gift.disabled=busy||uncertain||!backendReady;if(row.quantity)row.quantity.disabled=busy||uncertain||!backendReady;row.enabled.disabled=busy||uncertain||!backendReady||!row.gift.value;}}
  async function operate(fn){
   if(busy||uncertain)return;
   busy=true;operationSerial++;epoch++;clearTimeout(timer);syncControls();
@@ -27,17 +27,19 @@
  const host=field('Dirección privada','text',connectionFields),port=field('Puerto RCON','number',connectionFields),password=field('Contraseña RCON','password',connectionFields);
  host.value='127.0.0.1';port.value=25575;
  const advanced=disclosure('Opciones avanzadas'),help=disclosure('Ayuda');
- const nameFormatLabel=el('label','Nombres de zombis en Java'),nameFormat=el('select');for(const [id,text] of [['modern','Java 1.21.5 o posterior'],['legacy','Java 1.13 a 1.21.4']]){const option=el('option',text);option.value=id;nameFormat.append(option);}nameFormat.value='modern';nameFormatLabel.append(nameFormat);advanced.append(nameFormatLabel,el('small','El formato se guarda con Guardar límites.'));nameFormat.addEventListener('change',()=>edited.add(nameFormat));
+ const nameFormatLabel=el('label','Nombres de mobs en Java'),nameFormat=el('select');for(const [id,text] of [['modern','Java 1.21.5 o posterior'],['legacy','Java 1.13 a 1.21.4']]){const option=el('option',text);option.value=id;nameFormat.append(option);}nameFormat.value='modern';nameFormatLabel.append(nameFormat);advanced.append(nameFormatLabel,el('small','El formato se guarda con Guardar límites.'));nameFormat.addEventListener('change',()=>edited.add(nameFormat));
  const commands=field('Comandos autorizados: un alias = comando por línea','textarea',advanced);commands.rows=4;
  const status=el('p','Sin conectar'),log=el('div');status.setAttribute('role','status');header.append(status);
  const localInstructions=el('div'),connectCommand=el('p');
  localInstructions.className='minecraft-bedrock-setup';connectCommand.className='minecraft-connect-command';connectCommand.hidden=true;
  localInstructions.append(el('p','1. Prepara la conexión.  2. Pega el comando en el chat de tu mundo.  3. Marca Autorizar Minecraft.'),el('small','Mundo local de Windows · Trucos activados · Require Encrypted Websockets desactivado.'),connectCommand);
  permissionArea.append(localInstructions);
- help.append(el('p','Java necesita un servidor con RCON habilitado. En server.properties: enable-rcon=true, rcon.password y rcon.port. Un mundo individual sin RCON no es compatible.'),el('p','Bedrock: activa trucos y permisos de administrador; habilita Enable WebSockets si aparece y desactiva Require Encrypted Websockets para esta conexión local. Solo se admite este equipo.'),el('p','Si Bedrock no conecta, revisa los permisos de loopback de Minecraft en Windows. TikReader no cambia opciones de Windows ni del juego.'),el('p','Desconecta antes de cambiar de mundo: el juego puede conservar la conexión al salir. TikReader no verifica continuamente qué mundo está abierto.'),el('p','Las acciones se aplican a @p: el jugador más cercano al origen del comando, no al espectador que envió el regalo. Java usa el origen del servidor; Bedrock, el contexto del jugador conectado.'),el('p','Cada regalo finalizado activa una vez el efecto. Detener cancela pasos pendientes, pero no deshace lo que ya cambió en el mundo. Sin confirmar significa que la respuesta no permite asegurar el resultado.'));
+ help.append(el('p','Java necesita un servidor con RCON habilitado. En server.properties: enable-rcon=true, rcon.password y rcon.port. Un mundo individual sin RCON no es compatible.'),el('p','Bedrock: activa trucos y permisos de administrador; habilita Enable WebSockets si aparece y desactiva Require Encrypted Websockets para esta conexión local. Solo se admite este equipo.'),el('p','Si Bedrock no conecta, revisa los permisos de loopback de Minecraft en Windows. TikReader no cambia opciones de Windows ni del juego.'),el('p','Desconecta antes de cambiar de mundo: el juego puede conservar la conexión al salir. TikReader no verifica continuamente qué mundo está abierto.'),el('p','Las acciones se aplican a @p: el jugador más cercano al origen del comando, no al espectador que envió el regalo. Java usa el origen del servidor; Bedrock, el contexto del jugador conectado.'),el('p','Las rachas finalizadas multiplican la cantidad configurada de mobs y TNT. Los demás efectos se aplican una vez. Detener cancela pasos pendientes, pero no deshace lo que ya cambió en el mundo. Sin confirmar significa que la respuesta no permite asegurar el resultado.'));
  let currentEdition='java';const drafts=new Map();
+ const quantityDrafts=new Map();let quantityRecovery=null;
+ function rowDrafts(){if(!quantityDrafts.has(currentEdition))quantityDrafts.set(currentEdition,{});return quantityDrafts.get(currentEdition);}
  const presetRows=new Map();let presetValues={},presetDirty=false,presetRecovery=false,giftCatalog=[];
- const defaultActions=[['tnt_rain','Lluvia de TNT','5 TNT'],['zombie','Zombi','1 zombi'],['rain','Lluvia','Clima'],['thunder','Tormenta','Clima'],['night','Noche','Hora'],['diamonds','Diamantes','5 diamantes'],['speed','Velocidad II','20 s'],['jump','Salto II','20 s'],['heal','Curación II','Instantánea']].map(([id,name,description])=>({id,name,description}));
+ const defaultActions=[['tnt_rain','Lluvia de TNT','TNT',5],['zombie','Zombi','Mob',1],['rain','Lluvia','Clima'],['thunder','Tormenta','Clima'],['night','Noche','Hora'],['diamonds','Diamantes','5 diamantes'],['speed','Velocidad II','20 s'],['jump','Salto II','20 s'],['heal','Curación II','Instantánea'],['skeleton','Esqueleto','Mob',1],['creeper','Creeper','Mob',1],['spider','Araña','Mob',1],['pig','Cerdo','Mob',1],['cow','Vaca','Mob',1],['sheep','Oveja','Mob',1],['chicken','Gallina','Mob',1]].map(([id,name,description,quantity])=>({id,name,description,quantity}));
  const compatibility=el('p','Conectando con TikReader…');compatibility.className='minecraft-compatibility';
  const catalogNotice=el('p'),actionList=el('div');catalogNotice.setAttribute('role','status');
  function fillGiftOptions(row,value){
@@ -48,6 +50,7 @@
    row.gift.replaceChildren(...options.map(([id,name])=>{const option=el('option',name);option.value=id;return option;}));row.signature=signature;
   }
   row.gift.value=value.gift_id;row.enabled.checked=!!value.enabled;
+  if(row.quantity)row.quantity.value=rowDrafts()[row.id]??value.quantity??row.defaultQuantity;
  }
  function renderPresets(d,force=false){
   if(force||!presetDirty)presetValues=structuredClone(d.presets||d.config?.presets||{});
@@ -57,9 +60,19 @@
    const title=el('div');title.className='minecraft-action-title';title.append(el('strong',preset.name),el('small',preset.description));
    const gift=el('select');gift.dataset.presetGift=preset.id;gift.setAttribute('aria-label','Regalo para '+preset.name);
    const enabled=el('input');enabled.type='checkbox';enabled.dataset.presetEnabled=preset.id;enabled.setAttribute('aria-label','Activar '+preset.name);
-   const enabledLabel=el('label');enabledLabel.className='minecraft-action-enabled';enabledLabel.append(enabled);
+   const enabledLabel=el('label');enabledLabel.className='minecraft-action-enabled';enabledLabel.append(el('span','Activa'),enabled);
+   const quantityLabel=el(preset.quantity?'label':'span');quantityLabel.className='minecraft-action-quantity';
+   let quantity;
+   if(preset.quantity){
+    quantity=el('input');quantity.type='number';quantity.min=1;quantity.max=20;quantity.step=1;
+    quantity.value=preset.quantity;quantity.dataset.presetQuantity=preset.id;
+    quantity.setAttribute('aria-label','Cantidad de '+preset.name);
+    quantityLabel.append(el('span','Cantidad'),quantity);
+    quantity.addEventListener('input',()=>{rowDrafts()[preset.id]=quantity.value;});
+    quantity.addEventListener('change',()=>savePreset(preset.id));
+   }
    const test=button('Probar',async()=>{await api('/minecraft/presets/test',{edition:currentEdition,id:preset.id});notice.textContent='Prueba en cola. Revisa el registro.';});test.setAttribute('aria-label','Probar '+preset.name);test.className='minecraft-action-test';
-   node.append(title,gift,enabledLabel,test);actionList.append(node);presetRows.set(preset.id,{gift,enabled});
+   node.append(title,gift,quantityLabel,enabledLabel,test);actionList.append(node);presetRows.set(preset.id,{gift,enabled,quantity,id:preset.id,defaultQuantity:preset.quantity});
    for(const control of [gift,enabled])control.addEventListener('change',()=>savePreset(preset.id));
   }
   for(const [id,row] of presetRows)fillGiftOptions(row,presetValues[id]||{gift_id:'',gift_name:'',enabled:false});
@@ -70,18 +83,18 @@
   return operate(async()=>{
    const row=presetRows.get(id),giftId=row.gift.value;
    const name=giftCatalog.find(g=>String(g.id)===giftId)?.name||presetValues[id]?.gift_name||'';
-   presetValues={...presetValues,[id]:{gift_id:giftId,gift_name:name,enabled:!!giftId&&row.enabled.checked}};presetDirty=true;
+   presetValues={...presetValues,[id]:{gift_id:giftId,gift_name:name,enabled:!!giftId&&row.enabled.checked,...(row.quantity?{quantity:Number(row.quantity.value)}:{})}};presetDirty=true;
    try{
     const d=await api('/minecraft/presets',{edition:currentEdition,presets:presetValues});
-    presetDirty=false;renderPresets(d,true);notice.textContent='Acciones rápidas guardadas.';
+    delete rowDrafts()[id];presetDirty=false;renderPresets(d,true);notice.textContent='Acciones rápidas guardadas.';
    }catch(e){
     try{
-     const d=await api('/minecraft');presetDirty=false;
+     const d=await api('/minecraft');delete rowDrafts()[id];presetDirty=false;
      if(d.edition&&d.edition!==currentEdition){drafts.set(currentEdition,captureDraft());selectProfile(d);}
      renderPresets(d,true);notice.textContent=e.message+' Se muestra la configuración confirmada.';
     }catch(_){
      drafts.set(currentEdition,captureDraft());
-     uncertain=true;presetRecovery=true;notice.textContent='No se pudo confirmar el guardado. Espera a que se recupere la conexión.';
+     uncertain=true;presetRecovery=true;quantityRecovery=id;notice.textContent='No se pudo confirmar el guardado. Espera a que se recupere la conexión.';
     }
    }
   });
@@ -94,8 +107,8 @@
  const actionHeading=el('div');actionHeading.className='minecraft-actions-heading';
  const stopButton=button('Detener',async()=>{await api('/minecraft/presets/stop',{edition:currentEdition});notice.textContent='Acciones pendientes detenidas.';});stopButton.setAttribute('aria-label','Detener acciones rápidas');
  actionHeading.append(el('h3','Acciones predeterminadas'),button('Actualizar regalos',loadGiftCatalog,false),stopButton);
- const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Activa',''])columns.append(el('span',text));
- quickActions.append(actionHeading,compatibility,catalogNotice,columns,actionList);
+ const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Cantidad','Activa',''])columns.append(el('span',text));
+ quickActions.append(actionHeading,el('p','Cantidad por regalo. Las rachas multiplican mobs y TNT. Si supera el límite, se descarta el regalo.'),compatibility,catalogNotice,columns,actionList);
  const simulation=el('section');simulation.className='minecraft-tools';simulation.append(el('h3','Simular regalo'),el('p','Ejecuta los efectos activos en Minecraft. No requiere un directo.'));
  const simulationFields=el('div');simulationFields.className='minecraft-tool-fields';
  const simulationGiftLabel=el('label','Regalo para simular'),simulationGift=el('select');simulationGiftLabel.append(simulationGift);simulationFields.append(simulationGiftLabel);
@@ -125,7 +138,7 @@
   }
  }
  safetyFields.append(button('Guardar límites',saveSafety));
- safety.append(safetyFields,el('small','La lluvia de TNT cuenta como 5. El exceso se descarta, no se acumula.'));
+ safety.append(safetyFields,el('small','Cada mob y cada TNT cuenta como un efecto. El exceso se descarta, no se acumula.'));
  pane.append(simulation,safety);
  extraControls.push(simulationGift,donor,interval,perMinute,nameFormat);
  function applySafety(d,force=false){
@@ -165,10 +178,10 @@
  let timer,inFlight=false,refreshPending=false,hydratePending=true,stopped=false,epoch=0;
  const active=()=>pane.isConnected&&!pane.hidden&&!document.hidden&&!stopped;
  function render(d,hydrate){
-  backendReady=d.authorization_mode==='checkbox'&&Array.isArray(d.preset_catalog)&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id));
+  backendReady=d.authorization_mode==='checkbox'&&Array.isArray(d.preset_catalog)&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id&&(!p.quantity||(s.quantity_max===20&&s.quantity_min===1))));
   compatibility.textContent=backendReady?'':'Reinicia TikReader para cargar estas acciones.';compatibility.hidden=backendReady;
   savedConfig=d.config||savedConfig;applySafety(d);
-  if(uncertain&&!busy){selectProfile(d);uncertain=false;presetRecovery=false;presetDirty=false;syncControls();hydrate=false;}
+  if(uncertain&&!busy){if(quantityRecovery){delete rowDrafts()[quantityRecovery];quantityRecovery=null;}selectProfile(d);uncertain=false;presetRecovery=false;presetDirty=false;syncControls();hydrate=false;}
   if(hydrate){currentEdition=d.edition||'java';showEdition();for(const [input,value] of [[host,d.config.host||'127.0.0.1'],[port,d.config.port||25575],[commands,Object.entries(d.config.commands).map(([a,c])=>a+' = '+c).join('\n')]])if(!edited.has(input))input.value=value;}
   const bedrock=currentEdition==='bedrock';
   if(!presetRecovery)renderPresets(d);

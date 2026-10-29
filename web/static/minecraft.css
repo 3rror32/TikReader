@@ -19,9 +19,9 @@
 .studio-pane .minecraft-quick-actions { margin: 16px 0; border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: var(--bg-glass); }
 .minecraft-actions-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .studio-pane .minecraft-actions-heading h3 { margin: 0 auto 0 0; font-size: 18px; }
-.minecraft-action-row, .minecraft-action-columns { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) 52px minmax(7rem, max-content); gap: 12px; align-items: center; }
+.minecraft-action-row, .minecraft-action-columns { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(140px, 1fr) 68px 52px minmax(7rem, max-content); gap: 12px; align-items: center; }
 .minecraft-action-columns { padding: 8px 0; color: var(--text-muted); font-size: 12px; }
-.minecraft-action-columns span:nth-child(3) { text-align: center; }
+.minecraft-action-columns span:nth-child(4) { text-align: center; }
 .minecraft-action-row { padding: 9px 0; border-top: 1px solid var(--border); }
 .minecraft-action-title { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; }
 .minecraft-action-title strong { font-size: 14px; color: var(--text-main); }
@@ -39,11 +39,13 @@
   .minecraft-connection-fields { grid-template-columns: minmax(0, 1fr) 100px; }
   .minecraft-connection-fields label:nth-child(3) { grid-column: 1 / -1; }
   .minecraft-actions-heading h3 { flex-basis: 100%; }
-  .minecraft-action-columns { grid-template-columns: minmax(0, 1fr) 42px minmax(7rem, max-content); }
+  .minecraft-action-columns { display: none; }
   .minecraft-action-columns span:first-child { display: none; }
-  .minecraft-action-columns span:nth-child(3) { text-align: center; }
+  .minecraft-action-columns span:nth-child(4) { text-align: center; }
   .minecraft-action-row { grid-template-columns: minmax(0, 1fr) 42px minmax(7rem, max-content); gap: 8px; }
-  .minecraft-action-title { grid-column: 1 / -1; }
+  .minecraft-action-title, .studio-pane .minecraft-action-row select { grid-column: 1 / -1; }
+  .studio-pane .minecraft-action-enabled { flex-direction: column; gap: 4px; }
+  .minecraft-action-enabled span, .minecraft-action-quantity span { display: block; }
   .studio-pane .minecraft-quick-actions { padding: 10px; }
 }
 
@@ -55,3 +57,8 @@
 .studio-pane .minecraft-tool-fields :is(input, select) { width: 100%; min-width: 0; box-sizing: border-box; }
 .studio-pane .minecraft-tool-fields button { white-space: nowrap; }
 @media (max-width: 760px) { .minecraft-tool-fields { grid-template-columns: minmax(0, 1fr); } }
+
+.studio-pane .minecraft-action-quantity { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 12px; }
+.studio-pane .minecraft-action-quantity input { width: 64px; max-width: 100%; box-sizing: border-box; min-height: 36px; font-size: 13px; }
+.minecraft-action-enabled span, .minecraft-action-quantity span { display: none; }
+@media (max-width: 760px) { .minecraft-action-enabled span, .minecraft-action-quantity span { display: block; } }
