@@ -6,8 +6,8 @@
  const edited=new Set();
  function field(label,type='text',parent=pane){const l=el('label',label),n=el(type==='textarea'?'textarea':'input');if(type!=='textarea')n.type=type;n.addEventListener('input',()=>edited.add(n));l.append(n);parent.append(l);return n}
  function disclosure(title){const node=el('details');node.append(el('summary',title));return node;}
- let busy=false,uncertain=false,operationSerial=0;const actionButtons=[];
- function syncControls(){for(const b of actionButtons)b.disabled=busy||uncertain||(b.needsBackend&&!backendReady);edition.disabled=busy||uncertain||!backendReady;permission.disabled=busy||uncertain||!backendReady;for(const row of presetRows.values()){row.gift.disabled=busy||uncertain||!backendReady;row.enabled.disabled=busy||uncertain||!backendReady||!row.gift.value;}}
+ let busy=false,uncertain=false,operationSerial=0;const actionButtons=[],extraControls=[];
+ function syncControls(){for(const input of extraControls)input.disabled=busy||uncertain||!backendReady;for(const b of actionButtons)b.disabled=busy||uncertain||(b.needsBackend&&!backendReady);edition.disabled=busy||uncertain||!backendReady;permission.disabled=busy||uncertain||!backendReady;for(const row of presetRows.values()){row.gift.disabled=busy||uncertain||!backendReady;row.enabled.disabled=busy||uncertain||!backendReady||!row.gift.value;}}
  async function operate(fn){
   if(busy||uncertain)return;
   busy=true;operationSerial++;epoch++;clearTimeout(timer);syncControls();
@@ -27,6 +27,7 @@
  const host=field('Dirección privada','text',connectionFields),port=field('Puerto RCON','number',connectionFields),password=field('Contraseña RCON','password',connectionFields);
  host.value='127.0.0.1';port.value=25575;
  const advanced=disclosure('Opciones avanzadas'),help=disclosure('Ayuda');
+ const nameFormatLabel=el('label','Nombres de zombis en Java'),nameFormat=el('select');for(const [id,text] of [['modern','Java 1.21.5 o posterior'],['legacy','Java 1.13 a 1.21.4']]){const option=el('option',text);option.value=id;nameFormat.append(option);}nameFormat.value='modern';nameFormatLabel.append(nameFormat);advanced.append(nameFormatLabel,el('small','El formato se guarda con Guardar límites.'));nameFormat.addEventListener('change',()=>edited.add(nameFormat));
  const commands=field('Comandos autorizados: un alias = comando por línea','textarea',advanced);commands.rows=4;
  const status=el('p','Sin conectar'),log=el('div');status.setAttribute('role','status');header.append(status);
  const localInstructions=el('div'),connectCommand=el('p');
@@ -62,7 +63,7 @@
    for(const control of [gift,enabled])control.addEventListener('change',()=>savePreset(preset.id));
   }
   for(const [id,row] of presetRows)fillGiftOptions(row,presetValues[id]||{gift_id:'',gift_name:'',enabled:false});
-  syncControls();
+  simulationOptions();syncControls();
  }
  async function savePreset(id){
   if(busy||uncertain||!backendReady){renderPresets({presets:presetValues},true);return;}
@@ -76,10 +77,10 @@
    }catch(e){
     try{
      const d=await api('/minecraft');presetDirty=false;
-     if(d.edition&&d.edition!==currentEdition){drafts.set(currentEdition,{host:host.value,port:port.value,commands:commands.value});selectProfile(d);}
+     if(d.edition&&d.edition!==currentEdition){drafts.set(currentEdition,captureDraft());selectProfile(d);}
      renderPresets(d,true);notice.textContent=e.message+' Se muestra la configuración confirmada.';
     }catch(_){
-     drafts.set(currentEdition,{host:host.value,port:port.value,commands:commands.value});
+     drafts.set(currentEdition,captureDraft());
      uncertain=true;presetRecovery=true;notice.textContent='No se pudo confirmar el guardado. Espera a que se recupere la conexión.';
     }
    }
@@ -95,19 +96,70 @@
  actionHeading.append(el('h3','Acciones predeterminadas'),button('Actualizar regalos',loadGiftCatalog,false),stopButton);
  const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Activa',''])columns.append(el('span',text));
  quickActions.append(actionHeading,compatibility,catalogNotice,columns,actionList);
+ const simulation=el('section');simulation.className='minecraft-tools';simulation.append(el('h3','Simular regalo'),el('p','Ejecuta los efectos activos en Minecraft. No requiere un directo.'));
+ const simulationFields=el('div');simulationFields.className='minecraft-tool-fields';
+ const simulationGiftLabel=el('label','Regalo para simular'),simulationGift=el('select');simulationGiftLabel.append(simulationGift);simulationFields.append(simulationGiftLabel);
+ const donor=field('Nombre del donante','text',simulationFields);donor.value='Prueba';donor.maxLength=200;
+ simulationFields.append(button('Simular regalo',async()=>{if(!simulationGift.value)throw Error('Selecciona un regalo para simular.');const d=await api('/minecraft/presets/simulate',{edition:currentEdition,gift_id:simulationGift.value,user:donor.value});if(typeof d.accepted!=='boolean')throw Error('No se pudo confirmar la simulación. Revisa el registro.');notice.textContent=d.detail||(d.accepted?'Simulación admitida. Revisa el registro.':'No hay acciones activas para este regalo.');}));simulation.append(simulationFields);
+ const safety=el('section');safety.className='minecraft-tools';safety.append(el('h3','Límites de seguridad'));
+ const safetyFields=el('div');safetyFields.className='minecraft-tool-fields';
+ const interval=field('Intervalo mínimo (segundos)','number',safetyFields),perMinute=field('Efectos por minuto','number',safetyFields);
+ interval.min=1;interval.max=60;interval.step=1;interval.value=3;perMinute.min=5;perMinute.max=120;perMinute.step=1;perMinute.value=20;
+ async function saveSafety(){
+  try{
+   const d=await api('/minecraft/presets/settings',{
+    edition:currentEdition,
+    limits:{interval:Number(interval.value),per_minute:Number(perMinute.value)},
+    name_format:nameFormat.value
+   });
+   for(const input of [interval,perMinute,nameFormat])edited.delete(input);
+   applySafety(d,true);notice.textContent='Límites guardados.';
+  }catch(e){
+   try{
+    const d=await api('/minecraft');
+    if(d.edition!==currentEdition)selectProfile(d);
+    applySafety(d,true);notice.textContent=e.message+' Se muestran los límites confirmados.';
+   }catch(_){
+    uncertain=true;notice.textContent='No se pudo confirmar el guardado. Reintentando…';
+   }
+  }
+ }
+ safetyFields.append(button('Guardar límites',saveSafety));
+ safety.append(safetyFields,el('small','La lluvia de TNT cuenta como 5. El exceso se descarta, no se acumula.'));
+ pane.append(simulation,safety);
+ extraControls.push(simulationGift,donor,interval,perMinute,nameFormat);
+ function applySafety(d,force=false){
+  const values=d.limits||d.config?.limits||{interval:3,per_minute:20};
+  for(const [input,value] of [[interval,values.interval],[perMinute,values.per_minute],
+                             [nameFormat,d.name_format||d.config?.name_format||'modern']]){
+   if(force||!edited.has(input))input.value=value;
+  }
+ }
+ function simulationOptions(){
+  const value=simulationGift.value,options=new Map(giftCatalog.map(g=>[String(g.id),g.name]));
+  for(const row of Object.values(presetValues)){
+   if(row.gift_id&&!options.has(row.gift_id))options.set(row.gift_id,`${row.gift_name||row.gift_id} · guardado`);
+  }
+  simulationGift.replaceChildren(...[['','Selecciona un regalo'],...options].map(([id,name])=>{
+   const option=el('option',name);option.value=id;return option;
+  }));
+  simulationGift.value=options.has(value)?value:'';
+ }
+ function captureDraft(){return {host:host.value,port:port.value,commands:commands.value,interval:interval.value,perMinute:perMinute.value,nameFormat:nameFormat.value};}
  function selectProfile(d){
   currentEdition=d.edition||currentEdition;edited.clear();hydratePending=false;
   password.value='';permission.checked=false;confirmedAuthorized=false;connectCommand.textContent='';connectCommand.hidden=true;showEdition();
   const draft=drafts.get(currentEdition);
   host.value=draft?.host||d.config.host||'127.0.0.1';port.value=draft?.port||d.config.port||25575;
   commands.value=draft?draft.commands:Object.entries(d.config.commands).map(([a,c])=>a+' = '+c).join('\n');
-  presetDirty=false;renderPresets(d,true);
+  presetDirty=false;renderPresets(d,true);applySafety(d,true);
+  if(draft){for(const [input,value] of [[interval,draft.interval],[perMinute,draft.perMinute],[nameFormat,draft.nameFormat]])if(value!==undefined){input.value=value;edited.add(input);}}
  }
  function showEdition(){
   const bedrock=currentEdition==='bedrock';edition.value=currentEdition;
   heading.textContent='Minecraft';connection.hidden=bedrock;
   for(const input of [host,port,password])input.parentElement.hidden=bedrock;
-  localInstructions.hidden=!bedrock;prepareButton.hidden=!bedrock;
+  localInstructions.hidden=!bedrock;prepareButton.hidden=!bedrock;nameFormatLabel.hidden=bedrock;
  }
  const labels={success:'Éxito confirmado',rejected:'Comando rechazado',connection_error:'Error de conexión',unconfirmed:'Sin confirmar',cancelled:'Cancelado'};
  let timer,inFlight=false,refreshPending=false,hydratePending=true,stopped=false,epoch=0;
@@ -115,7 +167,7 @@
  function render(d,hydrate){
   backendReady=d.authorization_mode==='checkbox'&&Array.isArray(d.preset_catalog)&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id));
   compatibility.textContent=backendReady?'':'Reinicia TikReader para cargar estas acciones.';compatibility.hidden=backendReady;
-  savedConfig=d.config||savedConfig;
+  savedConfig=d.config||savedConfig;applySafety(d);
   if(uncertain&&!busy){selectProfile(d);uncertain=false;presetRecovery=false;presetDirty=false;syncControls();hydrate=false;}
   if(hydrate){currentEdition=d.edition||'java';showEdition();for(const [input,value] of [[host,d.config.host||'127.0.0.1'],[port,d.config.port||25575],[commands,Object.entries(d.config.commands).map(([a,c])=>a+' = '+c).join('\n')]])if(!edited.has(input))input.value=value;}
   const bedrock=currentEdition==='bedrock';
@@ -175,7 +227,7 @@
     if(currentEdition==='java'&&enabled)connection.open=true;
     permission.checked=false;confirmedAuthorized=false;
     try{const d=await api('/minecraft');if(d.edition&&d.edition!==currentEdition)selectProfile(d);render(d,false);notice.textContent=e.message;}
-    catch(_){drafts.set(currentEdition,{host:host.value,port:port.value,commands:commands.value});uncertain=true;notice.textContent='No se pudo confirmar la autorización. Reintentando…';}
+    catch(_){drafts.set(currentEdition,captureDraft());uncertain=true;notice.textContent='No se pudo confirmar la autorización. Reintentando…';}
    }
   });
  });
@@ -185,7 +237,7 @@
   if(busy||uncertain){edition.value=currentEdition;return;}
   const next=edition.value,previous=currentEdition;if(next===previous)return;
   return operate(async()=>{
-  drafts.set(previous,{host:host.value,port:port.value,commands:commands.value});
+  drafts.set(previous,captureDraft());
   password.value='';permission.checked=false;confirmedAuthorized=false;connectCommand.textContent='';connectCommand.hidden=true;
   try{
    const d=await api('/minecraft',{edition:next,select_only:true});

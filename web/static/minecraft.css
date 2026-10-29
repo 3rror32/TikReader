@@ -46,3 +46,12 @@
   .minecraft-action-title { grid-column: 1 / -1; }
   .studio-pane .minecraft-quick-actions { padding: 10px; }
 }
+
+.minecraft-tools { border-top: 1px solid var(--border); margin: 16px 0; padding-top: 12px; }
+.studio-pane .minecraft-tools h3 { font-size: 16px; margin: 0 0 6px; }
+.studio-pane .minecraft-tools p, .minecraft-tools small { font-size: 12px; color: var(--text-muted); margin: 4px 0 10px; }
+.minecraft-tool-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; margin: 10px 0; }
+.studio-pane .minecraft-tool-fields label { display: grid; gap: 6px; margin: 0; font-size: 13px; }
+.studio-pane .minecraft-tool-fields :is(input, select) { width: 100%; min-width: 0; box-sizing: border-box; }
+.studio-pane .minecraft-tool-fields button { white-space: nowrap; }
+@media (max-width: 760px) { .minecraft-tool-fields { grid-template-columns: minmax(0, 1fr); } }

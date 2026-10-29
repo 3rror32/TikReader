@@ -28,6 +28,7 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false}={}){
       requests.push({path,method:options.method||'GET',data});
       if(path==='/minecraft'&&data?.select_only){state.edition=data.edition;state.config=state.profiles[data.edition];state.presets=state.config.presets;state.authorized=false;}
       if(path==='/minecraft/presets'&&data){state.config.presets=structuredClone(data.presets);state.presets=state.config.presets;}
+      if(path==='/minecraft/presets/settings'&&data){state.config.limits=structuredClone(data.limits);state.config.name_format=data.name_format;}
       if(path==='/minecraft/authorize'&&data)state.authorized=data.enabled;
       if(path==='/minecraft/disconnect')state.authorized=false;
       const snapshot=path==='/gift-catalog'?{gifts:giftCatalog}:path==='/minecraft/bedrock/prepare'?{command:'/wsserver ws://127.0.0.1:54321/secret'}:structuredClone(state);
@@ -243,4 +244,33 @@ test('authorization checkbox posts real boolean consent, revokes, and reconciles
   assert.equal(s.field('Autorizar Minecraft').checked,false);assert.ok(s.field('Edición').disabled);
   s.fail(false);await s.tick();assert.equal(s.field('Autorizar Minecraft').checked,false);
   assert.equal(s.field('Edición').disabled,false);
+});
+ test('Minecraft simulator and limits preserve drafts and serialize execution with edition changes',async()=>{
+  const s=setup();await s.flush();
+  assert.equal(s.field('Nombre del donante').value,'Prueba');
+  const gift=s.field('Regalo para simular');gift.value='1';
+  const name=s.field('Nombre del donante');name.value='Ana';
+  const interval=s.field('Intervalo mínimo (segundos)');interval.value='7';await interval.events.input();
+  await s.tick();assert.equal(interval.value,'7');assert.equal(name.value,'Ana');
+  s.holdPost('/minecraft/presets/simulate');const sending=s.click('Simular regalo');await s.flush();
+  const count=s.requests.length;await s.edition('bedrock');await s.click('Probar Zombi');
+  assert.equal(s.requests.length,count);s.releasePost();await sending;
+  assert.deepEqual(s.requests.find(r=>r.path==='/minecraft/presets/simulate').data,{edition:'java',gift_id:'1',user:'Ana'});
+  await s.click('Guardar límites');
+  const saved=s.requests.find(r=>r.path==='/minecraft/presets/settings').data;
+  assert.equal(saved.limits.interval,7);assert.equal(saved.limits.per_minute,20);
+  assert.ok(!s.requests.some(r=>r.path.startsWith('/simulation')));
+ });
+
+test('safety settings keep edition drafts and reconcile uncertain saves without granting execution',async()=>{
+ const s=setup();await s.flush();const interval=s.field('Intervalo mínimo (segundos)');
+ interval.value='8';interval.events.input();await s.edition('bedrock');assert.equal(Number(interval.value),3);
+ interval.value='9';interval.events.input();await s.edition('java');assert.equal(Number(interval.value),8);
+ s.holdPost('/minecraft/presets/settings');const saving=s.click('Guardar límites');await s.flush();
+ const count=s.requests.length;await s.click('Simular regalo');await s.permission(false);await s.edition('bedrock');assert.equal(s.requests.length,count);
+ s.fail(true);s.releasePost();await saving;assert.ok(s.field('Edición').disabled);
+ s.fail(false);await s.tick();assert.equal(Number(interval.value),8);assert.equal(s.field('Edición').disabled,false);
+ s.catalog([]);await s.click('Actualizar regalos');
+ const gift=s.preset('zombie','gift');gift.value='saved';await gift.events.change();
+ assert.ok(s.field('Regalo para simular').children.some(o=>o.value==='saved'&&o.textContent.includes('guardado')));
 });

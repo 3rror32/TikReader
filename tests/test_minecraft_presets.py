@@ -17,6 +17,9 @@ from minecraft_connector import MinecraftConnector
 class PresetTests(unittest.TestCase):
     def setUp(self):
         self.runtime=S(archive=None,feed_session='A',production=S(local=lambda:True,settings={'emergency':False,'scene':'talk'}))
+        self.now=1000
+        clock=patch('minecraft_connector.time.monotonic',side_effect=lambda:self.now)
+        clock.start();self.addCleanup(clock.stop)
         self.app=Flask(__name__)
         with patch('threading.Thread.start'):
             self.mc=MinecraftConnector(self.app,self.runtime)
@@ -28,6 +31,163 @@ class PresetTests(unittest.TestCase):
 
     def gift(self, event_id='g', count=1, ongoing=False, gift_id='1'):
         self.mc.gift({'id':event_id,'gift_id':gift_id,'gift':'Rose','count':count,'ongoing':ongoing},event_id)
+
+    def test_simulation_is_local_strict_atomic_and_names_donor(self):
+        self.save(preset='zombie')
+        body={'edition':'java','gift_id':'1','user':'Ana'}
+        response=self.client.post('/minecraft/presets/simulate',json=body)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.get_json()['accepted'],True)
+        self.assertEqual(self.runtime.feed_session,'A')
+        job=self.mc.jobs.get_nowait()
+        self.assertIn('CustomName:{text:"Ana"}',job.commands[0])
+        self.assertEqual(self.client.post('/minecraft/presets/simulate',json=body).status_code,409)
+        for value in [None,True,3,'x'*201]:
+            self.assertEqual(self.client.post('/minecraft/presets/simulate',json={**body,'user':value}).status_code,400)
+        with patch.object(self.runtime.production,'local',return_value=False):
+            self.assertEqual(self.client.post('/minecraft/presets/simulate',json=body).status_code,403)
+
+    def test_shared_limits_reserve_full_cost_and_do_not_delay_rejections(self):
+        rules={key:{'gift_id':'1','gift_name':'Rose','enabled':True} for key in ('tnt_rain','zombie')}
+        self.client.post('/minecraft/presets',json={'edition':'java','presets':rules})
+        with patch('minecraft_connector.time.monotonic',return_value=100) as clock:
+            self.gift(count=999);job=self.mc.jobs.get_nowait()
+            self.assertEqual(len(job.commands),6)
+            with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(job)
+            self.assertFalse(self.mc.enqueue_preset('rain'))
+            clock.return_value=103
+            self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
+            job=self.mc.jobs.get_nowait()
+            with patch.object(self.mc,'execute',side_effect=OSError):self.mc.run_job(job)
+            clock.return_value=106
+            self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
+            job=self.mc.jobs.get_nowait()
+            with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(job)
+            clock.return_value=109
+            self.assertFalse(self.mc.enqueue_preset('tnt_rain'))
+            self.assertTrue(self.mc.jobs.empty())
+            clock.return_value=160
+            self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
+
+    def test_limit_settings_are_strict_preserved_and_do_not_revoke(self):
+        body={'edition':'java','limits':{'interval':5,'per_minute':10},'name_format':'legacy'}
+        self.assertEqual(self.client.post('/minecraft/presets/settings',json=body).status_code,200)
+        self.assertTrue(self.mc.authorized)
+        for limits in [{'interval':True,'per_minute':10},{'interval':0,'per_minute':10},{'interval':3,'per_minute':float('nan')}]:
+            self.assertEqual(self.client.post('/minecraft/presets/settings',json={**body,'limits':limits}).status_code,400)
+        self.client.post('/minecraft',json={'commands':{}})
+        self.assertEqual(self.mc.config['limits'],body['limits'])
+        self.assertEqual(self.mc.config['name_format'],'legacy')
+
+    def test_name_codecs_are_literal_bounded_and_edition_specific(self):
+        from minecraft_presets import commands_for, donor_name
+        name=donor_name(' @\uff21na\n\u00a7c\u202e";\\Test ')
+        self.assertNotIn('\n',name);self.assertNotIn('\u00a7',name);self.assertNotIn('\u202e',name)
+        self.assertLessEqual(len(donor_name('\U0001f600'*100).encode('utf-8')),128)
+        modern=commands_for('zombie','java',name,'modern')[0]
+        legacy=commands_for('zombie','java',"O'Neil",'legacy')[0]
+        bedrock=commands_for('zombie','bedrock','Ana')[0]
+        self.assertIn('CustomName:{text:',modern)
+        self.assertIn("O\\'Neil",legacy)
+        self.assertEqual(bedrock,'execute at @p run summon minecraft:zombie "Ana" ~2 ~ ~')
+
+    def test_running_owner_survives_stop_settings_and_stale_jobs(self):
+        self.save(preset='zombie');self.gift();job=self.mc.jobs.get_nowait()
+        entered,release=threading.Event(),threading.Event()
+        def execute(command):entered.set();release.wait(2);return 'ok'
+        with patch.object(self.mc,'execute',side_effect=execute),ThreadPoolExecutor(2) as pool:
+            run=pool.submit(self.mc.run_job,job);self.assertTrue(entered.wait(1))
+            try:
+                self.now+=10
+                self.client.post('/minecraft/presets/stop',json={'edition':'java'})
+                self.assertFalse(self.mc.enqueue_preset('rain'))
+                old=replace(job,admission_id=object())
+                self.mc.run_job(old)
+                self.assertIs(self.mc.preset_owner,job.admission_id)
+                body={'edition':'java','limits':{'interval':1,'per_minute':5},'name_format':'modern'}
+                self.assertEqual(self.client.post('/minecraft/presets/settings',json=body).status_code,200)
+                self.assertFalse(self.mc.enqueue_preset('rain'))
+            finally:release.set()
+            run.result(2)
+        self.assertIsNone(self.mc.preset_owner)
+        self.assertTrue(self.mc.enqueue_preset('rain'))
+
+    def test_simulation_uses_all_rules_and_captures_two_donors_without_feed_mutation(self):
+        self.save(preset='zombie')
+        body={'edition':'java','gift_id':'1','user':'Ana'}
+        self.assertEqual(self.client.post('/minecraft/presets/simulate',json={**body,'gift_id':'missing'}).get_json()['accepted'],False)
+        self.assertTrue(self.mc.jobs.empty())
+        self.mc.authorized=False
+        self.assertEqual(self.client.post('/minecraft/presets/simulate',json=body).status_code,409)
+        self.mc.authorized=True
+        for user in ('Ana','Luis'):
+            self.assertEqual(self.client.post('/minecraft/presets/simulate',json={**body,'user':user}).status_code,200)
+            job=self.mc.jobs.get_nowait()
+            self.assertEqual(job.donor,user)
+            with patch.object(self.mc,'execute',return_value='ok') as execute:self.mc.run_job(job)
+            self.assertIn(user,execute.call_args.args[0]);self.now+=3
+        for extra in [{'commands':['op @a']},{'edition':'bedrock'},{'gift_id':True}]:
+            self.assertIn(self.client.post('/minecraft/presets/simulate',json={**body,**extra}).status_code,(400,409))
+        self.assertEqual(self.runtime.feed_session,'A')
+
+    def test_budget_is_not_reset_by_stop_profile_switch_or_setting_saves(self):
+        self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
+        with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(self.mc.jobs.get_nowait())
+        self.client.post('/minecraft/presets/stop',json={'edition':'java'})
+        self.client.post('/minecraft/presets/settings',json={'edition':'java','limits':{'interval':1,'per_minute':5},'name_format':'modern'})
+        self.now+=5;self.assertFalse(self.mc.enqueue_preset('rain'))
+        self.client.post('/minecraft',json={'edition':'bedrock','select_only':True})
+        self.mc.authorized=True;self.mc.authorized_generation=self.mc.bedrock.generation
+        self.client.post('/minecraft/presets/settings',json={'edition':'bedrock','limits':{'interval':1,'per_minute':5},'name_format':'modern'})
+        self.assertFalse(self.mc.enqueue_preset('rain'))
+        self.now+=55;self.assertTrue(self.mc.enqueue_preset('rain'))
+
+    def test_discarded_queue_jobs_do_not_leave_admission_permanently_busy(self):
+        self.assertTrue(self.mc.enqueue_preset('rain'))
+        abandoned=self.mc.jobs.get_nowait();self.mc.jobs.task_done()
+        self.now+=3
+        self.assertTrue(self.mc.enqueue_preset('rain'))
+        owner=self.mc.preset_owner
+        with patch.object(self.mc,'execute') as execute:self.mc.run_job(abandoned)
+        execute.assert_not_called()
+        self.assertIs(self.mc.preset_owner,owner)
+
+    def test_minute_budget_waits_until_sixty_seconds_after_actual_completion(self):
+        self.mc.config['limits']={'interval':3,'per_minute':5}
+        self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
+        dispatched=[]
+        def execute(command):
+            dispatched.append(self.now)
+            self.now+=1
+            return 'ok'
+        with patch.object(self.mc,'execute',side_effect=execute):
+            self.mc.run_job(self.mc.jobs.get_nowait())
+        self.assertEqual(dispatched,[1000,1001,1002,1003,1004])
+        for instant in (1060,1064):
+            self.now=instant
+            self.assertFalse(self.mc.enqueue_preset('tnt_rain'))
+            self.assertTrue(self.mc.jobs.empty())
+        self.now=1065
+        self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
+
+    def test_failed_cancelled_and_drained_activations_keep_full_reservation(self):
+        for ending in ('failure','cancel','drain'):
+            with self.subTest(ending=ending):
+                self.setUp();self.mc.config['limits']={'interval':3,'per_minute':5}
+                self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
+                job=self.mc.jobs.get_nowait()
+                self.now=1004
+                if ending=='drain':
+                    self.mc.jobs.task_done()
+                else:
+                    if ending=='cancel':self.mc.preset_generation+=1
+                    with patch.object(self.mc,'execute',side_effect=OSError):self.mc.run_job(job)
+                # Recovery detects a drained pending reservation at this instant.
+                self.assertFalse(self.mc.enqueue_preset('tnt_rain'))
+                self.now=1060
+                self.assertFalse(self.mc.enqueue_preset('tnt_rain'))
+                self.now=1064
+                self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
 
     def test_catalog_defaults_and_validated_local_only_mapping_updates(self):
         snapshot=self.client.get('/minecraft').get_json()
@@ -49,11 +209,13 @@ class PresetTests(unittest.TestCase):
         self.save();self.gift(ongoing=True,count=100);self.assertTrue(self.mc.jobs.empty())
         self.gift(count=100);self.gift(count=101);self.assertEqual(self.mc.jobs.qsize(),1)
         self.gift('different-id',gift_id='2');self.assertEqual(self.mc.jobs.qsize(),1)
-        self.runtime.feed_session='B';self.gift();self.assertEqual(self.mc.jobs.qsize(),2)
+        with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(self.mc.jobs.get_nowait())
+        self.now+=3
+        self.runtime.feed_session='B';self.gift();self.assertEqual(self.mc.jobs.qsize(),1)
         self.save(False);self.gift('disabled');self.save(True);self.gift('disabled')
-        self.assertEqual(self.mc.jobs.qsize(),2,'enabling must not replay a previously observed gift')
+        self.assertEqual(self.mc.jobs.qsize(),1,'enabling must not replay a previously observed gift')
         self.mc.authorized=False;self.gift('unauthorized');self.mc.authorized=True;self.gift('unauthorized')
-        self.assertEqual(self.mc.jobs.qsize(),2)
+        self.assertEqual(self.mc.jobs.qsize(),1)
 
     def test_five_tnt_commands_are_one_atomic_job_without_quantity_multiplier(self):
         self.save();self.gift(count=1000000);self.assertEqual(self.mc.jobs.qsize(),1)
@@ -63,6 +225,7 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(execute.call_count,5)
         self.assertEqual(len({call.args[0] for call in execute.call_args_list}),5)
         self.assertTrue(all(row['outcome']=='unconfirmed' for row in self.mc.log))
+        self.now+=3
         self.mc.jobs=queue.Queue(1);self.gift('fills-queue');self.gift('full-queue')
         self.assertEqual(self.mc.jobs.qsize(),1)
 
@@ -86,9 +249,11 @@ class PresetTests(unittest.TestCase):
         self.save();self.gift();job=self.mc.jobs.get_nowait();self.save(False);self.save(True)
         with patch.object(self.mc,'execute') as execute:self.mc.run_job(job)
         execute.assert_not_called()
+        self.now+=3
         self.gift('next');job=self.mc.jobs.get_nowait()
         with patch.object(self.mc,'execute',return_value='Unknown command') as execute:self.mc.run_job(job)
         self.assertEqual(execute.call_count,1)
+        self.now+=3
         self.gift('expired');job=self.mc.jobs.get_nowait()
         with patch.object(self.mc,'execute') as execute:self.mc.run_job(replace(job,created=time.monotonic()-11))
         execute.assert_not_called()

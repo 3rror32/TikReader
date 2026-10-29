@@ -7,10 +7,10 @@ import socket
 import struct
 import threading
 import time
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from flask import jsonify, request
 from minecraft_bedrock import BedrockBridge
-from minecraft_presets import PresetJob, catalog, commands_for, mappings
+from minecraft_presets import PresetJob, catalog, commands_for, mappings, limits, name_format, donor_name
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,11 @@ class MinecraftConnector:
         self.preset_lock = threading.RLock()
         self.preset_generation = 0
         self.final_gifts = OrderedDict()
+        self.preset_owner = None
+        self.running_presets = set()
+        self.preset_usage = deque()
+        self.last_preset_at = None
+        self.admission_reason = ''
         self.bedrock = BedrockBridge(self._bedrock_changed)
         threading.Thread(target=self.worker, daemon=True).start()
         self.register(app)
@@ -66,7 +71,8 @@ class MinecraftConnector:
         return dict(config=self.config, edition=self.edition, profiles=self.profiles,
                     authorized=self.authorized_now(), queued=self.jobs.qsize(), log=self.log,
                     bedrock=self.bedrock.snapshot(), presets=mappings(self.config.get('presets')),
-                    preset_catalog=catalog(), authorization_mode='checkbox')
+                    preset_catalog=catalog(), authorization_mode='checkbox',
+                    limits=limits(self.config.get('limits')), name_format=self.config.get('name_format', 'modern'))
 
     def authorized_now(self):
         return self.authorized and (self.edition == 'java' or
@@ -102,6 +108,8 @@ class MinecraftConnector:
             clean[name] = command.lstrip('/')
         config = {'commands': clean} if edition == 'bedrock' else {'host': host, 'port': port, 'commands': clean}
         if 'presets' in data:config['presets'] = mappings(data['presets'])
+        if 'limits' in data:config['limits'] = limits(data['limits'])
+        if 'name_format' in data:config['name_format'] = name_format(data['name_format'])
         return config
 
     def _persist(self):
@@ -116,42 +124,104 @@ class MinecraftConnector:
             if identity in self.final_gifts:return
             self.final_gifts[identity] = True
             while len(self.final_gifts) > 1000:self.final_gifts.popitem(last=False)
-            for preset_id, row in mappings(self.config.get('presets')).items():
-                if row['enabled'] and row['gift_id'] == str(record.get('gift_id', '')):
-                    self.enqueue_preset(preset_id, automatic=True)
+            selected = self.matching_presets(str(record.get('gift_id', '')))
+            if selected:
+                self.admit_presets(selected, record.get('user'), automatic=True)
+
+    def matching_presets(self, gift_id):
+        return tuple(key for key, row in mappings(self.config.get('presets')).items()
+                     if row['enabled'] and row['gift_id'] == gift_id)
 
     def enqueue_preset(self, preset_id, automatic=False):
+        commands_for(preset_id, self.edition)  # Validate immutable IDs even when admission is blocked.
+        return self.admit_presets((preset_id,), 'Prueba', automatic)
+
+    def admit_presets(self, selected, donor, automatic=False):
         with self.preset_lock:
-            commands = commands_for(preset_id, self.edition)
-            if (not self.authorized_now() or self.r.production.settings['emergency'] or
-                    self.r.production.settings.get('scene', 'talk') != 'talk'):
+            now = time.monotonic()
+            settings = limits(self.config.get('limits'))
+            # The general simulator may drain pending queue items and call task_done.
+            with self.jobs.mutex:
+                abandoned = self.jobs.unfinished_tasks == 0
+            if abandoned and not self.running_presets:
+                self.finish_reservation(self.preset_owner, now)
+                self.preset_owner = None
+            self.preset_usage = deque(entry for entry in self.preset_usage
+                                      if entry['finished'] is None or now - entry['finished'] < 60)
+            commands, labels = [], []
+            rows = mappings(self.config.get('presets'))
+            for key in selected:
+                sequence = commands_for(key, self.edition, donor, self.config.get('name_format', 'modern'))
+                commands.extend(sequence)
+                labels.extend([key] * len(sequence))
+            reason = ''
+            if not selected:reason = 'No hay acciones activas para este regalo.'
+            elif (not self.authorized_now() or self.r.production.settings['emergency'] or
+                  self.r.production.settings.get('scene', 'talk') != 'talk'):
+                reason = 'Autoriza Minecraft y revisa la escena y la pausa.'
+            elif automatic and any(not rows[key]['enabled'] or not rows[key]['gift_id'] for key in selected):
+                reason = 'La acción ya no está activa.'
+            elif self.preset_owner is not None or not self.jobs.empty():
+                reason = 'Hay una acción pendiente o en ejecución. Regalo descartado.'
+            elif self.last_preset_at is not None and now - self.last_preset_at < settings['interval']:
+                reason = 'Espera el intervalo mínimo. Regalo descartado.'
+            elif sum(entry['cost'] for entry in self.preset_usage) + len(commands) > settings['per_minute']:
+                reason = 'Límite de efectos por minuto alcanzado. Regalo descartado.'
+            if reason:
+                self.admission_reason = reason
+                self.note(reason, outcome='cancelled', alias='regalo', response='')
                 return False
-            row = mappings(self.config.get('presets'))[preset_id]
-            if automatic and (not row['enabled'] or not row['gift_id']):return False
-            job = PresetJob(preset_id, commands, time.monotonic(), getattr(self.r, 'feed_session', None),
+            owner = object()
+            job = PresetJob(selected[0], tuple(commands), now, getattr(self.r, 'feed_session', None),
                             self.revision, self.edition, self.preset_generation,
-                            self.authorized_generation, automatic)
+                            self.authorized_generation, automatic, tuple(selected), donor_name(donor),
+                            owner, tuple(labels))
             try:
                 self.jobs.put_nowait(job)
-                return True
             except queue.Full:
-                self.note('Minecraft: cola llena; acción rápida no admitida', alias=preset_id,
-                          outcome='cancelled', response='')
+                self.admission_reason = 'Cola llena. Regalo descartado.'
+                self.note(self.admission_reason, outcome='cancelled', alias='regalo', response='')
                 return False
+            self.preset_owner = owner
+            self.preset_usage.append({'owner': owner, 'cost': len(commands), 'finished': None})
+            self.last_preset_at = now
+            self.admission_reason = ''
+            return True
+
+    def finish_reservation(self, owner, now):
+        # Caller holds preset_lock. Pending/running costs cannot expire before completion.
+        for entry in self.preset_usage:
+            if entry['owner'] is owner and entry['finished'] is None:
+                entry['finished'] = now
+                break
 
     def _preset_valid(self, job):
         with self.preset_lock:
-            row = mappings(self.config.get('presets')).get(job.preset_id, {})
-            return (self.authorized_now() and job.edition == self.edition and
+            rows = mappings(self.config.get('presets'))
+            enabled = all(rows[key]['enabled'] and rows[key]['gift_id'] for key in (job.selected_ids or (job.preset_id,)))
+            return (job.admission_id is self.preset_owner and self.authorized_now() and job.edition == self.edition and
                     job.revision == self.revision and job.preset_generation == self.preset_generation and
                     job.session == getattr(self.r, 'feed_session', None) and time.monotonic()-job.created <= 10 and
                     not self.r.production.settings['emergency'] and
                     self.r.production.settings.get('scene', 'talk') == 'talk' and
-                    (not job.automatic or (row.get('enabled') and row.get('gift_id'))) and
+                    (not job.automatic or enabled) and
                     (job.edition == 'java' or job.transport_generation == self.bedrock.generation))
 
     def run_preset(self, job):
+        with self.preset_lock:
+            self.running_presets.add(job.admission_id)
+        try:
+            self._run_preset(job)
+        finally:
+            with self.preset_lock:
+                self.running_presets.discard(job.admission_id)
+                self.finish_reservation(job.admission_id, time.monotonic())
+                if self.preset_owner is job.admission_id:
+                    self.preset_owner = None
+
+    def _run_preset(self, job):
         for step, command in enumerate(job.commands, 1):
+            alias = job.command_labels[step-1] if job.command_labels else job.preset_id
             if not self._preset_valid(job):
                 self.note(f'Acción rápida cancelada antes del paso {step}/{len(job.commands)}',
                           alias=job.preset_id, outcome='cancelled', response='')
@@ -170,9 +240,9 @@ class MinecraftConnector:
                     response, outcome = result['response'], result['outcome']
                 label = {'success': 'Éxito confirmado', 'rejected': 'Comando rechazado',
                          'unconfirmed': 'Sin confirmar'}[outcome]
-                self.note(f'{label} · {job.preset_id} · paso {step}/{len(job.commands)}: {response or "sin respuesta"}',
-                          alias=job.preset_id, outcome=outcome, response=response,
-                          step=step, total=len(job.commands))
+                self.note(f'{label} · {alias} · {job.donor} · paso {step}/{len(job.commands)}: {response or "sin respuesta"}',
+                          alias=alias, outcome=outcome, response=response,
+                          step=step, total=len(job.commands), donor=job.donor)
                 if outcome == 'rejected':return
             except Exception as exc:
                 self.note(f'Acción rápida sin confirmar · paso {step}/{len(job.commands)}: {type(exc).__name__}',
@@ -312,8 +382,9 @@ class MinecraftConnector:
                     edition = data.get('edition', 'java')
                     if edition not in ('java', 'bedrock'):raise ValueError('Edición inválida')
                     config = self.profiles[edition] if data.get('select_only') is True else self.validate(data)
-                    if 'presets' not in config and 'presets' in self.profiles[edition]:
-                        config['presets'] = self.profiles[edition]['presets']
+                    for key in ('presets', 'limits', 'name_format'):
+                        if key not in config and key in self.profiles[edition]:
+                            config[key] = self.profiles[edition][key]
                 except (TypeError, ValueError) as exc:
                     return jsonify(error=str(exc)), 400
                 with self.control_lock:
@@ -360,8 +431,40 @@ class MinecraftConnector:
                 if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
                 try:accepted = self.enqueue_preset(data['id'])
                 except (TypeError, ValueError):return jsonify(error='Acción inválida'),400
-            if not accepted:return jsonify(error='Autoriza Minecraft y revisa la escena, la pausa y la cola.'),409
+            if not accepted:return jsonify(error=self.admission_reason),409
             return jsonify(ok=True)
+
+        @app.post('/minecraft/presets/simulate')
+        def minecraft_simulate():
+            if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
+            data = request.get_json(silent=True)
+            if (not isinstance(data, dict) or set(data) != {'edition', 'gift_id', 'user'} or
+                    not isinstance(data['gift_id'], str) or not 1 <= len(data['gift_id'].strip()) <= 100 or
+                    not isinstance(data['user'], str) or not 1 <= len(data['user'].strip()) <= 200):
+                return jsonify(error='Selecciona un regalo y un nombre de hasta 200 caracteres'),400
+            with self.preset_lock:
+                if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
+                selected = self.matching_presets(data['gift_id'])
+                if not selected:return jsonify(accepted=False, detail='No hay acciones activas para este regalo.')
+                accepted = self.admit_presets(selected, donor_name(data['user'], 'Prueba'), automatic=True)
+                if not accepted:return jsonify(error=self.admission_reason),409
+            return jsonify(accepted=True, detail='Simulación admitida. Revisa el registro.')
+
+        @app.post('/minecraft/presets/settings')
+        def minecraft_preset_settings():
+            if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
+            data = request.get_json(silent=True)
+            try:
+                if not isinstance(data, dict) or set(data) != {'edition', 'limits', 'name_format'}:
+                    raise ValueError('Configuración inválida')
+                clean, style = limits(data['limits']), name_format(data['name_format'])
+                with self.preset_lock:
+                    if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
+                    self.config.update(limits=clean, name_format=style)
+                    self.preset_generation += 1
+                self._persist()
+                return jsonify(self.snapshot())
+            except (TypeError, ValueError) as exc:return jsonify(error=str(exc)),400
 
         @app.post('/minecraft/presets/stop')
         def minecraft_presets_stop():
