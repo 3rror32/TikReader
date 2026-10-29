@@ -3,14 +3,14 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 
-function setup({holdInitial=false}={}){
-  const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=false,hold=holdInitial,release;
+function setup({holdInitial=false,failInitial=false,oldBackend=false}={}){
+  const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=failInitial,hold=holdInitial,release;
   const requests=[];let heldPost,releasePost;
   const java={host:'localhost',port:25575,commands:{probe:'list'}},bedrock={commands:{bed:'say hello'}};
   const presetCatalog=[['tnt_rain','Lluvia de TNT'],['zombie','Zombi'],['rain','Lluvia'],['thunder','Tormenta'],['night','Noche'],['diamonds','Diamantes'],['speed','Velocidad II'],['jump','Salto II'],['heal','Curación II']].map(([id,name])=>({id,name,description:id==='tnt_rain'?'5 TNT sobre el jugador más cercano.':'Efecto fijo'}));
   const defaults=()=>Object.fromEntries(presetCatalog.map(p=>[p.id,{gift_id:'',gift_name:'',enabled:false}]));
   java.presets=defaults();bedrock.presets=defaults();let giftCatalog=[{id:'1',name:'Rose',diamonds:1}];
-  let state={edition:'java',profiles:{java,bedrock},config:java,preset_catalog:presetCatalog,presets:java.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
+  let state={edition:'java',authorization_mode:'checkbox',profiles:{java,bedrock},config:java,preset_catalog:oldBackend?undefined:presetCatalog,presets:java.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
   class Element {
     constructor(tag){this.tagName=tag;this.textContent='';this.value='';this.children=[];this.dataset={};this.events={};this.hidden=false;this.isConnected=true;nodes.push(this);}
     append(...items){this.children.push(...items);for(const item of items)item.parentElement=this;}
@@ -28,6 +28,8 @@ function setup({holdInitial=false}={}){
       requests.push({path,method:options.method||'GET',data});
       if(path==='/minecraft'&&data?.select_only){state.edition=data.edition;state.config=state.profiles[data.edition];state.presets=state.config.presets;state.authorized=false;}
       if(path==='/minecraft/presets'&&data){state.config.presets=structuredClone(data.presets);state.presets=state.config.presets;}
+      if(path==='/minecraft/authorize'&&data)state.authorized=data.enabled;
+      if(path==='/minecraft/disconnect')state.authorized=false;
       const snapshot=path==='/gift-catalog'?{gifts:giftCatalog}:path==='/minecraft/bedrock/prepare'?{command:'/wsserver ws://127.0.0.1:54321/secret'}:structuredClone(state);
       if(options.method==='POST'&&heldPost===path){heldPost=null;await new Promise(resolve=>releasePost=resolve);}
       if(hold&&options.method==='GET'&&path==='/minecraft')await new Promise(resolve=>release=resolve);if(fail)throw Error('offline');return {ok:true,json:async()=>snapshot};}};
@@ -46,7 +48,8 @@ function setup({holdInitial=false}={}){
     async connection(value){pane.isConnected=value;for(const o of observers)if(o.options.childList)o.fn([]);await flush();},
     async detach(){await this.connection(false);},
     async pagehide(){listeners.pagehide?.();await flush();},
-    async click(text){await nodes.find(n=>n.tagName==='button'&&n.textContent===text).onclick();await flush();},
+    async click(text){await nodes.find(n=>n.tagName==='button'&&(n.textContent===text||n['aria-label']===text)).onclick();await flush();},
+    async permission(value){const input=field('Autorizar Minecraft');input.checked=value;await input.events.change();await flush();},
     async edition(value){const select=field('Edición');select.value=value;await select.events.change();await flush();},
     text:()=>nodes.filter(n=>n.tagName==='div').flatMap(n=>n.children).map(n=>n.textContent).join('\n')};
 }
@@ -111,7 +114,7 @@ test('slow initial hydration preserves edits and stale pre-action reads are disc
   s.hold();await s.tick();
   s.setState({authorized:false});await s.click('Desconectar');
   s.release();await s.flush();
-  assert.ok(s.nodes.some(n=>n.textContent==='RCON desconectado'));
+  assert.ok(s.nodes.some(n=>n.textContent==='Sin conectar'));
   assert.equal(s.timers.size,1);
   assert.equal(host.value,'192.168.1.99');
 });
@@ -142,7 +145,8 @@ test('pending edition selection guards every action handler, including Save',asy
   const s=setup();await s.flush();s.field('Alias para prueba').value='probe';
   s.holdPost('/minecraft');const selecting=s.edition('bedrock');await s.flush();
   const count=s.requests.length;
-  for(const text of ['Guardar conexión y comandos','Autorizar y probar RCON','Ejecutar alias de prueba',
+  await s.permission(true);
+  for(const text of ['Guardar conexión y comandos','Ejecutar alias de prueba',
                     'Preparar conexión de Bedrock','Desconectar','Comprobar conexión sin ejecutar un alias']){
     await s.click(text);
   }
@@ -153,7 +157,7 @@ test('pending edition selection guards every action handler, including Save',asy
 
 test('pending mode-specific actions guard edition changes in both directions',async()=>{
   for(const [mode,label,path] of [
-    ['java','Guardar conexión y comandos','/minecraft'],['java','Autorizar y probar RCON','/minecraft/authorize'],
+    ['java','Guardar conexión y comandos','/minecraft'],
     ['java','Ejecutar alias de prueba','/minecraft/run'],['java','Desconectar','/minecraft/disconnect'],
     ['java','Comprobar conexión sin ejecutar un alias','/minecraft/check'],
     ['bedrock','Preparar conexión de Bedrock','/minecraft/bedrock/prepare']]){
@@ -207,4 +211,36 @@ test('preset saves share the operation boundary and uncertain saves reconcile ac
   await s.click('Probar Lluvia de TNT');await s.click('Detener acciones rápidas');
   assert.ok(s.requests.some(r=>r.path==='/minecraft/presets/test'&&r.data.id==='tnt_rain'));
   assert.ok(s.requests.some(r=>r.path==='/minecraft/presets/stop'));
+});
+
+test('all nine default actions exist synchronously and survive unavailable or old APIs',async()=>{
+  for(const options of [{holdInitial:true},{failInitial:true},{oldBackend:true}]){
+    const s=setup(options);
+    assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,9);
+    assert.ok(s.nodes.some(n=>n.textContent==='Acciones predeterminadas'));
+    await s.flush();assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,9);
+    if(options.holdInitial){s.release();await s.flush();}
+    else assert.equal(s.preset('tnt_rain','gift').disabled,true);
+    assert.ok(!s.nodes.some(n=>n.textContent.includes('Escribe AUTORIZAR')));
+    assert.ok(!s.nodes.some(n=>n.tagName==='button'&&n.textContent.startsWith('Autorizar y probar')));
+    for(const summary of ['Opciones avanzadas','Ayuda']){
+      const node=s.nodes.find(n=>n.tagName==='summary'&&n.textContent===summary);
+      assert.ok(node);assert.ok(!node.parentElement.open);
+    }
+  }
+});
+
+test('authorization checkbox posts real boolean consent, revokes, and reconciles failures',async()=>{
+  const s=setup();await s.flush();await s.permission(false);
+  assert.equal(s.field('Autorizar Minecraft').checked,false);
+  await s.permission(true);
+  const request=s.requests.filter(r=>r.path==='/minecraft/authorize').at(-1);
+  assert.deepEqual(request.data,{edition:'java',enabled:true});
+  assert.equal(s.field('Autorizar Minecraft').checked,true);
+  s.holdPost('/minecraft/authorize');const revoking=s.permission(false);await s.flush();
+  const count=s.requests.length;await s.edition('bedrock');assert.equal(s.requests.length,count);
+  s.fail(true);s.releasePost();await revoking;
+  assert.equal(s.field('Autorizar Minecraft').checked,false);assert.ok(s.field('Edición').disabled);
+  s.fail(false);await s.tick();assert.equal(s.field('Autorizar Minecraft').checked,false);
+  assert.equal(s.field('Edición').disabled,false);
 });

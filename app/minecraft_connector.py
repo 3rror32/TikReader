@@ -55,16 +55,18 @@ class MinecraftConnector:
                 pass
 
     def _bedrock_changed(self):
-        with self.lock:
+        # Revocation must never wait for a command's network execution lock.
+        with self.preset_lock:
             self.authorized = False
             self.authorized_generation = None
             self.revision += 1
+            self.preset_generation += 1
 
     def snapshot(self):
         return dict(config=self.config, edition=self.edition, profiles=self.profiles,
                     authorized=self.authorized_now(), queued=self.jobs.qsize(), log=self.log,
                     bedrock=self.bedrock.snapshot(), presets=mappings(self.config.get('presets')),
-                    preset_catalog=catalog())
+                    preset_catalog=catalog(), authorization_mode='checkbox')
 
     def authorized_now(self):
         return self.authorized and (self.edition == 'java' or
@@ -317,10 +319,10 @@ class MinecraftConnector:
                 with self.control_lock:
                     self.bedrock.close()
                     with self.lock:
-                        self.authorized = False
-                        self.authorized_generation = None
-                        self.revision += 1
                         with self.preset_lock:
+                            self.authorized = False
+                            self.authorized_generation = None
+                            self.revision += 1
                             self.preset_generation += 1
                             self.profiles[self.edition] = self.config
                             if edition != self.edition:self.password = ''
@@ -387,26 +389,47 @@ class MinecraftConnector:
             if not self.r.production.local():
                 return jsonify(error='Solo disponible desde este equipo'), 403
             data = request.get_json(silent=True) or {}
-            if not isinstance(data, dict):return jsonify(error='Datos inválidos'),400
-            if data.get('confirmation') != 'AUTORIZAR MINECRAFT' or (self.edition == 'java' and not self.password):
-                return jsonify(error='Guarda la contraseña y escribe AUTORIZAR MINECRAFT'), 400
-            try:
-                revision = self.revision
-                edition = self.edition
+            if (not isinstance(data, dict) or set(data) != {'edition', 'enabled'} or
+                    type(data.get('enabled')) is not bool):
+                return jsonify(error='Indica si permites comandos de Minecraft.'),400
+            with self.preset_lock:
+                if data['edition'] != self.edition:return jsonify(error='La edición cambió. Actualiza antes de continuar.'),409
+                self._bedrock_changed()
+                edition, revision = data['edition'], self.revision
                 generation = self.bedrock.generation
+                has_password = bool(self.password)
+            if data['enabled'] is False:
+                # Revocation is already effective. Do not wait behind an active
+                # connection change or close the replacement it may create.
+                if not self.control_lock.acquire(blocking=False):
+                    return jsonify(error='La conexión está cambiando. Los comandos se desactivaron.'),409
+                try:
+                    with self.preset_lock:
+                        if edition != self.edition or revision != self.revision:
+                            return jsonify(error='La conexión cambió. Actualiza su estado.'),409
+                        self.password = ''
+                    self.bedrock.close()
+                finally:
+                    self.control_lock.release()
+                return jsonify(ok=True, authorized=False)
+            if edition == 'java' and not has_password:
+                return jsonify(error='Abre Conexión Java y guarda la contraseña RCON.'),400
+            try:
                 result = self.bedrock.execute('list', expected_generation=generation) if edition == 'bedrock' else self.execute('list')
             except Exception as exc:
-                self.authorized = False
+                with self.preset_lock:
+                    if edition != self.edition or revision != self.revision:
+                        return jsonify(error='La conexión cambió. Autoriza de nuevo.'),409
+                    self.authorized = False
                 return jsonify(error=f'No se pudo autorizar Minecraft: {type(exc).__name__}'), 400
-            if revision != self.revision:return jsonify(error='La configuración cambió. Autoriza de nuevo.'),409
-            with self.lock:
-                if revision != self.revision:return jsonify(error='La conexión cambió. Autoriza de nuevo.'),409
+            with self.preset_lock:
+                if edition != self.edition or revision != self.revision:return jsonify(error='La conexión cambió. Autoriza de nuevo.'),409
                 if edition == 'bedrock' and (result['outcome'] != 'success' or not self.bedrock.snapshot()['connected'] or generation != self.bedrock.generation):
                     return jsonify(error='Bedrock no confirmó la consulta de jugadores. Revisa la conexión y los permisos.'),400
                 self.authorized = True
                 self.authorized_generation = generation if edition == 'bedrock' else None
             self.note('Minecraft autorizado: '+edition)
-            return jsonify(ok=True)
+            return jsonify(ok=True, authorized=self.authorized_now())
 
         @app.post('/minecraft/run')
         def run_command():

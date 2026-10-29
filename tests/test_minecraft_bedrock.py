@@ -112,7 +112,7 @@ class BedrockTests(unittest.TestCase):
         connector.bedrock=self.bridge;self.bridge.on_change=connector._bedrock_changed
         with self.peer() as ws, ThreadPoolExecutor(1) as pool:
             self.wait_connected()
-            future=pool.submit(lambda:app.test_client().post('/minecraft/authorize',json={'confirmation':'AUTORIZAR MINECRAFT'}))
+            future=pool.submit(lambda:app.test_client().post('/minecraft/authorize',json={'edition':'bedrock','enabled':True}))
             packet=json.loads(ws.recv(timeout=1));self.reply(ws,packet)
             self.assertEqual(future.result(2).status_code,200)
             self.assertTrue(connector.authorized_now());revision=connector.revision

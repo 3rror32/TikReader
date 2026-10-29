@@ -1,6 +1,8 @@
 import tempfile
+import threading
 import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -92,17 +94,89 @@ class MinecraftTests(unittest.TestCase):
         client=self.app.test_client();client.post('/minecraft',json={'edition':'bedrock'})
         with patch.object(self.connector.bedrock,'snapshot',return_value={'prepared':True,'connected':True}), \
                 patch.object(self.connector.bedrock,'execute',return_value={'outcome':'rejected','response':'no'}):
-            result=client.post('/minecraft/authorize',json={'confirmation':'AUTORIZAR MINECRAFT'})
+            result=client.post('/minecraft/authorize',json={'edition':'bedrock','enabled':True})
             self.assertEqual(result.status_code,400);self.assertFalse(self.connector.authorized)
         def changed(command, **kwargs):
             self.connector._bedrock_changed()
             return {'outcome':'success','response':'ok'}
         with patch.object(self.connector.bedrock,'execute',side_effect=changed):
-            result=client.post('/minecraft/authorize',json={'confirmation':'AUTORIZAR MINECRAFT'})
+            result=client.post('/minecraft/authorize',json={'edition':'bedrock','enabled':True})
             self.assertEqual(result.status_code,409);self.assertFalse(self.connector.authorized)
         self.connector.authorized=True;revision=self.connector.revision
         self.connector._bedrock_changed()
         self.assertFalse(self.connector.authorized);self.assertGreater(self.connector.revision,revision)
+
+    def test_authorization_requires_strict_boolean_and_matching_edition(self):
+        client=self.app.test_client();self.connector.password='secret'
+        with patch.object(self.connector,'execute',return_value='players') as execute:
+            for enabled in (None,'true','false',1,0,[],{}):
+                self.assertEqual(client.post('/minecraft/authorize',json={'edition':'java','enabled':enabled}).status_code,400)
+            self.assertEqual(client.post('/minecraft/authorize',json={'confirmation':'AUTORIZAR MINECRAFT'}).status_code,400)
+            self.assertEqual(client.post('/minecraft/authorize',json={'enabled':True}).status_code,400)
+            self.assertEqual(client.post('/minecraft/authorize',json={'edition':'bedrock','enabled':True}).status_code,409)
+            execute.assert_not_called()
+            self.assertEqual(client.post('/minecraft/authorize',json={'edition':'java','enabled':True}).status_code,200)
+            execute.assert_called_once_with('list');self.assertTrue(self.connector.authorized)
+            with patch.object(self.runtime.production,'local',return_value=False):
+                self.assertEqual(client.post('/minecraft/authorize',json={'edition':'java','enabled':False}).status_code,403)
+            self.assertTrue(self.connector.authorized)
+
+    def test_uncheck_revokes_without_waiting_for_execution_lock_or_sending_list(self):
+        self.connector.authorized=True;revision=self.connector.revision
+        with patch.object(self.connector,'execute') as execute,ThreadPoolExecutor(1) as pool:
+            self.connector.lock.acquire()
+            try:
+                future=pool.submit(lambda:self.app.test_client().post('/minecraft/authorize',json={'edition':'java','enabled':False}))
+                self.assertEqual(future.result(.5).status_code,200)
+            finally:self.connector.lock.release()
+        execute.assert_not_called();self.assertFalse(self.connector.authorized)
+        self.assertGreater(self.connector.revision,revision)
+
+    def test_java_checkbox_consent_cannot_authorize_a_concurrently_selected_bedrock_profile(self):
+        self.connector.password='secret'
+        revoked,resume,switched=threading.Event(),threading.Event(),threading.Event()
+        original=self.connector._bedrock_changed
+        def paused_revoke():
+            original();revoked.set();resume.wait(2)
+        def java_proof(command):
+            switched.wait(1)
+            return 'players'
+        with patch.object(self.connector,'_bedrock_changed',side_effect=paused_revoke), \
+                patch.object(self.connector,'execute',side_effect=java_proof) as java, \
+                patch.object(self.connector.bedrock,'execute',return_value={'outcome':'success','response':'players'}) as bedrock, \
+                patch.object(self.connector.bedrock,'snapshot',return_value={'prepared':True,'connected':True}), \
+                ThreadPoolExecutor(2) as pool:
+            authorizing=pool.submit(lambda:self.app.test_client().post('/minecraft/authorize',json={'edition':'java','enabled':True}))
+            self.assertTrue(revoked.wait(1))
+            try:
+                selecting=pool.submit(lambda:self.app.test_client().post('/minecraft',json={'edition':'bedrock','select_only':True}))
+                # The fixed implementation serializes the short consent snapshot;
+                # allow either ordering, but neither may transfer consent.
+                selecting.add_done_callback(lambda future:switched.set())
+                switched.wait(.1)
+            finally:resume.set()
+            result=authorizing.result(2);self.assertEqual(selecting.result(2).status_code,200)
+        self.assertEqual(result.status_code,409)
+        bedrock.assert_not_called()
+        self.assertFalse(self.connector.authorized_now())
+
+    def test_uncheck_does_not_close_a_newly_selected_edition(self):
+        self.connector.authorized=True
+        revoked,resume,selecting_started=threading.Event(),threading.Event(),threading.Event()
+        original=self.connector._bedrock_changed
+        def paused_revoke():original();revoked.set();resume.wait(2)
+        with patch.object(self.connector,'_bedrock_changed',side_effect=paused_revoke), \
+                patch.object(self.connector.bedrock,'close',side_effect=lambda:selecting_started.set()) as close, \
+                ThreadPoolExecutor(2) as pool:
+            revoking=pool.submit(lambda:self.app.test_client().post('/minecraft/authorize',json={'edition':'java','enabled':False}))
+            self.assertTrue(revoked.wait(1))
+            selecting=pool.submit(lambda:self.app.test_client().post('/minecraft',json={'edition':'bedrock','select_only':True}))
+            try:self.assertTrue(selecting_started.wait(1))
+            finally:resume.set()
+            self.assertEqual(revoking.result(2).status_code,409)
+            self.assertEqual(selecting.result(2).status_code,200)
+        self.assertEqual(close.call_count,1,'only the edition change closes its previous transport')
+        self.assertFalse(self.connector.authorized_now())
 
     def test_only_queues_authorized_alias_and_substitutes_values(self):
         self.connector.config = {'host':'127.0.0.1','port':25575,'commands':{'hello':'say Hola {user}'}}
