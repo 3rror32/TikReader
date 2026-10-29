@@ -157,6 +157,18 @@ test('overlay catalog offers search and a private replay control',()=>{
  assert.match(gallery,/Prueba reproducida únicamente en esta vista previa/);
 });
 
+test('Herramientas gallery contains one microphone effects preview card',()=>{
+ const groups=gallery.match(/const groups=(\[[\s\S]*?\n \]);/)[1];
+ const sections=gallery.match(/const sections=(\[[\s\S]*?\n \]);/)[1];
+ const authored=JSON.parse(vm.runInNewContext(`JSON.stringify((()=>{const groups=${groups};return ${sections}})())`));
+ const tools=authored.find(section=>section.key==='tools');
+ assert.deepEqual(tools.parts,[['Audio en vivo','Personaliza la respuesta visual al sonido de tu micrófono.',[['voice-ripples','Efectos de micrófono']]]]);
+ const render=gallery.match(/function renderCategory\(index\)\{[\s\S]*?\n \}/)[0];
+ const createCard=gallery.match(/function createCard\(key,label,compact=false\)\{[\s\S]*?\n \}/)[0];
+ assert.match(render,/cards\.append\(createCard\(key,label\)\)/);
+ assert.match(createCard,/mini\.dataset\.previewSource=.*`\/widget\/\$\{key\}\?preview=1&catalog=1`/);
+});
+
 test('point-drop editor gives action feedback and refreshes its embedded widget',()=>{
  const games=fs.readFileSync('web/static/live_games.js','utf8');
  const widgets=fs.readFileSync('web/static/widgets.js','utf8');

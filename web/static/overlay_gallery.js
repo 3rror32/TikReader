@@ -18,7 +18,7 @@
  const sections=[
   {key:'animations',title:'Animaciones',description:'Animaciones que reaccionan a tu comunidad y celebran momentos del LIVE.',icon:'spark',parts:[groups[0],groups[5]]},
   {key:'effects',title:'Efectos',description:'Ambientes continuos para transformar el fondo de tu escena.',icon:'effects',parts:[groups[6]]},
-  {key:'tools',title:'Herramientas',description:'Chat, regalos, rankings, datos y elementos útiles para tu transmisión.',icon:'tools',parts:[['Chat y actividad','Muestra la conversación y los eventos recientes',['chat','highlight','latest-comments','latest-events'].map(key=>groups[4][2].find(item=>item[0]===key))],groups[7],[groups[3][0],groups[3][1],[...groups[3][2],groups[4][2].find(item=>item[0]==='latest-gifts')]],groups[9],groups[8]]},
+  {key:'tools',title:'Herramientas',description:'Configura los efectos visuales que acompañan tu voz.',icon:'tools',parts:[['Audio en vivo','Personaliza la respuesta visual al sonido de tu micrófono.',[['voice-ripples','Efectos de micrófono']]]] },
   {key:'goals',title:'Metas',description:'Progreso, cuentas regresivas y objetivos personalizados.',icon:'goal',parts:[groups[1],groups[2]]}
  ];
  // Keep the existing widget IDs as variants so saved streaming sources remain valid.

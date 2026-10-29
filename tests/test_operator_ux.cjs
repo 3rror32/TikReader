@@ -154,20 +154,21 @@ test('creator subroutes retain their tab and activate the Preparar destination',
   assert.equal(app.buttons.find(button => button.dataset.sectionNav === 'creator-suite').getAttribute('aria-current'), 'page');
 });
 
-test('Complete nests one microphone effects destination under Herramientas', () => {
+test('Complete exposes Herramientas as a selectable destination without nested microphone effects', () => {
   const groups = authoredMenuGroups();
+  const toolsEntries = [];
   const microphoneEntries = [];
   function visit(section, items, parent = null) {
     for (const [label, key, children] of items) {
+      if (key === 'overlay-tools') toolsEntries.push({section, parent, label, key, children});
       if (key === 'voice-ripples') microphoneEntries.push({section, parent, label, key});
       if (children) visit(section, children, key);
     }
   }
   for (const [section, items] of groups) visit(section, items);
 
-  assert.deepEqual(microphoneEntries, [{
-    section: 'Directo', parent: 'overlay-tools', label: 'Efectos de micrófono', key: 'voice-ripples',
-  }]);
+  assert.deepEqual(toolsEntries, [{section: 'Directo', parent: 'overlay-gallery', label: 'Herramientas', key: 'overlay-tools', children: undefined}]);
+  assert.deepEqual(microphoneEntries, []);
 });
 
 test('microphone effects select Tools while preserving the screen and its heading', () => {

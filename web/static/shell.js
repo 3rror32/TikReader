@@ -93,13 +93,7 @@ window.Shell=(()=>{
           ],
           [
             "Herramientas",
-            "overlay-tools",
-            [
-              [
-                "Efectos de micrófono",
-                "voice-ripples"
-              ]
-            ]
+            "overlay-tools"
           ],
           [
             "Metas",
