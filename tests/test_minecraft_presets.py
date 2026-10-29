@@ -268,9 +268,74 @@ class PresetTests(unittest.TestCase):
         job=self.mc.jobs.get_nowait();self.assertEqual(len(job.commands),3)
         self.assertTrue(all('Ana' in command for command in job.commands))
 
+    def test_complete_catalog_categories_aliases_and_old_profile_migration(self):
+        from minecraft_presets import catalog, categories, commands_for, mappings
+        approved=set("""bee armadillo horse donkey mule camel rabbit cat wolf fox ocelot panda polar_bear goat llama trader_llama mooshroom parrot bat sniffer
+        axolotl frog tadpole turtle dolphin squid glow_squid cod salmon tropical_fish pufferfish nautilus
+        villager wandering_trader allay iron_golem snow_golem copper_golem
+        drowned husk zombie_villager zombie_horse camel_husk zombie_nautilus stray bogged parched skeleton_horse
+        cave_spider slime silverfish phantom witch pillager vindicator evoker vex ravager breeze creaking sulfur_cube guardian elder_guardian
+        blaze ghast happy_ghast magma_cube hoglin zoglin piglin piglin_brute zombified_piglin wither_skeleton strider
+        enderman endermite shulker warden wither ender_dragon""".split())
+        existing={'zombie','skeleton','creeper','spider','pig','cow','sheep','chicken'}
+        actions={'tnt_rain','rain','thunder','night','diamonds','speed','jump','heal'}
+        rows=catalog();ids=[row['id'] for row in rows]
+        self.assertEqual(set(ids),approved|existing|actions)
+        self.assertEqual(len(ids),96);self.assertEqual(len(ids),len(set(ids)))
+        self.assertEqual({row['id'] for row in categories()}, {'actions','animals','aquatic','helpers','undead','hostile','nether','end','bosses'})
+        self.assertTrue(all(row['category'] in {c['id'] for c in categories()} for row in rows))
+        old={key:{'gift_id':'saved-'+key,'gift_name':'Saved '+key,'enabled':True,
+                  **({'quantity':7 if key=='tnt_rain' else 2} if key in existing|{'tnt_rain'} else {})}
+             for key in existing|actions}
+        restored=mappings(old)
+        for key,value in old.items():self.assertEqual(restored[key],value)
+        self.assertEqual(restored['zombie']['quantity'],2)
+        self.assertTrue(all(not restored[key]['enabled'] and restored[key]['quantity']==1 for key in approved))
+        for canonical,bedrock in [('evoker','evocation_illager'),('zombified_piglin','zombie_pigman'),('tropical_fish','tropicalfish'),('villager','villager'),('zombie_villager','zombie_villager')]:
+            self.assertIn('minecraft:'+bedrock+' "Ana"',commands_for(canonical,'bedrock','Ana')[0])
+            self.assertIn('minecraft:'+canonical+' ~2',commands_for(canonical,'java','Ana')[0])
+
+    def test_public_fallback_matches_backend_and_cross_category_admission_remains_atomic(self):
+        import json,re
+        from minecraft_presets import catalog
+        source=Path('web/static/minecraft.js').read_text(encoding='utf-8')
+        fallback=json.loads(re.search(r'const defaultActions=(\[.*?\]);',source,re.S).group(1))
+        expected={row['id']:(row['name'],row['category'],row.get('quantity_default')) for row in catalog()}
+        self.assertEqual({row['id']:(row['name'],row['category'],row.get('quantity')) for row in fallback},expected)
+        rules={key:{'gift_id':'1','enabled':True,'quantity':2} for key in ('cow','warden','evoker')}
+        self.assertEqual(self.client.post('/minecraft/presets',json={'edition':'java','presets':rules}).status_code,200)
+        self.gift(count=3);job=self.mc.jobs.get_nowait();self.assertEqual(len(job.commands),18)
+        self.assertEqual(set(job.selected_ids),set(rules))
+        self.client.post('/minecraft/presets/stop',json={'edition':'java'})
+        with patch.object(self.mc,'execute') as execute:self.mc.run_job(job)
+        execute.assert_not_called();self.now+=3
+        with patch('minecraft_connector.commands_for') as build:
+            self.gift('over-budget',count=4)
+            build.assert_not_called();self.assertTrue(self.mc.jobs.empty())
+        self.now+=60
+        response=self.client.post('/minecraft/presets/simulate',json={'edition':'java','gift_id':'1','user':'Ana'})
+        self.assertEqual(response.status_code,200)
+        job=self.mc.jobs.get_nowait();self.assertEqual(len(job.commands),6)
+        self.assertEqual(set(job.selected_ids),set(rules))
+
+    def test_every_mob_template_supports_both_editions_and_three_literal_name_formats(self):
+        from minecraft_presets import catalog, commands_for
+        aliases={'evoker':'evocation_illager','zombified_piglin':'zombie_pigman','tropical_fish':'tropicalfish'}
+        for row in catalog():
+            if row['id']=='tnt_rain' or 'quantity_default' not in row:continue
+            for edition,style in (('bedrock','modern'),('java','modern'),('java','legacy')):
+                with self.subTest(mob=row['id'],edition=edition,style=style):
+                    commands=commands_for(row['id'],edition,'Johnny',style,quantity=2)
+                    entity=aliases.get(row['id'],row['id']) if edition=='bedrock' else row['id']
+                    self.assertEqual(len(commands),2)
+                    self.assertTrue(all(command.startswith('execute at @p run summon minecraft:'+entity+' ') for command in commands))
+                    self.assertTrue(all('Johnny' in command and '\n' not in command for command in commands))
+                    if edition=='java':self.assertIn('CustomNameVisible:1b',commands[0])
+                    else:self.assertIn('"Johnny" ~2 ~ ~',commands[0])
+
     def test_catalog_defaults_and_validated_local_only_mapping_updates(self):
         snapshot=self.client.get('/minecraft').get_json()
-        self.assertEqual(len(snapshot['preset_catalog']),16)
+        self.assertEqual(len(snapshot['preset_catalog']),96)
         self.assertTrue(all(not row['enabled'] and not row['gift_id'] for row in snapshot['presets'].values()))
         with patch.object(self.mc.bedrock,'close') as close:
             revision=self.mc.revision;self.assertEqual(self.save().status_code,200)

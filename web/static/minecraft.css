@@ -62,3 +62,12 @@
 .studio-pane .minecraft-action-quantity input { width: 64px; max-width: 100%; box-sizing: border-box; min-height: 36px; font-size: 13px; }
 .minecraft-action-enabled span, .minecraft-action-quantity span { display: none; }
 @media (max-width: 760px) { .minecraft-action-enabled span, .minecraft-action-quantity span { display: block; } }
+
+.minecraft-category-tabs { display: flex; flex-wrap: wrap; gap: 6px; overflow: visible; max-width: 100%; padding: 6px 2px 10px; scrollbar-width: thin; }
+.studio-pane .minecraft-category-tabs button { flex: 0 0 auto; padding: 8px 12px; min-height: 38px; white-space: nowrap; font-size: 13px; border: 1px solid var(--border); }
+.studio-pane .minecraft-category-tabs button[aria-selected="true"] { border-color: var(--teal); color: var(--teal); background: var(--bg-glass); }
+.minecraft-category-tabs button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.studio-pane .minecraft-action-title .minecraft-action-note { flex-basis: 100%; white-space: normal; overflow-wrap: anywhere; font-size: 11px; }
+.minecraft-quick-actions [role="tabpanel"][hidden] { display: none; }
+
+@media (max-width: 760px) { .minecraft-category-tabs { flex-wrap: nowrap; overflow-x: auto; } }

@@ -34,14 +34,736 @@
  localInstructions.className='minecraft-bedrock-setup';connectCommand.className='minecraft-connect-command';connectCommand.hidden=true;
  localInstructions.append(el('p','1. Prepara la conexión.  2. Pega el comando en el chat de tu mundo.  3. Marca Autorizar Minecraft.'),el('small','Mundo local de Windows · Trucos activados · Require Encrypted Websockets desactivado.'),connectCommand);
  permissionArea.append(localInstructions);
- help.append(el('p','Java necesita un servidor con RCON habilitado. En server.properties: enable-rcon=true, rcon.password y rcon.port. Un mundo individual sin RCON no es compatible.'),el('p','Bedrock: activa trucos y permisos de administrador; habilita Enable WebSockets si aparece y desactiva Require Encrypted Websockets para esta conexión local. Solo se admite este equipo.'),el('p','Si Bedrock no conecta, revisa los permisos de loopback de Minecraft en Windows. TikReader no cambia opciones de Windows ni del juego.'),el('p','Desconecta antes de cambiar de mundo: el juego puede conservar la conexión al salir. TikReader no verifica continuamente qué mundo está abierto.'),el('p','Las acciones se aplican a @p: el jugador más cercano al origen del comando, no al espectador que envió el regalo. Java usa el origen del servidor; Bedrock, el contexto del jugador conectado.'),el('p','Las rachas finalizadas multiplican la cantidad configurada de mobs y TNT. Los demás efectos se aplican una vez. Detener cancela pasos pendientes, pero no deshace lo que ya cambió en el mundo. Sin confirmar significa que la respuesta no permite asegurar el resultado.'));
+ help.append(el('p','Los mobs disponibles dependen de la versión instalada de Minecraft. El juego puede rechazar los más recientes; no se reintenta una invocación.'),el('p','Java necesita un servidor con RCON habilitado. En server.properties: enable-rcon=true, rcon.password y rcon.port. Un mundo individual sin RCON no es compatible.'),el('p','Bedrock: activa trucos y permisos de administrador; habilita Enable WebSockets si aparece y desactiva Require Encrypted Websockets para esta conexión local. Solo se admite este equipo.'),el('p','Si Bedrock no conecta, revisa los permisos de loopback de Minecraft en Windows. TikReader no cambia opciones de Windows ni del juego.'),el('p','Desconecta antes de cambiar de mundo: el juego puede conservar la conexión al salir. TikReader no verifica continuamente qué mundo está abierto.'),el('p','Las acciones se aplican a @p: el jugador más cercano al origen del comando, no al espectador que envió el regalo. Java usa el origen del servidor; Bedrock, el contexto del jugador conectado.'),el('p','Las rachas finalizadas multiplican la cantidad configurada de mobs y TNT. Los demás efectos se aplican una vez. Detener cancela pasos pendientes, pero no deshace lo que ya cambió en el mundo. Sin confirmar significa que la respuesta no permite asegurar el resultado.'));
  let currentEdition='java';const drafts=new Map();
  const quantityDrafts=new Map();let quantityRecovery=null;
  function rowDrafts(){if(!quantityDrafts.has(currentEdition))quantityDrafts.set(currentEdition,{});return quantityDrafts.get(currentEdition);}
  const presetRows=new Map();let presetValues={},presetDirty=false,presetRecovery=false,giftCatalog=[];
- const defaultActions=[['tnt_rain','Lluvia de TNT','TNT',5],['zombie','Zombi','Mob',1],['rain','Lluvia','Clima'],['thunder','Tormenta','Clima'],['night','Noche','Hora'],['diamonds','Diamantes','5 diamantes'],['speed','Velocidad II','20 s'],['jump','Salto II','20 s'],['heal','Curación II','Instantánea'],['skeleton','Esqueleto','Mob',1],['creeper','Creeper','Mob',1],['spider','Araña','Mob',1],['pig','Cerdo','Mob',1],['cow','Vaca','Mob',1],['sheep','Oveja','Mob',1],['chicken','Gallina','Mob',1]].map(([id,name,description,quantity])=>({id,name,description,quantity}));
+ const defaultActions=[
+  {
+    "id": "tnt_rain",
+    "name": "Lluvia de TNT",
+    "description": "TNT",
+    "category": "actions",
+    "quantity": 5
+  },
+  {
+    "id": "zombie",
+    "name": "Zombi",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "rain",
+    "name": "Lluvia",
+    "description": "Clima",
+    "category": "actions"
+  },
+  {
+    "id": "thunder",
+    "name": "Tormenta",
+    "description": "Clima",
+    "category": "actions"
+  },
+  {
+    "id": "night",
+    "name": "Noche",
+    "description": "Hora",
+    "category": "actions"
+  },
+  {
+    "id": "diamonds",
+    "name": "Diamantes",
+    "description": "5 diamantes",
+    "category": "actions"
+  },
+  {
+    "id": "speed",
+    "name": "Velocidad II",
+    "description": "20 s",
+    "category": "actions"
+  },
+  {
+    "id": "jump",
+    "name": "Salto II",
+    "description": "20 s",
+    "category": "actions"
+  },
+  {
+    "id": "heal",
+    "name": "Curación II",
+    "description": "Instantánea",
+    "category": "actions"
+  },
+  {
+    "id": "pig",
+    "name": "Cerdo",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "cow",
+    "name": "Vaca",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "sheep",
+    "name": "Oveja",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "chicken",
+    "name": "Gallina",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "bee",
+    "name": "Abeja",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "armadillo",
+    "name": "Armadillo",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "horse",
+    "name": "Caballo",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "donkey",
+    "name": "Burro",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "mule",
+    "name": "Mula",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "camel",
+    "name": "Camello",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "rabbit",
+    "name": "Conejo",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "cat",
+    "name": "Gato",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "wolf",
+    "name": "Lobo",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "fox",
+    "name": "Zorro",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "ocelot",
+    "name": "Ocelote",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "panda",
+    "name": "Panda",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "polar_bear",
+    "name": "Oso polar",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "goat",
+    "name": "Cabra",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "llama",
+    "name": "Llama",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "trader_llama",
+    "name": "Llama del comerciante",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "mooshroom",
+    "name": "Champiñaca",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "parrot",
+    "name": "Loro",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "bat",
+    "name": "Murciélago",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "sniffer",
+    "name": "Rastreador",
+    "description": "Mob",
+    "category": "animals",
+    "quantity": 1
+  },
+  {
+    "id": "axolotl",
+    "name": "Ajolote",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "frog",
+    "name": "Rana",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "tadpole",
+    "name": "Renacuajo",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "turtle",
+    "name": "Tortuga",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "dolphin",
+    "name": "Delfín",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "squid",
+    "name": "Calamar",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "glow_squid",
+    "name": "Calamar brillante",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "cod",
+    "name": "Bacalao",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "salmon",
+    "name": "Salmón",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "tropical_fish",
+    "name": "Pez tropical",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "pufferfish",
+    "name": "Pez globo",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "nautilus",
+    "name": "Nautilo",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "guardian",
+    "name": "Guardián",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "elder_guardian",
+    "name": "Guardián anciano",
+    "description": "Mob",
+    "category": "aquatic",
+    "quantity": 1
+  },
+  {
+    "id": "villager",
+    "name": "Aldeano",
+    "description": "Mob",
+    "category": "helpers",
+    "quantity": 1
+  },
+  {
+    "id": "wandering_trader",
+    "name": "Comerciante ambulante",
+    "description": "Mob",
+    "category": "helpers",
+    "quantity": 1
+  },
+  {
+    "id": "allay",
+    "name": "Allay",
+    "description": "Mob",
+    "category": "helpers",
+    "quantity": 1
+  },
+  {
+    "id": "iron_golem",
+    "name": "Gólem de hierro",
+    "description": "Mob",
+    "category": "helpers",
+    "quantity": 1
+  },
+  {
+    "id": "snow_golem",
+    "name": "Gólem de nieve",
+    "description": "Mob",
+    "category": "helpers",
+    "quantity": 1
+  },
+  {
+    "id": "copper_golem",
+    "name": "Gólem de cobre",
+    "description": "Mob",
+    "category": "helpers",
+    "quantity": 1
+  },
+  {
+    "id": "happy_ghast",
+    "name": "Ghast feliz",
+    "description": "Mob",
+    "category": "helpers",
+    "quantity": 1
+  },
+  {
+    "id": "skeleton",
+    "name": "Esqueleto",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "drowned",
+    "name": "Ahogado",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "husk",
+    "name": "Zombi momificado",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "zombie_villager",
+    "name": "Aldeano zombi",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "zombie_horse",
+    "name": "Caballo zombi",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "camel_husk",
+    "name": "Camello momificado",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "zombie_nautilus",
+    "name": "Nautilo zombi",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "stray",
+    "name": "Esqueleto glacial",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "bogged",
+    "name": "Esqueleto pantanoso",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "parched",
+    "name": "Esqueleto reseco",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "skeleton_horse",
+    "name": "Caballo esqueleto",
+    "description": "Mob",
+    "category": "undead",
+    "quantity": 1
+  },
+  {
+    "id": "creeper",
+    "name": "Creeper",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "spider",
+    "name": "Araña",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "cave_spider",
+    "name": "Araña de cueva",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "slime",
+    "name": "Slime",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "silverfish",
+    "name": "Lepisma",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "phantom",
+    "name": "Fantasma",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "witch",
+    "name": "Bruja",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "pillager",
+    "name": "Saqueador",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "vindicator",
+    "name": "Vindicador",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "evoker",
+    "name": "Invocador",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "vex",
+    "name": "Vex",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "ravager",
+    "name": "Devastador",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "breeze",
+    "name": "Breeze",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "creaking",
+    "name": "Crujidor",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "sulfur_cube",
+    "name": "Cubo de azufre",
+    "description": "Mob",
+    "category": "hostile",
+    "quantity": 1
+  },
+  {
+    "id": "blaze",
+    "name": "Blaze",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "ghast",
+    "name": "Ghast",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "magma_cube",
+    "name": "Cubo de magma",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "hoglin",
+    "name": "Hoglin",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "zoglin",
+    "name": "Zoglin",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "piglin",
+    "name": "Piglin",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "piglin_brute",
+    "name": "Piglin bruto",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "zombified_piglin",
+    "name": "Piglin zombificado",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "wither_skeleton",
+    "name": "Esqueleto wither",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "strider",
+    "name": "Lavagante",
+    "description": "Mob",
+    "category": "nether",
+    "quantity": 1
+  },
+  {
+    "id": "enderman",
+    "name": "Enderman",
+    "description": "Mob",
+    "category": "end",
+    "quantity": 1
+  },
+  {
+    "id": "endermite",
+    "name": "Endermite",
+    "description": "Mob",
+    "category": "end",
+    "quantity": 1
+  },
+  {
+    "id": "shulker",
+    "name": "Shulker",
+    "description": "Mob",
+    "category": "end",
+    "quantity": 1
+  },
+  {
+    "id": "warden",
+    "name": "Warden",
+    "description": "Mob",
+    "category": "bosses",
+    "quantity": 1
+  },
+  {
+    "id": "wither",
+    "name": "Wither",
+    "description": "Mob",
+    "category": "bosses",
+    "quantity": 1
+  },
+  {
+    "id": "ender_dragon",
+    "name": "Dragón del End",
+    "description": "Mob",
+    "category": "bosses",
+    "quantity": 1,
+    "note": "La visibilidad del nombre depende de Minecraft."
+  }
+];
  const compatibility=el('p','Conectando con TikReader…');compatibility.className='minecraft-compatibility';
  const catalogNotice=el('p'),actionList=el('div');catalogNotice.setAttribute('role','status');
+ const categoryOptions=[['actions','Acciones'],['animals','Animales'],['aquatic','Acuáticos'],['helpers','Ayudantes'],['undead','No-muertos'],['hostile','Hostiles'],['nether','Nether'],['end','End'],['bosses','Jefes']];
+ const categorySelections=new Map(),categoryTabs=new Map(),categoryPanels=new Map();
+ let confirmedPresetValues={},categoryEditionConfirmed=false,pendingInitialCategory=null;
+ const tabList=el('div');tabList.className='minecraft-category-tabs';tabList.setAttribute('role','tablist');tabList.setAttribute('aria-label','Categorías de acciones');
+ for(const [id,name] of categoryOptions){
+  const tab=el('button',name);tab.type='button';tab.dataset.category=id;tab.id='minecraft-tab-'+id;
+  tab.setAttribute('role','tab');tab.setAttribute('aria-controls','minecraft-panel-'+id);
+  tab.onclick=()=>selectCategory(id,true);
+  tab.addEventListener('keydown',event=>{
+   const index=categoryOptions.findIndex(([key])=>key===id);
+   let next;
+   if(event.key==='ArrowRight')next=(index+1)%categoryOptions.length;
+   if(event.key==='ArrowLeft')next=(index+categoryOptions.length-1)%categoryOptions.length;
+   if(event.key==='Home')next=0;
+   if(event.key==='End')next=categoryOptions.length-1;
+   if(next===undefined)return;
+   event.preventDefault();const key=categoryOptions[next][0];selectCategory(key,true);
+   categoryTabs.get(key).focus();categoryTabs.get(key).scrollIntoView?.({block:'nearest',inline:'nearest'});
+  });
+  const panel=el('div');panel.id='minecraft-panel-'+id;panel.dataset.categoryPanel=id;
+  panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);
+  categoryTabs.set(id,tab);categoryPanels.set(id,panel);tabList.append(tab);actionList.append(panel);
+ }
+ function selectCategory(id,remember=false){
+  if(remember){
+   if(categoryEditionConfirmed)categorySelections.set(currentEdition,id);
+   else pendingInitialCategory=id;
+  }
+  for(const [key,tab] of categoryTabs){
+   const selected=key===id;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;
+   categoryPanels.get(key).hidden=!selected;
+  }
+ }
+ function updateCategories(confirmed){
+  if(confirmed){
+   if(!categoryEditionConfirmed){
+    categoryEditionConfirmed=true;
+    if(pendingInitialCategory!==null){
+     categorySelections.set(currentEdition,pendingInitialCategory);pendingInitialCategory=null;
+    }
+   }
+   confirmedPresetValues=structuredClone(confirmed);
+   if(!categorySelections.has(currentEdition)){
+    const first=categoryOptions.find(([id])=>defaultActions.some(row=>row.category===id&&confirmed[row.id]?.enabled&&confirmed[row.id]?.gift_id));
+    categorySelections.set(currentEdition,first?.[0]||'actions');
+   }
+  }
+  for(const [id,name] of categoryOptions){
+   const count=defaultActions.filter(row=>row.category===id&&confirmedPresetValues[row.id]?.enabled&&confirmedPresetValues[row.id]?.gift_id).length;
+   const tab=categoryTabs.get(id);tab.textContent=name+(count?' · '+count:'');
+   tab.setAttribute('aria-label',name+(count?`, ${count} activas`:''));
+  }
+  selectCategory(categorySelections.get(currentEdition)||pendingInitialCategory||'actions');
+ }
+ selectCategory('actions');
  function fillGiftOptions(row,value){
   const signature=JSON.stringify([giftCatalog,value.gift_id,value.gift_name]);
   if(row.signature!==signature){
@@ -58,6 +780,7 @@
    if(presetRows.has(preset.id))continue;
    const node=el('div');node.className='minecraft-action-row';node.dataset.quickAction=preset.id;
    const title=el('div');title.className='minecraft-action-title';title.append(el('strong',preset.name),el('small',preset.description));
+   if(preset.note){const note=el('small',preset.note);note.className='minecraft-action-note';title.append(note);}
    const gift=el('select');gift.dataset.presetGift=preset.id;gift.setAttribute('aria-label','Regalo para '+preset.name);
    const enabled=el('input');enabled.type='checkbox';enabled.dataset.presetEnabled=preset.id;enabled.setAttribute('aria-label','Activar '+preset.name);
    const enabledLabel=el('label');enabledLabel.className='minecraft-action-enabled';enabledLabel.append(el('span','Activa'),enabled);
@@ -72,11 +795,11 @@
     quantity.addEventListener('change',()=>savePreset(preset.id));
    }
    const test=button('Probar',async()=>{await api('/minecraft/presets/test',{edition:currentEdition,id:preset.id});notice.textContent='Prueba en cola. Revisa el registro.';});test.setAttribute('aria-label','Probar '+preset.name);test.className='minecraft-action-test';
-   node.append(title,gift,quantityLabel,enabledLabel,test);actionList.append(node);presetRows.set(preset.id,{gift,enabled,quantity,id:preset.id,defaultQuantity:preset.quantity});
+   node.append(title,gift,quantityLabel,enabledLabel,test);categoryPanels.get(preset.category).append(node);presetRows.set(preset.id,{gift,enabled,quantity,id:preset.id,defaultQuantity:preset.quantity});
    for(const control of [gift,enabled])control.addEventListener('change',()=>savePreset(preset.id));
   }
   for(const [id,row] of presetRows)fillGiftOptions(row,presetValues[id]||{gift_id:'',gift_name:'',enabled:false});
-  simulationOptions();syncControls();
+  updateCategories(d.authorization_mode?d.presets||d.config?.presets||{}:null);simulationOptions();syncControls();
  }
  async function savePreset(id){
   if(busy||uncertain||!backendReady){renderPresets({presets:presetValues},true);return;}
@@ -108,7 +831,7 @@
  const stopButton=button('Detener',async()=>{await api('/minecraft/presets/stop',{edition:currentEdition});notice.textContent='Acciones pendientes detenidas.';});stopButton.setAttribute('aria-label','Detener acciones rápidas');
  actionHeading.append(el('h3','Acciones predeterminadas'),button('Actualizar regalos',loadGiftCatalog,false),stopButton);
  const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Cantidad','Activa',''])columns.append(el('span',text));
- quickActions.append(actionHeading,el('p','Cantidad por regalo. Las rachas multiplican mobs y TNT. Si supera el límite, se descarta el regalo.'),compatibility,catalogNotice,columns,actionList);
+ quickActions.append(actionHeading,el('p','Cantidad por regalo. Las rachas multiplican mobs y TNT. Si supera el límite, se descarta el regalo.'),compatibility,catalogNotice,tabList,columns,actionList);
  const simulation=el('section');simulation.className='minecraft-tools';simulation.append(el('h3','Simular regalo'),el('p','Ejecuta los efectos activos en Minecraft. No requiere un directo.'));
  const simulationFields=el('div');simulationFields.className='minecraft-tool-fields';
  const simulationGiftLabel=el('label','Regalo para simular'),simulationGift=el('select');simulationGiftLabel.append(simulationGift);simulationFields.append(simulationGiftLabel);
@@ -178,7 +901,7 @@
  let timer,inFlight=false,refreshPending=false,hydratePending=true,stopped=false,epoch=0;
  const active=()=>pane.isConnected&&!pane.hidden&&!document.hidden&&!stopped;
  function render(d,hydrate){
-  backendReady=d.authorization_mode==='checkbox'&&Array.isArray(d.preset_catalog)&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id&&(!p.quantity||(s.quantity_max===20&&s.quantity_min===1))));
+  backendReady=d.authorization_mode==='checkbox'&&Array.isArray(d.preset_catalog)&&Array.isArray(d.preset_categories)&&categoryOptions.every(([id])=>d.preset_categories.some(c=>c.id===id))&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id&&s.category===p.category&&(!p.quantity||(s.quantity_max===20&&s.quantity_min===1))));
   compatibility.textContent=backendReady?'':'Reinicia TikReader para cargar estas acciones.';compatibility.hidden=backendReady;
   savedConfig=d.config||savedConfig;applySafety(d);
   if(uncertain&&!busy){if(quantityRecovery){delete rowDrafts()[quantityRecovery];quantityRecovery=null;}selectProfile(d);uncertain=false;presetRecovery=false;presetDirty=false;syncControls();hydrate=false;}

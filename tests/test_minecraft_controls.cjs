@@ -3,22 +3,22 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 
-function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantities=false}={}){
+function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantities=false,initialPresets={},initialEdition='java'}={}){
   const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=failInitial,hold=holdInitial,release;
   const requests=[];let heldPost,releasePost;
   const java={host:'localhost',port:25575,commands:{probe:'list'}},bedrock={commands:{bed:'say hello'}};
-  const presetCatalog=[['tnt_rain','Lluvia de TNT'],['zombie','Zombi'],['rain','Lluvia'],['thunder','Tormenta'],['night','Noche'],['diamonds','Diamantes'],['speed','Velocidad II'],['jump','Salto II'],['heal','Curación II']].map(([id,name])=>({id,name,description:id==='tnt_rain'?'5 TNT sobre el jugador más cercano.':'Efecto fijo'}));
-  const spawnIds=['tnt_rain','zombie','skeleton','creeper','spider','pig','cow','sheep','chicken'];
-  for(const [id,name] of [['skeleton','Esqueleto'],['creeper','Creeper'],['spider','Araña'],['pig','Cerdo'],['cow','Vaca'],['sheep','Oveja'],['chicken','Gallina']])presetCatalog.push({id,name,description:'Mob'});
-  for(const row of presetCatalog)if(spawnIds.includes(row.id))Object.assign(row,{quantity_min:1,quantity_max:20,quantity_default:row.id==='tnt_rain'?5:1});
+  const publicCatalog=JSON.parse(fs.readFileSync(`${__dirname}/../web/static/minecraft.js`,'utf8').match(/const defaultActions=(\[.*?\]);/s)[1]);
+  const presetCatalog=publicCatalog.map(row=>({...row,...(row.quantity?{quantity_min:1,quantity_max:20,quantity_default:row.quantity}:{})}));
+  const presetCategories=[['actions','Acciones'],['animals','Animales'],['aquatic','Acuáticos'],['helpers','Ayudantes'],['undead','No-muertos'],['hostile','Hostiles'],['nether','Nether'],['end','End'],['bosses','Jefes']].map(([id,name])=>({id,name}));
   const defaults=()=>Object.fromEntries(presetCatalog.map(p=>[p.id,{gift_id:'',gift_name:'',enabled:false}]));
-  java.presets=defaults();bedrock.presets=defaults();let giftCatalog=[{id:'1',name:'Rose',diamonds:1}];
-  let state={edition:'java',authorization_mode:'checkbox',profiles:{java,bedrock},config:java,preset_catalog:oldBackend?undefined:oldQuantities?presetCatalog.map(({id,name,description})=>({id,name,description})):presetCatalog,presets:java.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
+  java.presets={...defaults(),...initialPresets};bedrock.presets=defaults();let giftCatalog=[{id:'1',name:'Rose',diamonds:1}];
+  let state={edition:initialEdition,authorization_mode:'checkbox',preset_categories:presetCategories,profiles:{java,bedrock},config:initialEdition==='java'?java:bedrock,preset_catalog:oldBackend?undefined:oldQuantities?presetCatalog.map(({id,name,description})=>({id,name,description})):presetCatalog,presets:initialEdition==='java'?java.presets:bedrock.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
   class Element {
     constructor(tag){this.tagName=tag;this.textContent='';this.value='';this.children=[];this.dataset={};this.events={};this.hidden=false;this.isConnected=true;nodes.push(this);}
     append(...items){this.children.push(...items);for(const item of items)item.parentElement=this;}
     replaceChildren(...items){this.children=items;}
     setAttribute(name,value){this[name]=value;}
+    focus(){document.activeElement=this;}
     addEventListener(name,fn){this.events[name]=fn;}
   }
   const document={hidden:false,head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag),addEventListener:(name,fn)=>listeners[name]=fn};
@@ -43,7 +43,9 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
   return {nodes,requests,timers,field,flush,get pane(){return pane;},setState:value=>state={...state,...value},
     fail:value=>fail=value,hold:()=>hold=true,release:()=>{hold=false;release();},
     holdPost:path=>heldPost=path,releasePost:()=>{heldPost=null;releasePost();},
-    get serverEdition(){return state.edition;},
+    get serverEdition(){return state.edition;},get activeElement(){return document.activeElement;},
+    tab:id=>nodes.find(n=>n.role==='tab'&&n.dataset.category===id),
+    panel:id=>nodes.find(n=>n.role==='tabpanel'&&n.dataset.categoryPanel===id),
     catalog:value=>giftCatalog=value,
     preset:(id,control)=>nodes.find(n=>n.dataset[control==='gift'?'presetGift':'presetEnabled']===id),
     async tick(){const [id,timer]=timers.entries().next().value||[];assert.ok(timer,'refresh timer exists');timers.delete(id);timer.fn();await flush();},
@@ -189,7 +191,7 @@ test('uncertain selection keeps controls guarded until polling confirms the actu
 
 test('quick-action rows use stable gifts, persist enabled state and preserve edition mappings',async()=>{
   const s=setup();await s.flush();
-  assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,16);
+  assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,96);
   const gift=s.preset('tnt_rain','gift'),enabled=s.preset('tnt_rain','enabled');
   assert.ok(gift['aria-label'].includes('Lluvia de TNT'));assert.equal(enabled.checked,false);
   gift.value='1';await gift.events.change();await s.flush();
@@ -217,12 +219,12 @@ test('preset saves share the operation boundary and uncertain saves reconcile ac
   assert.ok(s.requests.some(r=>r.path==='/minecraft/presets/stop'));
 });
 
-test('all sixteen default actions exist synchronously and survive unavailable or old APIs',async()=>{
+test('all catalog actions exist synchronously and survive unavailable or old APIs',async()=>{
   for(const options of [{holdInitial:true},{failInitial:true},{oldBackend:true}]){
     const s=setup(options);
-    assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,16);
+    assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,96);
     assert.ok(s.nodes.some(n=>n.textContent==='Acciones predeterminadas'));
-    await s.flush();assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,16);
+    await s.flush();assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,96);
     if(options.holdInitial){s.release();await s.flush();}
     else assert.equal(s.preset('tnt_rain','gift').disabled,true);
     assert.ok(!s.nodes.some(n=>n.textContent.includes('Escribe AUTORIZAR')));
@@ -280,7 +282,7 @@ test('safety settings keep edition drafts and reconcile uncertain saves without 
 
 test('spawn quantities are visible, autosave per edition and preserve typing during polling',async()=>{
  const s=setup();await s.flush();
- assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,16);
+ assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,96);
  const quantity=s.nodes.find(n=>n.dataset.presetQuantity==='zombie');assert.ok(quantity);
  assert.equal(Number(quantity.value),1);assert.equal(quantity['aria-label'],'Cantidad de Zombi');
  quantity.value='2';quantity.events.input();await s.tick();assert.equal(quantity.value,'2');
@@ -295,11 +297,70 @@ test('spawn quantities are visible, autosave per edition and preserve typing dur
 
 test('old quantity capability blocks mutation and uncertain quantity saves recover actual numbers',async()=>{
  const old=setup({oldQuantities:true});await old.flush();
- assert.equal(old.nodes.filter(n=>n.dataset.quickAction).length,16);
+ assert.equal(old.nodes.filter(n=>n.dataset.quickAction).length,96);
  assert.ok(old.preset('zombie','gift').disabled);
  const s=setup();await s.flush();const quantity=s.nodes.find(n=>n.dataset.presetQuantity==='pig');
  quantity.value='4';quantity.events.input();s.holdPost('/minecraft/presets');const saving=quantity.events.change();await s.flush();
  const count=s.requests.length;await s.edition('bedrock');await s.click('Probar Cerdo');assert.equal(s.requests.length,count);
  s.fail(true);s.releasePost();await saving;await s.flush();assert.ok(quantity.disabled);
  s.fail(false);await s.tick();assert.equal(Number(quantity.value),4);assert.equal(quantity.disabled,false);
+});
+
+test('catalog category tabs exist before GET and keep only one category visible',async()=>{
+ const s=setup({holdInitial:true});
+ assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,96);
+ const tabs=s.nodes.filter(n=>n.role==='tab');assert.equal(tabs.length,9);
+ assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&!n.hidden).length,1);
+ assert.ok(tabs.find(n=>n.textContent.startsWith('Jefes')));
+ s.release();await s.flush();
+});
+
+test('category keyboard navigation and per-edition choices survive polling without mutations',async()=>{
+ const s=setup({initialPresets:{zombie:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});await s.flush();
+ assert.equal(s.tab('undead')['aria-selected'],'true');assert.equal(s.panel('undead').hidden,false);
+ assert.match(s.tab('undead').textContent,/1/);
+ const posts=s.requests.filter(r=>r.method==='POST').length;
+ s.tab('undead').events.keydown({key:'End',preventDefault(){}});
+ assert.equal(s.activeElement,s.tab('bosses'));assert.equal(s.tab('bosses').tabIndex,0);
+ s.tab('bosses').events.keydown({key:'ArrowRight',preventDefault(){}});
+ assert.equal(s.activeElement,s.tab('actions'));
+ s.tab('actions').events.keydown({key:'ArrowLeft',preventDefault(){}});
+ assert.equal(s.activeElement,s.tab('bosses'));
+ s.tab('bosses').events.keydown({key:'Home',preventDefault(){}});
+ assert.equal(s.activeElement,s.tab('actions'));
+ s.tab('end').onclick();await s.tick();assert.equal(s.panel('end').hidden,false);
+ assert.equal(s.requests.filter(r=>r.method==='POST').length,posts);
+ await s.edition('bedrock');assert.equal(s.panel('actions').hidden,false);
+ s.tab('animals').onclick();await s.edition('java');assert.equal(s.panel('end').hidden,false);
+ assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&!n.hidden).length,1);
+});
+
+test('hidden category drafts and mappings survive full saves, pending operations and recovery',async()=>{
+ const s=setup({initialPresets:{cow:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:3},zombie:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});await s.flush();
+ assert.equal(s.panel('animals').hidden,false);
+ const cow=s.nodes.find(n=>n.dataset.presetQuantity==='cow');cow.value='7';cow.events.input();
+ s.tab('undead').onclick();await s.tick();assert.equal(cow.value,'7');
+ const zombie=s.preset('zombie','enabled');zombie.checked=false;await zombie.events.change();await s.flush();
+ let body=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
+ assert.equal(body.presets.cow.quantity,3);assert.equal(body.presets.cow.gift_id,'1');assert.equal(cow.value,'7');
+ s.tab('animals').onclick();s.holdPost('/minecraft/presets');const saving=cow.events.change();await s.flush();
+ const count=s.requests.length;s.tab('bosses').onclick();await s.click('Probar Warden');assert.equal(s.requests.length,count);
+ assert.equal(s.panel('bosses').hidden,false);
+ s.fail(true);s.releasePost();await saving;await s.flush();s.fail(false);await s.tick();
+ assert.equal(Number(cow.value),7);assert.equal(s.panel('bosses').hidden,false);
+ body=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
+ assert.equal(body.presets.cow.quantity,7);assert.equal(body.presets.zombie.enabled,false);assert.equal(body.presets.zombie.quantity,2);
+});
+
+test('a category chosen before initial hydration binds only to the confirmed edition',async()=>{
+ for(const initialEdition of ['java','bedrock']){
+  const s=setup({holdInitial:true,initialEdition,initialPresets:{cow:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});
+  s.tab('bosses').onclick();await s.flush();assert.equal(s.panel('bosses').hidden,false);
+  s.release();await s.flush();assert.equal(s.field('Edición').value,initialEdition);
+  assert.equal(s.panel('bosses').hidden,false);await s.tick();assert.equal(s.panel('bosses').hidden,false);
+  const other=initialEdition==='java'?'bedrock':'java';await s.edition(other);
+  assert.equal(s.panel(other==='java'?'animals':'actions').hidden,false);
+  s.tab('end').onclick();await s.edition(initialEdition);assert.equal(s.panel('bosses').hidden,false);
+  await s.edition(other);assert.equal(s.panel('end').hidden,false);
+ }
 });

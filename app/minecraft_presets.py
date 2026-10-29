@@ -19,9 +19,106 @@ _COMMON = {
     'jump': ('Salto II', 'Salto II durante 20 segundos.', ()),
     'heal': ('Curación II', 'Aplica curación instantánea II una vez.', ()),
 }
-_MOBS = {'zombie': 'Zombi', 'skeleton': 'Esqueleto', 'creeper': 'Creeper', 'spider': 'Araña',
-         'pig': 'Cerdo', 'cow': 'Vaca', 'sheep': 'Oveja', 'chicken': 'Gallina'}
-for _entity, _name in _MOBS.items():
+_CATEGORIES = (
+    ('actions', 'Acciones'), ('animals', 'Animales'), ('aquatic', 'Acuáticos'),
+    ('helpers', 'Ayudantes'), ('undead', 'No-muertos'), ('hostile', 'Hostiles'),
+    ('nether', 'Nether'), ('end', 'End'), ('bosses', 'Jefes'),
+)
+# Canonical IDs are persisted; only this allowlist resolves edition-specific entity IDs.
+_MOBS = {
+    'pig': ('Cerdo', 'animals'),
+    'cow': ('Vaca', 'animals'),
+    'sheep': ('Oveja', 'animals'),
+    'chicken': ('Gallina', 'animals'),
+    'bee': ('Abeja', 'animals'),
+    'armadillo': ('Armadillo', 'animals'),
+    'horse': ('Caballo', 'animals'),
+    'donkey': ('Burro', 'animals'),
+    'mule': ('Mula', 'animals'),
+    'camel': ('Camello', 'animals'),
+    'rabbit': ('Conejo', 'animals'),
+    'cat': ('Gato', 'animals'),
+    'wolf': ('Lobo', 'animals'),
+    'fox': ('Zorro', 'animals'),
+    'ocelot': ('Ocelote', 'animals'),
+    'panda': ('Panda', 'animals'),
+    'polar_bear': ('Oso polar', 'animals'),
+    'goat': ('Cabra', 'animals'),
+    'llama': ('Llama', 'animals'),
+    'trader_llama': ('Llama del comerciante', 'animals'),
+    'mooshroom': ('Champiñaca', 'animals'),
+    'parrot': ('Loro', 'animals'),
+    'bat': ('Murciélago', 'animals'),
+    'sniffer': ('Rastreador', 'animals'),
+    'axolotl': ('Ajolote', 'aquatic'),
+    'frog': ('Rana', 'aquatic'),
+    'tadpole': ('Renacuajo', 'aquatic'),
+    'turtle': ('Tortuga', 'aquatic'),
+    'dolphin': ('Delfín', 'aquatic'),
+    'squid': ('Calamar', 'aquatic'),
+    'glow_squid': ('Calamar brillante', 'aquatic'),
+    'cod': ('Bacalao', 'aquatic'),
+    'salmon': ('Salmón', 'aquatic'),
+    'tropical_fish': ('Pez tropical', 'aquatic'),
+    'pufferfish': ('Pez globo', 'aquatic'),
+    'nautilus': ('Nautilo', 'aquatic'),
+    'guardian': ('Guardián', 'aquatic'),
+    'elder_guardian': ('Guardián anciano', 'aquatic'),
+    'villager': ('Aldeano', 'helpers'),
+    'wandering_trader': ('Comerciante ambulante', 'helpers'),
+    'allay': ('Allay', 'helpers'),
+    'iron_golem': ('Gólem de hierro', 'helpers'),
+    'snow_golem': ('Gólem de nieve', 'helpers'),
+    'copper_golem': ('Gólem de cobre', 'helpers'),
+    'happy_ghast': ('Ghast feliz', 'helpers'),
+    'zombie': ('Zombi', 'undead'),
+    'skeleton': ('Esqueleto', 'undead'),
+    'drowned': ('Ahogado', 'undead'),
+    'husk': ('Zombi momificado', 'undead'),
+    'zombie_villager': ('Aldeano zombi', 'undead'),
+    'zombie_horse': ('Caballo zombi', 'undead'),
+    'camel_husk': ('Camello momificado', 'undead'),
+    'zombie_nautilus': ('Nautilo zombi', 'undead'),
+    'stray': ('Esqueleto glacial', 'undead'),
+    'bogged': ('Esqueleto pantanoso', 'undead'),
+    'parched': ('Esqueleto reseco', 'undead'),
+    'skeleton_horse': ('Caballo esqueleto', 'undead'),
+    'creeper': ('Creeper', 'hostile'),
+    'spider': ('Araña', 'hostile'),
+    'cave_spider': ('Araña de cueva', 'hostile'),
+    'slime': ('Slime', 'hostile'),
+    'silverfish': ('Lepisma', 'hostile'),
+    'phantom': ('Fantasma', 'hostile'),
+    'witch': ('Bruja', 'hostile'),
+    'pillager': ('Saqueador', 'hostile'),
+    'vindicator': ('Vindicador', 'hostile'),
+    'evoker': ('Invocador', 'hostile'),
+    'vex': ('Vex', 'hostile'),
+    'ravager': ('Devastador', 'hostile'),
+    'breeze': ('Breeze', 'hostile'),
+    'creaking': ('Crujidor', 'hostile'),
+    'sulfur_cube': ('Cubo de azufre', 'hostile'),
+    'blaze': ('Blaze', 'nether'),
+    'ghast': ('Ghast', 'nether'),
+    'magma_cube': ('Cubo de magma', 'nether'),
+    'hoglin': ('Hoglin', 'nether'),
+    'zoglin': ('Zoglin', 'nether'),
+    'piglin': ('Piglin', 'nether'),
+    'piglin_brute': ('Piglin bruto', 'nether'),
+    'zombified_piglin': ('Piglin zombificado', 'nether'),
+    'wither_skeleton': ('Esqueleto wither', 'nether'),
+    'strider': ('Lavagante', 'nether'),
+    'enderman': ('Enderman', 'end'),
+    'endermite': ('Endermite', 'end'),
+    'shulker': ('Shulker', 'end'),
+    'warden': ('Warden', 'bosses'),
+    'wither': ('Wither', 'bosses'),
+    'ender_dragon': ('Dragón del End', 'bosses'),
+}
+_BEDROCK_ALIASES = {'evoker': 'evocation_illager', 'zombified_piglin': 'zombie_pigman',
+                    'tropical_fish': 'tropicalfish'}
+_NOTES = {'ender_dragon': 'La visibilidad del nombre depende de Minecraft.'}
+for _entity, (_name, _category) in _MOBS.items():
     if _entity != 'zombie':
         _COMMON[_entity] = (_name, 'Mob con el nombre del donante.', ())
 _EFFECTS = {'speed': ('speed', 20), 'jump': ('jump_boost', 20), 'heal': ('instant_health', 1)}
@@ -29,8 +126,14 @@ _EFFECTS = {'speed': ('speed', 20), 'jump': ('jump_boost', 20), 'heal': ('instan
 
 def catalog():
     return [dict(id=key, name=value[0], description=value[1],
+                 category=_MOBS[key][1] if key in _MOBS else 'actions',
+                 **({'note': _NOTES[key]} if key in _NOTES else {}),
                  **({'quantity_min': 1, 'quantity_max': 20, 'quantity_default': 5 if key == 'tnt_rain' else 1}
                     if is_spawn(key) else {})) for key, value in _COMMON.items()]
+
+
+def categories():
+    return [{'id': key, 'name': name} for key, name in _CATEGORIES]
 
 
 def is_spawn(preset_id):
@@ -86,7 +189,8 @@ def commands_for(preset_id, edition, donor='Prueba', java_format='modern', quant
         return tuple('execute at @p run summon minecraft:tnt '+_OFFSETS[i % len(_OFFSETS)] for i in range(amount))
     if preset_id in _MOBS:
         literal = json.dumps(donor_name(donor), ensure_ascii=False)
-        prefix = 'execute at @p run summon minecraft:'+preset_id+' '
+        entity = _BEDROCK_ALIASES.get(preset_id, preset_id) if edition == 'bedrock' else preset_id
+        prefix = 'execute at @p run summon minecraft:'+entity+' '
         if edition == 'bedrock':
             return (prefix + literal + ' ~2 ~ ~',) * amount
         if name_format(java_format) == 'modern':
