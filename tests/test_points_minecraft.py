@@ -55,6 +55,55 @@ class MinecraftTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.connector.validate({'host':'8.8.8.8','port':25575,'commands':{}})
 
+    def test_editions_migrate_and_keep_independent_profiles(self):
+        legacy={'host':'localhost','port':25580,'commands':{'java':'list'}}
+        self.runtime.archive=SimpleNamespace(settings=lambda:{'minecraft_config':legacy})
+        self.connector.restore()
+        self.assertEqual(self.connector.edition,'java')
+        self.assertEqual(self.connector.config,legacy)
+        saved=[];self.runtime.archive.set_setting=lambda key,value:saved.append(value)
+        client=self.app.test_client();self.connector.authorized=True
+        result=client.post('/minecraft',json={'edition':'bedrock','commands':{'bed':'say hello'}})
+        self.assertEqual(result.status_code,200);self.assertFalse(self.connector.authorized)
+        self.assertEqual(result.get_json()['profiles']['java'],legacy)
+        self.assertEqual(result.get_json()['config']['commands'],{'bed':'say hello'})
+        self.assertEqual(client.post('/minecraft',json={'edition':'invalid'}).status_code,400)
+        self.assertEqual(client.post('/minecraft',json={'edition':'bedrock','host':'192.168.1.2'}).status_code,400)
+        result=client.post('/minecraft',json={'edition':'java','select_only':True})
+        self.assertEqual(result.get_json()['config'],legacy)
+        self.runtime.archive.settings=lambda:{'minecraft_config':saved[-1]}
+        self.connector.restore();self.assertEqual(self.connector.config,legacy)
+
+    def test_bedrock_prepare_secret_is_local_only_and_not_in_get_or_archive(self):
+        client=self.app.test_client();client.post('/minecraft',json={'edition':'bedrock'})
+        archived=[]
+        self.runtime.archive=SimpleNamespace(set_setting=lambda *args:archived.append(args))
+        with patch.object(self.connector.bedrock,'prepare',return_value='/wsserver ws://127.0.0.1:5555/secret'):
+            response=client.post('/minecraft/bedrock/prepare',json={})
+        self.assertEqual(response.status_code,200);self.assertIn('/secret',response.get_json()['command'])
+        self.assertNotIn('secret',client.get('/minecraft').get_data(as_text=True))
+        self.assertEqual(archived,[])
+        with patch.object(self.connector.bedrock,'prepare',side_effect=OSError('bind failed')):
+            self.assertEqual(client.post('/minecraft/bedrock/prepare',json={}).status_code,502)
+        with patch.object(self.runtime.production,'local',return_value=False):
+            self.assertEqual(client.post('/minecraft/bedrock/prepare',json={}).status_code,403)
+
+    def test_bedrock_authorization_checks_same_generation_and_success_status(self):
+        client=self.app.test_client();client.post('/minecraft',json={'edition':'bedrock'})
+        with patch.object(self.connector.bedrock,'snapshot',return_value={'prepared':True,'connected':True}), \
+                patch.object(self.connector.bedrock,'execute',return_value={'outcome':'rejected','response':'no'}):
+            result=client.post('/minecraft/authorize',json={'confirmation':'AUTORIZAR MINECRAFT'})
+            self.assertEqual(result.status_code,400);self.assertFalse(self.connector.authorized)
+        def changed(command, **kwargs):
+            self.connector._bedrock_changed()
+            return {'outcome':'success','response':'ok'}
+        with patch.object(self.connector.bedrock,'execute',side_effect=changed):
+            result=client.post('/minecraft/authorize',json={'confirmation':'AUTORIZAR MINECRAFT'})
+            self.assertEqual(result.status_code,409);self.assertFalse(self.connector.authorized)
+        self.connector.authorized=True;revision=self.connector.revision
+        self.connector._bedrock_changed()
+        self.assertFalse(self.connector.authorized);self.assertGreater(self.connector.revision,revision)
+
     def test_only_queues_authorized_alias_and_substitutes_values(self):
         self.connector.config = {'host':'127.0.0.1','port':25575,'commands':{'hello':'say Hola {user}'}}
         self.assertFalse(self.connector.enqueue('hello', {'user':'Ana'}))

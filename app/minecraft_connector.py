@@ -8,6 +8,7 @@ import struct
 import threading
 import time
 from flask import jsonify, request
+from minecraft_bedrock import BedrockBridge
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +16,17 @@ class MinecraftConnector:
     def __init__(self, app, runtime):
         self.r = runtime
         self.config = {'host': '127.0.0.1', 'port': 25575, 'commands': {}}
+        self.edition = 'java'
+        self.profiles = {'java': self.config, 'bedrock': {'commands': {}}}
         self.password = ''
         self.authorized = False
+        self.authorized_generation = None
         self.jobs = queue.Queue(maxsize=30)
         self.log = []
         self.revision = 0
         self.lock = threading.RLock()
+        self.control_lock = threading.RLock()
+        self.bedrock = BedrockBridge(self._bedrock_changed)
         threading.Thread(target=self.worker, daemon=True).start()
         self.register(app)
 
@@ -28,14 +34,45 @@ class MinecraftConnector:
         saved = self.r.archive.settings().get('minecraft_config', {}) if self.r.archive else {}
         if isinstance(saved, dict):
             try:
-                self.config = self.validate(saved)
+                if 'profiles' in saved:
+                    edition = saved.get('edition', 'java')
+                    if edition not in ('java', 'bedrock') or not isinstance(saved['profiles'], dict):
+                        raise ValueError('Edición inválida')
+                    profiles = {key: self.validate({**saved['profiles'].get(key, {}), 'edition': key})
+                                for key in ('java', 'bedrock')}
+                    self.profiles, self.edition = profiles, edition
+                    self.config = profiles[edition]
+                else:
+                    self.config = self.validate(saved)
+                    self.profiles['java'] = self.config
+                    self.edition = 'java'
             except (TypeError, ValueError):
                 pass
+
+    def _bedrock_changed(self):
+        with self.lock:
+            self.authorized = False
+            self.authorized_generation = None
+            self.revision += 1
+
+    def snapshot(self):
+        return dict(config=self.config, edition=self.edition, profiles=self.profiles,
+                    authorized=self.authorized_now(), queued=self.jobs.qsize(), log=self.log,
+                    bedrock=self.bedrock.snapshot())
+
+    def authorized_now(self):
+        return self.authorized and (self.edition == 'java' or
+                                    self.authorized_generation == self.bedrock.generation)
 
     @staticmethod
     def validate(data):
         if not isinstance(data, dict):raise ValueError('Configuración inválida')
+        edition = data.get('edition', 'java')
+        if edition not in ('java', 'bedrock'):
+            raise ValueError('Edición inválida')
         host = str(data.get('host', '127.0.0.1')).strip()
+        if edition == 'bedrock' and host not in ('127.0.0.1', 'localhost'):
+            raise ValueError('Bedrock solo admite mundos de este equipo')
         if host != 'localhost':
             try:
                 address = ipaddress.ip_address(host)
@@ -55,7 +92,7 @@ class MinecraftConnector:
             if not name or not command or any(x in command for x in ('\n', '\r', '\x00')):
                 raise ValueError('Comando inválido')
             clean[name] = command.lstrip('/')
-        return {'host': host, 'port': port, 'commands': clean}
+        return {'commands': clean} if edition == 'bedrock' else {'host': host, 'port': port, 'commands': clean}
 
     @staticmethod
     def packet(request_id, kind, payload):
@@ -100,7 +137,7 @@ class MinecraftConnector:
             return response[:500]
 
     def enqueue(self, alias, context=None):
-        if not self.authorized or alias not in self.config['commands'] or self.r.production.settings['emergency'] or self.r.production.settings.get('scene','talk') != 'talk':
+        if not self.authorized_now() or alias not in self.config['commands'] or self.r.production.settings['emergency'] or self.r.production.settings.get('scene','talk') != 'talk':
             self.note('Minecraft bloqueado: conector o alias no autorizado')
             return False
         command = self.config['commands'][alias]
@@ -140,23 +177,34 @@ class MinecraftConnector:
 
     def run_job(self, job):
         alias, command, created, session, revision = job
-        with self.lock:
-            try:
-                if not self.authorized or revision != self.revision or session != getattr(self.r,'feed_session',None) or time.monotonic()-created > 10:
+        try:
+            with self.lock:
+                if not self.authorized_now() or revision != self.revision or session != getattr(self.r,'feed_session',None) or time.monotonic()-created > 10:
                     self.note('Minecraft: acción cancelada o caducada', alias=alias, outcome='cancelled', response='')
+                    return
                 elif self.r.production.settings['emergency'] or self.r.production.settings.get('scene','talk') != 'talk':
                     self.note('Minecraft: acción cancelada por emergencia', alias=alias, outcome='cancelled', response='')
-                else:
+                    return
+                edition = self.edition
+                generation = self.authorized_generation
+                if edition == 'java':
                     response = self.execute(command)
                     outcome = self.response_outcome(command, response)
+            if edition == 'bedrock':
+                result = self.bedrock.execute(command, expected_generation=generation)
+                response, outcome = result['response'], result['outcome']
+            with self.lock:
+                if revision != self.revision:
+                    self.note('Minecraft: conexión o configuración cambiada', alias=alias, outcome='cancelled', response='')
+                else:
                     labels = {'success': 'Éxito confirmado', 'rejected': 'Comando rechazado', 'unconfirmed': 'Sin confirmar'}
                     self.note(f'{labels[outcome]} · {alias}: {response or "sin respuesta"}',
                               alias=alias, outcome=outcome, response=response)
-            except Exception as exc:
-                logger.exception('Minecraft RCON execution failed for alias %s', alias)
-                outcome = 'connection_error' if isinstance(exc, OSError) else 'unconfirmed'
-                self.note(f'Minecraft no confirmó {alias}: {type(exc).__name__}',
-                          alias=alias, outcome=outcome, response='')
+        except Exception as exc:
+            logger.exception('Minecraft execution failed for alias %s', alias)
+            outcome = 'connection_error' if isinstance(exc, OSError) else 'unconfirmed'
+            self.note(f'Minecraft no confirmó {alias}: {type(exc).__name__}',
+                      alias=alias, outcome=outcome, response='')
 
     def worker(self):
         while True:
@@ -172,18 +220,38 @@ class MinecraftConnector:
                     return jsonify(error='Solo disponible desde este equipo'), 403
                 data = request.get_json(silent=True) or {}
                 try:
-                    config = self.validate(data)
+                    if not isinstance(data, dict):raise ValueError('Configuración inválida')
+                    edition = data.get('edition', 'java')
+                    if edition not in ('java', 'bedrock'):raise ValueError('Edición inválida')
+                    config = self.profiles[edition] if data.get('select_only') is True else self.validate(data)
                 except (TypeError, ValueError) as exc:
                     return jsonify(error=str(exc)), 400
-                self.authorized = False
-                self.revision += 1
-                self.config = config
-                if self.r.archive:
-                    self.r.archive.set_setting('minecraft_config', config)
-                if 'password' in data:
-                    self.password = str(data['password'])[:200]
-                    self.authorized = False
-            return jsonify(config=self.config, authorized=self.authorized, queued=self.jobs.qsize(), log=self.log)
+                with self.control_lock:
+                    self.bedrock.close()
+                    with self.lock:
+                        self.authorized = False
+                        self.authorized_generation = None
+                        self.revision += 1
+                        self.profiles[self.edition] = self.config
+                        if edition != self.edition:self.password = ''
+                        self.profiles[edition] = config
+                        self.edition, self.config = edition, config
+                        if edition == 'java' and 'password' in data:
+                            self.password = str(data['password'])[:200]
+                    if self.r.archive:
+                        self.r.archive.set_setting('minecraft_config', {'edition': self.edition, 'profiles': self.profiles})
+            return jsonify(self.snapshot())
+
+        @app.post('/minecraft/bedrock/prepare')
+        def minecraft_bedrock_prepare():
+            if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
+            with self.control_lock:
+                if self.edition != 'bedrock':return jsonify(error='Selecciona Bedrock primero'),409
+                self._bedrock_changed()
+                try:
+                    return jsonify(command=self.bedrock.prepare())
+                except OSError:
+                    return jsonify(error='No se pudo preparar Bedrock. Desconecta y vuelve a preparar.'),502
 
         @app.post('/minecraft/authorize')
         def minecraft_authorize():
@@ -191,17 +259,24 @@ class MinecraftConnector:
                 return jsonify(error='Solo disponible desde este equipo'), 403
             data = request.get_json(silent=True) or {}
             if not isinstance(data, dict):return jsonify(error='Datos inválidos'),400
-            if data.get('confirmation') != 'AUTORIZAR MINECRAFT' or not self.password:
+            if data.get('confirmation') != 'AUTORIZAR MINECRAFT' or (self.edition == 'java' and not self.password):
                 return jsonify(error='Guarda la contraseña y escribe AUTORIZAR MINECRAFT'), 400
             try:
                 revision = self.revision
-                self.execute('list')
+                edition = self.edition
+                generation = self.bedrock.generation
+                result = self.bedrock.execute('list', expected_generation=generation) if edition == 'bedrock' else self.execute('list')
             except Exception as exc:
                 self.authorized = False
-                return jsonify(error=f'No se pudo autorizar RCON: {type(exc).__name__}'), 400
+                return jsonify(error=f'No se pudo autorizar Minecraft: {type(exc).__name__}'), 400
             if revision != self.revision:return jsonify(error='La configuración cambió. Autoriza de nuevo.'),409
-            self.authorized = True
-            self.note('Minecraft RCON autorizado')
+            with self.lock:
+                if revision != self.revision:return jsonify(error='La conexión cambió. Autoriza de nuevo.'),409
+                if edition == 'bedrock' and (result['outcome'] != 'success' or not self.bedrock.snapshot()['connected'] or generation != self.bedrock.generation):
+                    return jsonify(error='Bedrock no confirmó la consulta de jugadores. Revisa la conexión y los permisos.'),400
+                self.authorized = True
+                self.authorized_generation = generation if edition == 'bedrock' else None
+            self.note('Minecraft autorizado: '+edition)
             return jsonify(ok=True)
 
         @app.post('/minecraft/run')
@@ -218,17 +293,21 @@ class MinecraftConnector:
         @app.post('/minecraft/disconnect')
         def minecraft_disconnect():
             if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
-            self.authorized = False
-            self.revision += 1
-            self.password = ''
+            with self.control_lock:
+                self.bedrock.close()
+                self._bedrock_changed()
+                self.password = ''
             return jsonify(ok=True)
 
         @app.post('/minecraft/check')
         def check_connection():
             if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
-            if not self.password:return jsonify(error='Guarda la contraseña RCON primero'),409
+            if self.edition == 'java' and not self.password:return jsonify(error='Guarda la contraseña RCON primero'),409
             try:
-                self.execute('list')
-                return jsonify(ok=True,detail='RCON respondió a la consulta de jugadores.')
+                if self.edition == 'bedrock':
+                    result = self.bedrock.execute('list')
+                    if result['outcome'] != 'success':return jsonify(error='Bedrock no confirmó la consulta de jugadores.'),502
+                else:self.execute('list')
+                return jsonify(ok=True,detail='Minecraft respondió a la consulta de jugadores.')
             except (OSError,PermissionError) as exc:
-                return jsonify(error=f'RCON no confirmó la conexión: {type(exc).__name__}'),502
+                return jsonify(error=f'Minecraft no confirmó la conexión: {type(exc).__name__}'),502
