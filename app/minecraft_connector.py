@@ -7,8 +7,10 @@ import socket
 import struct
 import threading
 import time
+from collections import OrderedDict
 from flask import jsonify, request
 from minecraft_bedrock import BedrockBridge
+from minecraft_presets import PresetJob, catalog, commands_for, mappings
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,9 @@ class MinecraftConnector:
         self.revision = 0
         self.lock = threading.RLock()
         self.control_lock = threading.RLock()
+        self.preset_lock = threading.RLock()
+        self.preset_generation = 0
+        self.final_gifts = OrderedDict()
         self.bedrock = BedrockBridge(self._bedrock_changed)
         threading.Thread(target=self.worker, daemon=True).start()
         self.register(app)
@@ -58,7 +63,8 @@ class MinecraftConnector:
     def snapshot(self):
         return dict(config=self.config, edition=self.edition, profiles=self.profiles,
                     authorized=self.authorized_now(), queued=self.jobs.qsize(), log=self.log,
-                    bedrock=self.bedrock.snapshot())
+                    bedrock=self.bedrock.snapshot(), presets=mappings(self.config.get('presets')),
+                    preset_catalog=catalog())
 
     def authorized_now(self):
         return self.authorized and (self.edition == 'java' or
@@ -92,7 +98,84 @@ class MinecraftConnector:
             if not name or not command or any(x in command for x in ('\n', '\r', '\x00')):
                 raise ValueError('Comando inválido')
             clean[name] = command.lstrip('/')
-        return {'commands': clean} if edition == 'bedrock' else {'host': host, 'port': port, 'commands': clean}
+        config = {'commands': clean} if edition == 'bedrock' else {'host': host, 'port': port, 'commands': clean}
+        if 'presets' in data:config['presets'] = mappings(data['presets'])
+        return config
+
+    def _persist(self):
+        if self.r.archive:
+            self.r.archive.set_setting('minecraft_config', {'edition': self.edition, 'profiles': self.profiles})
+
+    def gift(self, record, event_id):
+        if record.get('ongoing'):
+            return
+        identity = (getattr(self.r, 'feed_session', None), str(record.get('id') or event_id))
+        with self.preset_lock:
+            if identity in self.final_gifts:return
+            self.final_gifts[identity] = True
+            while len(self.final_gifts) > 1000:self.final_gifts.popitem(last=False)
+            for preset_id, row in mappings(self.config.get('presets')).items():
+                if row['enabled'] and row['gift_id'] == str(record.get('gift_id', '')):
+                    self.enqueue_preset(preset_id, automatic=True)
+
+    def enqueue_preset(self, preset_id, automatic=False):
+        with self.preset_lock:
+            commands = commands_for(preset_id, self.edition)
+            if (not self.authorized_now() or self.r.production.settings['emergency'] or
+                    self.r.production.settings.get('scene', 'talk') != 'talk'):
+                return False
+            row = mappings(self.config.get('presets'))[preset_id]
+            if automatic and (not row['enabled'] or not row['gift_id']):return False
+            job = PresetJob(preset_id, commands, time.monotonic(), getattr(self.r, 'feed_session', None),
+                            self.revision, self.edition, self.preset_generation,
+                            self.authorized_generation, automatic)
+            try:
+                self.jobs.put_nowait(job)
+                return True
+            except queue.Full:
+                self.note('Minecraft: cola llena; acción rápida no admitida', alias=preset_id,
+                          outcome='cancelled', response='')
+                return False
+
+    def _preset_valid(self, job):
+        with self.preset_lock:
+            row = mappings(self.config.get('presets')).get(job.preset_id, {})
+            return (self.authorized_now() and job.edition == self.edition and
+                    job.revision == self.revision and job.preset_generation == self.preset_generation and
+                    job.session == getattr(self.r, 'feed_session', None) and time.monotonic()-job.created <= 10 and
+                    not self.r.production.settings['emergency'] and
+                    self.r.production.settings.get('scene', 'talk') == 'talk' and
+                    (not job.automatic or (row.get('enabled') and row.get('gift_id'))) and
+                    (job.edition == 'java' or job.transport_generation == self.bedrock.generation))
+
+    def run_preset(self, job):
+        for step, command in enumerate(job.commands, 1):
+            if not self._preset_valid(job):
+                self.note(f'Acción rápida cancelada antes del paso {step}/{len(job.commands)}',
+                          alias=job.preset_id, outcome='cancelled', response='')
+                return
+            try:
+                if job.edition == 'java':
+                    with self.lock:
+                        if not self._preset_valid(job):
+                            self.note('Acción rápida cancelada antes de ejecutar', alias=job.preset_id,
+                                      outcome='cancelled', response='')
+                            return
+                        response = self.execute(command)
+                        outcome = self.response_outcome(command, response)
+                else:
+                    result = self.bedrock.execute(command, expected_generation=job.transport_generation)
+                    response, outcome = result['response'], result['outcome']
+                label = {'success': 'Éxito confirmado', 'rejected': 'Comando rechazado',
+                         'unconfirmed': 'Sin confirmar'}[outcome]
+                self.note(f'{label} · {job.preset_id} · paso {step}/{len(job.commands)}: {response or "sin respuesta"}',
+                          alias=job.preset_id, outcome=outcome, response=response,
+                          step=step, total=len(job.commands))
+                if outcome == 'rejected':return
+            except Exception as exc:
+                self.note(f'Acción rápida sin confirmar · paso {step}/{len(job.commands)}: {type(exc).__name__}',
+                          alias=job.preset_id, outcome='connection_error' if isinstance(exc, OSError) else 'unconfirmed', response='')
+                return
 
     @staticmethod
     def packet(request_id, kind, payload):
@@ -176,6 +259,9 @@ class MinecraftConnector:
         del self.log[50:]
 
     def run_job(self, job):
+        if isinstance(job, PresetJob):
+            self.run_preset(job)
+            return
         alias, command, created, session, revision = job
         try:
             with self.lock:
@@ -224,6 +310,8 @@ class MinecraftConnector:
                     edition = data.get('edition', 'java')
                     if edition not in ('java', 'bedrock'):raise ValueError('Edición inválida')
                     config = self.profiles[edition] if data.get('select_only') is True else self.validate(data)
+                    if 'presets' not in config and 'presets' in self.profiles[edition]:
+                        config['presets'] = self.profiles[edition]['presets']
                 except (TypeError, ValueError) as exc:
                     return jsonify(error=str(exc)), 400
                 with self.control_lock:
@@ -232,15 +320,56 @@ class MinecraftConnector:
                         self.authorized = False
                         self.authorized_generation = None
                         self.revision += 1
-                        self.profiles[self.edition] = self.config
-                        if edition != self.edition:self.password = ''
-                        self.profiles[edition] = config
-                        self.edition, self.config = edition, config
+                        with self.preset_lock:
+                            self.preset_generation += 1
+                            self.profiles[self.edition] = self.config
+                            if edition != self.edition:self.password = ''
+                            self.profiles[edition] = config
+                            self.edition, self.config = edition, config
                         if edition == 'java' and 'password' in data:
                             self.password = str(data['password'])[:200]
                     if self.r.archive:
                         self.r.archive.set_setting('minecraft_config', {'edition': self.edition, 'profiles': self.profiles})
             return jsonify(self.snapshot())
+
+        @app.post('/minecraft/presets')
+        def minecraft_presets():
+            if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
+            data = request.get_json(silent=True)
+            try:
+                if not isinstance(data, dict) or set(data) != {'edition', 'presets'}:
+                    raise ValueError('Configuración de acciones inválida')
+                clean = mappings(data['presets'])
+                with self.preset_lock:
+                    if data['edition'] != self.edition:return jsonify(error='La edición cambió. Actualiza antes de guardar.'),409
+                    self.config['presets'] = clean
+                    self.profiles[self.edition] = self.config
+                    self.preset_generation += 1
+                self._persist()
+                return jsonify(self.snapshot())
+            except (TypeError, ValueError) as exc:return jsonify(error=str(exc)),400
+
+        @app.post('/minecraft/presets/test')
+        def minecraft_preset_test():
+            if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict) or set(data) != {'edition', 'id'}:return jsonify(error='Acción inválida'),400
+            with self.preset_lock:
+                if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
+                try:accepted = self.enqueue_preset(data['id'])
+                except (TypeError, ValueError):return jsonify(error='Acción inválida'),400
+            if not accepted:return jsonify(error='Autoriza Minecraft y revisa la escena, la pausa y la cola.'),409
+            return jsonify(ok=True)
+
+        @app.post('/minecraft/presets/stop')
+        def minecraft_presets_stop():
+            if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict) or set(data) != {'edition'}:return jsonify(error='Edición inválida'),400
+            with self.preset_lock:
+                if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
+                self.preset_generation += 1
+            return jsonify(ok=True)
 
         @app.post('/minecraft/bedrock/prepare')
         def minecraft_bedrock_prepare():

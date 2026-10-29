@@ -7,26 +7,30 @@ function setup({holdInitial=false}={}){
   const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=false,hold=holdInitial,release;
   const requests=[];let heldPost,releasePost;
   const java={host:'localhost',port:25575,commands:{probe:'list'}},bedrock={commands:{bed:'say hello'}};
-  let state={edition:'java',profiles:{java,bedrock},config:java,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
+  const presetCatalog=[['tnt_rain','Lluvia de TNT'],['zombie','Zombi'],['rain','Lluvia'],['thunder','Tormenta'],['night','Noche'],['diamonds','Diamantes'],['speed','Velocidad II'],['jump','Salto II'],['heal','Curación II']].map(([id,name])=>({id,name,description:id==='tnt_rain'?'5 TNT sobre el jugador más cercano.':'Efecto fijo'}));
+  const defaults=()=>Object.fromEntries(presetCatalog.map(p=>[p.id,{gift_id:'',gift_name:'',enabled:false}]));
+  java.presets=defaults();bedrock.presets=defaults();let giftCatalog=[{id:'1',name:'Rose',diamonds:1}];
+  let state={edition:'java',profiles:{java,bedrock},config:java,preset_catalog:presetCatalog,presets:java.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
   class Element {
     constructor(tag){this.tagName=tag;this.textContent='';this.value='';this.children=[];this.dataset={};this.events={};this.hidden=false;this.isConnected=true;nodes.push(this);}
     append(...items){this.children.push(...items);for(const item of items)item.parentElement=this;}
     replaceChildren(...items){this.children=items;}
-    setAttribute(){}
+    setAttribute(name,value){this[name]=value;}
     addEventListener(name,fn){this.events[name]=fn;}
   }
-  const document={hidden:false,createElement:tag=>new Element(tag),addEventListener:(name,fn)=>listeners[name]=fn};
+  const document={hidden:false,head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag),addEventListener:(name,fn)=>listeners[name]=fn};
   const window={addEventListener:(name,fn)=>listeners[name]=fn,OperatorViewRegistry:{register(key,node){pane=node;}}};
-  const context={window,document,Date,AbortController,AbortSignal,
+  const context={window,document,Date,AbortController,AbortSignal,structuredClone,
     MutationObserver:class{constructor(fn){this.fn=fn;}observe(target,options){observers.push({fn:this.fn,target,options});}disconnect(){}},
     setTimeout(fn,delay){const id=++serial;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),
     fetch:async(path,options={})=>{
       const data=options.body?JSON.parse(options.body):null;
       requests.push({path,method:options.method||'GET',data});
-      if(path==='/minecraft'&&data?.select_only){state.edition=data.edition;state.config=state.profiles[data.edition];state.authorized=false;}
-      const snapshot=path==='/minecraft/bedrock/prepare'?{command:'/wsserver ws://127.0.0.1:54321/secret'}:structuredClone(state);
+      if(path==='/minecraft'&&data?.select_only){state.edition=data.edition;state.config=state.profiles[data.edition];state.presets=state.config.presets;state.authorized=false;}
+      if(path==='/minecraft/presets'&&data){state.config.presets=structuredClone(data.presets);state.presets=state.config.presets;}
+      const snapshot=path==='/gift-catalog'?{gifts:giftCatalog}:path==='/minecraft/bedrock/prepare'?{command:'/wsserver ws://127.0.0.1:54321/secret'}:structuredClone(state);
       if(options.method==='POST'&&heldPost===path){heldPost=null;await new Promise(resolve=>releasePost=resolve);}
-      if(hold&&options.method==='GET')await new Promise(resolve=>release=resolve);if(fail)throw Error('offline');return {ok:true,json:async()=>snapshot};}};
+      if(hold&&options.method==='GET'&&path==='/minecraft')await new Promise(resolve=>release=resolve);if(fail)throw Error('offline');return {ok:true,json:async()=>snapshot};}};
   vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/minecraft.js`,'utf8'),context);
   const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
   const field=label=>nodes.find(n=>n.tagName==='label'&&n.textContent===label).children[0];
@@ -34,6 +38,8 @@ function setup({holdInitial=false}={}){
     fail:value=>fail=value,hold:()=>hold=true,release:()=>{hold=false;release();},
     holdPost:path=>heldPost=path,releasePost:()=>{heldPost=null;releasePost();},
     get serverEdition(){return state.edition;},
+    catalog:value=>giftCatalog=value,
+    preset:(id,control)=>nodes.find(n=>n.dataset[control==='gift'?'presetGift':'presetEnabled']===id),
     async tick(){const [id,timer]=timers.entries().next().value||[];assert.ok(timer,'refresh timer exists');timers.delete(id);timer.fn();await flush();},
     async hidden(value){pane.hidden=value;for(const o of observers)if(o.options.attributes)o.fn([]);await flush();},
     async visibility(value){document.hidden=value;listeners.visibilitychange?.();await flush();},
@@ -58,7 +64,7 @@ test('polling shows delayed command results and preserves unsaved fields',async(
   assert.equal(s.field('Dirección privada').value,'192.168.1.88');
   assert.equal(s.field('Comandos autorizados: un alias = comando por línea').value,'draft = say hello');
   assert.equal(s.field('Contraseña RCON').value,'secret draft');
-  assert.ok(s.requests.filter(r=>r.method==='GET').every(r=>r.path==='/minecraft'));
+  assert.ok(s.requests.filter(r=>r.method==='GET').every(r=>['/minecraft','/gift-catalog'].includes(r.path)));
 });
 
 test('refresh does not overlap, retries failures and preserves action notices',async()=>{
@@ -171,4 +177,34 @@ test('uncertain selection keeps controls guarded until polling confirms the actu
   assert.equal(s.field('Edición').value,'bedrock');assert.equal(s.field('Edición').disabled,false);
   assert.equal(s.field('Contraseña RCON').parentElement.hidden,true);
   assert.ok(s.nodes.filter(n=>n.tagName==='button').every(n=>!n.disabled));
+});
+
+test('quick-action rows use stable gifts, persist enabled state and preserve edition mappings',async()=>{
+  const s=setup();await s.flush();
+  assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,9);
+  const gift=s.preset('tnt_rain','gift'),enabled=s.preset('tnt_rain','enabled');
+  assert.ok(gift['aria-label'].includes('Lluvia de TNT'));assert.equal(enabled.checked,false);
+  gift.value='1';await gift.events.change();await s.flush();
+  enabled.checked=true;await enabled.events.change();await s.flush();
+  const saved=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
+  assert.equal(saved.presets.tnt_rain.gift_id,'1');assert.equal(saved.presets.tnt_rain.enabled,true);
+  assert.ok(!JSON.stringify(saved).includes('summon'));
+  s.catalog([]);await s.click('Actualizar regalos');
+  assert.ok(gift.children.some(o=>o.value==='1'&&o.textContent.includes('guardado')));
+  await s.edition('bedrock');assert.equal(enabled.checked,false);assert.equal(gift.value,'');
+  await s.edition('java');assert.equal(enabled.checked,true);assert.equal(gift.value,'1');
+  await s.tick();assert.equal(enabled.checked,true);
+});
+
+test('preset saves share the operation boundary and uncertain saves reconcile actual state',async()=>{
+  const s=setup();await s.flush();const gift=s.preset('tnt_rain','gift');
+  gift.value='1';s.holdPost('/minecraft/presets');const saving=gift.events.change();await s.flush();
+  const count=s.requests.length;await s.edition('bedrock');assert.equal(s.serverEdition,'java');
+  await s.click('Probar Lluvia de TNT');assert.equal(s.requests.length,count);
+  s.fail(true);s.releasePost();await saving;await s.flush();
+  assert.ok(s.field('Edición').disabled);s.fail(false);await s.tick();
+  assert.equal(gift.value,'1');assert.equal(s.field('Edición').disabled,false);
+  await s.click('Probar Lluvia de TNT');await s.click('Detener acciones rápidas');
+  assert.ok(s.requests.some(r=>r.path==='/minecraft/presets/test'&&r.data.id==='tnt_rain'));
+  assert.ok(s.requests.some(r=>r.path==='/minecraft/presets/stop'));
 });

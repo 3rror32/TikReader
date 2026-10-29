@@ -928,6 +928,7 @@ def handle_gift_event(event, update_catalog=True):
             hotkey_results = game_hotkeys.gift(record,f"{key}:{count}")
             animation_studio.gift(record,f"{key}:{count}")
             overlay_animations.event('gift',record,f"{key}:{count}")
+        minecraft.gift(record, key)
         gift_history[key] = record
         if archive:
             archive.save(feed_session, "gift", record)

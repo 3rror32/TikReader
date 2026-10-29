@@ -1,0 +1,28 @@
+.studio-pane .minecraft-quick-actions {
+  margin: 18px 0 24px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-glass);
+}
+.minecraft-action-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+.minecraft-action-title { min-width: 0; }
+.minecraft-action-title strong { display: block; font-size: .84rem; color: var(--text-main); }
+.minecraft-action-title small { display: block; margin-top: 4px; font-size: .74rem; line-height: 1.45; color: var(--text-muted); }
+.studio-pane .minecraft-action-row select { width: 100%; max-width: none; }
+.studio-pane .minecraft-action-enabled { justify-content: end; margin: 0; white-space: nowrap; }
+.studio-pane .minecraft-action-enabled input { width: 18px; height: 18px; accent-color: var(--teal); }
+.studio-pane .minecraft-action-test { max-width: 160px; font-size: .73rem; }
+.minecraft-quick-actions :is(button, select, input):focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+@media (max-width: 700px) {
+  .minecraft-action-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .minecraft-action-title { grid-column: 1 / -1; }
+  .studio-pane .minecraft-action-test { grid-column: 1 / -1; max-width: none; justify-self: start; }
+}
