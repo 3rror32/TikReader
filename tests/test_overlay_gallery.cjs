@@ -169,6 +169,26 @@ test('Herramientas gallery contains one microphone effects preview card',()=>{
  assert.match(createCard,/mini\.dataset\.previewSource=.*`\/widget\/\$\{key\}\?preview=1&catalog=1`/);
 });
 
+test('microphone effects preview card dispatches its panel route',async()=>{
+ const dispatches=[],elements=new Map();
+ const selectSource=gallery.match(/async function select\(key,label,card,changingVariant=false\)\{[^\n]+/)[0];
+ const selectContext={window:{Shell:{show:key=>dispatches.push(key)}},selected:'',canonical:key=>key,showVariants(){},settingsPanel:'',form:{inert:false},
+  $:id=>{if(!elements.has(id))elements.set(id,{disabled:false,textContent:'',scrollIntoView(){}});return elements.get(id);},
+  OverlayCanvas:{apply(){},setTarget(){}},AnimationControls:{select(){}},showGameControls(){},catalog:{querySelectorAll:()=>[]},
+  entries:new Map([['voice-ripples','Efectos de micrófono']]),name:{textContent:''},location:{origin:'http://localhost'},frame:{},open:{},status:{},editor:{hidden:false},
+  showEditor(){},api:async()=>{throw new Error('No preview settings are needed for this route.')}};
+ const select=vm.runInNewContext(`${selectSource};select`,selectContext);
+ function makeNode(tag,text,cls){return{tag,textContent:text,className:cls,dataset:{},children:[],classList:{toggle(){}},append(...nodes){this.children.push(...nodes);},setAttribute(){}};}
+ let pending;
+ const createCard=gallery.match(/function createCard\(key,label,compact=false\)\{[\s\S]*?\n \}/)[0];
+ const card=vm.runInNewContext(`${createCard};createCard('voice-ripples','Efectos de micrófono')`,{
+  el:makeNode,icon:()=>makeNode('svg'),selected:'',previewObserver:{observe(){}},describe:()=> 'Efectos que responden a tu voz.',
+  updateStar(){},toggleFavorite(){},select:(...args)=>{pending=select(...args);},
+ });
+ await card.children[0].onclick();await pending;
+ assert.deepEqual(dispatches,['voice-ripples']);
+});
+
 test('point-drop editor gives action feedback and refreshes its embedded widget',()=>{
  const games=fs.readFileSync('web/static/live_games.js','utf8');
  const widgets=fs.readFileSync('web/static/widgets.js','utf8');
