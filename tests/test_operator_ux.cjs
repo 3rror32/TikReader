@@ -35,7 +35,7 @@ function navigation(hash = '') {
     pane.title = title;
     return pane;
   };
-  const views = new Map(['voice', 'workspace', 'overlay-gallery', 'custom-overlays', 'alerts', 'creator-suite'].map(key => [key, view(key)]));
+  const views = new Map(['voice', 'voice-ripples', 'workspace', 'overlay-gallery', 'custom-overlays', 'alerts', 'creator-suite'].map(key => [key, view(key)]));
   const keys = ['live', ...views.keys(), 'control-center', 'overlay-favorites', 'overlay-tools', 'overlay-custom', 'overlay-my-animations'];
   const buttons = keys.map(key => Object.assign(node(key), {dataset: {sectionNav: key}}));
   const sidebar = node();
@@ -81,6 +81,14 @@ function navigation(hash = '') {
     forward() { if (index < entries.length - 1) location.hash = entries[++index]; emit('popstate'); emit('hashchange'); flush(); },
     hash(value) { location.hash = value; emit('hashchange'); flush(); },
   };
+}
+
+function authoredMenuGroups() {
+  const source = read('web/static/shell.js');
+  const start = source.indexOf(' const groups=') + ' const groups='.length;
+  const end = source.indexOf(' const trailingItems=', start);
+  assert.ok(start >= ' const groups='.length && end > start, 'shell defines grouped navigation destinations');
+  return vm.runInNewContext(`${source.slice(start, end).trim().replace(/;$/, '')}`);
 }
 
 test('unknown and malformed hashes recover to Live and a canonical URL', () => {
@@ -144,6 +152,35 @@ test('creator subroutes retain their tab and activate the Preparar destination',
   assert.equal(app.location.hash, '#creator-calendar');
   assert.ok(app.events.some(event => event.type === 'creator' && event.detail === 'calendar'));
   assert.equal(app.buttons.find(button => button.dataset.sectionNav === 'creator-suite').getAttribute('aria-current'), 'page');
+});
+
+test('Complete nests one microphone effects destination under Herramientas', () => {
+  const groups = authoredMenuGroups();
+  const microphoneEntries = [];
+  function visit(section, items, parent = null) {
+    for (const [label, key, children] of items) {
+      if (key === 'voice-ripples') microphoneEntries.push({section, parent, label, key});
+      if (children) visit(section, children, key);
+    }
+  }
+  for (const [section, items] of groups) visit(section, items);
+
+  assert.deepEqual(microphoneEntries, [{
+    section: 'Directo', parent: 'overlay-tools', label: 'Efectos de micrófono', key: 'voice-ripples',
+  }]);
+});
+
+test('microphone effects select Tools while preserving the screen and its heading', () => {
+  const app = navigation('#voice-ripples'); app.flush();
+  assert.equal(app.location.hash, '#voice-ripples');
+  assert.equal(app.views.get('voice-ripples').hidden, false);
+  const tools = app.buttons.find(button => button.dataset.sectionNav === 'overlay-tools');
+  const microphone = app.buttons.find(button => button.dataset.sectionNav === 'voice-ripples');
+  assert.equal(tools.getAttribute('aria-current'), 'page');
+  assert.equal(tools.classList.contains('active'), true);
+  assert.equal(microphone.getAttribute('aria-current'), null);
+  assert.equal(microphone.classList.contains('active'), false);
+  assert.equal(app.heading.textContent, 'voice-ripples');
 });
 
 test('late registered screens restore requested routes without stealing initial focus', () => {

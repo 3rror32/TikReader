@@ -49,7 +49,7 @@ window.Shell=(()=>{
  }
  add('voice',mount('voice'));add('filters',filters);add('alerts',alertStudio||alerts);add('history',mount('history'));add('workspace',mount('workspace'));add('diagnostics',mount('diagnostics'));add('obs',obs);
  for(const node of document.querySelectorAll('[data-section]')){if(node===alertStudio||node.closest('#operator-dynamic-view-mount'))continue;add(node.dataset.section,node);}
- const links=[['Simulador','simulation'],['Chatbot','chatbot'],['Escenas','obs-direct'],['Eventos','event-diagnostics'],['Spotify','spotify'],['Encuestas','chat-poll'],['Streamer.bot','streamerbot'],['Sonidos','sound-library'],['Videos','video-library'],['Reglas','interactive'],['En vivo','live'],['Preguntas','questions'],['Atajos','game-hotkeys'],['Minecraft','minecraft'],['Puntos','points'],['Centro de control','control-center'],['Lectura','voice'],['Personaje','custom-voice'],['Filtros','filters'],['Emisión','production'],['Alertas','alerts'],['Overlays','overlay-gallery'],['Fuentes','obs'],['Sesiones','history'],['Moderación','moderator'],['Revisión','preflight'],['Conexión','diagnostics'],['Configuración','workspace'],['Acerca de','about']];
+ const links=[['Efectos de micrófono','voice-ripples'],['Simulador','simulation'],['Chatbot','chatbot'],['Escenas','obs-direct'],['Eventos','event-diagnostics'],['Spotify','spotify'],['Encuestas','chat-poll'],['Streamer.bot','streamerbot'],['Sonidos','sound-library'],['Videos','video-library'],['Reglas','interactive'],['En vivo','live'],['Preguntas','questions'],['Atajos','game-hotkeys'],['Minecraft','minecraft'],['Puntos','points'],['Centro de control','control-center'],['Lectura','voice'],['Personaje','custom-voice'],['Filtros','filters'],['Emisión','production'],['Alertas','alerts'],['Overlays','overlay-gallery'],['Fuentes','obs'],['Sesiones','history'],['Moderación','moderator'],['Revisión','preflight'],['Conexión','diagnostics'],['Configuración','workspace'],['Acerca de','about']];
  // Each category contains destinations directly: no duplicated parent link.
  const groups=[
   [
@@ -93,7 +93,13 @@ window.Shell=(()=>{
           ],
           [
             "Herramientas",
-            "overlay-tools"
+            "overlay-tools",
+            [
+              [
+                "Efectos de micrófono",
+                "voice-ripples"
+              ]
+            ]
           ],
           [
             "Metas",
@@ -232,14 +238,22 @@ window.Shell=(()=>{
 ];
  const trailingItems=[["Sesiones","history"],["Acerca de","about"]];
  const utilityItems=[["Configuración","workspace"]];
- const destinationLabels=new Map([...groups.flatMap(([,items])=>items.flatMap(([label,key,children])=>[[key,label],...(children||[]).map(([childLabel,childKey])=>[childKey,childLabel])])),...trailingItems.map(([label,key])=>[key,label]),...utilityItems.map(([label,key])=>[key,label])]);
+ const destinationLabels=new Map([...groups.flatMap(([,items])=>items.flatMap(([label,key,children])=>[[key,label],...(children||[]).flatMap(([childLabel,childKey,grandchildren])=>[[childKey,childLabel],...(grandchildren||[]).map(([grandchildLabel,grandchildKey])=>[grandchildKey,grandchildLabel])])])),...trailingItems.map(([label,key])=>[key,label]),...utilityItems.map(([label,key])=>[key,label])]);
  for(const [section,items] of groups){
   const sectionLabel=document.createElement('span');sectionLabel.className='nav-section-label';sectionLabel.textContent=section;nav.append(sectionLabel);
   for(const [label,key,children] of items){
    const group=document.createElement('div');group.className='nav-group';
    if(children){
     const disclosure=document.createElement('details'),summary=document.createElement('summary'),submenu=document.createElement('div');summary.textContent=label;submenu.className='nav-submenu';disclosure.dataset.sectionGroup=key;
-    for(const [childLabel,childKey] of children){const child=document.createElement('button');child.type='button';child.textContent=childLabel;child.dataset.sectionNav=childKey;child.onclick=()=>show(childKey);submenu.append(child);}
+    for(const [childLabel,childKey,grandchildren] of children){
+     if(grandchildren){
+      const nested=document.createElement('details'),nestedSummary=document.createElement('summary'),nestedMenu=document.createElement('div');nested.dataset.sectionGroup=childKey;nestedMenu.className='nav-submenu';
+      const parentButton=document.createElement('button');parentButton.type='button';parentButton.textContent=childLabel;parentButton.dataset.sectionNav=childKey;parentButton.onclick=()=>show(childKey);nestedSummary.append(parentButton);
+      for(const [grandchildLabel,grandchildKey] of grandchildren){const grandchild=document.createElement('button');grandchild.type='button';grandchild.textContent=grandchildLabel;grandchild.dataset.sectionNav=grandchildKey;grandchild.onclick=()=>show(grandchildKey);nestedMenu.append(grandchild);}
+      nested.append(nestedSummary,nestedMenu);submenu.append(nested);continue;
+     }
+     const child=document.createElement('button');child.type='button';child.textContent=childLabel;child.dataset.sectionNav=childKey;child.onclick=()=>show(childKey);submenu.append(child);
+    }
     disclosure.append(summary,submenu);
     group.append(disclosure);nav.append(group);continue;
    }
@@ -266,6 +280,7 @@ window.Shell=(()=>{
  function resolveRoute(key){
   let activeKey=key,viewKey=key,overlaySection='',creatorTab='',game='';
   if(key==='fortune-wheel'||key==='point-drop'){game=key;activeKey='overlay-tools';viewKey='overlay-gallery';overlaySection='tools';}
+  else if(key==='voice-ripples')activeKey='overlay-tools';
   else if(key==='overlay-gallery'){activeKey='overlay-favorites';viewKey='overlay-gallery';overlaySection='favorites';}
   else if(key==='overlay-my-animations'||key==='animation-studio'){activeKey='overlay-my-animations';viewKey='alerts';}
   else if(key==='overlay-custom')viewKey='custom-overlays';
@@ -303,8 +318,8 @@ window.Shell=(()=>{
   const isLive=viewKey==='live';document.body.classList.toggle('config-view',!isLive);config.hidden=isLive;live.hidden=!isLive;for(const [name,node] of views)node.hidden=name!==viewKey;
   if(viewKey==='alerts'&&alertStudio){const custom=activeKey==='overlay-my-animations',title=alertStudio.querySelector('.alerts-page-header h2, :scope > h2'),intro=alertStudio.querySelector('.alerts-page-intro');if(title)title.textContent=custom?'Mis animaciones':'Alertas';if(intro)intro.textContent=custom?'Crea, prueba y activa tus animaciones personalizadas para regalos.':'Diseña, prueba y activa los avisos de tu LIVE.';}
   for(const b of sidebar.querySelectorAll('[data-section-nav]')){b.classList.toggle('active',b.dataset.sectionNav===activeKey);if(b.dataset.sectionNav===activeKey)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');}
-  const activeButton=sidebar.querySelector(`[data-section-nav="${activeKey}"]`);if(activeButton)activeButton.closest('details')?.setAttribute('open','');
-  heading.textContent=destinationLabels.get(activeKey)||links.find(x=>x[1]===viewKey)?.[0]||'';document.body.classList.remove('menu-open');toggle.setAttribute('aria-expanded','false');
+  const activeButton=sidebar.querySelector(`[data-section-nav="${activeKey}"]`);for(let details=activeButton?.closest('details');details;details=details.parentElement?.closest('details'))details.setAttribute('open','');
+  heading.textContent=destinationLabels.get(viewKey==='voice-ripples'?viewKey:activeKey)||links.find(x=>x[1]===viewKey)?.[0]||'';document.body.classList.remove('menu-open');toggle.setAttribute('aria-expanded','false');
   requestAnimationFrame(()=>{
    if(serial!==navigationSerial)return;
    activeButton?.scrollIntoView({block:'nearest',inline:'nearest',behavior:menuMotionAllowed()?'smooth':'auto'});
