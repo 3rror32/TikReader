@@ -36,20 +36,20 @@ The test-chat feed currently renders gift events as text such as `Rose x 1`, eve
   - Trigger evidence: implementation and focused coverage span multiple non-trivial frontend/backend test surfaces.
   - Acceptance: catalog-backed gifts show their safe image and quantity; the accessible label retains the gift name and quantity; missing or failed images have a stable gift fallback.
   - Checks: `node --test tests/test_simulation_ui.cjs` — RED with 3 expected failures before implementation, then GREEN with 3 passed; `.venv\Scripts\python.exe -m pytest tests/test_simulation.py -q` — 13 passed; parent spot check repeated the UI suite — 3 passed.
-  - Work-unit commit: pending hash; planned message `feat(simulation): show gift artwork and cover Minecraft delivery`.
+  - Work-unit commit: `c3fc3bb` (`feat(simulation): show gift artwork and cover Minecraft delivery`).
   - Authored implementation/test lines in work-unit: 150 additions and 2 deletions; running total: 177.
   - Rationale: reuse the validated catalog artwork while keeping a readable quantity, accessible event name, and deterministic name fallback.
-  - RDD assessment: pending parent assessment.
+  - RDD assessment: unavailable because the `gentle-ai` executable was not present; treated as high risk and independently verified.
 
 - [x] **SGM-2 — Exercise configured Minecraft reactions from simulated gifts**
   - Route: delegated direct.
   - Trigger evidence: the behavior crosses simulation payload validation, shared gift dispatch, Minecraft preset matching, and integration tests.
   - Acceptance: a simulated catalog gift uses its exact gift ID, reaches the configured Minecraft preset, and produces the configured zombie command with the donor name visible.
   - Checks: `.venv\Scripts\python.exe -m pytest tests/test_simulation.py -q -k simulated_catalog_gift_reaches_minecraft_preset_with_donor_name` — passed before production changes (1 passed, 11 deselected); `Simulation.deliver` already enters the shared gift handler and its `minecraft.gift` dispatch.
-  - Work-unit commit: pending hash; planned shared message `feat(simulation): show gift artwork and cover Minecraft delivery`.
+  - Work-unit commit: `c3fc3bb` (`feat(simulation): show gift artwork and cover Minecraft delivery`).
   - Authored implementation/test lines in work-unit: 27 additions; running total: 27.
   - Rationale: preserve the simulated catalog ID, configured preset selection, and named zombie command through a focused regression test.
-  - RDD assessment: pending parent assessment.
+  - RDD assessment: unavailable because the `gentle-ai` executable was not present; treated as high risk and independently verified.
 
 ## Progress and evidence
 
@@ -61,7 +61,7 @@ The test-chat feed currently renders gift events as text such as `Rose x 1`, eve
 
 ## Next step
 
-Create the shared work-unit commit, record its identity, then run the native RDD assessment and any returned review continuation.
+All requested behavior and focused verification are complete. Native RDD assessment/review remains unavailable in this session; ordinary repository policy owns any later push or pull request.
 
 ## Follow-up correction
 
@@ -69,5 +69,6 @@ Create the shared work-unit commit, record its identity, then run the native RDD
 - Correction: simulated events now reuse `result['record']['image_url']`, which is the image URL accepted by the shared gift handler; event metadata no longer forwards the unsanitized catalog value.
 - RED: `.venv\Scripts\python.exe -m pytest tests/test_simulation.py -q -k simulated_gift_event_uses_validated_catalog_artwork_url` — failed because the event exposed `https://user:password@example.test/rose.png`.
 - GREEN: `.venv\Scripts\python.exe -m pytest tests/test_simulation.py -q` — 14 passed, 2 warnings, 3 subtests passed.
-- `git diff --check c3fc3bb` — found a pre-existing trailing blank line at `tests/test_overlay_gallery.cjs:351`; no unrelated file was changed.
-- Commit: none; `.git/index` staging was blocked by the sandbox.
+- Scoped `git diff --check` — no errors; the earlier unscoped command exposed an unrelated pre-existing trailing blank line at `tests/test_overlay_gallery.cjs:351`.
+- Correction commit: `4e6a592` (`fix(simulation): validate gift artwork URLs`).
+- Independent correction verification: 14 simulation tests and 3 UI tests passed; `git diff --check c3fc3bb 4e6a592` passed with no findings.
