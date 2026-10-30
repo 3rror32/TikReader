@@ -55,6 +55,12 @@ The current feature branch is fifteen commits ahead of local `main` and also con
   - Route: delegated direct.
   - Trigger: build execution and release artifact verification must run in a fresh worker context.
   - Acceptance: version checks pass and `release/TikReader-1.0.0.9-Beta-Setup.exe` is produced with recorded size and checksum.
+  - Outcome: partial. Starting worktree was clean on `codex/minecraft-command-results` at `4a0095db5f21e0c3309b8343992ed711501c8f32`, the RM-02 candidate. Local `main` was fast-forwarded with `git merge --ff-only codex/minecraft-command-results` to the same commit; the already-fetched `origin/main` (`ada8fb6ff060e0ebf40126dbd59213d89089fc7e`) is an ancestor. No fetch was performed.
+  - Preflight: `.\\.venv\\Scripts\\python.exe -m unittest tests.test_build_release` ran 5 tests: 4 passed and 1 errored because the sandbox denied writing the test's `tempfile.TemporaryDirectory` fixture under the Windows temporary directory. `powershell -ExecutionPolicy Bypass -File .\\packaging\\build_installer.ps1 -CheckOnly` exited 1 because the script could not launch `python.exe` in the sandbox.
+  - Build: `powershell -ExecutionPolicy Bypass -File .\\packaging\\build_installer.ps1` was run once in the foreground and exited 1. Python 3.14.7 and pip 26.2.1 were found, but PyInstaller is missing (`No module named PyInstaller`); the build stopped at the PyInstaller precheck before producing an installer. Log: `release/build-installer-20261030-162220-469.log`.
+  - Artifact inspection: the expected path exists but is not fresh (last modified `2026-10-22T04:06:40.5921807Z`), so it is not accepted as output from this candidate. Existing file size is 373,716,204 bytes; SHA-256 is `5F283BAC210DAD5D757ACF96291114B1EE44522C6450CC0737EBAE45DED5FCDC`; file version metadata is blank and product version is `1.0.0.9`. `release/TikReader/distribution.json` reports version `1.0.0.9` with null build and identity.
+  - Post-build checks: `git diff --check` exited 0; `git status --short` was empty; `web/static/build/broadcast.css` had no tracked change. RDD is unavailable because `gentle-ai` is not installed. No task-evidence commit has been made yet.
+  - Next step: RM-03 remains incomplete until the documented PyInstaller dependency is available, preflight succeeds, and a fresh installer is built and verified; then proceed to RM-04.
 - [ ] `RM-04` Push `main` and publish the installer to the GitHub 1.0.0.9 prerelease.
   - Route: direct inline remote state operation after all local checks and review requirements are satisfied.
   - Acceptance: GitHub confirms the updated `main` commit and a release asset identity/URL for the installer.
@@ -76,7 +82,8 @@ The current feature branch is fifteen commits ahead of local `main` and also con
 - Safety audit: `.tmp/` contains approximately 8,384 files and 1.34 GB of caches, QA output, preserved installers, and local secret-like files; it is excluded from every work unit.
 - Release map: version sources agree on 1.0.0.9 and the expected installer path is `release/TikReader-1.0.0.9-Beta-Setup.exe`.
 - RM-02 commit and post-commit check evidence is recorded above.
+- RM-03 reached local `main` at `4a0095db5f21e0c3309b8343992ed711501c8f32`; its single installer build attempt was blocked at the PyInstaller precheck, so the existing artifact is stale and RM-04 is not ready.
 
 ## Next step
 
-Proceed to `RM-03`: fast-forward local `main`, run the release preflight, and build the 1.0.0.9 installer.
+Resume `RM-03` after resolving the missing PyInstaller dependency and sandbox-limited preflight; build and verify a fresh installer before RM-04.
