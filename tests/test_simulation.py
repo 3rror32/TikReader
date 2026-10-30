@@ -1,4 +1,5 @@
 import copy
+import queue
 import time
 import unittest
 from unittest.mock import patch
@@ -103,6 +104,32 @@ class SimulationTests(unittest.TestCase):
                 server.game_hotkeys.injector.assert_called_once_with(['SPACE'], 60, 0)
                 server.game_hotkeys.injector.reset_mock()
 
+    def test_simulated_catalog_gift_reaches_minecraft_preset_with_donor_name(self):
+        rose = {'id': 'rose-catalog-42', 'name': 'Rose', 'diamonds': 1,
+                'image_url': 'https://example.test/rose.png'}
+        minecraft = server.minecraft
+        saved_presets = copy.deepcopy(minecraft.config.get('presets'))
+        saved_authorized = minecraft.authorized
+        minecraft.config['presets'] = {'zombie': {
+            'gift_id': str(rose['id']), 'gift_name': 'Rose', 'enabled': True}}
+        minecraft.authorized = True
+        try:
+            with patch.object(self.sim.r, 'gift_catalog', {rose['id']: rose}), \
+                    patch.object(minecraft, 'jobs', queue.Queue()):
+                spec = self.sim.validate({'kind': 'gift', 'mode': 'separate', 'gift': 'Rose',
+                                          'user': 'RoseDonor'})
+                self.assertEqual(spec['gift_id'], str(rose['id']))
+                self.sim.deliver(spec, 1, 'minecraft-rose')
+                self.assertEqual(minecraft.jobs.qsize(), 1)
+                job = minecraft.jobs.get_nowait()
+                self.assertEqual(job.selected_ids, ('zombie',))
+                self.assertIn('CustomName:{text:"RoseDonor"}', job.commands[0])
+        finally:
+            minecraft.config.pop('presets', None)
+            if saved_presets is not None:
+                minecraft.config['presets'] = saved_presets
+            minecraft.authorized = saved_authorized
+
     def test_separate_events_have_distinct_identity_and_respect_cooldown(self):
         self.activate()
         server.game_hotkeys.mappings = [server.game_hotkeys.validate(dict(id='sim-key',
@@ -198,6 +225,18 @@ class SimulationTests(unittest.TestCase):
             environ_base={'REMOTE_ADDR':'192.168.1.12'}).status_code, 403)
         self.assertEqual(self.client.post('/simulation', json={'action':'stop'},
             headers={'Origin':'https://example.com'}).status_code, 403)
+
+    def test_simulated_gift_event_includes_catalog_artwork_and_quantity(self):
+        rose = {'id': 'rose-catalog-42', 'name': 'Rose', 'diamonds': 1,
+                'image_url': 'https://example.test/rose.png'}
+        with patch.object(self.sim.r, 'gift_catalog', {rose['id']: rose}), \
+                patch.object(server, 'handle_gift_event', return_value={'hotkeys': []}):
+            spec = self.sim.validate({'kind': 'gift', 'mode': 'separate', 'gift': 'Rose'})
+            self.sim.deliver(spec, 1, 'artwork-event')
+        event = self.sim.events[-1]
+        self.assertEqual(event['gift'], 'Rose')
+        self.assertEqual(event['count'], 1)
+        self.assertEqual(event['image_url'], rose['image_url'])
 
 
 if __name__ == '__main__':

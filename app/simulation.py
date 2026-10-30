@@ -157,8 +157,10 @@ class Simulation:
             result = r.handle_gift_event(S(user=user, gift=gift, gift_id=spec['gift_id'],
                 group_id=group if streak else 0, common=S(msg_id=message),
                 repeat_count=index if streak else 1, repeat_end=final or not streak), update_catalog=False)
+            gift_count = index if streak else 1
             self.events.append(dict(id=message, at=time.time(), user='@'+spec['user'], kind='gift',
-                text=f"{spec['gift']} × {index if streak else 1}" + (' · fin de racha' if final else ''),
+                gift=spec['gift'], count=gift_count, image_url=spec['image'],
+                text=f"{spec['gift']} × {gift_count}" + (' · fin de racha' if final else ''),
                 hotkeys=result['hotkeys']))
 
     def run(self, spec, cancellation, generation):

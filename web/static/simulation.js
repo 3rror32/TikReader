@@ -51,7 +51,21 @@ window.SimulationUI = (() => {
     if(next!==dockEventSignature){
       const firstRender=dockEventSignature==='';dockEventSignature=next;
       const box=$('simulation-float-feed'),follow=box.scrollHeight-box.scrollTop-box.clientHeight<48;box.replaceChildren();
-      for(const event of events.slice(-30)){const row=el('article');row.dataset.kind=event.kind;row.append(el('time',new Date(event.at*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})),el('strong',event.user),el('p',event.text));box.append(row);}
+      for(const event of events.slice(-30)){
+        const row=el('article');row.dataset.kind=event.kind;
+        row.append(el('time',new Date(event.at*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})),el('strong',event.user));
+        if(event.kind==='gift'){
+          const gift=event.gift||event.text||'Regalo',count=Number.isInteger(event.count)&&event.count>0?event.count:1;
+          const accessibleName=`${event.user} envió ${gift}, cantidad ${count}`;
+          row.setAttribute('aria-label',accessibleName);
+          const detail=el('p'),art=el('span');detail.className='simulation-float-gift';art.className='simulation-float-gift-art';art.setAttribute('aria-hidden','true');
+          const fallback=()=>{const label=el('span',gift);label.className='simulation-float-gift-fallback';art.replaceChildren(label);};
+          if(event.image_url){const image=el('img');image.src=event.image_url;image.alt='';image.onerror=fallback;art.append(image);}else fallback();
+          const quantity=el('span',`× ${count}`);quantity.className='simulation-float-gift-quantity';
+          detail.append(art,quantity);row.append(detail);
+        }else row.append(el('p',event.text));
+        box.append(row);
+      }
       if(!events.length)box.append(el('p',state.active?'Envía un comentario o regalo para iniciar la prueba.':'Activa la simulación para enviar un mensaje.'));
       if(follow)box.scrollTop=box.scrollHeight;
       if(!firstRender&&dock.hidden&&events.length)dockButton.classList.add('has-unread');
