@@ -230,13 +230,23 @@ class SimulationTests(unittest.TestCase):
         rose = {'id': 'rose-catalog-42', 'name': 'Rose', 'diamonds': 1,
                 'image_url': 'https://example.test/rose.png'}
         with patch.object(self.sim.r, 'gift_catalog', {rose['id']: rose}), \
-                patch.object(server, 'handle_gift_event', return_value={'hotkeys': []}):
+                patch.object(server, 'handle_gift_event', return_value={
+                    'hotkeys': [], 'record': {'image_url': rose['image_url']}}):
             spec = self.sim.validate({'kind': 'gift', 'mode': 'separate', 'gift': 'Rose'})
             self.sim.deliver(spec, 1, 'artwork-event')
         event = self.sim.events[-1]
         self.assertEqual(event['gift'], 'Rose')
         self.assertEqual(event['count'], 1)
         self.assertEqual(event['image_url'], rose['image_url'])
+
+    def test_simulated_gift_event_uses_validated_catalog_artwork_url(self):
+        rose = {'id': 'rose-catalog-unsafe', 'name': 'Rose', 'diamonds': 1,
+                'image_url': 'https://user:password@example.test/rose.png'}
+        with patch.object(self.sim.r, 'gift_catalog', {rose['id']: rose}), \
+                patch.object(server.minecraft, 'gift'):
+            spec = self.sim.validate({'kind': 'gift', 'mode': 'separate', 'gift': 'Rose'})
+            self.sim.deliver(spec, 1, 'unsafe-artwork')
+        self.assertIsNone(self.sim.events[-1]['image_url'])
 
 
 if __name__ == '__main__':

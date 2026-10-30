@@ -62,3 +62,12 @@ The test-chat feed currently renders gift events as text such as `Rose x 1`, eve
 ## Next step
 
 Create the shared work-unit commit, record its identity, then run the native RDD assessment and any returned review continuation.
+
+## Follow-up correction
+
+- Verifier finding: simulated gift events copied the catalog image URL directly, bypassing the shared handler's strict URL sanitization for HTTPS URLs containing userinfo.
+- Correction: simulated events now reuse `result['record']['image_url']`, which is the image URL accepted by the shared gift handler; event metadata no longer forwards the unsanitized catalog value.
+- RED: `.venv\Scripts\python.exe -m pytest tests/test_simulation.py -q -k simulated_gift_event_uses_validated_catalog_artwork_url` — failed because the event exposed `https://user:password@example.test/rose.png`.
+- GREEN: `.venv\Scripts\python.exe -m pytest tests/test_simulation.py -q` — 14 passed, 2 warnings, 3 subtests passed.
+- `git diff --check c3fc3bb` — found a pre-existing trailing blank line at `tests/test_overlay_gallery.cjs:351`; no unrelated file was changed.
+- Commit: none; `.git/index` staging was blocked by the sandbox.

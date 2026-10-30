@@ -159,7 +159,8 @@ class Simulation:
                 repeat_count=index if streak else 1, repeat_end=final or not streak), update_catalog=False)
             gift_count = index if streak else 1
             self.events.append(dict(id=message, at=time.time(), user='@'+spec['user'], kind='gift',
-                gift=spec['gift'], count=gift_count, image_url=spec['image'],
+                gift=spec['gift'], count=gift_count,
+                image_url=(result.get('record') or {}).get('image_url'),
                 text=f"{spec['gift']} × {gift_count}" + (' · fin de racha' if final else ''),
                 hotkeys=result['hotkeys']))
 
