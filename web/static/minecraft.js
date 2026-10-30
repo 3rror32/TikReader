@@ -45,658 +45,753 @@
     "name": "Lluvia de TNT",
     "description": "TNT",
     "category": "actions",
-    "quantity": 5
+    "quantity": 5,
+    "section": "environment"
   },
   {
     "id": "zombie",
     "name": "Zombi",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "rain",
     "name": "Lluvia",
     "description": "Clima",
-    "category": "actions"
+    "category": "actions",
+    "section": "environment"
   },
   {
     "id": "thunder",
     "name": "Tormenta",
     "description": "Clima",
-    "category": "actions"
+    "category": "actions",
+    "section": "environment"
   },
   {
     "id": "night",
     "name": "Noche",
     "description": "Hora",
-    "category": "actions"
+    "category": "actions",
+    "section": "environment"
   },
   {
     "id": "diamonds",
     "name": "Diamantes",
     "description": "5 diamantes",
-    "category": "actions"
+    "category": "actions",
+    "section": "items"
   },
   {
     "id": "speed",
     "name": "Velocidad II",
     "description": "20 s",
-    "category": "actions"
+    "category": "actions",
+    "section": "abilities"
   },
   {
     "id": "jump",
     "name": "Salto II",
     "description": "20 s",
-    "category": "actions"
+    "category": "actions",
+    "section": "abilities"
   },
   {
     "id": "heal",
     "name": "Curación II",
     "description": "Instantánea",
-    "category": "actions"
+    "category": "actions",
+    "section": "abilities"
   },
   {
     "id": "pig",
     "name": "Cerdo",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "cow",
     "name": "Vaca",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "sheep",
     "name": "Oveja",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "chicken",
     "name": "Gallina",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "bee",
     "name": "Abeja",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "armadillo",
     "name": "Armadillo",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "horse",
     "name": "Caballo",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "donkey",
     "name": "Burro",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "mule",
     "name": "Mula",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "camel",
     "name": "Camello",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "rabbit",
     "name": "Conejo",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "cat",
     "name": "Gato",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "wolf",
     "name": "Lobo",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "fox",
     "name": "Zorro",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "ocelot",
     "name": "Ocelote",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "panda",
     "name": "Panda",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "polar_bear",
     "name": "Oso polar",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "goat",
     "name": "Cabra",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "llama",
     "name": "Llama",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "trader_llama",
     "name": "Llama del comerciante",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "mooshroom",
     "name": "Champiñaca",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "parrot",
     "name": "Loro",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "bat",
     "name": "Murciélago",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "sniffer",
     "name": "Rastreador",
     "description": "Mob",
     "category": "animals",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "axolotl",
     "name": "Ajolote",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "frog",
     "name": "Rana",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "tadpole",
     "name": "Renacuajo",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "turtle",
     "name": "Tortuga",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "dolphin",
     "name": "Delfín",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "squid",
     "name": "Calamar",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "glow_squid",
     "name": "Calamar brillante",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "cod",
     "name": "Bacalao",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "salmon",
     "name": "Salmón",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "tropical_fish",
     "name": "Pez tropical",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "pufferfish",
     "name": "Pez globo",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "nautilus",
     "name": "Nautilo",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "guardian",
     "name": "Guardián",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "elder_guardian",
     "name": "Guardián anciano",
     "description": "Mob",
     "category": "aquatic",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "villager",
     "name": "Aldeano",
     "description": "Mob",
     "category": "helpers",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "wandering_trader",
     "name": "Comerciante ambulante",
     "description": "Mob",
     "category": "helpers",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "allay",
     "name": "Allay",
     "description": "Mob",
     "category": "helpers",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "iron_golem",
     "name": "Gólem de hierro",
     "description": "Mob",
     "category": "helpers",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "snow_golem",
     "name": "Gólem de nieve",
     "description": "Mob",
     "category": "helpers",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "copper_golem",
     "name": "Gólem de cobre",
     "description": "Mob",
     "category": "helpers",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "happy_ghast",
     "name": "Ghast feliz",
     "description": "Mob",
     "category": "helpers",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "skeleton",
     "name": "Esqueleto",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "drowned",
     "name": "Ahogado",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "husk",
     "name": "Zombi momificado",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "zombie_villager",
     "name": "Aldeano zombi",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "zombie_horse",
     "name": "Caballo zombi",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "camel_husk",
     "name": "Camello momificado",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "zombie_nautilus",
     "name": "Nautilo zombi",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "stray",
     "name": "Esqueleto glacial",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "bogged",
     "name": "Esqueleto pantanoso",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "parched",
     "name": "Esqueleto reseco",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "skeleton_horse",
     "name": "Caballo esqueleto",
     "description": "Mob",
     "category": "undead",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "creeper",
     "name": "Creeper",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "spider",
     "name": "Araña",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "cave_spider",
     "name": "Araña de cueva",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "slime",
     "name": "Slime",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "silverfish",
     "name": "Lepisma",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "phantom",
     "name": "Fantasma",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "witch",
     "name": "Bruja",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "pillager",
     "name": "Saqueador",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "vindicator",
     "name": "Vindicador",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "evoker",
     "name": "Invocador",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "vex",
     "name": "Vex",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "ravager",
     "name": "Devastador",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "breeze",
     "name": "Breeze",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "creaking",
     "name": "Crujidor",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "sulfur_cube",
     "name": "Cubo de azufre",
     "description": "Mob",
     "category": "hostile",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "blaze",
     "name": "Blaze",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "ghast",
     "name": "Ghast",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "magma_cube",
     "name": "Cubo de magma",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "hoglin",
     "name": "Hoglin",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "zoglin",
     "name": "Zoglin",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "piglin",
     "name": "Piglin",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "piglin_brute",
     "name": "Piglin bruto",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "zombified_piglin",
     "name": "Piglin zombificado",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "wither_skeleton",
     "name": "Esqueleto wither",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "strider",
     "name": "Lavagante",
     "description": "Mob",
     "category": "nether",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "enderman",
     "name": "Enderman",
     "description": "Mob",
     "category": "end",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "endermite",
     "name": "Endermite",
     "description": "Mob",
     "category": "end",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "shulker",
     "name": "Shulker",
     "description": "Mob",
     "category": "end",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "warden",
     "name": "Warden",
     "description": "Mob",
     "category": "bosses",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "wither",
     "name": "Wither",
     "description": "Mob",
     "category": "bosses",
-    "quantity": 1
+    "quantity": 1,
+    "section": "mobs"
   },
   {
     "id": "ender_dragon",
@@ -704,66 +799,93 @@
     "description": "Mob",
     "category": "bosses",
     "quantity": 1,
-    "note": "La visibilidad del nombre depende de Minecraft."
+    "note": "La visibilidad del nombre depende de Minecraft.",
+    "section": "mobs"
   }
 ];
  const compatibility=el('p','Conectando con TikReader…');compatibility.className='minecraft-compatibility';
  const catalogNotice=el('p'),actionList=el('div');catalogNotice.setAttribute('role','status');
- const categoryOptions=[['actions','Acciones'],['animals','Animales'],['aquatic','Acuáticos'],['helpers','Ayudantes'],['undead','No-muertos'],['hostile','Hostiles'],['nether','Nether'],['end','End'],['bosses','Jefes']];
- const categorySelections=new Map(),categoryTabs=new Map(),categoryPanels=new Map();
- let confirmedPresetValues={},categoryEditionConfirmed=false,pendingInitialCategory=null;
- const tabList=el('div');tabList.className='minecraft-category-tabs';tabList.setAttribute('role','tablist');tabList.setAttribute('aria-label','Categorías de acciones');
+ const sectionOptions=[['environment','Ambiente'],['abilities','Habilidades'],['items','Objetos'],['mobs','Mobs']];
+ const categoryOptions=[['animals','Animales'],['aquatic','Acuáticos'],['helpers','Ayudantes'],['undead','No-muertos'],['hostile','Hostiles'],['nether','Nether'],['end','End'],['bosses','Jefes']];
+ const navigationSelections=new Map(),sectionTabs=new Map(),sectionPanels=new Map(),categoryTabs=new Map(),categoryPanels=new Map();
+ let confirmedPresetValues={},navigationEditionConfirmed=false,pendingInitialSelection=null;
+ const mainTabList=el('div');mainTabList.className='minecraft-primary-tabs';mainTabList.setAttribute('role','tablist');mainTabList.setAttribute('aria-label','Secciones de Minecraft');
+ const tabList=el('div');tabList.className='minecraft-category-tabs';tabList.setAttribute('role','tablist');tabList.setAttribute('aria-label','Categorías de mobs');
+ function navigation(){return navigationSelections.get(currentEdition)||pendingInitialSelection||{section:'environment',mobCategory:'animals'};}
+ function rememberNavigation(selection){
+  if(navigationEditionConfirmed)navigationSelections.set(currentEdition,selection);
+  else pendingInitialSelection=selection;
+ }
+ function navigateKey(event,id,options,tabs,select){
+  const index=options.findIndex(([key])=>key===id);let next;
+  if(event.key==='ArrowRight')next=(index+1)%options.length;
+  if(event.key==='ArrowLeft')next=(index+options.length-1)%options.length;
+  if(event.key==='Home')next=0;
+  if(event.key==='End')next=options.length-1;
+  if(next===undefined)return;
+  event.preventDefault();event.stopPropagation?.();
+  const key=options[next][0];select(key,true);tabs.get(key).focus();
+  tabs.get(key).scrollIntoView?.({block:'nearest',inline:'nearest'});
+ }
+ for(const [id,name] of sectionOptions){
+  const tab=el('button',name);tab.type='button';tab.dataset.primarySection=id;tab.id='minecraft-section-tab-'+id;
+  tab.setAttribute('role','tab');tab.setAttribute('aria-controls','minecraft-section-panel-'+id);
+  tab.onclick=()=>selectSection(id,true);
+  tab.addEventListener('keydown',event=>navigateKey(event,id,sectionOptions,sectionTabs,selectSection));
+  const panel=el('div');panel.id='minecraft-section-panel-'+id;panel.dataset.primaryPanel=id;
+  panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);
+  if(id==='mobs')panel.append(tabList);
+  panel.append(makeColumns());sectionTabs.set(id,tab);sectionPanels.set(id,panel);mainTabList.append(tab);actionList.append(panel);
+ }
  for(const [id,name] of categoryOptions){
   const tab=el('button',name);tab.type='button';tab.dataset.category=id;tab.id='minecraft-tab-'+id;
   tab.setAttribute('role','tab');tab.setAttribute('aria-controls','minecraft-panel-'+id);
   tab.onclick=()=>selectCategory(id,true);
-  tab.addEventListener('keydown',event=>{
-   const index=categoryOptions.findIndex(([key])=>key===id);
-   let next;
-   if(event.key==='ArrowRight')next=(index+1)%categoryOptions.length;
-   if(event.key==='ArrowLeft')next=(index+categoryOptions.length-1)%categoryOptions.length;
-   if(event.key==='Home')next=0;
-   if(event.key==='End')next=categoryOptions.length-1;
-   if(next===undefined)return;
-   event.preventDefault();const key=categoryOptions[next][0];selectCategory(key,true);
-   categoryTabs.get(key).focus();categoryTabs.get(key).scrollIntoView?.({block:'nearest',inline:'nearest'});
-  });
+  tab.addEventListener('keydown',event=>navigateKey(event,id,categoryOptions,categoryTabs,selectCategory));
   const panel=el('div');panel.id='minecraft-panel-'+id;panel.dataset.categoryPanel=id;
   panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);
-  categoryTabs.set(id,tab);categoryPanels.set(id,panel);tabList.append(tab);actionList.append(panel);
+  categoryTabs.set(id,tab);categoryPanels.set(id,panel);tabList.append(tab);sectionPanels.get('mobs').append(panel);
+ }
+ function showNavigation(selection){
+  for(const [id,tab] of sectionTabs){
+   const selected=id===selection.section;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;
+   sectionPanels.get(id).hidden=!selected;
+  }
+  tabList.hidden=selection.section!=='mobs';
+  for(const [id,tab] of categoryTabs){
+   const selected=id===selection.mobCategory;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;
+   categoryPanels.get(id).hidden=selection.section!=='mobs'||!selected;
+  }
+ }
+ function selectSection(id,remember=false){
+  const selection={...navigation(),section:id};if(remember)rememberNavigation(selection);showNavigation(selection);
  }
  function selectCategory(id,remember=false){
-  if(remember){
-   if(categoryEditionConfirmed)categorySelections.set(currentEdition,id);
-   else pendingInitialCategory=id;
-  }
-  for(const [key,tab] of categoryTabs){
-   const selected=key===id;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;
-   categoryPanels.get(key).hidden=!selected;
-  }
+  const selection={section:'mobs',mobCategory:id};if(remember)rememberNavigation(selection);showNavigation(selection);
  }
  function updateCategories(confirmed){
   if(confirmed){
-   if(!categoryEditionConfirmed){
-    categoryEditionConfirmed=true;
-    if(pendingInitialCategory!==null){
-     categorySelections.set(currentEdition,pendingInitialCategory);pendingInitialCategory=null;
-    }
+   if(!navigationEditionConfirmed){
+    navigationEditionConfirmed=true;
+    if(pendingInitialSelection!==null){navigationSelections.set(currentEdition,pendingInitialSelection);pendingInitialSelection=null;}
    }
    confirmedPresetValues=structuredClone(confirmed);
-   if(!categorySelections.has(currentEdition)){
-    const first=categoryOptions.find(([id])=>defaultActions.some(row=>row.category===id&&confirmed[row.id]?.enabled&&confirmed[row.id]?.gift_id));
-    categorySelections.set(currentEdition,first?.[0]||'actions');
+   if(!navigationSelections.has(currentEdition)){
+    const active=row=>confirmed[row.id]?.enabled&&confirmed[row.id]?.gift_id;
+    const firstSection=sectionOptions.find(([id])=>defaultActions.some(row=>row.section===id&&active(row)));
+    const firstMob=categoryOptions.find(([id])=>defaultActions.some(row=>row.section==='mobs'&&row.category===id&&active(row)));
+    navigationSelections.set(currentEdition,{section:firstSection?.[0]||'environment',mobCategory:firstMob?.[0]||'animals'});
    }
   }
-  for(const [id,name] of categoryOptions){
-   const count=defaultActions.filter(row=>row.category===id&&confirmedPresetValues[row.id]?.enabled&&confirmedPresetValues[row.id]?.gift_id).length;
-   const tab=categoryTabs.get(id);tab.textContent=name+(count?' · '+count:'');
-   tab.setAttribute('aria-label',name+(count?`, ${count} activas`:''));
+  for(const [options,tabs,field] of [[sectionOptions,sectionTabs,'section'],[categoryOptions,categoryTabs,'category']]){
+   for(const [id,name] of options){
+    const count=defaultActions.filter(row=>row[field]===id&&confirmedPresetValues[row.id]?.enabled&&confirmedPresetValues[row.id]?.gift_id).length;
+    const tab=tabs.get(id);tab.textContent=name+(count?' · '+count:'');tab.setAttribute('aria-label',name+(count?`, ${count} activas`:''));
+   }
   }
-  selectCategory(categorySelections.get(currentEdition)||pendingInitialCategory||'actions');
+  showNavigation(navigation());
  }
- selectCategory('actions');
+ showNavigation(navigation());
  function fillGiftOptions(row,value){
   const signature=JSON.stringify([giftCatalog,value.gift_id,value.gift_name]);
   if(row.signature!==signature){
@@ -795,7 +917,7 @@
     quantity.addEventListener('change',()=>savePreset(preset.id));
    }
    const test=button('Probar',async()=>{await api('/minecraft/presets/test',{edition:currentEdition,id:preset.id});notice.textContent='Prueba en cola. Revisa el registro.';});test.setAttribute('aria-label','Probar '+preset.name);test.className='minecraft-action-test';
-   node.append(title,gift,quantityLabel,enabledLabel,test);categoryPanels.get(preset.category).append(node);presetRows.set(preset.id,{gift,enabled,quantity,id:preset.id,defaultQuantity:preset.quantity});
+   node.append(title,gift,quantityLabel,enabledLabel,test);(preset.section==='mobs'?categoryPanels.get(preset.category):sectionPanels.get(preset.section)).append(node);presetRows.set(preset.id,{gift,enabled,quantity,id:preset.id,defaultQuantity:preset.quantity});
    for(const control of [gift,enabled])control.addEventListener('change',()=>savePreset(preset.id));
   }
   for(const [id,row] of presetRows)fillGiftOptions(row,presetValues[id]||{gift_id:'',gift_name:'',enabled:false});
@@ -830,8 +952,8 @@
  const actionHeading=el('div');actionHeading.className='minecraft-actions-heading';
  const stopButton=button('Detener',async()=>{await api('/minecraft/presets/stop',{edition:currentEdition});notice.textContent='Acciones pendientes detenidas.';});stopButton.setAttribute('aria-label','Detener acciones rápidas');
  actionHeading.append(el('h3','Acciones predeterminadas'),button('Actualizar regalos',loadGiftCatalog,false),stopButton);
- const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Cantidad','Activa',''])columns.append(el('span',text));
- quickActions.append(actionHeading,el('p','Cantidad por regalo. Las rachas multiplican mobs y TNT. Si supera el límite, se descarta el regalo.'),compatibility,catalogNotice,tabList,columns,actionList);
+ function makeColumns(){const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Cantidad','Activa',''])columns.append(el('span',text));return columns;}
+ quickActions.append(actionHeading,el('p','Cantidad por regalo. Las rachas multiplican mobs y TNT. Si supera el límite, se descarta el regalo.'),compatibility,catalogNotice,mainTabList,actionList);
  const simulation=el('section');simulation.className='minecraft-tools';simulation.append(el('h3','Simular regalo'),el('p','Ejecuta los efectos activos en Minecraft. No requiere un directo.'));
  const simulationFields=el('div');simulationFields.className='minecraft-tool-fields';
  const simulationGiftLabel=el('label','Regalo para simular'),simulationGift=el('select');simulationGiftLabel.append(simulationGift);simulationFields.append(simulationGiftLabel);
@@ -901,7 +1023,7 @@
  let timer,inFlight=false,refreshPending=false,hydratePending=true,stopped=false,epoch=0;
  const active=()=>pane.isConnected&&!pane.hidden&&!document.hidden&&!stopped;
  function render(d,hydrate){
-  backendReady=d.authorization_mode==='checkbox'&&Array.isArray(d.preset_catalog)&&Array.isArray(d.preset_categories)&&categoryOptions.every(([id])=>d.preset_categories.some(c=>c.id===id))&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id&&s.category===p.category&&(!p.quantity||(s.quantity_max===20&&s.quantity_min===1))));
+  backendReady=d.authorization_mode==='checkbox'&&Array.isArray(d.preset_catalog)&&Array.isArray(d.preset_sections)&&sectionOptions.every(([id])=>d.preset_sections.some(section=>section.id===id))&&Array.isArray(d.preset_categories)&&categoryOptions.every(([id])=>d.preset_categories.some(c=>c.id===id))&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id&&s.category===p.category&&s.section===p.section&&(!p.quantity||(s.quantity_max===20&&s.quantity_min===1))));
   compatibility.textContent=backendReady?'':'Reinicia TikReader para cargar estas acciones.';compatibility.hidden=backendReady;
   savedConfig=d.config||savedConfig;applySafety(d);
   if(uncertain&&!busy){if(quantityRecovery){delete rowDrafts()[quantityRecovery];quantityRecovery=null;}selectProfile(d);uncertain=false;presetRecovery=false;presetDirty=false;syncControls();hydrate=false;}
@@ -926,7 +1048,7 @@
   try{
    const d=await api('/minecraft');
    if(active()&&generation===epoch){render(d,hydrate);hydratePending=false;}
-  }catch(_){if(active()&&generation===epoch){backendReady=false;confirmedAuthorized=false;permission.checked=false;compatibility.hidden=false;compatibility.textContent='No se pudo conectar con TikReader. Reintentando…';status.textContent='Sin conexión';syncControls();}}
+   }catch(_){if(active()&&generation===epoch){backendReady=false;confirmedAuthorized=false;permission.checked=false;compatibility.hidden=false;compatibility.textContent='No se pudo conectar con TikReader. Reintentando…';status.textContent='Sin conexión';syncControls();}}
   finally{
    inFlight=false;
    if(active()){
@@ -942,7 +1064,7 @@
  const copyButton=button('Copiar comando',async()=>{if(!connectCommand.textContent){notice.textContent='Prepara la conexión primero.';return;}try{await navigator.clipboard.writeText(connectCommand.textContent);notice.textContent='Comando copiado.';}catch(_){notice.textContent='Selecciona y copia el comando mostrado.';}} ,false);
  localInstructions.append(prepareButton,copyButton);
  async function saveConnection(includeAliases=false){
-  confirmedAuthorized=false;permission.checked=false;connectCommand.textContent='';
+  confirmedAuthorized=false;permission.checked=false;connectCommand.textContent='';connectCommand.hidden=true;
   const data={edition:currentEdition,commands:includeAliases?parse():savedConfig.commands||{}};
   if(currentEdition==='java')Object.assign(data,{host:host.value,port:Number(port.value),...(password.value?{password:password.value}:{})});
   const d=await api('/minecraft',data);password.value='';edited.delete(host);edited.delete(port);render(d,false);

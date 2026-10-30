@@ -19,6 +19,10 @@ _COMMON = {
     'jump': ('Salto II', 'Salto II durante 20 segundos.', ()),
     'heal': ('Curación II', 'Aplica curación instantánea II una vez.', ()),
 }
+_SECTIONS = (('environment', 'Ambiente'), ('abilities', 'Habilidades'), ('items', 'Objetos'), ('mobs', 'Mobs'))
+_ACTION_SECTIONS = {'tnt_rain': 'environment', 'rain': 'environment', 'thunder': 'environment',
+                    'night': 'environment', 'speed': 'abilities', 'jump': 'abilities',
+                    'heal': 'abilities', 'diamonds': 'items'}
 _CATEGORIES = (
     ('actions', 'Acciones'), ('animals', 'Animales'), ('aquatic', 'Acuáticos'),
     ('helpers', 'Ayudantes'), ('undead', 'No-muertos'), ('hostile', 'Hostiles'),
@@ -127,9 +131,14 @@ _EFFECTS = {'speed': ('speed', 20), 'jump': ('jump_boost', 20), 'heal': ('instan
 def catalog():
     return [dict(id=key, name=value[0], description=value[1],
                  category=_MOBS[key][1] if key in _MOBS else 'actions',
+                 section='mobs' if key in _MOBS else _ACTION_SECTIONS[key],
                  **({'note': _NOTES[key]} if key in _NOTES else {}),
                  **({'quantity_min': 1, 'quantity_max': 20, 'quantity_default': 5 if key == 'tnt_rain' else 1}
                     if is_spawn(key) else {})) for key, value in _COMMON.items()]
+
+
+def sections():
+    return [{'id': key, 'name': name} for key, name in _SECTIONS]
 
 
 def categories():

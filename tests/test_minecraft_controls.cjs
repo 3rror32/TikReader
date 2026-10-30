@@ -2,26 +2,29 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
+const minecraftSource=process.env.MINECRAFT_TEST_SOURCE||`${__dirname}/../web/static/minecraft.js`;
 
-function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantities=false,initialPresets={},initialEdition='java'}={}){
+function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantities=false,initialPresets={},initialBedrockPresets={},initialEdition='java'}={}){
   const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=failInitial,hold=holdInitial,release;
   const requests=[];let heldPost,releasePost;
   const java={host:'localhost',port:25575,commands:{probe:'list'}},bedrock={commands:{bed:'say hello'}};
-  const publicCatalog=JSON.parse(fs.readFileSync(`${__dirname}/../web/static/minecraft.js`,'utf8').match(/const defaultActions=(\[.*?\]);/s)[1]);
+  const publicCatalog=JSON.parse(fs.readFileSync(minecraftSource,'utf8').match(/const defaultActions=(\[.*?\]);/s)[1]);
   const presetCatalog=publicCatalog.map(row=>({...row,...(row.quantity?{quantity_min:1,quantity_max:20,quantity_default:row.quantity}:{})}));
   const presetCategories=[['actions','Acciones'],['animals','Animales'],['aquatic','Acuáticos'],['helpers','Ayudantes'],['undead','No-muertos'],['hostile','Hostiles'],['nether','Nether'],['end','End'],['bosses','Jefes']].map(([id,name])=>({id,name}));
+  const presetSections=[['environment','Ambiente'],['abilities','Habilidades'],['items','Objetos'],['mobs','Mobs']].map(([id,name])=>({id,name}));
   const defaults=()=>Object.fromEntries(presetCatalog.map(p=>[p.id,{gift_id:'',gift_name:'',enabled:false}]));
-  java.presets={...defaults(),...initialPresets};bedrock.presets=defaults();let giftCatalog=[{id:'1',name:'Rose',diamonds:1}];
-  let state={edition:initialEdition,authorization_mode:'checkbox',preset_categories:presetCategories,profiles:{java,bedrock},config:initialEdition==='java'?java:bedrock,preset_catalog:oldBackend?undefined:oldQuantities?presetCatalog.map(({id,name,description})=>({id,name,description})):presetCatalog,presets:initialEdition==='java'?java.presets:bedrock.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
+  java.presets={...defaults(),...initialPresets};bedrock.presets={...defaults(),...initialBedrockPresets};let giftCatalog=[{id:'1',name:'Rose',diamonds:1}];
+  let state={edition:initialEdition,authorization_mode:'checkbox',preset_categories:presetCategories,preset_sections:presetSections,profiles:{java,bedrock},config:initialEdition==='java'?java:bedrock,preset_catalog:oldBackend?undefined:oldQuantities?presetCatalog.map(({id,name,description})=>({id,name,description})):presetCatalog,presets:initialEdition==='java'?java.presets:bedrock.presets,bedrock:{prepared:false,connected:false},authorized:true,queued:0,log:[]};
   class Element {
     constructor(tag){this.tagName=tag;this.textContent='';this.value='';this.children=[];this.dataset={};this.events={};this.hidden=false;this.isConnected=true;nodes.push(this);}
     append(...items){this.children.push(...items);for(const item of items)item.parentElement=this;}
     replaceChildren(...items){this.children=items;}
+    prepend(...items){this.children.unshift(...items);for(const item of items)item.parentElement=this;}
     setAttribute(name,value){this[name]=value;}
     focus(){document.activeElement=this;}
     addEventListener(name,fn){this.events[name]=fn;}
   }
-  const document={hidden:false,head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag),addEventListener:(name,fn)=>listeners[name]=fn};
+  const document={hidden:false,head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag),createTextNode:text=>{const node=new Element('#text');node.textContent=text;return node;},addEventListener:(name,fn)=>listeners[name]=fn};
   const window={addEventListener:(name,fn)=>listeners[name]=fn,OperatorViewRegistry:{register(key,node){pane=node;}}};
   const context={window,document,Date,AbortController,AbortSignal,structuredClone,
     MutationObserver:class{constructor(fn){this.fn=fn;}observe(target,options){observers.push({fn:this.fn,target,options});}disconnect(){}},
@@ -37,14 +40,16 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
       const snapshot=path==='/gift-catalog'?{gifts:giftCatalog}:path==='/minecraft/bedrock/prepare'?{command:'/wsserver ws://127.0.0.1:54321/secret'}:structuredClone(state);
       if(options.method==='POST'&&heldPost===path){heldPost=null;await new Promise(resolve=>releasePost=resolve);}
       if(hold&&options.method==='GET'&&path==='/minecraft')await new Promise(resolve=>release=resolve);if(fail)throw Error('offline');return {ok:true,json:async()=>snapshot};}};
-  vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/minecraft.js`,'utf8'),context);
+  vm.runInNewContext(fs.readFileSync(minecraftSource,'utf8'),context);
   const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
   const field=label=>nodes.find(n=>n.tagName==='label'&&n.textContent===label).children[0];
   return {nodes,requests,timers,field,flush,get pane(){return pane;},setState:value=>state={...state,...value},
     fail:value=>fail=value,hold:()=>hold=true,release:()=>{hold=false;release();},
     holdPost:path=>heldPost=path,releasePost:()=>{heldPost=null;releasePost();},
-    get serverEdition(){return state.edition;},get activeElement(){return document.activeElement;},
+    get serverEdition(){return state.edition;},get profilesSnapshot(){return JSON.stringify(state.profiles);},get activeElement(){return document.activeElement;},
     tab:id=>nodes.find(n=>n.role==='tab'&&n.dataset.category===id),
+    mainTab:id=>nodes.find(n=>n.role==='tab'&&n.dataset.primarySection===id),
+    mainPanel:id=>nodes.find(n=>n.role==='tabpanel'&&n.dataset.primaryPanel===id),
     panel:id=>nodes.find(n=>n.role==='tabpanel'&&n.dataset.categoryPanel===id),
     catalog:value=>giftCatalog=value,
     preset:(id,control)=>nodes.find(n=>n.dataset[control==='gift'?'presetGift':'presetEnabled']===id),
@@ -250,6 +255,8 @@ test('authorization checkbox posts real boolean consent, revokes, and reconciles
   s.fail(false);await s.tick();assert.equal(s.field('Autorizar Minecraft').checked,false);
   assert.equal(s.field('Edición').disabled,false);
 });
+
+
  test('Minecraft simulator and limits preserve drafts and serialize execution with edition changes',async()=>{
   const s=setup();await s.flush();
   assert.equal(s.field('Nombre del donante').value,'Prueba');
@@ -309,7 +316,7 @@ test('old quantity capability blocks mutation and uncertain quantity saves recov
 test('catalog category tabs exist before GET and keep only one category visible',async()=>{
  const s=setup({holdInitial:true});
  assert.equal(s.nodes.filter(n=>n.dataset.quickAction).length,96);
- const tabs=s.nodes.filter(n=>n.role==='tab');assert.equal(tabs.length,9);
+ const tabs=s.nodes.filter(n=>n.role==='tab');assert.equal(tabs.length,12);
  assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&!n.hidden).length,1);
  assert.ok(tabs.find(n=>n.textContent.startsWith('Jefes')));
  s.release();await s.flush();
@@ -323,23 +330,24 @@ test('category keyboard navigation and per-edition choices survive polling witho
  s.tab('undead').events.keydown({key:'End',preventDefault(){}});
  assert.equal(s.activeElement,s.tab('bosses'));assert.equal(s.tab('bosses').tabIndex,0);
  s.tab('bosses').events.keydown({key:'ArrowRight',preventDefault(){}});
- assert.equal(s.activeElement,s.tab('actions'));
- s.tab('actions').events.keydown({key:'ArrowLeft',preventDefault(){}});
+ assert.equal(s.activeElement,s.tab('animals'));
+ s.tab('animals').events.keydown({key:'ArrowLeft',preventDefault(){}});
  assert.equal(s.activeElement,s.tab('bosses'));
  s.tab('bosses').events.keydown({key:'Home',preventDefault(){}});
- assert.equal(s.activeElement,s.tab('actions'));
+ assert.equal(s.activeElement,s.tab('animals'));
  s.tab('end').onclick();await s.tick();assert.equal(s.panel('end').hidden,false);
  assert.equal(s.requests.filter(r=>r.method==='POST').length,posts);
- await s.edition('bedrock');assert.equal(s.panel('actions').hidden,false);
+ await s.edition('bedrock');assert.equal(s.mainPanel('environment').hidden,false);
  s.tab('animals').onclick();await s.edition('java');assert.equal(s.panel('end').hidden,false);
- assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&!n.hidden).length,1);
+ assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&n.dataset.primaryPanel&&!n.hidden).length,1);
+ assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&n.dataset.categoryPanel&&!n.hidden).length,1);
 });
 
 test('hidden category drafts and mappings survive full saves, pending operations and recovery',async()=>{
  const s=setup({initialPresets:{cow:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:3},zombie:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});await s.flush();
  assert.equal(s.panel('animals').hidden,false);
  const cow=s.nodes.find(n=>n.dataset.presetQuantity==='cow');cow.value='7';cow.events.input();
- s.tab('undead').onclick();await s.tick();assert.equal(cow.value,'7');
+ s.mainTab('abilities').onclick();s.mainTab('mobs').onclick();s.tab('undead').onclick();await s.tick();assert.equal(cow.value,'7');
  const zombie=s.preset('zombie','enabled');zombie.checked=false;await zombie.events.change();await s.flush();
  let body=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
  assert.equal(body.presets.cow.quantity,3);assert.equal(body.presets.cow.gift_id,'1');assert.equal(cow.value,'7');
@@ -359,8 +367,62 @@ test('a category chosen before initial hydration binds only to the confirmed edi
   s.release();await s.flush();assert.equal(s.field('Edición').value,initialEdition);
   assert.equal(s.panel('bosses').hidden,false);await s.tick();assert.equal(s.panel('bosses').hidden,false);
   const other=initialEdition==='java'?'bedrock':'java';await s.edition(other);
-  assert.equal(s.panel(other==='java'?'animals':'actions').hidden,false);
+  assert.equal((other==='java'?s.panel('animals'):s.mainPanel('environment')).hidden,false);
   s.tab('end').onclick();await s.edition(initialEdition);assert.equal(s.panel('bosses').hidden,false);
   await s.edition(other);assert.equal(s.panel('end').hidden,false);
  }
+});
+
+test('four primary sections contain eight mob tabs without changing saved profiles',async()=>{
+ const s=setup();await s.flush();
+ const main=s.nodes.filter(n=>n.role==='tab'&&n.dataset.primarySection);
+ assert.equal(main.length,4);
+ assert.deepEqual(main.map(n=>n.textContent),['Ambiente','Habilidades','Objetos','Mobs']);
+ const mobs=s.nodes.find(n=>n.role==='tablist'&&n['aria-label']==='Categorías de mobs');assert.ok(mobs.hidden);
+ const mobButton=main.find(n=>n.dataset.primarySection==='mobs');mobButton.onclick();
+ assert.equal(mobs.hidden,false);assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&n.dataset.primaryPanel&&!n.hidden).length,1);
+});
+
+test('nested keyboard scopes, visibility and child memory stay independent from primary sections',async()=>{
+ const s=setup();await s.flush();
+ const strip=s.nodes.find(n=>n.role==='tablist'&&n['aria-label']==='Categorías de mobs');
+ s.mainTab('environment').events.keydown({key:'End',preventDefault(){},stopPropagation(){}});
+ assert.equal(s.activeElement,s.mainTab('mobs'));assert.equal(strip.hidden,false);
+ s.tab('animals').events.keydown({key:'End',preventDefault(){},stopPropagation(){}});
+ assert.equal(s.activeElement,s.tab('bosses'));assert.equal(s.mainTab('mobs')['aria-selected'],'true');
+ s.mainTab('mobs').events.keydown({key:'ArrowRight',preventDefault(){},stopPropagation(){}});
+ assert.equal(s.activeElement,s.mainTab('environment'));assert.ok(strip.hidden);
+ assert.ok(s.nodes.filter(n=>n.dataset.categoryPanel).every(n=>n.hidden));
+ s.mainTab('mobs').onclick();assert.equal(s.panel('bosses').hidden,false);
+ const ids=s.nodes.filter(n=>n.role==='tab'||n.role==='tabpanel').map(n=>n.id);assert.equal(ids.length,new Set(ids).size);
+ for(const tab of s.nodes.filter(n=>n.role==='tab')){
+  const panel=s.nodes.find(n=>n.id===tab['aria-controls']);assert.ok(panel);assert.equal(panel['aria-labelledby'],tab.id);
+ }
+ assert.equal(s.nodes.filter(n=>n.dataset.primarySection&&n.tabIndex===0).length,1);
+ assert.equal(s.nodes.filter(n=>n.dataset.category&&n.tabIndex===0).length,1);
+});
+
+test('initial primary intent binds to the actual edition and survives later section switches',async()=>{
+ for(const initialEdition of ['java','bedrock']){
+  const s=setup({holdInitial:true,initialEdition,initialPresets:{zombie:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});
+  s.mainTab('items').onclick();await s.flush();s.release();await s.flush();
+  assert.equal(s.mainPanel('items').hidden,false);await s.tick();assert.equal(s.mainPanel('items').hidden,false);
+  const other=initialEdition==='java'?'bedrock':'java';await s.edition(other);
+  assert.equal(s.mainPanel(other==='java'?'mobs':'environment').hidden,false);
+  s.mainTab('abilities').onclick();await s.edition(initialEdition);assert.equal(s.mainPanel('items').hidden,false);
+  await s.edition(other);assert.equal(s.mainPanel('abilities').hidden,false);
+ }
+});
+
+test('load and navigation preserve all saved fields in both profiles and skills saves retain hidden mappings',async()=>{
+ const source=JSON.parse(fs.readFileSync(minecraftSource,'utf8').match(/const defaultActions=(\[.*?\]);/s)[1]);
+ const saved=Object.fromEntries(source.map((row,i)=>[row.id,{gift_id:'saved-'+row.id,gift_name:'Gift '+row.id,enabled:i%3===0,...(row.quantity?{quantity:row.id==='tnt_rain'?7:2}:{})}]));
+ const s=setup({initialPresets:saved,initialBedrockPresets:structuredClone(saved)});const before=s.profilesSnapshot;await s.flush();
+ for(const section of ['environment','abilities','items','mobs'])s.mainTab(section).onclick();
+ for(const id of ['animals','aquatic','helpers','undead','hostile','nether','end','bosses'])s.tab(id).onclick();
+ await s.tick();assert.equal(s.profilesSnapshot,before);assert.equal(s.requests.filter(r=>r.method==='POST').length,0);
+ s.mainTab('abilities').onclick();const speed=s.preset('speed','gift');speed.value='1';await speed.events.change();await s.flush();
+ const payload=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data.presets;
+ for(const [id,row] of Object.entries(saved))if(id!=='speed')assert.deepEqual(payload[id],row);
+ assert.equal(payload.speed.gift_id,'1');assert.equal(Object.keys(payload).length,96);
 });

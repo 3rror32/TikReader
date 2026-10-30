@@ -300,8 +300,8 @@ class PresetTests(unittest.TestCase):
         from minecraft_presets import catalog
         source=Path('web/static/minecraft.js').read_text(encoding='utf-8')
         fallback=json.loads(re.search(r'const defaultActions=(\[.*?\]);',source,re.S).group(1))
-        expected={row['id']:(row['name'],row['category'],row.get('quantity_default')) for row in catalog()}
-        self.assertEqual({row['id']:(row['name'],row['category'],row.get('quantity')) for row in fallback},expected)
+        expected={row['id']:(row['name'],row['category'],row.get('quantity_default'),row['section']) for row in catalog()}
+        self.assertEqual({row['id']:(row['name'],row['category'],row.get('quantity'),row['section']) for row in fallback},expected)
         rules={key:{'gift_id':'1','enabled':True,'quantity':2} for key in ('cow','warden','evoker')}
         self.assertEqual(self.client.post('/minecraft/presets',json={'edition':'java','presets':rules}).status_code,200)
         self.gift(count=3);job=self.mc.jobs.get_nowait();self.assertEqual(len(job.commands),18)
@@ -332,6 +332,27 @@ class PresetTests(unittest.TestCase):
                     self.assertTrue(all('Johnny' in command and '\n' not in command for command in commands))
                     if edition=='java':self.assertIn('CustomNameVisible:1b',commands[0])
                     else:self.assertIn('"Johnny" ~2 ~ ~',commands[0])
+
+    def test_sections_reorganize_metadata_without_rewriting_profile_settings(self):
+        import copy
+        from minecraft_presets import catalog, sections
+        expected={'environment':{'tnt_rain','rain','thunder','night'},'abilities':{'speed','jump','heal'},'items':{'diamonds'}}
+        rows=catalog()
+        self.assertEqual({row['id'] for row in sections()},{'environment','abilities','items','mobs'})
+        for section,ids in expected.items():self.assertEqual({row['id'] for row in rows if row['section']==section},ids)
+        self.assertEqual(len([row for row in rows if row['section']=='mobs']),88)
+        self.save(preset='zombie');self.mc.config['presets']['zombie']['quantity']=2
+        before=copy.deepcopy(self.mc.profiles)
+        snapshot=self.client.get('/minecraft').get_json()
+        self.assertEqual(self.mc.profiles,before)
+        self.assertEqual(snapshot['presets']['zombie']['quantity'],2)
+        self.assertEqual(snapshot['preset_sections'],sections())
+        rules={key:{'gift_id':'all','enabled':True,**({'quantity':1} if key in ('tnt_rain','cow') else {})}
+               for key in ('tnt_rain','speed','diamonds','cow')}
+        self.client.post('/minecraft/presets',json={'edition':'java','presets':rules})
+        result=self.client.post('/minecraft/presets/simulate',json={'edition':'java','gift_id':'all','user':'Ana'})
+        self.assertEqual(result.status_code,200)
+        self.assertEqual(set(self.mc.jobs.get_nowait().selected_ids),set(rules))
 
     def test_catalog_defaults_and_validated_local_only_mapping_updates(self):
         snapshot=self.client.get('/minecraft').get_json()

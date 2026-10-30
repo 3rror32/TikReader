@@ -71,3 +71,9 @@
 .minecraft-quick-actions [role="tabpanel"][hidden] { display: none; }
 
 @media (max-width: 760px) { .minecraft-category-tabs { flex-wrap: nowrap; overflow-x: auto; } }
+
+.minecraft-primary-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 6px 0 10px; }
+.studio-pane .minecraft-primary-tabs button { min-width: 0; padding: 8px 4px; min-height: 40px; font-size: 13px; white-space: nowrap; }
+.studio-pane .minecraft-primary-tabs button[aria-selected="true"] { border-color: var(--teal); color: var(--teal); background: var(--bg-glass); }
+.minecraft-primary-tabs button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.minecraft-quick-actions [role="tablist"][hidden] { display: none; }

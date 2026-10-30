@@ -10,7 +10,7 @@ import time
 from collections import OrderedDict, deque
 from flask import jsonify, request
 from minecraft_bedrock import BedrockBridge
-from minecraft_presets import PresetJob, catalog, categories, commands_for, mappings, limits, name_format, donor_name, command_cost, is_spawn
+from minecraft_presets import PresetJob, catalog, categories, sections, commands_for, mappings, limits, name_format, donor_name, command_cost, is_spawn
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class MinecraftConnector:
         return dict(config=self.config, edition=self.edition, profiles=self.profiles,
                     authorized=self.authorized_now(), queued=self.jobs.qsize(), log=self.log,
                     bedrock=self.bedrock.snapshot(), presets=mappings(self.config.get('presets')),
-                    preset_catalog=catalog(), preset_categories=categories(), authorization_mode='checkbox',
+                    preset_catalog=catalog(), preset_categories=categories(), preset_sections=sections(), authorization_mode='checkbox',
                     limits=limits(self.config.get('limits')), name_format=self.config.get('name_format', 'modern'))
 
     def authorized_now(self):
