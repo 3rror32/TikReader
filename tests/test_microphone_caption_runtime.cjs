@@ -154,4 +154,3 @@ ${change}
  console.log('Production caption automatic switching, serialized teardown, latest intent and pause checks passed');
 }
 captureDeviceChecks().catch(error=>{console.error(error);process.exitCode=1;});
-

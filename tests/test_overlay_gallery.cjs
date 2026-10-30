@@ -348,4 +348,3 @@ test('webcam fill populates specialized controls from normalized settings',()=>{
  const context={inputs:[],timerInputs:[],webcamInputs:[text,visible],selected:'webcam-frame',settings:{label_primary_text:'TIKREADER',label_primary_visible:true},OverlayCanvas:{apply(){}},canvasFormat:{value:'horizontal'},markPreset(){}};
  vm.runInNewContext(source+';fill()',context);assert.equal(text.value,'TIKREADER');assert.equal(visible.checked,true);
 });
-
