@@ -14,7 +14,7 @@
           </div>
           <label id="simulation-comment-label">Comentario<textarea id="simulation-text" rows="2" maxlength="400" placeholder="Escribe el comentario que activa tu regla…"></textarea></label>
           <div id="simulation-gift-fields" hidden>
-            <label>Regalo<input id="simulation-gift" list="simulation-gifts" value="Rose" maxlength="100"><datalist id="simulation-gifts"></datalist></label>
+            <label>Regalo<div class="simulation-gift-control"><input id="simulation-gift" value="Rose" maxlength="100" autocomplete="off" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="simulation-gift-picker" aria-expanded="false"><div id="simulation-gift-selection" class="simulation-gift-selection" role="status" hidden></div></div></label>
             <p class="simulation-hint">Usa el nombre guardado en tus reglas. Puedes escribirlo aunque no tengas catálogo.</p>
             <label>Tipo de envío<select id="simulation-mode"><option value="streak">Una racha que crece hasta N regalos</option><option value="separate">N envíos separados de un regalo</option></select></label>
             <div class="simulation-fields">

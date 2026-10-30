@@ -32,7 +32,7 @@ window.SimulationUI = (() => {
           </div>
           <label id="simulation-float-comment-label"><span>Mensaje</span><textarea id="simulation-float-text" rows="2" maxlength="400" placeholder="Escribe lo que enviaría el espectador…"></textarea></label>
           <div id="simulation-float-gift-fields" class="simulation-float-row" hidden>
-            <label><span>Regalo</span><input id="simulation-float-gift" list="simulation-gifts" value="Rose" maxlength="100"></label>
+            <label><span>Regalo</span><div class="simulation-gift-control"><input id="simulation-float-gift" value="Rose" maxlength="100" autocomplete="off" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="simulation-gift-picker" aria-expanded="false"><div id="simulation-float-gift-selection" class="simulation-gift-selection" role="status" hidden></div></div></label>
             <label><span>Cantidad</span><input id="simulation-float-count" type="number" min="1" max="9999" step="1" value="1"></label>
           </div>
           <div class="simulation-float-send-row"><label><span>Espera</span><span class="simulation-float-number"><input id="simulation-float-delay" type="number" min="0" max="60" step="1" value="0"><em>s</em></span></label><button id="simulation-float-send" type="submit">Enviar ahora</button></div>
@@ -136,7 +136,7 @@ window.SimulationUI = (() => {
   $('simulation-float-stop').onclick=()=>action(stopSimulation);
   dock.querySelectorAll('[data-simulation-float-tab]').forEach(button=>button.onclick=()=>setDockTab(button.dataset.simulationFloatTab));
   $('simulation-float-kind').onchange=()=>{const gift=$('simulation-float-kind').value==='gift';$('simulation-float-gift-fields').hidden=!gift;$('simulation-float-comment-label').hidden=gift;$('simulation-float-send').textContent=gift?'Enviar regalo':'Enviar ahora';};
-  $('simulation-float-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-float-kind').value;const data={kind,user:$('simulation-float-user').value,text:$('simulation-float-text').value,gift:$('simulation-float-gift').value,mode:'separate',count:Number($('simulation-float-count').value),interval:.5,delay:Number($('simulation-float-delay').value),diamonds:1};apply(await api('/simulation/events',data));mainStatus('Evento enviado desde el panel flotante. Observa la pantalla y la pestaña Actividad.');if(kind==='comment')$('simulation-float-text').select();});};
+  $('simulation-float-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-float-kind').value,gift=$('simulation-float-gift');const data={kind,user:$('simulation-float-user').value,text:$('simulation-float-text').value,gift:gift.value,gift_id:gift.dataset.giftId||'',mode:'separate',count:Number($('simulation-float-count').value),interval:.5,delay:Number($('simulation-float-delay').value),diamonds:1};apply(await api('/simulation/events',data));mainStatus('Evento enviado desde el panel flotante. Observa la pantalla y la pestaña Actividad.');if(kind==='comment')$('simulation-float-text').select();});};
   installDockDrag();
   addEventListener('resize',()=>{if(!dock.hidden)restoreDockPosition();});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dock.hidden&&!event.defaultPrevented)closeDock();});
@@ -146,11 +146,90 @@ window.SimulationUI = (() => {
   $('simulation-resume').onclick=()=>action(async()=>{await window.ProductionUI?.resumeSimulation();mainStatus('Emisión reanudada en la escena Charla. Puedes continuar las pruebas.');});
   $('simulation-audio').onclick=()=>action(async()=>{const owned=await window.TikReaderAudio?.claimForSimulation();mainStatus(owned?'Audio disponible en esta pestaña. La voz y los avisos respetan tus ajustes del LIVE.':'No se pudo obtener el control de audio.');});
   for(const [id,enabled] of [['simulation-games-on',true],['simulation-games-off',false]])$(id).onclick=()=>action(async()=>{await window.GameHotkeysUI.setAll(enabled);mainStatus(enabled?'Juegos activados. Envía el regalo configurado y vuelve al juego durante la espera.':'Todos los juegos desactivados y pulsaciones pendientes canceladas.');});
-  $('simulation-form').onsubmit=event=>{event.preventDefault();action(async()=>{const data={kind:$('simulation-kind').value,user:$('simulation-user').value,text:$('simulation-text').value,gift:$('simulation-gift').value,mode:$('simulation-mode').value,count:Number($('simulation-count').value),interval:Number($('simulation-interval').value),delay:Number($('simulation-delay').value),diamonds:Number($('simulation-diamonds').value)};apply(await api('/simulation/events',data));mainStatus('Envío programado. Puedes cambiar al juego o a una ventana de overlay.');});};
+  $('simulation-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-kind').value,gift=$('simulation-gift');const data={kind,user:$('simulation-user').value,text:$('simulation-text').value,gift:gift.value,gift_id:gift.dataset.giftId||'',mode:$('simulation-mode').value,count:Number($('simulation-count').value),interval:Number($('simulation-interval').value),delay:Number($('simulation-delay').value),diamonds:Number($('simulation-diamonds').value)};apply(await api('/simulation/events',data));mainStatus('Envío programado. Puedes cambiar al juego o a una ventana de overlay.');});};
   $('simulation-kind').onchange=()=>{const gift=$('simulation-kind').value==='gift';$('simulation-gift-fields').hidden=!gift;$('simulation-comment-label').hidden=gift;$('simulation-send').textContent=gift?'Enviar regalos':'Enviar comentario';};
   $('simulation-mode').onchange=()=>{$('simulation-rachainfo').textContent=$('simulation-mode').value==='streak'?'La racha pasa por 1, 2, 3… hasta N y termina sin contar dos veces el último regalo.':'Cada envío tiene su propio identificador y cantidad 1. Se respetan los tiempos de espera entre activaciones.';};
   document.querySelectorAll('[data-simulation-open]').forEach(button=>button.onclick=()=>window.Shell?.show(button.dataset.simulationOpen));
-  api('/gift-catalog').then(data=>{for(const gift of data.gifts){const option=el('option');option.value=gift.name;$('simulation-gifts').append(option);}}).catch(()=>{});
+  const giftInputs=[$('simulation-gift'),$('simulation-float-gift')],picker=el('div');
+  picker.id='simulation-gift-picker';picker.className='simulation-gift-picker';picker.setAttribute('role','listbox');picker.setAttribute('aria-label','Catálogo de regalos');picker.hidden=true;document.body.append(picker);
+  let giftCatalog=[],pickerInput=null,pickerIndex=-1;
+  function closeGiftPicker(){picker.hidden=true;pickerInput?.setAttribute('aria-expanded','false');pickerInput?.removeAttribute('aria-activedescendant');pickerInput=null;pickerIndex=-1;}
+  function giftArtwork(gift){
+    const art=el('span');art.className='simulation-gift-option-art';
+    const fallback=()=>{const label=el('span',gift.name);label.className='simulation-gift-option-fallback';art.replaceChildren(label);};
+    if(gift.image_url){const image=el('img');image.src=gift.image_url;image.alt='';image.onerror=fallback;art.append(image);}
+    else fallback();
+    return art;
+  }
+  function giftDetails(gift){
+    const detail=el('span');detail.className='simulation-gift-option-detail';
+    detail.append(el('strong',gift.name),el('small',`${Number(gift.diamonds)||0} diamantes`));
+    return detail;
+  }
+  function showGiftSelection(input,gift){
+    const id=input.id==='simulation-gift'?'simulation-gift-selection':'simulation-float-gift-selection';
+    const selection=$(id);selection.replaceChildren();selection.hidden=!gift;
+    if(gift)selection.append(giftArtwork(gift),giftDetails(gift));
+  }
+  function chooseGift(index){
+    const gift=giftCatalog[index];if(!gift||!pickerInput)return;
+    const input=pickerInput;input.value=gift.name;input.dataset.giftId=String(gift.id);
+    showGiftSelection(input,gift);closeGiftPicker();
+  }
+  function positionGiftPicker(input){
+    const rect=input.getBoundingClientRect(),below=innerHeight-rect.bottom-8,above=rect.top-8;
+    const placeAbove=below<210&&above>below,space=Math.max(120,Math.min(280,(placeAbove?above:below)-8));
+    picker.style.left=`${Math.max(8,Math.min(innerWidth-320,rect.left))}px`;
+    picker.style.width=`${Math.min(Math.max(rect.width,250),innerWidth-16)}px`;
+    picker.style.maxHeight=`${space}px`;picker.style.top=placeAbove?'auto':`${rect.bottom+6}px`;
+    picker.style.bottom=placeAbove?`${Math.max(8,innerHeight-rect.top+6)}px`:'auto';
+  }
+  function renderGiftPicker(input,filter=false){
+    const query=filter?input.value.trim().toLocaleLowerCase():'';
+    const matches=giftCatalog.map((gift,index)=>({gift,index})).filter(({gift})=>!query||gift.name.toLocaleLowerCase().includes(query));
+    picker.replaceChildren();pickerInput=input;pickerIndex=-1;
+    for(const {gift,index} of matches){
+      const option=el('div');option.className='simulation-gift-option';option.id=`simulation-gift-option-${index}`;
+      option.setAttribute('role','option');option.setAttribute('aria-selected','false');
+      option.append(giftArtwork(gift),giftDetails(gift));
+      option.addEventListener('mousedown',event=>event.preventDefault());
+      option.addEventListener('click',()=>chooseGift(index));picker.append(option);
+    }
+    picker.hidden=matches.length===0;input.setAttribute('aria-expanded',String(!picker.hidden));
+    if(!picker.hidden)positionGiftPicker(input);
+  }
+  function onGiftKeydown(input,event){
+    if(event.key==='Tab'){closeGiftPicker();return;}
+    if(event.key==='Escape'&&!picker.hidden&&pickerInput===input){event.preventDefault();event.stopPropagation();closeGiftPicker();return;}
+    if(picker.hidden||pickerInput!==input)return;
+    const options=picker.querySelectorAll('[role="option"]');
+    if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+      event.preventDefault();
+      pickerIndex=pickerIndex<0?(event.key==='ArrowUp'?options.length-1:0):(pickerIndex+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;
+      options.forEach((option,index)=>option.setAttribute('aria-selected',String(index===pickerIndex)));
+      input.setAttribute('aria-activedescendant',options[pickerIndex]?.id||'');
+      options[pickerIndex]?.scrollIntoView?.({block:'nearest'});
+    }else if(event.key==='Enter'&&pickerIndex>=0){
+      event.preventDefault();chooseGift(Number(options[pickerIndex].id.split('-').at(-1)));
+    }
+  }
+  for(const input of giftInputs){
+    input.addEventListener('focus',()=>renderGiftPicker(input));
+    input.addEventListener('click',()=>{if(picker.hidden)renderGiftPicker(input);});
+    input.addEventListener('input',()=>{delete input.dataset.giftId;showGiftSelection(input,null);renderGiftPicker(input,true);});
+    input.addEventListener('keydown',event=>onGiftKeydown(input,event));
+  }
+  document.addEventListener('pointerdown',event=>{if(!picker.contains(event.target)&&!giftInputs.includes(event.target))closeGiftPicker();});
+  document.addEventListener('scroll',()=>{if(pickerInput&&!picker.hidden)positionGiftPicker(pickerInput);},true);
+  addEventListener('resize',()=>{if(pickerInput&&!picker.hidden)positionGiftPicker(pickerInput);});
+  api('/gift-catalog').then(data=>{
+    giftCatalog=Array.isArray(data.gifts)?data.gifts:[];
+    for(const input of giftInputs){
+      const query=input.value.trim().toLocaleLowerCase();
+      const match=giftCatalog.find(gift=>gift.name.toLocaleLowerCase()===query);
+      if(match){input.dataset.giftId=String(match.id);showGiftSelection(input,match);}
+    }
+  }).catch(()=>{});
   try{if(sessionStorage.getItem('tikreader.simulationActive')==='true'){banner.hidden=false;document.body.classList.add('simulation-active');}}catch(_){ }
   setInterval(refresh,1000);setInterval(()=>{if(state.batch&&!document.hidden)progress();},250);refresh();
   window.addEventListener('tikreader:navigation-change',refresh);

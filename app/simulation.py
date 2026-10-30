@@ -136,7 +136,9 @@ class Simulation:
         gift = str(data.get('gift', 'Rose')).strip()
         if kind == 'gift' and not 1 <= len(gift) <= 100:
             raise ValueError('Selecciona o escribe el nombre del regalo')
-        catalog = next((g for g in self.r.gift_catalog.values() if g['name'].casefold() == gift.casefold()), {})
+        catalog = self.r.gift_catalog.get(str(data.get('gift_id', '')), {})
+        if not catalog:
+            catalog = next((g for g in self.r.gift_catalog.values() if g['name'].casefold() == gift.casefold()), {})
         return dict(kind=kind, mode=mode, user=user, text=text, count=count, interval=interval,
             delay=delay, gift=catalog.get('name', gift), gift_id=catalog.get('id', 'simulation-'+gift),
             diamonds=catalog.get('diamonds', self.number(data, 'diamonds', 1, 0, 100000, True)),

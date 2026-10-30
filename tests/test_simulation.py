@@ -130,6 +130,17 @@ class SimulationTests(unittest.TestCase):
                 minecraft.config['presets'] = saved_presets
             minecraft.authorized = saved_authorized
 
+    def test_simulation_preserves_selected_catalog_id_when_names_are_duplicated(self):
+        first = {'id': 'rose-standard', 'name': 'Rose', 'diamonds': 1,
+                 'image_url': 'https://example.test/rose.png'}
+        second = {'id': 'rose-special', 'name': 'Rose', 'diamonds': 5,
+                  'image_url': 'https://example.test/rose-special.png'}
+        with patch.object(self.sim.r, 'gift_catalog', {first['id']: first, second['id']: second}):
+            spec = self.sim.validate({'kind': 'gift', 'gift': 'Rose', 'gift_id': 'rose-special'})
+        self.assertEqual(spec['gift_id'], 'rose-special')
+        self.assertEqual(spec['diamonds'], 5)
+        self.assertEqual(spec['image'], second['image_url'])
+
     def test_separate_events_have_distinct_identity_and_respect_cooldown(self):
         self.activate()
         server.game_hotkeys.mappings = [server.game_hotkeys.validate(dict(id='sim-key',
