@@ -53,7 +53,7 @@ test('cannon hides obsolete selectors and normalizes stale settings without affe
   const window={};
   vm.runInNewContext(fs.readFileSync(require.resolve('../web/static/overlay_animation_defaults.js'),'utf8'),{window});
   vm.runInNewContext(fs.readFileSync(require.resolve('../web/static/overlay_animation_controls.js'),'utf8'),{
-    window,document,OverlayAnimationDefaults:window.OverlayAnimationDefaults,OverlayCanvas:{options:[['horizontal','PC']],apply(){}},location:{origin:'http://localhost'},
+    window,document,OverlayAnimationDefaults:window.OverlayAnimationDefaults,OverlayCanvas:{options:[['horizontal','PC']],apply(){}},OverlayActivation:{mount(){},show(){},hide(){}},location:{origin:'http://localhost'},
     fetch:async(url,options)=>{if(options)posts.push(JSON.parse(options.body));return {ok:true,status:200,json:async()=>({settings:{trigger:'like',scenes:['talk']}})};},
   });
   const field=label=>nodes.find(n=>n.tag==='label'&&n.children[0].textContent===label);
