@@ -63,9 +63,12 @@ The current feature branch is fifteen commits ahead of local `main` and also con
   - Generated CSS: build output changed only `web/static/build/broadcast.css`; a repeated `npm run build:overlays` exited 0 and produced identical bytes (SHA-256 `14ED677BAE9073F3BB15D4E2DD29D450FECE29498D192AC601C20EE25695A427`). The normalization was committed before final artifact checks.
   - Final checks: `git diff --check` exited 0; `git status --short` is clean on `main`. RDD is unavailable because `gentle-ai` is not installed. The installer is fresh and its version, size, checksum, and product metadata checks passed.
   - Next step: proceed to RM-04.
-- [ ] `RM-04` Push `main` and publish the installer to the GitHub 1.0.0.9 prerelease.
+- [x] `RM-04` Push `main` and publish the installer to the GitHub 1.0.0.9 prerelease.
   - Route: direct inline remote state operation after all local checks and review requirements are satisfied.
   - Acceptance: GitHub confirms the updated `main` commit and a release asset identity/URL for the installer.
+  - Evidence: GitHub confirmed `main` and tag `v1.0.0.9` at `bcfc3560a8824b394f6f470087f4e08af8159363`; the public prerelease is `https://github.com/3rror32/TikReader/releases/tag/v1.0.0.9`.
+  - Asset: `TikReader-1.0.0.9-Beta-Setup.exe`, 538,059,186 bytes, GitHub digest `sha256:77b0b6827d318e8590a099de4cd8521a71421fbfe1f8a6acf3859912142fd68d`; `SHA256SUMS.txt` is also attached.
+  - Failed check: the tag-triggered release workflow stopped in `python tools/check_changes.py` before rebuilding or replacing the asset. Deterministic debt includes seven outdated Node assertions, three Ruff violations, an incomplete bank-sync fixture, development artwork dependencies missing from `requirements-dev.txt`, and broad Python resource/demo assertions. The uploaded clean local installer remains unchanged and verified.
 
 ## Applicable checks
 
@@ -85,7 +88,8 @@ The current feature branch is fifteen commits ahead of local `main` and also con
 - Release map: version sources agree on 1.0.0.9 and the expected installer path is `release/TikReader-1.0.0.9-Beta-Setup.exe`.
 - RM-02 commit and post-commit check evidence is recorded above.
 - RM-03 built and verified the fresh 1.0.0.9 installer; local `main` includes the deterministic generated stylesheet commit.
+- RM-04 pushed `main`, created public prerelease `v1.0.0.9`, and verified both uploaded asset identities. The automatic release workflow failure is preserved as a pending follow-up rather than hidden or treated as a successful CI run.
 
 ## Next step
 
-Proceed to `RM-04`: review the local candidate and, only under the existing user authorization, publish `main` and the verified 1.0.0.9 installer.
+The requested delivery is complete. A separate authorized work unit is required to repair the failing broad CI validation; do not move, delete, or recreate the published `v1.0.0.9` tag without an explicit user decision.
