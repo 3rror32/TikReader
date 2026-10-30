@@ -89,7 +89,16 @@ class PresetTests(unittest.TestCase):
         bedrock=commands_for('zombie','bedrock','Ana')[0]
         self.assertIn('CustomName:{text:',modern)
         self.assertIn("O\\'Neil",legacy)
-        self.assertEqual(bedrock,'execute at @p run summon minecraft:zombie "Ana" ~2 ~ ~')
+        self.assertEqual(bedrock,'execute @p ~ ~ ~ summon zombie "Ana" ~2 ~ ~')
+
+    def test_bedrock_zombie_quantity_uses_valid_legacy_execute_and_summon_order(self):
+        from minecraft_presets import commands_for
+        bedrock=commands_for('zombie','bedrock','Prueba',quantity=3)
+        java=commands_for('zombie','java','Prueba',quantity=3)
+        self.assertEqual(len(bedrock),3)
+        self.assertEqual(bedrock,('execute @p ~ ~ ~ summon zombie "Prueba" ~2 ~ ~',)*3)
+        self.assertEqual(len(java),3)
+        self.assertTrue(all(command.startswith('execute at @p run summon minecraft:zombie ') for command in java))
 
     def test_running_owner_survives_stop_settings_and_stale_jobs(self):
         self.save(preset='zombie');self.gift();job=self.mc.jobs.get_nowait()
@@ -245,14 +254,14 @@ class PresetTests(unittest.TestCase):
                 with self.subTest(mob=mob,edition=edition,style=style):
                     sequence=commands_for(mob,edition,'Ana',style,quantity=2)
                     self.assertEqual(len(sequence),2)
-                    self.assertTrue(all('minecraft:'+mob in command and 'Ana' in command for command in sequence))
+                    self.assertTrue(all(('summon '+mob if edition=='bedrock' else 'minecraft:'+mob) in command and 'Ana' in command for command in sequence))
                     if edition=='bedrock':self.assertIn('"Ana" ~2 ~ ~',sequence[0])
                     elif style=='modern':self.assertIn('CustomName:{text:"Ana"}',sequence[0])
                     else:self.assertIn('CustomName:',sequence[0])
         for quantity in (1,5,20):
             sequence=commands_for('tnt_rain','bedrock',quantity=quantity)
             self.assertEqual(len(sequence),quantity)
-            self.assertTrue(all('summon minecraft:tnt ' in command for command in sequence))
+            self.assertTrue(all(command.startswith('execute @p ~ ~ ~ summon tnt ') for command in sequence))
 
     def test_manual_tests_use_saved_quantity_when_disabled_and_simulation_uses_one_gift(self):
         body={'edition':'java','presets':{'pig':{'gift_id':'1','gift_name':'Rose','enabled':False,'quantity':3}}}
@@ -292,7 +301,7 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(restored['zombie']['quantity'],2)
         self.assertTrue(all(not restored[key]['enabled'] and restored[key]['quantity']==1 for key in approved))
         for canonical,bedrock in [('evoker','evocation_illager'),('zombified_piglin','zombie_pigman'),('tropical_fish','tropicalfish'),('villager','villager'),('zombie_villager','zombie_villager')]:
-            self.assertIn('minecraft:'+bedrock+' "Ana"',commands_for(canonical,'bedrock','Ana')[0])
+            self.assertIn('summon '+bedrock+' "Ana" ~2',commands_for(canonical,'bedrock','Ana')[0])
             self.assertIn('minecraft:'+canonical+' ~2',commands_for(canonical,'java','Ana')[0])
 
     def test_public_fallback_matches_backend_and_cross_category_admission_remains_atomic(self):
@@ -328,7 +337,9 @@ class PresetTests(unittest.TestCase):
                     commands=commands_for(row['id'],edition,'Johnny',style,quantity=2)
                     entity=aliases.get(row['id'],row['id']) if edition=='bedrock' else row['id']
                     self.assertEqual(len(commands),2)
-                    self.assertTrue(all(command.startswith('execute at @p run summon minecraft:'+entity+' ') for command in commands))
+                    prefix=('execute @p ~ ~ ~ summon '+entity+' ' if edition=='bedrock'
+                            else 'execute at @p run summon minecraft:'+entity+' ')
+                    self.assertTrue(all(command.startswith(prefix) for command in commands))
                     self.assertTrue(all('Johnny' in command and '\n' not in command for command in commands))
                     if edition=='java':self.assertIn('CustomNameVisible:1b',commands[0])
                     else:self.assertIn('"Johnny" ~2 ~ ~',commands[0])

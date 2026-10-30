@@ -195,13 +195,16 @@ def commands_for(preset_id, edition, donor='Prueba', java_format='modern', quant
     amount = quantity_for(preset_id, quantity)
     if preset_id == 'tnt_rain':
         # The fixed five-position pattern repeats; no external coordinates are accepted.
+        if edition == 'bedrock':
+            return tuple('execute @p ~ ~ ~ summon tnt '+_OFFSETS[i % len(_OFFSETS)] for i in range(amount))
         return tuple('execute at @p run summon minecraft:tnt '+_OFFSETS[i % len(_OFFSETS)] for i in range(amount))
     if preset_id in _MOBS:
         literal = json.dumps(donor_name(donor), ensure_ascii=False)
         entity = _BEDROCK_ALIASES.get(preset_id, preset_id) if edition == 'bedrock' else preset_id
-        prefix = 'execute at @p run summon minecraft:'+entity+' '
         if edition == 'bedrock':
-            return (prefix + literal + ' ~2 ~ ~',) * amount
+            command = f'execute @p ~ ~ ~ summon {entity} {literal} ~2 ~ ~'
+            return (command,) * amount
+        prefix = 'execute at @p run summon minecraft:'+entity+' '
         if name_format(java_format) == 'modern':
             component = '{text:' + literal + '}'
         else:
