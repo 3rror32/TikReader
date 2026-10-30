@@ -20,7 +20,7 @@ Branch: `codex/minecraft-command-results`. Strategy: `ask-on-risk`. Forecast: ap
   - Test-first: focused deterministic UI and backend regression where applicable; observe RED then GREEN.
   - Checks: `node --test tests/test_simulation_ui.cjs`; `.venv/Scripts/python.exe -m pytest tests/test_simulation.py -q`; scoped `git diff --check`.
   - Verification: writer and independent verifier checks passed: `node --test tests/test_simulation_ui.cjs` (7 passed), `.venv/Scripts/python.exe -m pytest tests/test_simulation.py -q` (15 passed, 3 subtests; two upstream deprecation warnings), and scoped `git diff --check`. Parent repeated the final UI suite (7 passed). Duplicate-name selection regression was observed RED before the backend fix. Native assessment/review unavailable; treated as high with independent verification.
-  - Commit, outcomes, line count: verified implementation; work-unit commit pending. Authored source/test count: 187 additions + 11 deletions = 198 lines.
+  - Commit, outcomes, line count: verified work-unit commit `bcf08c1` (`feat(simulation): add visual gift catalog selection`). Authored source/test count: 187 additions + 11 deletions = 198 lines.
   - Visual limitation: browser screenshot unavailable; Playwright Chromium absent and installed Edge exited during isolated launch. Popup clipping is structurally checked but not visually verified. Catalog remains loaded once, matching the existing simulator lifecycle.
 
 ## Progress and next step
