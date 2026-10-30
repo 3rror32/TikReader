@@ -31,13 +31,21 @@ def main() -> int:
     if not launcher_file.is_file():
         raise RuntimeError(f"No se encontro el launcher de origen: {launcher_file}")
 
-    process = subprocess.Popen(
-        [str(backend_python), str(launcher_file)],
-        cwd=source_root,
-        env=os.environ.copy(),
-        creationflags=_child_creation_flags(),
-    )
-    return_code = process.wait()
+    log_path = source_root / "runtime" / "source-launcher-error.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    # A file avoids pipe buffering/deadlocks and also works in the windowless EXE.
+    with log_path.open("ab") as backend_log:
+        backend_log.write(b"\n=== TikReader live backend ===\n")
+        backend_log.flush()
+        process = subprocess.Popen(
+            [str(backend_python), str(launcher_file)],
+            cwd=source_root,
+            env=os.environ.copy(),
+            stdout=backend_log,
+            stderr=subprocess.STDOUT,
+            creationflags=_child_creation_flags(),
+        )
+        return_code = process.wait()
     if return_code != 0:
         _handle_startup_failure(
             RuntimeError(f"Backend process exited with code {return_code}."),

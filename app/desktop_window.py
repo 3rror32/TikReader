@@ -6,6 +6,7 @@ external browser is required. OBS keeps using the same local overlay URLs.
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -42,6 +43,49 @@ def _set_windows_app_identity() -> None:
 
 
 _set_windows_app_identity()
+
+
+def _apply_windows_dialog_theme(dialog, background: str, text: str, border: str) -> bool:
+    """Color the native frame when Windows supports DWM caption colors."""
+    if sys.platform != 'win32':
+        return False
+    try:
+        import ctypes
+        import re
+        from PySide6.QtGui import QColor
+
+        def colorref(value):
+            if value.startswith('#'):
+                color = QColor(value)
+                if not color.isValid():
+                    raise ValueError('Invalid frame color')
+                channels = (color.red(), color.green(), color.blue())
+            else:
+                match = re.fullmatch(r'rgba?\(([^)]+)\)', value)
+                if match is None:
+                    raise ValueError('Invalid frame color')
+                components = match.group(1).split(',')
+                if len(components) not in (3, 4):
+                    raise ValueError('Invalid frame color')
+                channels = tuple(max(0, min(255, round(float(part.strip().rstrip('%')) *
+                                 (2.55 if '%' in part else 1)))) for part in components[:3])
+            red, green, blue = channels
+            return ctypes.c_uint32(red | (green << 8) | (blue << 16))
+
+        colors = [(35, colorref(background)), (36, colorref(text)), (34, colorref(border))]
+        setter = ctypes.WinDLL('dwmapi').DwmSetWindowAttribute
+        setter.argtypes = (ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_uint32)
+        setter.restype = ctypes.c_long
+        hwnd = int(dialog.winId())
+        applied = True
+        for attribute, color in colors:
+            # Unsupported Windows versions return a negative HRESULT.
+            result = setter(hwnd, attribute, ctypes.byref(color), ctypes.sizeof(color))
+            applied = (result >= 0) and applied
+        return applied
+    except (AttributeError, OSError, TypeError, ValueError, OverflowError):
+        return False
+
 
 COLORS = {
     "canvas": "#090b12", "rail": "#10131d", "panel": "#151927",
@@ -324,6 +368,7 @@ class MainWindow(QMainWindow):
         self._close_dialog_open = False
         self._close_confirmation_generation = 0
         self._close_confirmation_timer = None
+        self._desktop_skin_colors = {}
 
         web_data = data_dir() / "qt-webengine"
         web_data.mkdir(parents=True, exist_ok=True)
@@ -341,6 +386,12 @@ class MainWindow(QMainWindow):
             self.setWindowIcon(QIcon(str(icon)))
         self.setStyleSheet(STYLE)
         self._build()
+        # Keep a last-known palette for a busy or temporarily unavailable renderer.
+        self._skin_timer = QTimer(self)
+        self._skin_timer.setInterval(750)
+        self._skin_timer.timeout.connect(self._refresh_desktop_skin)
+        self.studio.loadFinished.connect(lambda loaded: self._refresh_desktop_skin() if loaded else None)
+        self._skin_timer.start()
 
         self.poll = QTimer(self)
 
@@ -761,27 +812,57 @@ class MainWindow(QMainWindow):
     def request_close(self):
         self.close()
 
+    def _desktop_skin_script(self):
+        return """(() => {
+          if (!document.body) return null;
+          const body = getComputedStyle(document.body);
+          const probe = document.createElement('span');
+          document.body.append(probe);
+          const token = (name, fallback) => {
+            probe.style.color = '';
+            probe.style.color = `var(${name}, ${fallback})`;
+            return getComputedStyle(probe).color;
+          };
+          const colors = {
+            raised: token('--skin-raised', 'var(--bg-card, #151927)'),
+            accent: token('--skin-accent', 'var(--teal, #36e4c6)'),
+            accent_ink: token('--skin-accent-ink', '#07120f'),
+            border: token('--skin-border', 'var(--border, #293246)'), text: body.color
+          };
+          probe.remove();
+          // Serialize explicitly: Qt WebEngine can discard plain object results.
+          return JSON.stringify(colors);
+        })()"""
+
+    def _remember_desktop_skin(self, colors):
+        import json
+        import re
+
+        palette = dict(getattr(self, '_desktop_skin_colors', {}))
+        if isinstance(colors, str):
+            try:
+                colors = json.loads(colors)
+            except (ValueError, TypeError):
+                colors = None
+        if isinstance(colors, dict):
+            for key in ('raised', 'accent', 'accent_ink', 'border', 'text'):
+                value = colors.get(key)
+                if isinstance(value, str) and re.fullmatch(
+                        r"(?:#[0-9a-fA-F]{3,8}|rgba?\([0-9.,%\s]+\))", value):
+                    palette[key] = value
+        self._desktop_skin_colors = palette
+        return palette
+
+    def _refresh_desktop_skin(self):
+        if not self._close_confirmation_pending:
+            self.studio.page().runJavaScript(self._desktop_skin_script(), self._remember_desktop_skin)
+
     def _request_themed_close_confirmation(self):
         self._close_confirmation_generation += 1
         generation = self._close_confirmation_generation
         self._close_confirmation_pending = True
-        colors_script = """(() => {
-          const body = getComputedStyle(document.body);
-          const probe = document.createElement('span');
-          document.body.append(probe);
-          const token = name => {
-            probe.style.color = `var(${name})`;
-            return getComputedStyle(probe).color;
-          };
-          const colors = {
-            raised: token('--skin-raised'), accent: token('--skin-accent'),
-            accent_ink: token('--skin-accent-ink'), border: token('--skin-border'), text: body.color
-          };
-          probe.remove();
-          return colors;
-        })()"""
         self.studio.page().runJavaScript(
-            colors_script, lambda colors, request_id=generation:
+            self._desktop_skin_script(), lambda colors, request_id=generation:
                 self._show_themed_close_confirmation(colors, request_id)
         )
         timer = QTimer(self)
@@ -806,30 +887,32 @@ class MainWindow(QMainWindow):
         if (request_id != self._close_confirmation_generation or not self._close_confirmation_pending or
                 self._close_dialog_open):
             return
-        import re
-
-        colors = colors if isinstance(colors, dict) else {}
-        safe_color = lambda value: value if isinstance(value, str) and re.fullmatch(
-            r"(?:#[0-9a-fA-F]{3,8}|rgba?\([0-9.,%\s]+\))", value
-        ) else ""
-        raised, accent = safe_color(colors.get("raised")), safe_color(colors.get("accent"))
-        accent_ink = safe_color(colors.get("accent_ink"))
-        border, text = safe_color(colors.get("border")), safe_color(colors.get("text"))
+        palette = self._remember_desktop_skin(colors)
+        # Only an unknown renderer palette uses the application's default skin.
+        raised = palette.get('raised', '#151927')
+        accent = palette.get('accent', '#36e4c6')
+        accent_ink = palette.get('accent_ink', '#07120f')
+        border = palette.get('border', '#293246')
+        text = palette.get('text', '#f4f7fb')
         dialog = QMessageBox(self)
+        # Native Windows message helpers can ignore QWidget stylesheets.
+        dialog.setOption(QMessageBox.Option.DontUseNativeDialog, True)
         dialog.setIcon(QMessageBox.Icon.Question)
         dialog.setWindowTitle("Cerrar TikReader")
         dialog.setText("¿Quieres cerrar TikReader y desconectar el LIVE?")
         dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        dialog.button(QMessageBox.StandardButton.Yes).setText('Sí')
+        dialog.button(QMessageBox.StandardButton.No).setText('No')
         dialog.setDefaultButton(QMessageBox.StandardButton.No)
-        if all((raised, accent, accent_ink, border, text)):
-            dialog.setStyleSheet(
+        dialog.setStyleSheet(
                 f"QMessageBox {{ background-color: {raised}; color: {text}; }}"
                 f"QMessageBox QLabel {{ color: {text}; }}"
                 f"QMessageBox QPushButton {{ background-color: {accent}; color: {accent_ink}; "
                 f"border: 1px solid {border}; padding: 7px 16px; border-radius: 6px; }}"
                 f"QMessageBox QPushButton:hover {{ border-color: {accent}; }}"
-            )
+        )
         self._close_dialog_open = True
+        _apply_windows_dialog_theme(dialog, raised, text, border)
         answer = dialog.exec()
         self._close_dialog_open = False
         if not self._finish_close_confirmation(request_id):
@@ -866,6 +949,63 @@ class MainWindow(QMainWindow):
         event.accept()
 
 
+class StartupReadiness:
+    """Navigation-scoped readiness state; independent from Qt for deterministic tests."""
+
+    def __init__(self):
+        self.generation = 0
+        self.active = False
+        self.pending = False
+        self.finished = False
+        self.error_seen = False
+        self.started_at = 0
+
+    def begin(self, now):
+        self.generation += 1
+        self.started_at = now
+        self.active = True
+        self.pending = self.finished = self.error_seen = False
+
+    def request(self):
+        if not self.active or self.pending or self.finished:
+            return None
+        self.pending = True
+        return self.generation
+
+    def accept(self, generation, snapshot):
+        if generation != self.generation or not self.active or self.finished:
+            return "ignored"
+        self.pending = False
+        # Qt WebEngine reliably returns strings, but may discard plain JS objects.
+        if isinstance(snapshot, str):
+            import json
+
+            try:
+                snapshot = json.loads(snapshot)
+            except (ValueError, TypeError):
+                snapshot = None
+        snapshot = snapshot if isinstance(snapshot, dict) else {}
+        if snapshot.get("presentationReady") is True:
+            self.finished = True
+            return "ready"
+        # Separate polls leave the renderer a paint opportunity for error UI.
+        if snapshot.get("failureVisible") is True:
+            if self.error_seen:
+                self.finished = True
+                return "error"
+            self.error_seen = True
+        else:
+            self.error_seen = False
+        return "waiting"
+
+    def expired(self, now):
+        return self.active and not self.finished and now - self.started_at >= 30
+
+    def stop(self):
+        self.active = False
+        self.generation += 1
+
+
 def run(base_url: str, startup_splash=None) -> int:
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("TikReader")
@@ -880,17 +1020,76 @@ def run(base_url: str, startup_splash=None) -> int:
     if startup_splash is not None:
         startup_splash.pump()
     if startup_splash is not None:
-        revealed = False
+        gate = StartupReadiness()
+        timer = QTimer(window)
+        timer.setInterval(100)
+        probe = """(() => {
+          const boot = window.OperatorBoot?.snapshot?.();
+          const panel = document.getElementById('operator-boot-status');
+          const bounds = panel?.getBoundingClientRect();
+          return JSON.stringify({presentationReady: boot?.presentationReady === true,
+            failureVisible: document.documentElement.dataset.operatorBootState === 'initialization-error'
+              && !document.documentElement.dataset.operatorLayout && !!panel && !panel.hidden
+              && getComputedStyle(panel).visibility !== 'hidden' && bounds.width > 0 && bounds.height > 0});
+        })()"""
 
-        def reveal_when_ready(loaded: bool) -> None:
-            nonlocal revealed
-            if loaded and not revealed:
-                revealed = True
-                startup_splash.set_status("Estudio listo")
+        def startup_failed():
+            if not gate.active or gate.finished:
+                return
+            gate.stop()
+            timer.stop()
+            startup_splash.close_immediately()
+            dialog = QMessageBox(window)
+            dialog.setWindowTitle("TikReader")
+            dialog.setIcon(QMessageBox.Icon.Warning)
+            dialog.setText("El estudio no terminó de iniciar. Puedes reintentar o cerrar TikReader.")
+            dialog.setStandardButtons(QMessageBox.StandardButton.Retry | QMessageBox.StandardButton.Close)
+            dialog.setDefaultButton(QMessageBox.StandardButton.Retry)
+            if dialog.exec() == QMessageBox.StandardButton.Retry:
+                startup_splash.show()
+                startup_splash.set_status("Cargando estudio…")
+                begin_navigation()
+                window.studio.reload()
+            else:
+                app.quit()
+
+        def received(generation, value):
+            result = gate.accept(generation, value)
+            if result in {"ready", "error"}:
+                timer.stop()
+                startup_splash.set_status("Estudio listo" if result == "ready" else "El inicio necesita atención")
                 startup_splash.finish(window)
 
-        window.studio.loadFinished.connect(reveal_when_ready)
-        QTimer.singleShot(0, lambda: reveal_when_ready(window.studio._loaded_once))
-        QTimer.singleShot(12000, lambda: startup_splash.finish(window))
+        def poll_readiness():
+            if window.closing:
+                gate.stop()
+                timer.stop()
+                return
+            if gate.expired(time.monotonic()):
+                startup_failed()
+                return
+            generation = gate.request()
+            if generation is not None:
+                window.studio.page().runJavaScript(probe, lambda value: received(generation, value))
+
+        def begin_navigation():
+            if gate.finished:
+                return
+            gate.begin(time.monotonic())
+            timer.start()
+
+        def loaded(ok):
+            if not ok:
+                startup_failed()
+            else:
+                poll_readiness()
+
+        timer.timeout.connect(poll_readiness)
+        window.studio.loadStarted.connect(begin_navigation)
+        window.studio.loadFinished.connect(loaded)
+        app.aboutToQuit.connect(gate.stop)
+        app.aboutToQuit.connect(timer.stop)
+        window.destroyed.connect(gate.stop)
+        begin_navigation()
     window.show()
     return app.exec()

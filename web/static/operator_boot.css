@@ -1,4 +1,15 @@
+/* Preserve layout while startup scripts assemble the workspace. */
+html[data-operator-layout="pending"] .app,
+html[data-operator-layout="pending"] .app-sidebar {
+  visibility: hidden;
+}
+
 .operator-boot-status {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
   align-items: center;
   background: var(--panel, #101821);
   border: 1px solid var(--border, #273746);
@@ -8,7 +19,7 @@
   color: var(--text, #f7faff);
   display: flex;
   gap: 14px;
-  margin: 16px auto;
+  margin: 0;
   max-width: 780px;
   padding: 13px 16px;
   width: calc(100% - 32px);

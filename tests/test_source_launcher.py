@@ -344,6 +344,26 @@ def test_source_bootstrap_uses_platform_correct_no_console_flag():
         assert namespace["_child_creation_flags"]("posix") == 0
 
 
+def test_source_bootstrap_preserves_real_backend_traceback():
+    namespace = runpy.run_path(str(ROOT / "packaging" / "source_launch.pyw"))
+    work_parent = ROOT / "runtime" / "source-launcher-work"
+    work_parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=work_parent) as temporary:
+        source_root = Path(temporary)
+        launcher = source_root / "app" / "launcher.py"
+        launcher.parent.mkdir()
+        launcher.write_text("raise RuntimeError('distinct backend failure')\n", encoding="utf-8")
+        env = {"TIKREADER_SOURCE_ROOT": str(source_root),
+               "TIKREADER_SOURCE_BACKEND_PYTHON": sys.executable}
+        fake_windll = SimpleNamespace(user32=SimpleNamespace(MessageBoxW=Mock()))
+        with patch.dict(os.environ, env), patch.object(
+            namespace["ctypes"], "windll", fake_windll, create=True
+        ):
+            assert namespace["main"]() == 1
+        log = (source_root / "runtime" / "source-launcher-error.log").read_text(encoding="utf-8")
+        assert "RuntimeError: distinct backend failure" in log
+
+
 def test_nonzero_backend_exit_is_logged_and_reported_to_gui():
     source = ROOT / "packaging" / "source_launch.pyw"
     namespace = runpy.run_path(str(source))

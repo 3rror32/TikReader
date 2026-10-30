@@ -35,13 +35,26 @@ test.describe('operator startup evidence', () => {
   test('records cold and warm startup evidence and keeps stages distinct', async ({ operator }, testInfo) => {
     const { page, start, signalBackendReady, assetTransfers } = operator;
     const firstNavigation = start();
-    await expect(page.locator('#operator-boot-status')).toBeVisible();
-    await expect(page.locator('.app')).toBeVisible();
+    await expect(page.locator('#operator-boot-status')).toBeHidden();
+    await expect(page.locator('html')).toHaveAttribute('data-operator-layout', 'pending');
+    await expect(page.locator('.app')).toBeHidden();
+    expect(await page.evaluate(() => window.OperatorBoot.snapshot().presentationReady)).toBe(false);
+    const pendingBounds = await page.locator('.app').boundingBox();
+    expect(pendingBounds.width).toBeGreaterThan(0);
+    expect(pendingBounds.height).toBeGreaterThan(0);
     await expect(page.locator('.app')).toHaveAttribute('inert', '');
     await firstNavigation;
+    await expect(page.locator('.app')).toBeVisible();
+    await expect(page.locator('#operator-boot-status')).toBeHidden();
+    await expect(page.locator('html')).not.toHaveAttribute('data-operator-layout', 'pending');
     await expect(page.locator('html')).toHaveAttribute('data-operator-boot-state', 'shell-ready');
     await expect(page.locator('.app')).toHaveAttribute('inert', '');
+    expect(await page.evaluate(() => window.OperatorBoot.snapshot().presentationReady)).toBe(false);
+    const beforeBackend = await page.locator('.app').boundingBox();
     await signalBackendReady();
+    await expect(page.locator('#operator-boot-status')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.OperatorBoot.snapshot().presentationReady)).toBe(true);
+    expect(await page.locator('.app').boundingBox()).toEqual(beforeBackend);
     await expect(page.locator('.app')).not.toHaveAttribute('inert', '');
     await expect(page.locator('html')).toHaveAttribute('data-operator-boot-state', 'backend-ready');
     await expect(page.locator('html')).not.toHaveAttribute('data-operator-boot-state', 'tiktok-live');

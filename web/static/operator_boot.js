@@ -12,6 +12,38 @@
   let failed = false;
   let retrying = false;
   let failureTimer;
+  let documentAssembled = document.readyState !== 'loading';
+  let layoutFrame;
+  let presentationReady = false;
+  let presentationFramePending = false;
+
+  function checkPresentation() {
+    const app = document.querySelector('.app');
+    if (!shellReady || !backendReady || failed || !documentAssembled ||
+        document.documentElement.dataset.operatorLayout || !app || app.inert) {
+      presentationReady = false;
+      return;
+    }
+    if (presentationReady || presentationFramePending) return;
+    presentationFramePending = true;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      presentationFramePending = false;
+      const currentApp = document.querySelector('.app');
+      presentationReady = shellReady && backendReady && !failed && documentAssembled &&
+        !document.documentElement.dataset.operatorLayout && !!currentApp && !currentApp.inert;
+    }));
+  }
+
+  function releaseLayout() {
+    delete document.documentElement.dataset.operatorLayout;
+    checkPresentation();
+  }
+
+  function revealAssembledLayout() {
+    if (!documentAssembled || !shellReady || layoutFrame) return;
+    // All DOMContentLoaded handlers finish before this frame is painted.
+    layoutFrame = requestAnimationFrame(releaseLayout);
+  }
 
   function mark(name) {
     const elapsed = performance.now() - startedAt;
@@ -31,10 +63,11 @@
       app.inert = !(shellReady && backendReady && !failed);
       app.setAttribute('aria-busy', String(app.inert));
     }
+    checkPresentation();
     const panel = document.getElementById('operator-boot-status');
     if (!panel) return;
     panel.dataset.state = stage;
-    panel.hidden = shellReady && backendReady && !failed;
+    panel.hidden = !failed;
     const title = panel.querySelector('[data-boot-message]');
     const detailNode = panel.querySelector('[data-boot-detail]');
     const retry = document.getElementById('operator-boot-retry');
@@ -47,7 +80,7 @@
     if (milestones.documentStructureReadyMs === null) mark('documentStructureReadyMs');
     if (!shellReady && !failed) {
       stage = 'document-structure-ready';
-      render('Estructura visible', 'Preparando el menú y la conexión local…');
+      render('Estructura visible', 'Preparando el menÃº y la conexiÃ³n localâ€¦');
     }
   }
 
@@ -55,18 +88,19 @@
     if (failed) return;
     if (!shellReady) mark('shellReadyMs');
     shellReady = true;
-    stage = 'shell-ready';
-    render('Menú listo', 'Conectando con el servicio local…');
+    stage = backendReady ? 'backend-ready' : 'shell-ready';
+    render('MenÃº listo', 'Conectando con el servicio localâ€¦');
+    revealAssembledLayout();
   }
 
   function backendReadySignal() {
-    if (!shellReady) return false;
+    // The socket can become ready before shell initialization finishes.
     if (!backendReady || failed) mark('backendReadyMs');
     backendReady = true;
     failed = false;
     stage = 'backend-ready';
     clearTimeout(failureTimer);
-    render('Servicio local listo', 'TikTok todavía no está conectado.');
+    render('Servicio local listo', 'TikTok todavÃ­a no estÃ¡ conectado.');
     return true;
   }
 
@@ -74,24 +108,25 @@
     if (!backendReady) return false;
     if (stage !== 'tiktok-live') mark('tikTokLiveMs');
     stage = 'tiktok-live';
-    render('Conexión de TikTok confirmada.', '');
+    render('ConexiÃ³n de TikTok confirmada.', '');
     return true;
   }
 
   function tiktokOffline() {
     if (!backendReady) return;
     stage = 'backend-ready';
-    render('Servicio local listo', 'TikTok todavía no está conectado.');
+    render('Servicio local listo', 'TikTok todavÃ­a no estÃ¡ conectado.');
   }
 
   function fail(reason = 'initialization') {
     if (retrying) return;
+    releaseLayout();
     failed = true;
     backendReady = false;
     stage = 'initialization-error';
     clearTimeout(failureTimer);
     const copy = reason === 'stalled'
-      ? 'El inicio no respondió. Puedes reintentar sin cerrar el estudio.'
+      ? 'El inicio no respondiÃ³. Puedes reintentar sin cerrar el estudio.'
       : 'TikReader sigue mostrando la interfaz. Reintenta el inicio para recuperar las funciones.';
     render('No se pudo completar el inicio.', copy, true);
   }
@@ -118,6 +153,7 @@
       backendReady,
       failed,
       retrying,
+      presentationReady,
       firstUsefulStructureMs: milestones.documentStructureReadyMs,
       milestones: {...milestones},
       elapsedMs: performance.now() - startedAt,
@@ -135,7 +171,11 @@
     snapshot,
   });
 
-  document.addEventListener('DOMContentLoaded', documentReady, {once: true});
+  document.addEventListener('DOMContentLoaded', () => {
+    documentReady();
+    documentAssembled = true;
+    revealAssembledLayout();
+  }, {once: true});
   const structureObserver = new MutationObserver(() => {
     if (!document.querySelector('#operator-boot-status') || !document.querySelector('.app')) return;
     documentReady();

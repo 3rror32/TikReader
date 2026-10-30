@@ -11,6 +11,7 @@ from live_counters import LiveCounters
 from live_tools import LiveTools
 from local_tts import LocalTTS
 from microphone_captions import MicrophoneCaptions
+from voice_ripples import VoiceRipples
 from minecraft_connector import MinecraftConnector
 from obs_direct import OBSDirect
 from operator_tools import OperatorTools
@@ -40,6 +41,7 @@ def register_runtime_services(app, runtime, project_root, config, metrics):
     add("production", Production, runtime)
     add("custom_overlays", CustomOverlays, runtime)
     add("microphone_captions", MicrophoneCaptions, runtime)
+    add("voice_ripples", VoiceRipples, runtime)
     add("points", PointsSystem, runtime)
     add("live_counters", LiveCounters, runtime)
     add("minecraft", MinecraftConnector, runtime)

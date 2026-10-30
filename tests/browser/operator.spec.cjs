@@ -9,6 +9,71 @@ const themes = ['original', 'broadcast-console', 'creator-pop', 'studio-rundown'
 const representative = ['original', 'light', 'dark', 'broadcast-console',
   'creator-pop', 'swiss-brutalist', 'tactile-scrapbook'];
 
+for (const reducedMotion of ['no-preference', 'reduce']) {
+  test(`Whisper saved caption animation runs for final-only phrases (${reducedMotion})`, async ({ operator }) => {
+    const { page } = operator;
+    let settings = {engine: 'whisper', whisper_model: 'small', language: 'es-MX',
+      animation: 'pop', duration: 5, position: 'bottom', font_size: 48,
+      text_color: '#ffffff', background: '#101925', show_background: true};
+    let nextResult = {text: '', interim: false, final: false};
+    await page.route('**/microphone-captions/state', async route => {
+      const data = route.request().method() === 'POST' ? route.request().postDataJSON() : {};
+      settings = {...settings, ...data.settings};
+      await route.fulfill({json: {settings, text: ''}});
+    });
+    await page.route('**/microphone-captions/engine?*', route => route.fulfill({json: {available: true, model_ready: true, package_ready: true}}));
+    await page.route('**/microphone-captions/audio?*', route => route.fulfill({json: route.request().method() === 'DELETE'
+      ? {available: true, generation: 1} : nextResult}));
+    await page.addInitScript(() => {
+      const track = {stop() {}, addEventListener() {}};
+      Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {value: async () => ({getTracks: () => [track], getAudioTracks: () => [track]})});
+      window.AudioContext = class {
+        constructor() { this.state = 'running'; this.sampleRate = 16000; }
+        createMediaStreamSource() { return {connect() {}, disconnect() {}}; }
+        createScriptProcessor() { const node = {connect() {}, disconnect() {}}; window.__captionAudio = node; return node; }
+        createGain() { return {gain: {}, connect() {}, disconnect() {}}; }
+        close() { return Promise.resolve(); }
+      };
+    });
+    await page.emulateMedia({reducedMotion});
+    await page.reload();
+    await operator.signalBackendReady();
+    await page.evaluate(() => window.Shell.show('microphone-captions', {history: 'none', focus: false}));
+    await expect(page.locator('#mic-caption-engine')).toHaveValue('whisper');
+    await expect(page.locator('#mic-caption-animation')).toHaveValue('pop');
+    await page.locator('#mic-caption-start').click();
+    await expect(page.locator('#mic-caption-start')).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => page.evaluate(() => Boolean(window.__captionAudio?.onaudioprocess))).toBe(true);
+    const send = async text => {
+      nextResult = {text, interim: false, final: true};
+      await page.evaluate(() => window.__captionAudio.onaudioprocess({inputBuffer: {getChannelData: () => new Float32Array(8000).fill(.2)}}));
+      await expect(page.locator('#mic-caption-preview-text')).toHaveText(text);
+      // Await this exact result, including repeated identical phrases.
+      await expect.poll(() => page.evaluate(() => window.__lastCaptionWord !== document.querySelector('.mic-caption-word'))).toBe(true);
+      return page.locator('.mic-caption-word').first().evaluate(word => {
+        window.__lastCaptionWord = word;
+        const animation = word.getAnimations()[0];
+        return {name: getComputedStyle(word).animationName,
+          duration: animation?.effect.getTiming().duration || 0,
+          progress: animation?.effect.getComputedTiming().progress,
+          nextWordDelay: getComputedStyle(document.querySelectorAll('.mic-caption-word')[1]).animationDelay};
+      });
+    };
+    for (const phrase of ['Hola mundo', 'Hola mundo', 'Otra frase']) {
+      const motion = await send(phrase);
+      expect(motion.name).toBe('mic-caption-preview-pop');
+      expect(motion.duration).toBeGreaterThanOrEqual(400);
+      expect(motion.progress).toBeLessThan(1);
+      expect(parseFloat(motion.nextWordDelay)).toBeGreaterThan(0);
+    }
+    await page.locator('#mic-caption-animation').selectOption('none');
+    nextResult = {text: 'Sin animación', interim: false, final: true};
+    await page.evaluate(() => window.__captionAudio.onaudioprocess({inputBuffer: {getChannelData: () => new Float32Array(8000).fill(.2)}}));
+    await expect(page.locator('#mic-caption-preview-text')).toHaveText('Sin animación');
+    expect(await page.locator('.mic-caption-word').first().evaluate(word => word.getAnimations().length)).toBe(0);
+  });
+}
+
 test('focus mode keeps voice queue visible and restores gifts and layout at every width', async ({ operator }) => {
   const { page } = operator;
   for (const width of [390, 900, 1440]) {
@@ -777,16 +842,17 @@ test('one connection control handles disconnected, connecting, connected and dis
   await expect(control).toHaveAttribute('data-connection-state', 'disconnected');
 });
 
-test('connection intent, unknown viewers, confirmed zero and single classified announcement', async ({ operator }) => {
+test('connection intent, initial zero viewers, reported counts and single classified announcement', async ({ operator }) => {
   const { page } = operator;
   const username = page.getByRole('textbox', { name: 'Usuario de TikTok', exact: true });
-  await expect(page.locator('#stat-viewers')).toHaveText('—');
+  await expect(page.locator('#stat-viewers')).toHaveText('0');
   await username.fill('fixture_operator');
   await username.press('Enter');
   // A pending button reports the request; confirmed session state comes from Socket.IO.
   await expect(page.locator('body')).toHaveAttribute('data-live-state', 'idle');
   await page.evaluate(() => window.__operatorSocket.receive('connecting', { username: 'fixture_operator' }));
   await expect(page.locator('body')).toHaveAttribute('data-live-state', 'connecting');
+  await expect(page.locator('#stat-viewers')).toHaveText('0');
   await expect(page.locator('#btn-connect')).toHaveAttribute('aria-disabled', 'false');
   expect(await page.evaluate(() => window.__operatorSocket.sent.filter(item => item.event === 'start_live')))
     .toEqual([{ event: 'start_live', payload: { username: 'fixture_operator' } }]);
@@ -1021,4 +1087,53 @@ test('synthetic credentials are redacted from captures and excluded from prefere
   await expect(page.locator('html')).toHaveAttribute('data-skin', 'dark');
   await expect(page.locator('#youtube-api-key')).toHaveValue('');
   expect(operator.errors).toEqual([]);
+});
+
+test('dragon keeps text readable across live and settings surfaces at desktop and mobile widths', async ({ operator }, testInfo) => {
+  const { page } = operator;
+  await chooseTheme(page, 'dragon');
+  const assertContrast = async selectors => {
+    for (const selector of selectors) {
+      const target = page.locator(selector).first();
+      await expect(target).toBeVisible();
+      const ratio = await target.evaluate(node => {
+        const rgb = value => value.match(/[\d.]+/g)?.map(Number);
+        const luminance = channels => channels.slice(0, 3).map(x => {
+          x /= 255;
+          return x <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4;
+        }).reduce((sum, x, i) => sum + x * [.2126, .7152, .0722][i], 0);
+        const ink = luminance(rgb(getComputedStyle(node).color));
+        let surface = node;
+        while (surface) {
+          const style = getComputedStyle(surface);
+          const fill = rgb(style.backgroundColor);
+          // Select gradients draw the disclosure arrow, not the text surface.
+          const gradient = surface.tagName === 'SELECT' ? [] : style.backgroundImage.match(/rgba?\([^)]+\)/g) || [];
+          const colors = gradient.map(rgb).filter(x => x.length === 3 || x[3] === 1);
+          if (fill && (fill.length === 3 || fill[3] === 1)) colors.push(fill);
+          if (colors.length) return Math.min(...colors.map(color => {
+            const paper = luminance(color);
+            return (Math.max(ink, paper) + .05) / (Math.min(ink, paper) + .05);
+          }));
+          surface = surface.parentElement;
+        }
+        throw new Error('No opaque surface for contrast measurement');
+      });
+      expect(ratio, `${selector} text contrast`).toBeGreaterThanOrEqual(4.5);
+    }
+  };
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await navigate(page, 'live');
+    await assertContrast(['#username-input', '#btn-connect', '.live-voice-overview']);
+    await page.screenshot({ path: testInfo.outputPath(`dragon-live-${width}.png`) });
+    await page.locator('#username-input').fill('fixture_operator');
+    await page.locator('#btn-connect').click();
+    await assertContrast(['#btn-connect']);
+    await page.reload();
+    await operator.signalBackendReady();
+    await navigate(page, 'workspace');
+    await assertContrast(['#skin-select', '.setting-card label:visible']);
+    if (width > 760) await assertContrast(['#section-title', '.sidebar-brand', '#app-sidebar [data-section-nav].active']);
+  }
 });

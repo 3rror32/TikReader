@@ -255,6 +255,7 @@ class StartupSplash(QWidget):
         self.root = Path(root)
         self._target = None
         self._finishing = False
+        self._drag_offset = None
         self._shown_for = QElapsedTimer()
         self._shown_for.start()
 
@@ -277,6 +278,8 @@ class StartupSplash(QWidget):
 
         card = EnergyCard()
         card.setObjectName("splashCard")
+        # All card content is passive; let the splash receive drag gestures.
+        card.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         card.setStyleSheet("""
             QLabel { background: transparent; }
             QLabel#splashStatus {
@@ -332,6 +335,30 @@ class StartupSplash(QWidget):
         content.addStretch(1)
         content.addWidget(credit, 0, Qt.AlignmentFlag.AlignHCenter)
         outer.addWidget(card)
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_offset = None
+            handle = self.windowHandle()
+            if handle is None or not handle.startSystemMove():
+                self._drag_offset = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._drag_offset is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            self.move(event.globalPosition().toPoint() - self._drag_offset)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_offset = None
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
 
     def _load_logo(self) -> None:
         """Load the first usable packaged logo and always keep a visible fallback."""

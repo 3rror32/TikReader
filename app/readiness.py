@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import time
 
-from app_paths import data_dir, kokoro_assets, microphone_speech_model
+from app_paths import data_dir, kokoro_assets, microphone_speech_model, microphone_whisper_models
 
 
 OVERLAY_BUILD = ("runtime.js", "broadcast.js", "broadcast.css", "studio.js", "controlCenter.js", "platformConnectors.js")
@@ -94,9 +94,11 @@ def inspect(runtime, root: Path | None = None) -> dict:
                          "La voz local de alta calidad es opcional y no está instalada.",
                          "Instala o revisa la voz desde Componentes." if not voices_ready else "", required=False))
 
-    microphone_ready = (microphone_speech_model(root) / "am" / "final.mdl").is_file()
+    from local_caption_engine import MODELS, model_ready as whisper_ready, package_ready
+    whisper_available = package_ready() and any(whisper_ready(microphone_whisper_models(root) / name) for name in MODELS)
+    microphone_ready = whisper_available or (microphone_speech_model(root) / "am" / "final.mdl").is_file()
     checks.append(_check("captions", "Subtítulos del micrófono", "ok" if microphone_ready else "warn",
-                         "Modelo español disponible." if microphone_ready else
+                         "Modelo local disponible (Vosk o Whisper)." if microphone_ready else
                          "Modelo local no instalado; los subtítulos son opcionales.", required=False))
 
     backup = _latest_backup(storage)

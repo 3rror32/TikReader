@@ -218,7 +218,7 @@ const test = base.extend({
     };
     if (!startupScenario.deferNavigation) {
       await start();
-      await expect(page.locator('#operator-boot-status')).toBeVisible();
+      await expect(page.locator('#operator-boot-status')).toBeHidden();
       await expect(page.locator('html')).toHaveAttribute('data-operator-boot-state', 'shell-ready');
       await expect(page.locator('#btn-connect')).toBeVisible();
       await expect(page.locator('html')).toHaveAttribute('data-skin', 'original');
