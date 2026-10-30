@@ -19,6 +19,15 @@ PY_VERSION = '3.13.15'
 PY_SHA256 = 'd1f04d990aee1253d8569e8e5104e30fa9f5fa830899f14843448872d936a2cf'
 OVERLAY_BUILD = ('runtime.js', 'broadcast.js', 'broadcast.css', 'studio.js', 'controlCenter.js', 'platformConnectors.js')
 SPEECH_MODEL = 'vosk-model-small-es-0.42'
+# Exact assets shipped by the locked runtime wheels, never user voice models.
+RUNTIME_DEPENDENCY_ASSETS = frozenset({
+    'python/Lib/site-packages/coloredlogs.pth',
+    'python/Lib/site-packages/distutils-precedence.pth',
+    'python/Lib/site-packages/onnxruntime/datasets/logreg_iris.onnx',
+    'python/Lib/site-packages/onnxruntime/datasets/mul_1.onnx',
+    'python/Lib/site-packages/onnxruntime/datasets/sigmoid.onnx',
+    'python/Lib/site-packages/faster_whisper/assets/silero_vad_v6.onnx',
+})
 SPEECH_MODEL_LINE_ENDING_PATHS = frozenset({
     'README',
     'conf/mfcc.conf',
@@ -112,6 +121,13 @@ def copy_speech_model():
     shutil.copy2(manifest_path, target / manifest_path.name)
 
 
+def forbidden_payload_paths(payload):
+    """Locate personal data and unapproved models in the assembled payload."""
+    return [p for p in payload.rglob('*') if p.name in ('.env', '.flask-secret', 'history.sqlite3')
+            or (p.suffix in ('.pth', '.onnx', '.index')
+                and p.relative_to(payload).as_posix() not in RUNTIME_DEPENDENCY_ASSETS)]
+
+
 def build():
     build_overlays()
     archive = download_python()
@@ -161,9 +177,9 @@ def build():
     (PAYLOAD / 'distribution.json').write_text(json.dumps({'version': APP_VERSION, 'channel': 'beta',
         'python': PY_VERSION, 'python_sha256': PY_SHA256, 'architecture': 'x64',
         'build_info': build_identity(PAYLOAD, APP_VERSION)}), encoding='utf-8')
-    forbidden = [p for p in PAYLOAD.rglob('*') if p.name in ('.env', '.flask-secret', 'history.sqlite3') or p.suffix in ('.pth', '.onnx', '.index')]
-    # Python's isolation files end in ._pth, not .pth. Personal voice weights
-    # never ship; the approved Vosk model uses its own verified manifest.
+    forbidden = forbidden_payload_paths(PAYLOAD)
+    # Python isolation uses ._pth. Only the exact locked runtime assets above
+    # may use model/startup suffixes; Vosk has its own verified manifest.
     if forbidden:
         raise RuntimeError('El paquete contiene archivos personales o modelos: ' + str(forbidden))
     manifest = {p.relative_to(PAYLOAD).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()

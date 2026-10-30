@@ -50,3 +50,8 @@ def microphone_speech_model(root=ROOT):
         if (candidate / 'am' / 'final.mdl').is_file():
             return candidate
     return user_model
+
+
+def microphone_whisper_models(root=ROOT):
+    """Downloaded local caption models stay in writable operator storage."""
+    return data_dir(root) / 'speech' / 'whisper'

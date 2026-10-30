@@ -24,6 +24,30 @@ LINE_ENDING_PATHS = (
 
 
 class SpeechModelIntegrityTests(unittest.TestCase):
+    def test_locked_runtime_assets_are_allowed_but_personal_models_remain_blocked(self):
+        runtime_assets = (
+            'python/Lib/site-packages/coloredlogs.pth',
+            'python/Lib/site-packages/distutils-precedence.pth',
+            'python/Lib/site-packages/onnxruntime/datasets/logreg_iris.onnx',
+            'python/Lib/site-packages/onnxruntime/datasets/mul_1.onnx',
+            'python/Lib/site-packages/onnxruntime/datasets/sigmoid.onnx',
+            'python/Lib/site-packages/faster_whisper/assets/silero_vad_v6.onnx',
+        )
+        personal_assets = ('.env', 'data/history.sqlite3', 'app/.flask-secret',
+                           'voices/private.onnx', 'voices/private.pth', 'voices/private.index',
+                           'voices/silero_vad_v6.onnx',
+                           'python/Lib/site-packages/faster_whisper/assets/private.onnx')
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            root = Path(folder)
+            for relative in runtime_assets + personal_assets:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b'fixture')
+            self.assertEqual(
+                {p.relative_to(root).as_posix() for p in build_release.forbidden_payload_paths(root)},
+                set(personal_assets),
+            )
+
     def test_reproducible_identity_tracks_payload_and_dirty_provenance_without_secrets(self):
         with tempfile.TemporaryDirectory() as folder, patch.dict('os.environ', {'SOURCE_DATE_EPOCH': '0'}):
             root = Path(folder)

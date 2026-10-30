@@ -19,6 +19,7 @@ htmlcov/
 /data/qt-webengine/
 /data/rvc/
 /data/voice_models/
+/data/speech/whisper/
 *.log
 soak-*.json
 .vscode/
