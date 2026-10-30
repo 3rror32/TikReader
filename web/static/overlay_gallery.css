@@ -31,7 +31,7 @@
 
 /* Match the embedded document's scheme. A dark iframe hosting a light document
    gets an opaque browser canvas even when both CSS backgrounds are transparent. */
-.overlay-gallery iframe:is([src*="/static/energy_ring_preview.html"],[src*="/widget/animation-"],[src*="/widget/seasonal-"],[src*="/widget/stream-buddies"],[src*="/widget/chat-emojis"],[src*="/widget/user-info"]){color-scheme:normal!important;background-color:transparent!important}
+.overlay-gallery iframe:is([src*="/static/energy_ring_preview.html"],[src*="/widget/animation-"],[src*="/widget/seasonal-"],[src*="/widget/stream-buddies"],[src*="/widget/chat-emojis"],[src*="/widget/user-info"],[src*="/widget/voice-ripples"]){color-scheme:normal!important;background-color:transparent!important}
 
 /* One live stage and one control column for the glass bank. */
 .piggy-sidebar[hidden]{display:none!important}
@@ -79,3 +79,18 @@
 .bank-editor-actions button:focus-visible,.overlay-editor .overlay-actions :is(a,button):focus-visible{outline:2px solid var(--deck-signal);outline-offset:2px}
 @media(max-width:650px){.overlay-editor .overlay-actions{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}.bank-editor-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:380px){.bank-editor-actions{grid-template-columns:1fr}}
+
+.overlay-editor-heading>div:first-child{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px}
+.overlay-editor-heading>div:first-child>span{flex-basis:100%}
+.overlay-header-activation{display:inline-flex!important;align-items:center;gap:10px;width:auto!important;margin:0!important;cursor:pointer}
+.overlay-header-activation[hidden]{display:none!important}
+.overlay-header-activation>span{font:600 12px var(--font-data)!important;letter-spacing:0!important;color:inherit!important}
+.overlay-header-activation>small{display:none}
+.overlay-header-activation input[type=checkbox]{appearance:none!important;width:38px!important;height:22px!important;min-width:38px;padding:3px!important;border:1px solid #607680!important;border-radius:20px!important;background:#22313b!important;cursor:pointer}
+.overlay-header-activation input[type=checkbox]::before{content:'';display:block;width:14px;height:14px;border-radius:50%;background:#dce9ed;transition:transform .15s}
+.overlay-header-activation input[type=checkbox]:checked{background:#237965!important;border-color:#65dfc2!important}
+.overlay-header-activation input[type=checkbox]:checked::before{transform:translateX(16px);background:#b5ffe9}
+.overlay-header-activation input:focus-visible{outline:2px solid #65dfc2;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){.overlay-header-activation input::before{transition:none}}
+
+.overlay-header-activation input[type=checkbox]::after{display:none!important}

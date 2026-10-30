@@ -1,7 +1,7 @@
 (()=>{
  const key=document.body.dataset.effect,root=document.getElementById('effect-stage'),params=new URLSearchParams(location.search),preview=params.get('preview')==='1',catalog=params.has('catalog'),queue=new EffectQueue({limit:key==='cannon'?30:4,maxAge:key==='cannon'?Infinity:12000});let livePush=false,refreshTimer=0,paused=document.hidden;
  let epoch=null,cursor=0;
- const sample={user:'TikReader',gift:'Rosa',count:10,title:'¡Lo logramos!'};
+ const sample={user:'TikReader',gift:key==='cannon'?'Regalo de prueba':'Rosa',count:10,title:'¡Lo logramos!',...(key==='cannon'?{avatar_url:new URL('/static/arcade-launcher/demo-avatar.png',location.origin).href}:{})};
  if(preview){
   let sampleSettings={...window.OverlayAnimationDefaults(key),sound:'none'};
   const demo=sample;
@@ -14,7 +14,7 @@
    pause.textContent='Pausar fila';clear.textContent='Vaciar pendientes';tools.append(count,retry,pause,clear);document.body.append(tools);
    pause.onclick=()=>{if(queue.paused){queue.resume();pause.textContent='Pausar fila';}else{queue.pause();pause.textContent='Continuar fila';}const scene=root.querySelector('.effect-cannon');if(scene)scene.dataset.queuePaused=String(queue.paused);};
    clear.onclick=()=>{queue.clearPending();const scene=root.querySelector('.effect-cannon');if(scene)scene.dataset.discardPending='true';};
-   setInterval(()=>{const s=queue.stats();count.textContent=`${s.paused?'Fila pausada':s.active?'En curso':'Lista'} · ${queue.items.reduce((n,item)=>n+(item.run.units||1),0)+Number(root.querySelector('.arcade-launcher')?.dataset.pending||0)} rosas en fila${s.skipped?' · '+s.skipped+' omitidos por límite':''}`;},200);
+   setInterval(()=>{const s=queue.stats();count.textContent=`${s.paused?'Fila pausada':s.active?'En curso':'Lista'} · ${queue.items.reduce((n,item)=>n+(item.run.units||1),0)+Number(root.querySelector('.arcade-launcher')?.dataset.pending||0)} fotos en fila${s.skipped?' · '+s.skipped+' omitidos por límite':''}`;},200);
   }else setInterval(()=>{if(!queue.stats().active)submit();},250);
   window.addEventListener('message',e=>{
    if(e.origin!==location.origin||e.source!==parent||e.data?.type!=='animation-preview')return;

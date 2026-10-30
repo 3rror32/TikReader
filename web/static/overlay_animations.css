@@ -31,21 +31,21 @@ html,body,#effect-stage{width:100%;height:100%;margin:0;overflow:hidden;backgrou
 .effect-scene[data-motion="reduced"] .effect-caption,.effect-scene[data-motion="reduced"] .effect-emblem{animation:none}
 @media(prefers-reduced-motion:reduce){.effect-scene[data-motion="system"] .effect-particle{animation:none;left:var(--x);top:var(--y);opacity:.8;transform:rotate(var(--spin));will-change:auto}.effect-scene[data-motion="system"] .effect-particle:nth-of-type(n+25){display:none}.effect-scene[data-motion="system"] .effect-caption,.effect-scene[data-motion="system"] .effect-emblem{animation:none}}
 
-/* A single illustrated arcade mechanism anchored to the bottom center. */
-.gift-cannon.arcade-launcher{position:absolute;z-index:4;bottom:14px;left:50%;width:260px;height:180px;transform:translateX(-50%);pointer-events:none}
+/* Separate full PNG sprites avoid browser SVG fragment inconsistencies. */
+.gift-cannon.arcade-launcher{position:absolute;z-index:4;bottom:14px;left:50%;width:330px;height:210px;transform:translateX(-50%);pointer-events:none}
 .arcade-sack,.arcade-gear,.arcade-needle{position:absolute}
-.arcade-launcher img{width:100%;height:100%;object-fit:contain}
-.arcade-sack{width:82px;height:82px;left:54px;bottom:0;z-index:2;transform:rotate(90deg)}
-.arcade-gear{width:96px;height:96px;left:132px;bottom:4px;z-index:1;transform-origin:center}
-.arcade-needle{width:160px;height:160px;left:100px;top:-8px;z-index:3;transform-origin:50% 85%;will-change:transform}
-.arcade-loaded,.arcade-supply{position:absolute;width:42px;height:42px;z-index:5;display:grid;place-items:center}
-.arcade-loaded{left:159px;top:107px}
-.arcade-supply{left:106px;top:118px}
-.arcade-loaded span,.arcade-supply span{font:10px Arial;color:#fff}
-@media(max-width:350px),(max-height:220px){.gift-cannon.arcade-launcher{transform:translateX(-50%) scale(.72);transform-origin:50% 100%}}
+.arcade-launcher img{display:block;width:100%;height:100%;object-fit:contain}
+.arcade-sack{width:132px;height:148px;left:0;bottom:0;z-index:2}
+.arcade-gear{width:210px;height:210px;left:120px;top:0;z-index:1}
+.arcade-needle{width:40px;height:110px;left:205px;top:0;z-index:3;transform-origin:50% 100%;filter:drop-shadow(0 1px 1px #3c210e);will-change:transform}
+.arcade-loaded,.arcade-supply{position:absolute;width:42px;height:42px;z-index:5;display:grid;place-items:center;border-radius:50%;overflow:hidden;background:#312446;box-shadow:inset 0 0 0 2px #e6b967}
+.arcade-loaded{left:204px;top:89px}
+.arcade-supply{left:49px;top:99px}
+.arcade-loaded span,.arcade-supply span{font:10px Arial;color:#fff;text-shadow:1px 1px #231524}
+@media(max-width:350px),(max-height:260px){.gift-cannon.arcade-launcher{transform:translateX(-50%) scale(.76);transform-origin:50% 100%}}
 .cannon-ball{position:absolute;left:0;top:0;z-index:6;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle at 28% 20%,#fff9,#b3a3d329 45%,#fff1 70%,#bda9ef88);box-shadow:inset 0 0 0 1px #ddd0ff88,inset -3px -5px 8px #19112588,0 3px 5px #0004;will-change:transform;overflow:hidden}
-.cannon-ball span{font-size:10px;line-height:1;font-family:Arial,sans-serif}
-.cannon-ball img{position:absolute;inset:8%;width:84%;height:84%;object-fit:contain}
+.cannon-ball span{font-size:22px;font-weight:700;color:#fff;line-height:1;font-family:Arial,sans-serif}
+.cannon-ball img,.arcade-loaded img,.arcade-supply img{position:absolute;inset:4%;width:92%;height:92%;object-fit:cover;border-radius:50%}
 .cannon-ball:after{content:'';position:absolute;left:15%;top:10%;width:32%;height:16%;border-radius:50%;background:#fff8;transform:rotate(-30deg)}
 .cannon-caption{position:absolute;top:5%;left:50%;transform:translateX(-50%);max-width:90%;padding:8px 15px;border-radius:20px;background:#272031cc;color:#f2eaff;font:600 clamp(12px,2vw,20px) Arial,sans-serif;text-align:center}
 @keyframes cannon-recoil{50%{transform:rotate(-35deg) translateY(8px)}100%{transform:rotate(-35deg) translateY(0)}}

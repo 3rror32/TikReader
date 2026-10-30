@@ -12,7 +12,7 @@ const canvas=fs.readFileSync('web/static/overlay_canvas_controls.js','utf8');
 test('point-drop runtime scripts share the refreshed cache version',()=>{
  const index=fs.readFileSync('web/templates/index.html','utf8'),widget=fs.readFileSync('web/templates/widget.html','utf8');
  for(const [source,script] of [[index,'live_games.js'],[index,'bank_editor.js'],[index,'piggy_bank.js'],[index,'overlay_gallery.js'],[index,'overlay_canvas_controls.js'],[widget,'piggy_bank.js'],[widget,'widgets.js']])
-  assert.match(source,new RegExp(`/static/${script.replace('.','\\.')}\\?v=point-drop-6`),script);
+  assert.match(source,new RegExp(`/static/${script.replace('.','\\.')}\\?v=${['overlay_gallery.js','widgets.js'].includes(script)?'webcam-custom-1':'point-drop-6'}`),script);
  assert.match(index,/overlay_gallery\.css\?v=point-drop-6/);
 });
 
@@ -105,13 +105,13 @@ test('point-drop registration stays in the gallery and preserves its iframe-only
 
  const form=new Node('overlay-style-form'),status=new Node('overlay-gallery-status'),animationHost=new Node('animation-controls');
  const animationStart=animation.indexOf('async function select(key){'),animationEnd=animation.indexOf('\n return {select};',animationStart),animationSelect=animation.slice(animationStart,animationEnd);
- const animationContext={document:{getElementById:id=>id==='overlay-style-form'?form:status},$:id=>id==='overlay-style-form'?form:status,host:animationHost,selected:'',ready:false,loaded:false};
+ const animationContext={OverlayActivation:{show(){},hide(){}},inputs:{enabled:{}},document:{getElementById:id=>id==='overlay-style-form'?form:status},$:id=>id==='overlay-style-form'?form:status,host:animationHost,selected:'',ready:false,loaded:false};
  const selectAnimation=vm.runInNewContext(`${animationSelect}; select`,animationContext);
  const editor=new Node('overlay-editor'),workbench=new Node('workbench'),stage=new Node('stage'),piggySidebar=new Node('piggy-sidebar');editor.queries={'.overlay-workbench':workbench};
  const controlGroups=[new Node(),new Node()],controls=new Node('controls'),styleSection=new Node('style-section');controls.queries={'.overlay-style-section':styleSection};controls.matches=controlGroups;
  const label=()=>({closest:()=>({querySelector:()=>({textContent:''})})}),font=label(),fontSize=label(),titleSize=label();
  const nodes={'overlay-editor':editor,'overlay-source-resolution':new Node(),'overlay-gallery-status':status};
- const frame=new Node('iframe'),context={gameControls,gameHost,appearance:new Node('appearance'),workbench,stage,sourceActions:new Node(),code:new Node(),sourceResolution:new Node(),editorCopy:{textContent:''},defaultEditorCopy:'',piggySidebar,frame,controls,timerBox:new Node(),styleHeading:{textContent:''},colorSection:{querySelector:()=>({textContent:''})},layoutSection:{querySelector:()=>({textContent:''})},font,fontSize,titleSize,$:id=>nodes[id],form,selected:'point-drop'};
+ const frame=new Node('iframe'),context={gameControls,gameHost,appearance:new Node('appearance'),workbench,stage,sourceActions:new Node(),code:new Node(),sourceResolution:new Node(),editorCopy:{textContent:''},defaultEditorCopy:'',piggySidebar,frame,controls,webcamBox:new Node(),timerBox:new Node(),styleHeading:{textContent:''},colorSection:{querySelector:()=>({textContent:''})},layoutSection:{querySelector:()=>({textContent:''})},font,fontSize,titleSize,$:id=>nodes[id],form,selected:'point-drop'};
  const showFunctionSource=gallery.match(/function showGameControls\(key\)\{[\s\S]*?\n \}/)[0];
  const showPointDrop=vm.runInNewContext(`${showFunctionSource}; showGameControls`,context);
  const selectPos=gallery.indexOf('async function select(key',showFunctionSource.length),showAt=gallery.indexOf('showGameControls(key)',selectPos),animationAt=gallery.indexOf('AnimationControls.select(',selectPos);
@@ -333,3 +333,19 @@ test('fog renderer builds organic depth layers instead of flat ellipses',()=>{
  assert.doesNotMatch(controls,/Probar ambiente/);
  assert.match(gallery,/selected\.startsWith\('seasonal-'\)\?'Movimiento reiniciado únicamente en esta vista previa\.'/);
 });
+
+test('webcam editor exposes relevant controls and frame styles consume corner settings',()=>{
+ const css=fs.readFileSync('web/static/widgets.css','utf8');
+ assert.match(gallery,/webcam-overlay-options/);assert.match(gallery,/Posición libre/);
+ assert.match(gallery,/applicable.has\(input.dataset.key\)/);
+ assert.match(css,/border-radius:var\(--widget-radius\);opacity:var\(--frame-opacity/);
+ for(const style of ['double','corners'])assert.ok(css.includes('[data-frame-style='+style+']'));
+});
+
+test('webcam fill populates specialized controls from normalized settings',()=>{
+ const source=gallery.match(/function fill\(\)\{[^\n]+/)[0];
+ const text={dataset:{key:'label_primary_text'},type:'text',value:''},visible={dataset:{key:'label_primary_visible'},type:'checkbox',checked:false};
+ const context={inputs:[],timerInputs:[],webcamInputs:[text,visible],selected:'webcam-frame',settings:{label_primary_text:'TIKREADER',label_primary_visible:true},OverlayCanvas:{apply(){}},canvasFormat:{value:'horizontal'},markPreset(){}};
+ vm.runInNewContext(source+';fill()',context);assert.equal(text.value,'TIKREADER');assert.equal(visible.checked,true);
+});
+

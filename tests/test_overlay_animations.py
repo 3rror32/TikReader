@@ -78,6 +78,19 @@ class OverlayAnimationTests(AnimationStudioTests):
         for scenes in ([], ['talk', 'unknown'], 'talk'):
             self.assertEqual(self.client.post('/overlay-animations/hearts', json={'scenes': scenes}).status_code, 400)
 
+    def test_cannon_always_receives_gifts_in_all_scenes_after_restore(self):
+        self.enable('cannon', trigger='like', scenes=['talk'])
+        self.effects.restore()
+        self.assertEqual(self.effects.settings['cannon']['trigger'], 'gift')
+        self.assertEqual(self.effects.settings['cannon']['scenes'], ['talk','start','pause','end'])
+        for scene in ('talk','start','pause','end'):
+            self.runtime.production.settings['scene'] = scene
+            self.effects.last.clear()
+            self.effects.event('gift', {'user':'Alice','avatar_url':'https://example.com/avatar','count':1}, scene)
+            self.assertEqual(self.events('cannon')[-1]['record']['avatar_url'], 'https://example.com/avatar')
+        self.effects.event('like', {'count':1}, 'not-gift')
+        self.assertEqual(len(self.events('cannon')), 4)
+
     def test_cannon_delivers_gift_image_and_owns_overlay_route(self):
         self.enable('cannon')
         self.effects.event('gift',{'gift':'Rosa','count':10,'image_url':'https://example.com/rose.png'},'rose:10')

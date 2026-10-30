@@ -75,7 +75,7 @@ window.OverlayAnimationRenderer=(()=>{
    if(finished||leaving)return;leaving=true;clearTimeout(timer);
    if(key==='cannon'){
     // Keep the idle launcher visible in gallery cards and the editor.
-    // Only the event caption exits; deposited roses persist across donations.
+    // Portraits have already faded; only the event caption remains to exit.
     scene.classList.add('cannon-preview-rest');
     exitTimer=setTimeout(()=>{if(finished)return;finished=true;scene.querySelector('.cannon-caption')?.remove();resolve();},500);
    }else{scene.classList.add('effect-leaving');exitTimer=setTimeout(cancel,500);}

@@ -17,7 +17,7 @@ test('repeated preview replacement requests start one exit; emergency still clea
  s.task.cancel();await s.task.done;assert.equal(s.scene.removed,true);assert.equal(s.timers.size,0);
 });
 
-test('cannon and its deposited roses persist after preview and live events',async()=>{
+test('idle cannon remains after portrait lifetime and caption exit in preview and live events',async()=>{
  const preview=setup('cannon',true);preview.task.finish();preview.advance(500);await preview.task.done;
  assert.ok(!preview.scene.removed);assert.ok(preview.scene.classList.values.has('cannon-preview-rest'));
  const live=setup('cannon',false);live.task.finish();live.advance(500);await live.task.done;assert.ok(!live.scene.removed);

@@ -37,3 +37,20 @@ window.OverlayCanvas=(()=>{
  }
  return {options,normalize,apply,setTarget,current:()=>format,url};
 })();
+
+window.OverlayActivation=(()=>{
+ let current=null,serial=0;
+ function hide(input){if(current&&(!input||input===current))current.parentElement.hidden=true;}
+ function show(input){hide();current=input;input.parentElement.hidden=false;}
+ function mount(input,form,heading){
+  if(!heading)return;
+  if(!form.id)form.id='overlay-activation-form-'+(++serial);
+  input.setAttribute('form',form.id);input.setAttribute('role','switch');
+  const label=input.parentElement;label.classList.add('overlay-header-activation');label.hidden=true;
+  const text=label.querySelector('span');if(text)text.textContent='Mostrar en la transmisión';
+  input.onchange=event=>form.onchange?.(event);
+  input.oninput=event=>form.oninput?.(event);
+  heading.append(label);
+ }
+ return {mount,show,hide};
+})();
