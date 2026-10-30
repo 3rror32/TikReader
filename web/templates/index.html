@@ -13,9 +13,10 @@
   <link rel="manifest" href="/static/manifest.webmanifest">
   <meta name="theme-color" content="#0a0a0f">
   <link rel="stylesheet" href="/static/moderator-production.css">
-  <link rel="stylesheet" href="/static/operator_boot.css?v=ux5">
+  <link rel="stylesheet" href="/static/operator_boot.css?v=layout-1">
   <script data-boot-fallback>
     (() => {
+      document.documentElement.dataset.operatorLayout = 'pending';
       let failureReason = '';
       let retrying = false;
       let observer;
@@ -23,6 +24,7 @@
       function showFailure() {
         if (!failureReason || window.OperatorBoot) return;
         window.__operatorBootRecoveryFailed = true;
+        delete document.documentElement.dataset.operatorLayout;
         document.documentElement.dataset.operatorBootState = 'initialization-error';
         const app = document.querySelector('.app');
         if (app) {
@@ -70,7 +72,7 @@
       }, 11000);
     })();
   </script>
-  <script src="/static/operator_boot.js?v=ux5"></script>
+  <script src="/static/operator_boot.js?v=layout-1"></script>
   <meta name="description" content="Lee comentarios de TikTok Live en tiempo real con una interfaz moderna y atractiva." />
 
 
@@ -659,6 +661,7 @@
   <link rel="stylesheet" href="/static/notifications.css">
   <link rel="stylesheet" href="/static/voice_structure.css?v=chat-organized-6">
   <link rel="stylesheet" href="/static/chat_extras.css">
+  <link rel="stylesheet" href="/static/voice_ripples.css">
   <link rel="stylesheet" href="/static/overlay_gallery.css?v=point-drop-6">
   <link rel="stylesheet" href="/static/live_games.css?v=unified-timer-1">
   <link rel="stylesheet" href="/static/alerts.css?v=20261002-readiness-audio">
@@ -672,10 +675,10 @@
   <link rel="stylesheet" href="/static/live_refinement.css?v=usability-2">
   <link rel="stylesheet" href="/static/skin_components.css?v=5">
 <link rel="stylesheet" href="/static/donation_jar.css?v=7"><link rel="stylesheet" href="/static/simulation.css?v=chat-bubble-icon-4">
-<link rel="stylesheet" href="/static/ui_foundation.css?v=1"><link rel="stylesheet" href="/static/skins_extra.css?v=glass-2"><link rel="stylesheet" href="/static/overlay_catalog.css?v=direct-sections-2"><link rel="stylesheet" href="/static/custom_overlays.css?v=1"><link rel="stylesheet" href="/static/ui_typography.css?v=2"><link rel="stylesheet" href="/static/basic_mode.css?v=usability-1"><link rel="stylesheet" href="/static/visual_refresh.css?v=20261005-responsive-settings"><link rel="stylesheet" href="/static/theme_personalities.css?v=2"><link rel="stylesheet" href="/static/theme_signature_collection.css?v=menu-copy-2"><link rel="stylesheet" href="/static/motion_system.css?v=1"><link rel="stylesheet" href="/static/form_controls.css?v=2"><link rel="stylesheet" href="/static/theme_accessibility.css?v=4"><link rel="stylesheet" href="/static/theme_layout_safety.css?v=1"><script src="/static/overlay_url.js?v=2"></script></head>
+<link rel="stylesheet" href="/static/ui_foundation.css?v=1"><link rel="stylesheet" href="/static/skins_extra.css?v=glass-2"><link rel="stylesheet" href="/static/overlay_catalog.css?v=direct-sections-2"><link rel="stylesheet" href="/static/custom_overlays.css?v=1"><link rel="stylesheet" href="/static/ui_typography.css?v=2"><link rel="stylesheet" href="/static/basic_mode.css?v=usability-1"><link rel="stylesheet" href="/static/visual_refresh.css?v=20261005-responsive-settings"><link rel="stylesheet" href="/static/theme_personalities.css?v=2"><link rel="stylesheet" href="/static/theme_signature_collection.css?v=dragon-contrast-3"><link rel="stylesheet" href="/static/motion_system.css?v=1"><link rel="stylesheet" href="/static/form_controls.css?v=2"><link rel="stylesheet" href="/static/theme_accessibility.css?v=4"><link rel="stylesheet" href="/static/theme_layout_safety.css?v=1"><script src="/static/overlay_url.js?v=2"></script></head>
 <body class="basic-mode" data-app-version="{{ app_version | default('1.0.0.8', true) }}" data-lan-enabled="{{ 'true' if lan_enabled else 'false' }}" data-lan-view-token="{{ lan_view_token | default('', true) }}">
 
-<section id="operator-boot-status" class="operator-boot-status" data-state="document-structure-ready"
+<section id="operator-boot-status" class="operator-boot-status" data-state="document-structure-ready" hidden
   aria-live="polite" aria-atomic="true" aria-labelledby="operator-boot-title">
   <span class="operator-boot-mark" aria-hidden="true">TR</span>
   <div class="operator-boot-copy">
@@ -683,8 +686,8 @@
     <p data-boot-detail>Preparando el menú y la conexión local…</p>
   </div>
   <button id="operator-boot-retry" type="button" hidden>Reintentar</button>
-  <noscript><p class="operator-boot-noscript">JavaScript está desactivado. La estructura del estudio permanece visible, pero las funciones interactivas requieren JavaScript.</p></noscript>
 </section>
+<noscript><section class="operator-boot-status"><p class="operator-boot-noscript">JavaScript está desactivado. La estructura del estudio permanece visible, pero las funciones interactivas requieren JavaScript.</p></section></noscript>
 
 <div class="app" inert aria-busy="true">
 
@@ -799,7 +802,7 @@
       <div class="stat-card">
         <span class="stat-icon">👁️</span>
         <div class="stat-info">
-          <span class="stat-value" id="stat-viewers" aria-label="Espectadores: sin datos recibidos">—</span>
+          <span class="stat-value" id="stat-viewers" aria-label="Espectadores: sin datos recibidos">0</span>
           <span class="stat-label">Espectadores</span>
         </div>
       </div>
@@ -942,6 +945,10 @@
           <p id="menu-motion-status" class="settings-inline-status" role="status">Transiciones breves y reacciones suaves.</p>
           <div class="skin-swatches" aria-hidden="true"><i></i><i></i><i></i><i></i></div><p id="skin-status" role="status"></p>
         </section>
+        <section class="setting-card settings-group audio-settings" aria-labelledby="audio-settings-title">
+          <div class="settings-group-title"><div><h3 id="audio-settings-title">Audio</h3><p>Elige el micrófono que quieres usar.</p></div></div>
+          <label for="vr-device">Micrófono<select id="vr-device"><option value="">Predeterminado de Windows</option></select></label>
+        </section>
         <section class="setting-card settings-group layout-settings" aria-labelledby="layout-settings-title">
           <div class="settings-group-title"><div><h3 id="layout-settings-title">Espacio de trabajo</h3><p>Ajusta cuánto espacio ocupa el chat o activa una vista limpia para presentar.</p></div></div>
           <label class="layout-range"><span>Ancho del chat</span><input id="layout-split" type="range" min="40" max="70" value="58" aria-describedby="layout-split-value"><output id="layout-split-value" for="layout-split">58% chat · 42% panel</output></label>
@@ -976,6 +983,22 @@
     <div data-pane="diagnostics" data-view-mount="diagnostics" class="studio-pane" hidden><h2>Estado de la conexión</h2><div id="connection-diagnostics" aria-live="polite"></div><p>Que no lleguen comentarios o regalos puede ser normal. Los avisos de antigüedad no prueban una desconexión. Los likes de la API pueden diferir de la aplicación TikTok.</p></div>
   </section>
 
+  <section data-section="voice-ripples" class="voice-ripples" aria-labelledby="vr-title">
+    <header><div class="vr-title-row"><h2 id="vr-title">Efectos de micrófono</h2><div class="vr-header-activation"><button id="vr-start" type="button">Activar micrófono</button><button id="vr-stop" type="button">Detener</button></div></div><p>Dale forma a tu voz. Elige un efecto que reaccione al micrófono y se desvanezca al guardar silencio.</p></header>
+    <div class="vr-layout"><div class="vr-controls">
+      <div class="vr-buttons"><button id="vr-demo" type="button">Probar efecto</button></div>
+      <label>Nivel de voz<meter id="vr-meter" min="0" max="1" value="0"></meter></label>
+      <label>Estilo<select id="vr-style"><option value="ripples">Gotas de agua</option><option value="halo">Halo de energía</option><option value="particles">Partículas flotantes</option><option value="equalizer">Barras musicales</option><option value="silk">Onda de seda</option><option value="smoke">Humo de color</option><option value="aura">Aura para cámara</option><option value="avatar">Avatar reactivo</option><option value="lightning">Relámpagos</option><option value="camera-flashes">Destellos de cámara</option><option value="butterflies">Mariposas</option></select></label>
+      <p id="vr-description" class="vr-description">Gotas que se expanden sobre el agua.</p>
+      <label id="vr-avatar-label" hidden>Emoji o texto del avatar<input id="vr-avatar" type="text" maxlength="16" value="🎙️" autocomplete="off"></label>
+      <label>Sensibilidad<input id="vr-sensitivity" type="range" min="0.5" max="8" step="0.1" value="2"></label>
+      <label>Intensidad<input id="vr-intensity" type="range" min="0.25" max="2" step="0.05" value="1"></label>
+      <label>Velocidad<input id="vr-speed" type="range" min="0.25" max="2" step="0.05" value="1"></label>
+      <label>Color del efecto<input id="vr-color" type="color" value="#60d9e8"></label>
+      <p id="vr-status" role="status">Activa el micrófono o prueba el movimiento sin dar permisos.</p>
+    </div><div class="vr-surface"><canvas id="vr-canvas" aria-label="Vista previa del efecto de micrófono"></canvas><span>SUPERFICIE DE VOZ</span></div></div>
+    <div class="vr-source"><label for="vr-url">Fuente de navegador para OBS · fondo transparente</label><input id="vr-url" readonly><button id="vr-copy" type="button">Copiar URL para OBS</button><p>Mantén esta página abierta con el micrófono activo. Solo se comparten el nivel y las frecuencias de voz; el audio no se graba ni se transcribe.</p></div>
+  </section>
   <section data-section="overlay-gallery" class="overlay-gallery" aria-labelledby="overlay-gallery-title">
     <header class="overlay-gallery-hero">
       <div><span>TU ESCENA EN DIRECTO</span><h2 id="overlay-gallery-title">Overlays</h2></div>
@@ -1246,14 +1269,16 @@
 <script src="/static/studio.js?v=20261002-alert-status"></script>
 <script src="/static/chat_extras.js?v=speaker-state-1"></script>
 <script src="/static/workspace.js?v=speaker-state-1"></script>
-<script src="/static/overlay_animation_defaults.js?v=scenes-1"></script>
+<script src="/static/overlay_animation_defaults.js?v=portrait-cannon-1"></script>
 <script src="/static/overlay_canvas_controls.js?v=point-drop-6"></script>
-<script src="/static/overlay_animation_controls.js?v=scenes-1"></script>
+<script src="/static/overlay_animation_controls.js?v=portrait-cannon-1"></script>
 <script src="/static/stream_buddies_controls.js?v=5"></script>
 <script src="/static/seasonal_controls.js?v=fog-controls-1"></script>
 <script src="/static/emoji_controls.js?v=2"></script>
 <script src="/static/user_info_controls.js?v=2"></script>
-<script src="/static/overlay_gallery.js?v=point-drop-6"></script>
+<script src="/static/voice_ripple_renderer.js"></script>
+<script src="/static/voice_ripples.js"></script>
+<script src="/static/overlay_gallery.js?v=webcam-custom-1"></script>
 <script src="/static/custom_overlays.js?v=1"></script>
 {% include 'production.html' %}
 <script src="/static/effect_queue.js?v=2"></script>

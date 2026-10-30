@@ -5,7 +5,7 @@ window.SeasonalControls=(()=>{
  const note=document.createElement('p');note.textContent='Efecto continuo con fondo transparente. Usa una fuente de navegador del tamaño de tu escena. La vista de prueba funciona aunque el ambiente esté desactivado.';host.append(note);
  const grid=document.createElement('div');grid.className='overlay-control-grid';host.append(grid);
  function field(k,label,type,options=[]){const wrap=document.createElement('label'),span=document.createElement('span'),n=document.createElement(type==='select'?'select':'input');span.textContent=label;if(type==='select')for(const[value,label]of options){const o=document.createElement('option');o.value=value;o.textContent=label;n.append(o);}else n.type=type;wrap.append(span,n);grid.append(wrap);inputs[k]=n;return n;}
- field('enabled','Mostrar ambiente','checkbox');
+ field('enabled','Mostrar ambiente','checkbox');OverlayActivation.mount(inputs.enabled,host,$('overlay-preview-name').parentElement);
  field('canvas_format','Lienzo para transmitir','select',OverlayCanvas.options);
  field('fog_style','Estilo de niebla','select',[['low','Niebla baja'],['enveloping','Niebla envolvente'],['cinematic','Bruma cinematográfica']]);
  field('fog_clear_zone','Mantener despejado','select',[['none','Ninguna zona'],['left','Lado izquierdo'],['center','Centro'],['right','Lado derecho']]);
@@ -56,7 +56,7 @@ window.SeasonalControls=(()=>{
  addEventListener('message',e=>{if(e.origin===location.origin&&e.source===$('overlay-preview').contentWindow&&e.data?.type==='seasonal-renderer-status')$('overlay-gallery-status').textContent=e.data.message;});
  host.oninput=()=>{syncMotionControls();queuePreview();$('overlay-gallery-status').textContent='Cambios sin guardar · vista privada con ambiente de prueba.';};$('overlay-preview').addEventListener('load',preview);
  host.onsubmit=async e=>{e.preventDefault();if(!ready)return;save.disabled=true;try{await api({method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(read())});$('overlay-gallery-status').textContent='Ambiente guardado. Copia la URL como fuente de navegador en tu programa de Stream.';}catch(e){$('overlay-gallery-status').textContent=e.message;}finally{save.disabled=false;}};
- async function select(value){
+ async function select(value){if(value)OverlayActivation.show(inputs.enabled);else OverlayActivation.hide(inputs.enabled);
   active=value;ready=false;clearTimeout(previewTimer);host.hidden=!active;$('overlay-gallery-status').textContent='';if(!active)return;
   const fog=active==='fog',rain=active==='rain',original=active==='rain-original',classic=['leaves','wind','rain','rain-original'].includes(active);
   for(const k of ['fog_style','fog_clear_zone','fog_density','fog_direction']){inputs[k].parentElement.hidden=!fog;inputs[k].disabled=!fog;}

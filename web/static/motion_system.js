@@ -25,7 +25,9 @@
     // CSS covers future effects; Web Animations already running need stopping.
     // Limit this to console chrome, not independent overlay documents.
     for (const animation of document.getAnimations?.() || []) {
-      if (animation.effect?.target?.closest('.app, .app-sidebar, .mobile-command-dock')) {
+      const target = animation.effect?.target;
+      if (target?.closest('.mic-caption-preview')) continue;
+      if (target?.closest('.app, .app-sidebar, .mobile-command-dock')) {
         animation.cancel();
       }
     }

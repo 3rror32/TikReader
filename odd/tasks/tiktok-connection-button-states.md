@@ -79,3 +79,5 @@ TCB-1 is implemented; the status-refresh correction is green in the focused brow
 - Local compatibility adjustment: the pre-existing appended Dragon contrast test now targets the visible `#btn-connect` instead of hidden `#btn-stop`; its entire appended test remains outside this connection work-unit commit.
 - Additional command: `npm run test:operator -- tests/browser/operator.spec.cjs --grep 'dragon keeps text readable across live and settings surfaces at desktop and mobile widths'` failed 1/1 on `#app-sidebar [data-section-nav].active` text contrast (1.086 versus minimum 4.5), after the connection contrast checks passed. This unrelated theme failure remains pending.
 - Delivery fallback: work-unit-commits skill was unavailable; ordinary Git selective staging isolates this task from pre-existing theme edits. Native review remains unavailable; no approval is asserted.
+
+TCB-3 work-unit commit: e672694cb97ddd491d045319579ea1614d825ff5 (fix(operator): restore single connection control). This supersedes the precommit pending note above. Native review unavailable; no receipt asserted.

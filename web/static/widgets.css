@@ -186,3 +186,32 @@ body:is([data-widget=top-donors],[data-widget=top-likes]) .donor-rank-row{displa
 .donor-rank-info{min-width:0;overflow-wrap:anywhere}.donor-rank-info strong{font-weight:900;text-shadow:0 2px 2px #0008}.donor-rank-row .donor-rank-info p{color:#ffe14a;margin:3px 0 0;font-size:var(--widget-size);font-weight:800;text-shadow:0 2px 2px #0009}
 
 body[data-widget=top-likes] .donor-rank-info p{color:#ff72ac}
+
+/* Webcam settings apply to the complete frame, independently of card styles. */
+body[data-widget=webcam-frame] #widget{display:flex;justify-content:flex-start}
+body[data-widget=webcam-frame][data-align=center] #widget{justify-content:center}
+body[data-widget=webcam-frame][data-align=right] #widget{justify-content:flex-end}
+.webcam-frame{flex:none;border-width:var(--frame-width,8px);border-radius:var(--widget-radius);opacity:var(--frame-opacity,.93);font-family:var(--widget-font)}
+.webcam-frame:before,.webcam-frame:after{display:none}
+.webcam-frame[data-frame-style=double]{border-style:double;box-shadow:none}
+.webcam-frame[data-frame-style=corners]{border-color:transparent;box-shadow:none;background:linear-gradient(var(--widget-accent),var(--widget-accent)) left top/26% var(--frame-width) no-repeat,linear-gradient(var(--widget-accent),var(--widget-accent)) left top/var(--frame-width) 26% no-repeat,linear-gradient(var(--widget-accent),var(--widget-accent)) right bottom/26% var(--frame-width) no-repeat,linear-gradient(var(--widget-accent),var(--widget-accent)) right bottom/var(--frame-width) 26% no-repeat;outline:1px solid var(--widget-border)}
+.webcam-frame .webcam-label{font-size:var(--widget-title);font-weight:600;max-width:calc(100% - 24px);overflow-wrap:anywhere;color:var(--label-color);background:var(--label-background);border-radius:calc(var(--widget-radius)*.3);inset:auto;line-height:1.3}
+.webcam-label[data-position=top-left]{left:12px;top:12px}
+.webcam-label[data-position=top-right]{right:12px;top:12px}
+.webcam-label[data-position=bottom-left]{left:12px;bottom:12px}
+.webcam-label[data-position=bottom-right]{right:12px;bottom:12px}
+body[data-widget=webcam-frame][data-background=off] .webcam-label{background:transparent}
+body[data-widget=webcam-frame][data-animation=fade] .webcam-frame{animation:widgetFade .35s ease both}
+body[data-widget=webcam-frame][data-animation=slide] .webcam-frame{animation:widgetSlide .4s ease both}
+body[data-widget=webcam-frame][data-animation=pop] .webcam-frame{animation:widgetPop .32s ease both}
+@media(prefers-reduced-motion:reduce){body[data-widget=webcam-frame] .webcam-frame{animation:none!important}}
+
+.webcam-frame{box-shadow:inset 0 0 0 2px var(--widget-border),0 0 30px color-mix(in srgb,var(--widget-accent) 50%,transparent)}
+.webcam-frame[data-frame-style=double],.webcam-frame[data-frame-style=corners]{box-shadow:none}
+@keyframes webcamFade{from{opacity:0}to{opacity:var(--frame-opacity,.93)}}
+body[data-widget=webcam-frame][data-animation=fade] .webcam-frame{animation-name:webcamFade}
+
+@keyframes webcamSlide{from{opacity:0;transform:translateY(14px)}to{opacity:var(--frame-opacity,.93);transform:none}}
+@keyframes webcamPop{from{opacity:0;transform:scale(.92)}to{opacity:var(--frame-opacity,.93);transform:none}}
+body[data-widget=webcam-frame][data-animation=slide] .webcam-frame{animation-name:webcamSlide}
+body[data-widget=webcam-frame][data-animation=pop] .webcam-frame{animation-name:webcamPop}

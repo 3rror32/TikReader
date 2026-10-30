@@ -26,7 +26,8 @@
 }
 .alerts-workspace [hidden]{display:none!important}
 .alerts-workspace .alerts-page-header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:24px;padding:4px 0 18px;margin-bottom:18px;border-bottom:1px solid var(--alert-line)}
-.alerts-workspace .alerts-page-heading h2{margin:0 0 5px;font:700 clamp(30px,4vw,44px)/1 var(--font-display,'Arial Narrow',sans-serif);letter-spacing:-.02em;color:var(--alert-ink)}
+.alerts-workspace .alerts-page-heading h2{margin:0 0 5px;font:700 clamp(30px,4vw,44px)/1 var(--font-display,'Arial Narrow',sans-serif);letter-spacing:-.02em;color:var(--alert-ink);text-transform:none}
+body:has([data-section="animation-studio"]:not([hidden])) .app > header #section-title{text-transform:none}
 .alerts-workspace .alerts-page-intro{margin:0;color:var(--alert-muted);font-size:14px;line-height:1.5}
 .alerts-workspace .alerts-destinations{display:inline-flex;gap:3px;padding:4px;border:1px solid var(--alert-line);border-radius:9px;background:var(--alert-bg)}
 .alerts-workspace .alerts-destinations button{min-height:38px;padding:8px 14px;background:transparent;color:var(--alert-muted);border:1px solid transparent;border-radius:6px;font-size:13px}

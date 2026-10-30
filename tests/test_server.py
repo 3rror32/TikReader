@@ -110,6 +110,21 @@ class LiveLifecycleTests(unittest.TestCase):
             self.assertEqual(client.post('/widget-settings/timer',json={**payload,'timer_digit_animation':'spin'}).status_code,400)
             self.assertEqual(client.post('/widget-settings/timer',json={**payload,'timer_show_state':'yes'}).status_code,400)
 
+    def test_webcam_settings_validate_and_persist(self):
+        from widget_routes import validate_widget_settings
+        settings = validate_widget_settings({'frame_style':'corners','label_primary_text':'Mi canal',
+            'label_primary_visible':False,'label_secondary_position':'custom',
+            'label_secondary_x':73,'label_primary_color':'#ABCDEF'}, 'webcam-frame')
+        self.assertEqual(settings['frame_style'], 'corners')
+        self.assertEqual(settings['label_primary_text'], 'Mi canal')
+        self.assertFalse(settings['label_primary_visible'])
+        self.assertEqual(settings['label_secondary_x'], 73)
+        self.assertEqual(settings['label_primary_color'], '#abcdef')
+        for invalid in ({'frame_style':'unknown'}, {'label_primary_visible':'no'},
+                        {'label_secondary_position':'middle'}, {'label_primary_color':'red'}):
+            with self.assertRaises(ValueError):
+                validate_widget_settings(invalid, 'webcam-frame')
+
     def test_participants_track_join_and_activity(self):
         from types import SimpleNamespace as S
         server.participants.clear();server.recent_joins.clear();server.participants_revision=0

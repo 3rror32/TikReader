@@ -836,25 +836,25 @@ html[data-skin="tactile-scrapbook"] body .mobile-command-dock {
 /* DRAGON — a martial-arts training hall lit by a contained energy ring */
 html[data-skin="dragon"] {
   --skin-bg: #101c36;
-  --skin-surface: #fff3d6;
-  --skin-raised: #fff9e9;
+  --skin-surface: #142747;
+  --skin-raised: #1b3763;
   --skin-border: #d99a36;
-  --skin-text: #17233f;
-  --skin-muted: #4d5e7c;
+  --skin-text: #fffaf0;
+  --skin-muted: #c3d4ef;
   --skin-accent: #f36b21;
   --skin-accent-2: #347ded;
   --skin-accent-ink: #17233f;
   --nav-muted: #fff3d6;
   --nav-ink: #fffaf0;
-  --skin-danger: #a52d37;
-  --skin-warning: #825300;
-  --skin-wash: #fde4bd;
+  --skin-danger: #ffabb1;
+  --skin-warning: #eabf45;
+  --skin-wash: #203e70;
   --skin-shadow: #091229;
   --tr-display: "Arial Narrow", "Franklin Gothic Medium", sans-serif;
   --tr-body: "Segoe UI", system-ui, sans-serif;
   --tr-data: "Segoe UI Semibold", system-ui, sans-serif;
   --control-field-radius: 8px;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html[data-skin="dragon"] body {
@@ -867,8 +867,8 @@ html[data-skin="dragon"] body {
 
 html[data-skin="dragon"] body :is(.app-sidebar, .config-content, .setting-card, .feed-wrap, .participants-bar, .gifts-column, .panel) {
   border-color: #d99a36 !important;
-  background: #fff3d6 !important;
-  color: #17233f;
+  background: #142747 !important;
+  color: #fffaf0;
   box-shadow: 0 8px 24px #09122935 !important;
 }
 
@@ -906,7 +906,7 @@ html[data-skin="dragon"] body .app > .session-panel {
   position: relative;
   isolation: isolate;
   border: 1px solid #eabf45 !important;
-  background: linear-gradient(135deg, #18294b, #101c36 70%) !important;
+  background: linear-gradient(135deg, #234d91, #142747 70%) !important;
   color: #fff3d6;
 }
 
@@ -938,8 +938,8 @@ html[data-skin="dragon"] body .app > .session-panel :is(h1, h2, h3, p, strong, l
 
 html[data-skin="dragon"] body .app > .session-panel :is(input, select, textarea) {
   border-color: #eabf45 !important;
-  background: #fff9e9 !important;
-  color: #17233f !important;
+  background: #101c36 !important;
+  color: #fffaf0 !important;
 }
 
 html[data-skin="dragon"] body :is(button, summary, .tool-buttons > a) {

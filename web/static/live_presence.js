@@ -162,7 +162,7 @@ window.LivePresence = (() => {
   function set(next, user) {
     if (next === 'connecting' && mode !== 'connecting') {
       latestStats = {...latestStats, viewers: null, viewers_known: false};
-      $('stat-viewers').textContent = '—';
+      $('stat-viewers').textContent = '0';
     }
     if (user) username = String(user).replace(/^@/, '');
     if (['live','paused'].includes(next) && !['live','paused'].includes(mode)) since = Date.now();

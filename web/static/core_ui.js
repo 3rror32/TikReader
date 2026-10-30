@@ -100,9 +100,9 @@ function applyStats(data) {
   // later; when it does, the following snapshot replaces this value.
   animateStat('stat-likes', Number(data.likes) || 0);
   animateStat('stat-gifts', data.gifts);
-  // No viewer report is not proof of an empty room; confirmed zero is numeric.
+  // Show zero until TikTok reports an audience count; retain report provenance.
   const viewersKnown = Number.isFinite(data.viewers) && data.viewers >= 0 && (data.viewers_known || data.viewers > 0);
-  animateStat('stat-viewers', viewersKnown ? data.viewers : '—');
+  animateStat('stat-viewers', viewersKnown ? data.viewers : 0);
   window.LivePresence?.stats(data);
 }
 

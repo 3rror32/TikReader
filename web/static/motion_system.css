@@ -48,10 +48,11 @@ html[data-skin] body .session-panel #btn-connect.is-connecting .connect-button__
   animation: none !important;
 }
 
-html[data-motion-level="reduced"] *,
+/* Explicit subtitle effects are broadcast content, independent of console motion. */
+html[data-motion-level="reduced"] *:not(.mic-caption-word),
 html[data-motion-level="reduced"] *::before,
 html[data-motion-level="reduced"] *::after,
-body.menu-motion-reduced *,
+body.menu-motion-reduced *:not(.mic-caption-word),
 body.menu-motion-reduced *::before,
 body.menu-motion-reduced *::after {
   animation: none !important;
@@ -60,7 +61,7 @@ body.menu-motion-reduced *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *:not(.mic-caption-word), *::before, *::after {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;

@@ -35,7 +35,7 @@ test('skins cannot consume sidebar or component bounds with private margins', ()
 
 test('creator loads every signature theme definition before its safeguards', () => {
   assert.match(creator, /theme_personalities\.css\?v=2/);
-  assert.match(creator, /theme_signature_collection\.css\?v=menu-copy-2/);
+  assert.match(creator, /theme_signature_collection\.css\?v=dragon-contrast-3/);
   assert(creator.indexOf('theme_signature_collection.css') < creator.indexOf('theme_accessibility.css'));
 });
 

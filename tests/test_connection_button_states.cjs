@@ -35,3 +35,19 @@ test('plug states have separate visible shapes', () => {
   const styles = fs.readFileSync('web/static/live_refinement.css', 'utf8');
   assert.match(styles, /data-state="connected"\]\s+\.connect-button__unplugged\s*\{\s*display: none/);
 });
+
+test('viewer display starts at zero and keeps reported counts', () => {
+  const markup = fs.readFileSync('web/templates/index.html', 'utf8');
+  assert.equal(markup.match(/id="stat-viewers"[^>]*>([^<]*)</)?.[1], '0');
+  const applyStats = source.match(/function applyStats\(data\) \{[\s\S]*?\n\}/)[0];
+  const values = new Map();
+  const context = vm.createContext({feedSession:null, statsRevision:-1, animateStat:(id, value) => values.set(id,value), window:{}, receiveHistory(){}});
+  vm.runInContext(applyStats + '; applyStats({viewers:null});',context);
+  assert.equal(values.get('stat-viewers'), 0);
+  vm.runInContext('applyStats({viewers:42});',context);
+  assert.equal(values.get('stat-viewers'), 42);
+  vm.runInContext('applyStats({viewers:0,viewers_known:true});',context);
+  assert.equal(values.get('stat-viewers'), 0);
+  const presence = fs.readFileSync('web/static/live_presence.js', 'utf8');
+  assert.equal(presence.includes("$('stat-viewers').textContent = '—'"), false);
+});

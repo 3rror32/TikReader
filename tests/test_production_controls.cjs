@@ -5,16 +5,29 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 
 function setup(){
-  const elements=new Map(), requests=[];
+  const elements=new Map(), requests=[], scheduled=[];
   const element=id=>{if(!elements.has(id)){const attributes=new Map();elements.set(id,{textContent:'',title:'',setAttribute(name,value){attributes.set(name,value)},getAttribute(name){return attributes.get(name)},addEventListener(){},classList:{toggle(){}}})}return elements.get(id);};
   let fail=false, pending=false, release;
   const context={window:{},document:{getElementById:element,body:{classList:{toggle(){},add(){}}}},localStorage:{getItem(){return null;}},Studio:{mute(){},hold(){}},AbortSignal,
-    fetch:async(path,options)=>{const data=JSON.parse(options.body);requests.push(data);if(pending)await new Promise(resolve=>release=resolve);if(fail)throw Error('offline');return {ok:true,json:async()=>({emergency:data.emergency,scene:'talk',revision:requests.length})};}};
+    setTimeout(callback){scheduled.push(callback);},
+    fetch:async(path,options)=>{const data=options.body?JSON.parse(options.body):null;if(data)requests.push(data);if(pending)await new Promise(resolve=>release=resolve);if(fail)throw Error('offline');return {ok:true,json:async()=>({emergency:data?.emergency??false,scene:'talk',revision:requests.length})};}};
   const source=fs.readFileSync(`${__dirname}/../web/static/production.js`,'utf8');
-  vm.runInNewContext(source.slice(0,source.indexOf(" $('scene-save').onclick"))+'return {state,pause};})();',context);
+  const poll=source.slice(source.indexOf(' async function poll()'),source.indexOf(" socket.on('native_questions_update'"));
+  vm.runInNewContext(source.slice(0,source.indexOf(" $('scene-save').onclick"))+poll+'return {state,pause,poll};})();',context);
   context.window.ProductionUI.state({emergency:false,scene:'talk',revision:0});
-  return {ui:context.window.ProductionUI,button:element('emergency-button'),status:element('emergency-status'),requests,setFail:value=>fail=value,holdRequest:()=>pending=true,releaseRequest:()=>release()};
+  return {ui:context.window.ProductionUI,button:element('emergency-button'),status:element('emergency-status'),requests,scheduled,setFail:value=>fail=value,holdRequest:()=>pending=true,releaseRequest:()=>release()};
 }
+
+test('background polling stays quiet, preserves actionable errors and retries successfully',async()=>{
+  const s=setup();s.setFail(true);await s.ui.poll();
+  assert.equal(s.status.textContent,'');
+  await s.button.onclick();const actionable=s.status.textContent;
+  await s.scheduled.shift()();
+  assert.equal(s.status.textContent,actionable);
+  s.setFail(false);await s.scheduled.shift()();
+  assert.equal(s.status.textContent,'');
+  assert.equal(s.scheduled.length,1);
+});
 
 test('one control pauses then resumes voice and effects',async()=>{
   const s=setup();

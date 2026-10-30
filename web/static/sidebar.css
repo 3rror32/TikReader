@@ -147,7 +147,7 @@ html body .app-sidebar :is(.nav-group>details,.nav-advanced-section):has([aria-c
 }
 
 /* Navigation choreography: every group uses the same curtain disclosure. */
-.app-sidebar :is(button,summary,.sidebar-icon){transition:background-color .18s ease,color .18s ease,border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.app-sidebar :is(button,summary,.sidebar-icon){transition:background-color .18s ease,color .18s ease,border-color .18s ease}
 .app-sidebar nav{scroll-behavior:smooth}
 
 /* One quiet underline identifies the route; no card, fill or pulsing marker. */
@@ -172,3 +172,5 @@ body.menu-motion-reduced .app-sidebar *,body.menu-motion-reduced .settings-view,
 html[data-skin] body #app-sidebar [data-section-nav]{background:transparent!important;border-color:transparent!important;box-shadow:none!important}
 html[data-skin] body #app-sidebar [data-section-nav]:hover{background:transparent!important;border-bottom-color:var(--nav-line)!important;color:var(--nav-ink)!important}
 html[data-skin] body #app-sidebar [data-section-nav].active{background:transparent!important;border-bottom-color:var(--nav-accent)!important;color:var(--nav-accent)!important;box-shadow:none!important}
+/* Theme hover lifts can move navigation controls out from under the pointer. */
+html[data-skin] body #app-sidebar :is(button,summary):is(:hover,:focus-visible){transform:none!important}

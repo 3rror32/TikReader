@@ -57,3 +57,19 @@ test('timer overlay exposes title, format, state, motion and final-seconds warni
 test('timer overlay keeps the reference treatment and offers distinct designs',()=>{const css=fs.readFileSync('web/static/widgets.css','utf8');assert.match(css,/\.timer-value\{[^}]*var\(--widget-font\)[^}]*color:var\(--widget-accent\)/);assert.match(css,/\.timer-overlay>strong\{[^}]*'IBM Plex Mono'[^}]*letter-spacing:2px/);assert.match(css,/\.timer-overlay-state\{[^}]*'IBM Plex Mono'/);for(const theme of ['light','neon','minimal'])assert.match(css,new RegExp(`data-theme=${theme}`));for(const motion of ['pulse','slide','flip'])assert.match(css,new RegExp(`data-digit-animation=${motion}`));assert.match(css,/data-warning=yes/);assert.match(css,/data-glow=off/);});
 test('subscriber goal renders observed total and saved target',async()=>{const ui=setup(false,'goal-subscribers',{session:'s',production:{scene:'talk'},stats:{subscribers:7},connection:{connected:true},overlay_goals:{'goal-subscribers':{goal:20}}});await ui.timers.shift()();assert.equal(ui.root.children[0].querySelector('p').children.map(n=>n.textContent).join(''),'7 / 20');assert.equal(ui.root.children[0].querySelector('progress').max,20)});
 test('custom goal uses saved value without URL parameters',async()=>{const ui=setup(false,'goal-custom-1',{session:'s',production:{scene:'talk'},stats:{},connection:{connected:true},overlay_goals:{'goal-custom-1':{goal:50,value:12}}});await ui.timers.shift()();assert.equal(ui.root.children[0].querySelector('p').children.map(n=>n.textContent).join(''),'12 / 50');assert.equal(ui.root.children[0].querySelector('progress').value,12)});
+
+test('webcam labels render editable text safely and hide independently',async()=>{
+ const ui=setup(true,'webcam-frame',{}, {frame_style:'corners',label_primary_text:'<b>Canal</b>',label_primary_visible:true,label_primary_position:'top-left',label_primary_color:'#112233',label_primary_background:'#445566',label_secondary_visible:false});
+ await ui.timers.shift()();const frame=ui.root.children[0];
+ assert.equal(frame.dataset.frameStyle,'corners');assert.equal(frame.children.length,1);
+ assert.equal(frame.children[0].textContent,'<b>Canal</b>');assert.equal(frame.children[0].dataset.position,'top-left');
+});
+
+test('webcam default labels and free coordinates remain configurable on preview',async()=>{
+ const ui=setup(true,'webcam-frame');await ui.timers.shift()();
+ assert.deepEqual(ui.root.children[0].children.map(label=>label.textContent),['TIKREADER','LIVE']);
+ ui.events.message({origin:'http://localhost',data:{type:'widget-preview-settings',settings:{label_primary_text:'Nuevo',label_primary_position:'custom',label_primary_x:73,label_primary_y:25}}});
+ await ui.timers.at(-1)();const label=ui.root.children[0].children[0];
+ assert.equal(label.textContent,'Nuevo');assert.equal(label.style.left,'73%');assert.equal(label.style.top,'25%');
+ assert.equal(label.style.transform,'translate(-73%,-25%)');
+});

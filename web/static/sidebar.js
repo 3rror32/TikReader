@@ -5,7 +5,8 @@
   const mobile = matchMedia('(max-width: 900px)');
   const icons = {
     live: 'M4 8v8m4-11v14m4-16v18m4-16v14m4-11v8',
-    voice: 'M9 4a3 3 0 0 1 6 0v8a3 3 0 0 1-6 0V4m-3 7v1a6 6 0 0 0 12 0v-1m-6 7v4m-4 0h8',
+    voice: 'M11 5 6 9H3v6h3l5 4V5m4 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14',
+    'voice-ripples': 'M3 12c0-4 18-4 18 0s-18 4-18 0m4 0c0-2 10-2 10 0s-10 2-10 0M12 3v4',
     'microphone-captions': 'M7 5a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V5m-3 5a6 6 0 0 0 12 0m-6 6v3m-5 2h10m3-8h3m-3 4h3m-3 4h3',
     questions: 'M4 4h16v12H9l-5 4V4m5 4a3 3 0 0 1 6 0c0 2-3 2-3 4m0 2h.01',
     obs: 'M3 4h18v13H3V4m5 17h8m-4-4v4m-3-14 6 4-6 4V7',

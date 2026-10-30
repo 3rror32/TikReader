@@ -53,6 +53,35 @@ html body :is(
   transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
 }
 
+/* Text actions share the field rhythm regardless of their accessible name.
+   Icon-only controls are excluded by their icon structure or component role. */
+html body :is(
+  #ui-text-button-contract,
+  button:not(.panic-button):not(.chat-greet):not(.sidebar-search-toggle):not(.minecraft-action-test):not(.minecraft-action-remove):not(.err-btn-close):not(#simulation-fab):not([data-live-icon]):not(:has(> svg:only-child, > i:only-child, > .icon:only-child)),
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  #simulation-float-stop,
+  .tool-buttons > a,
+  .overlay-actions > a
+) {
+  display: inline-flex;
+  min-height: var(--control-field-height) !important;
+  height: auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--control-field-radius);
+  font-family: var(--font-body, inherit);
+  font-size: var(--ui-type-body, 14px);
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 html body :is(#ui-control-contract, textarea) {
   min-height: 88px !important;
   resize: vertical;
