@@ -4,8 +4,8 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const minecraftSource=process.env.MINECRAFT_TEST_SOURCE||`${__dirname}/../web/static/minecraft.js`;
 
-function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantities=false,initialPresets={},initialBedrockPresets={},initialEdition='java'}={}){
-  const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=failInitial,hold=holdInitial,release;
+function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantities=false,initialPresets={},initialBedrockPresets={},initialEdition='java',clipboardError=false}={}){
+  const nodes=[],timers=new Map(),listeners={},observers=[],clipboard=[];let serial=0,pane,fail=failInitial,hold=holdInitial,release;
   const requests=[];let heldPost,releasePost;
   const java={host:'localhost',port:25575,commands:{probe:'list'}},bedrock={commands:{bed:'say hello'}};
   const publicCatalog=JSON.parse(fs.readFileSync(minecraftSource,'utf8').match(/const defaultActions=(\[.*?\]);/s)[1]);
@@ -22,11 +22,12 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
     prepend(...items){this.children.unshift(...items);for(const item of items)item.parentElement=this;}
     setAttribute(name,value){this[name]=value;}
     focus(){document.activeElement=this;}
+    select(){this.selected=true;}
     addEventListener(name,fn){this.events[name]=fn;}
   }
-  const document={hidden:false,head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag),createTextNode:text=>{const node=new Element('#text');node.textContent=text;return node;},addEventListener:(name,fn)=>listeners[name]=fn};
+  const document={hidden:false,head:new Element('head'),body:new Element('body'),createElement:tag=>new Element(tag),createElementNS:(namespace,tag)=>new Element(tag),createTextNode:text=>{const node=new Element('#text');node.textContent=text;return node;},addEventListener:(name,fn)=>listeners[name]=fn};
   const window={addEventListener:(name,fn)=>listeners[name]=fn,OperatorViewRegistry:{register(key,node){pane=node;}}};
-  const context={window,document,Date,AbortController,AbortSignal,structuredClone,
+  const context={window,document,Date,AbortController,AbortSignal,structuredClone,navigator:{clipboard:{writeText:async value=>{if(clipboardError)throw Error('clipboard denied');clipboard.push(value);}}},
     MutationObserver:class{constructor(fn){this.fn=fn;}observe(target,options){observers.push({fn:this.fn,target,options});}disconnect(){}},
     setTimeout(fn,delay){const id=++serial;timers.set(id,{fn,delay});return id;},clearTimeout:id=>timers.delete(id),
     fetch:async(path,options={})=>{
@@ -43,7 +44,7 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
   vm.runInNewContext(fs.readFileSync(minecraftSource,'utf8'),context);
   const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
   const field=label=>nodes.find(n=>n.tagName==='label'&&n.textContent===label).children[0];
-  return {nodes,requests,timers,field,flush,get pane(){return pane;},setState:value=>state={...state,...value},
+  return {nodes,requests,timers,field,flush,get pane(){return pane;},get clipboard(){return clipboard;},setState:value=>state={...state,...value},
     fail:value=>fail=value,hold:()=>hold=true,release:()=>{hold=false;release();},
     holdPost:path=>heldPost=path,releasePost:()=>{heldPost=null;releasePost();},
     get serverEdition(){return state.edition;},get profilesSnapshot(){return JSON.stringify(state.profiles);},get activeElement(){return document.activeElement;},
@@ -147,9 +148,52 @@ test('edition selector persists selection, keeps separate drafts and hides RCON 
   await s.edition('bedrock');
   assert.equal(s.field('Comandos autorizados: un alias = comando por línea').value,'bedDraft = say hi');
   await s.click('Preparar conexión de Bedrock');
-  assert.ok(s.nodes.some(n=>n.textContent==='/wsserver ws://127.0.0.1:54321/secret'));
+  assert.equal(s.nodes.find(n=>n.dataset.bedrockCommand).value,'/wsserver ws://127.0.0.1:54321/secret');
   await s.edition('java');
-  assert.ok(!s.nodes.some(n=>n.textContent.includes(':54321/secret')));
+  assert.equal(s.nodes.find(n=>n.dataset.bedrockCommand).value,'');
+  assert.equal(s.nodes.find(n=>n.className==='minecraft-command-row').hidden,true);
+});
+
+test('Bedrock command stays hidden until preparation succeeds and copies the full value',async()=>{
+  const s=setup({initialEdition:'bedrock'});await s.flush();
+  const command=s.nodes.find(n=>n.dataset.bedrockCommand),row=command.parentElement;
+  const copy=s.nodes.find(n=>n.tagName==='button'&&n['aria-label']==='Copiar comando de conexión');
+  assert.ok(command.hidden);assert.ok(row.hidden);
+  assert.equal(copy.textContent,'');assert.equal(copy.title,'Copiar el comando de conexión');
+  assert.equal(copy.children[0].tagName,'svg');
+  s.holdPost('/minecraft/bedrock/prepare');
+  const preparing=s.click('Preparar conexión de Bedrock');await s.flush();
+  assert.ok(command.hidden);assert.ok(row.hidden);
+  s.releasePost();await preparing;
+  assert.equal(command.type,'text');assert.equal(command.readOnly,true);
+  assert.equal(command.hidden,false);assert.equal(row.hidden,false);
+  await s.click('Copiar comando de conexión');
+  assert.deepEqual(s.clipboard,['/wsserver ws://127.0.0.1:54321/secret']);
+  assert.ok(s.nodes.some(n=>n.textContent==='Comando copiado.'));
+});
+
+test('Bedrock clipboard fallback selects the full readonly command',async()=>{
+  const s=setup({initialEdition:'bedrock',clipboardError:true});await s.flush();
+  await s.click('Preparar conexión de Bedrock');
+  const command=s.nodes.find(n=>n.dataset.bedrockCommand);
+  await s.click('Copiar comando de conexión');
+  assert.equal(command.selected,true);assert.equal(s.activeElement,command);
+  assert.ok(s.nodes.some(n=>n.textContent==='Selecciona el comando y usa copiar para llevarlo al chat.'));
+});
+
+test('Bedrock command clears on reprepare, save, authorization removal and disconnect',async()=>{
+  const s=setup({initialEdition:'bedrock'});await s.flush();
+  const command=s.nodes.find(n=>n.dataset.bedrockCommand),row=command.parentElement;
+  await s.click('Preparar conexión de Bedrock');
+  s.holdPost('/minecraft/bedrock/prepare');
+  const preparing=s.click('Preparar conexión de Bedrock');await s.flush();
+  assert.equal(command.value,'');assert.ok(command.hidden);assert.ok(row.hidden);
+  s.releasePost();await preparing;assert.notEqual(command.value,'');
+  await s.click('Guardar conexión y comandos');assert.equal(command.value,'');assert.ok(row.hidden);
+  await s.click('Preparar conexión de Bedrock');
+  await s.permission(false);assert.equal(command.value,'');assert.ok(row.hidden);
+  await s.click('Preparar conexión de Bedrock');
+  await s.click('Desconectar');assert.equal(command.value,'');assert.ok(row.hidden);
 });
 
 test('pending edition selection guards every action handler, including Save',async()=>{

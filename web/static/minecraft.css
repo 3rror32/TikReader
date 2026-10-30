@@ -15,7 +15,12 @@
 .minecraft-bedrock-setup { flex-basis: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-glass); }
 .studio-pane .minecraft-bedrock-setup p { margin: 0 0 8px; font-size: 13px; }
 .minecraft-bedrock-setup small { display: block; color: var(--text-muted); font-size: 12px; margin-bottom: 10px; }
-.studio-pane .minecraft-bedrock-setup .minecraft-connect-command { font-family: var(--tr-data, monospace); padding: 9px; background: var(--bg-glass); user-select: all; overflow-wrap: anywhere; }
+.minecraft-bedrock-requirement { color: #d32f2f; font-weight: 700; }
+.minecraft-command-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.minecraft-command-row[hidden] { display: none; }
+.studio-pane .minecraft-command-row > button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; }
+.studio-pane .minecraft-command-row > button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.studio-pane .minecraft-bedrock-setup .minecraft-connect-command { min-width: 0; flex: 1 1 0; width: 100%; height: 36px; min-height: 36px; margin: 0; box-sizing: border-box; font-family: var(--tr-data, monospace); font-size: 13px; line-height: 1.2; padding: 8px; background: var(--bg-glass); user-select: all; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .studio-pane .minecraft-quick-actions { margin: 16px 0; border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: var(--bg-glass); }
 .minecraft-actions-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .studio-pane .minecraft-actions-heading h3 { margin: 0 auto 0 0; font-size: 18px; }
@@ -29,7 +34,7 @@
 .studio-pane .minecraft-action-row select { width: 100%; max-width: none; font-size: 13px; min-height: 36px; }
 .studio-pane .minecraft-action-enabled { justify-content: center; margin: 0; }
 .studio-pane .minecraft-action-test { width: 100%; min-width: max-content; box-sizing: border-box; white-space: nowrap; min-height: 36px; font-size: 13px; }
-.minecraft-quick-actions :is(button, select, input):focus-visible, .minecraft-permission input:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.minecraft-quick-actions :is(button, select, input):focus-visible, .minecraft-permission input:focus-visible, .minecraft-bedrock-setup :is(input, textarea):focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
 .studio-pane .minecraft-compatibility, .studio-pane .minecraft-quick-actions > p { font-size: 13px; margin: 6px 0; }
 .minecraft-activity > div { max-height: 210px; overflow: auto; }
 .studio-pane .minecraft-activity p { font-size: 13px; overflow-wrap: anywhere; }

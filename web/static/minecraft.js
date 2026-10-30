@@ -30,9 +30,12 @@
  const nameFormatLabel=el('label','Nombres de mobs en Java'),nameFormat=el('select');for(const [id,text] of [['modern','Java 1.21.5 o posterior'],['legacy','Java 1.13 a 1.21.4']]){const option=el('option',text);option.value=id;nameFormat.append(option);}nameFormat.value='modern';nameFormatLabel.append(nameFormat);advanced.append(nameFormatLabel,el('small','El formato se guarda con Guardar límites.'));nameFormat.addEventListener('change',()=>edited.add(nameFormat));
  const commands=field('Comandos autorizados: un alias = comando por línea','textarea',advanced);commands.rows=4;
  const status=el('p','Sin conectar'),log=el('div');status.setAttribute('role','status');header.append(status);
- const localInstructions=el('div'),connectCommand=el('p');
- localInstructions.className='minecraft-bedrock-setup';connectCommand.className='minecraft-connect-command';connectCommand.hidden=true;
- localInstructions.append(el('p','1. Prepara la conexión.  2. Pega el comando en el chat de tu mundo.  3. Marca Autorizar Minecraft.'),el('small','Mundo local de Windows · Trucos activados · Require Encrypted Websockets desactivado.'),connectCommand);
+ const localInstructions=el('div'),connectCommand=el('input'),commandRow=el('div'),requirements=el('small');
+ localInstructions.className='minecraft-bedrock-setup';commandRow.className='minecraft-command-row';commandRow.hidden=true;
+ requirements.className='minecraft-bedrock-requirement';requirements.append(el('span','*'),document.createTextNode(' Mundo local de Windows · Trucos activados · Require Encrypted Websockets desactivado.'));
+ connectCommand.className='minecraft-connect-command';connectCommand.dataset.bedrockCommand='true';connectCommand.type='text';connectCommand.setAttribute('aria-label','Comando para conectar Minecraft');connectCommand.readOnly=true;connectCommand.hidden=true;
+ commandRow.append(connectCommand);
+ localInstructions.append(el('p','Prepara la conexión. TikReader comprobará si tu mundo responde.'),el('p','Abre el chat de tu mundo, pega el comando y presiona Enter.'),requirements,commandRow);
  permissionArea.append(localInstructions);
  help.append(el('p','Los mobs disponibles dependen de la versión instalada de Minecraft. El juego puede rechazar los más recientes; no se reintenta una invocación.'),el('p','Java necesita un servidor con RCON habilitado. En server.properties: enable-rcon=true, rcon.password y rcon.port. Un mundo individual sin RCON no es compatible.'),el('p','Bedrock: activa trucos y permisos de administrador; habilita Enable WebSockets si aparece y desactiva Require Encrypted Websockets para esta conexión local. Solo se admite este equipo.'),el('p','Si Bedrock no conecta, revisa los permisos de loopback de Minecraft en Windows. TikReader no cambia opciones de Windows ni del juego.'),el('p','Desconecta antes de cambiar de mundo: el juego puede conservar la conexión al salir. TikReader no verifica continuamente qué mundo está abierto.'),el('p','Las acciones se aplican a @p: el jugador más cercano al origen del comando, no al espectador que envió el regalo. Java usa el origen del servidor; Bedrock, el contexto del jugador conectado.'),el('p','Las rachas finalizadas multiplican la cantidad configurada de mobs y TNT. Los demás efectos se aplican una vez. Detener cancela pasos pendientes, pero no deshace lo que ya cambió en el mundo. Sin confirmar significa que la respuesta no permite asegurar el resultado.'));
  let currentEdition='java';const drafts=new Map();
@@ -1006,7 +1009,7 @@
  function captureDraft(){return {host:host.value,port:port.value,commands:commands.value,interval:interval.value,perMinute:perMinute.value,nameFormat:nameFormat.value};}
  function selectProfile(d){
   currentEdition=d.edition||currentEdition;edited.clear();hydratePending=false;
-  password.value='';permission.checked=false;confirmedAuthorized=false;connectCommand.textContent='';connectCommand.hidden=true;showEdition();
+  password.value='';permission.checked=false;confirmedAuthorized=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;showEdition();
   const draft=drafts.get(currentEdition);
   host.value=draft?.host||d.config.host||'127.0.0.1';port.value=draft?.port||d.config.port||25575;
   commands.value=draft?draft.commands:Object.entries(d.config.commands).map(([a,c])=>a+' = '+c).join('\n');
@@ -1060,11 +1063,14 @@
  function sync(){epoch++;clearTimeout(timer);refreshPending=false;if(active())void refresh();}
  async function change(path,data){epoch++;await api(path,data);epoch++;void refresh();}
  function parse(){const out={};for(const line of commands.value.split('\n')){if(!line.trim())continue;const i=line.indexOf('=');if(i<1)throw Error('Usa alias = comando, uno por línea');out[line.slice(0,i).trim()]=line.slice(i+1).trim()}return out}
- const prepareButton=button('Preparar conexión',async()=>{if(currentEdition!=='bedrock')return;confirmedAuthorized=false;permission.checked=false;connectCommand.textContent='';const d=await api('/minecraft/bedrock/prepare',{});connectCommand.textContent=d.command;connectCommand.hidden=false;notice.textContent='Pega el comando en el chat de tu mundo.';});prepareButton.setAttribute('aria-label','Preparar conexión de Bedrock');
- const copyButton=button('Copiar comando',async()=>{if(!connectCommand.textContent){notice.textContent='Prepara la conexión primero.';return;}try{await navigator.clipboard.writeText(connectCommand.textContent);notice.textContent='Comando copiado.';}catch(_){notice.textContent='Selecciona y copia el comando mostrado.';}} ,false);
- localInstructions.append(prepareButton,copyButton);
+ const prepareButton=button('Preparar conexión',async()=>{if(currentEdition!=='bedrock')return;confirmedAuthorized=false;permission.checked=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;const d=await api('/minecraft/bedrock/prepare',{});connectCommand.value=d.command;connectCommand.hidden=false;commandRow.hidden=false;notice.textContent='Comando listo para pegar en el chat de tu mundo.';},false);prepareButton.setAttribute('aria-label','Preparar conexión de Bedrock');
+ const copyButton=button('',async()=>{if(!connectCommand.value){notice.textContent='Prepara la conexión primero.';return;}try{await navigator.clipboard.writeText(connectCommand.value);notice.textContent='Comando copiado.';}catch(_){connectCommand.focus();connectCommand.select();notice.textContent='Selecciona el comando y usa copiar para llevarlo al chat.';}} ,false);
+ copyButton.setAttribute('aria-label','Copiar comando de conexión');copyButton.title='Copiar el comando de conexión';
+ const copyIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');copyIcon.setAttribute('viewBox','0 0 24 24');copyIcon.setAttribute('width','18');copyIcon.setAttribute('height','18');copyIcon.setAttribute('fill','none');copyIcon.setAttribute('stroke','currentColor');copyIcon.setAttribute('stroke-width','1.8');copyIcon.setAttribute('stroke-linecap','round');copyIcon.setAttribute('stroke-linejoin','round');copyIcon.setAttribute('aria-hidden','true');copyIcon.setAttribute('focusable','false');
+ const copyIconPath=document.createElementNS('http://www.w3.org/2000/svg','path');copyIconPath.setAttribute('d','M8 8V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-3M5 8h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z');copyIcon.append(copyIconPath);copyButton.append(copyIcon);
+ commandRow.append(copyButton);localInstructions.append(prepareButton);
  async function saveConnection(includeAliases=false){
-  confirmedAuthorized=false;permission.checked=false;connectCommand.textContent='';connectCommand.hidden=true;
+  confirmedAuthorized=false;permission.checked=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;
   const data={edition:currentEdition,commands:includeAliases?parse():savedConfig.commands||{}};
   if(currentEdition==='java')Object.assign(data,{host:host.value,port:Number(port.value),...(password.value?{password:password.value}:{})});
   const d=await api('/minecraft',data);password.value='';edited.delete(host);edited.delete(port);render(d,false);
@@ -1079,7 +1085,7 @@
    try{
     if(enabled&&currentEdition==='java'&&(password.value||host.value!==savedConfig.host||Number(port.value)!==savedConfig.port))await saveConnection();
     await api('/minecraft/authorize',{edition:currentEdition,enabled});
-    if(!enabled){connectCommand.textContent='';connectCommand.hidden=true;password.value='';}
+    if(!enabled){connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;password.value='';}
     const d=await api('/minecraft');render(d,false);notice.textContent=enabled?'Minecraft conectado.':'Comandos desactivados.';
    }catch(e){
     if(currentEdition==='java'&&enabled)connection.open=true;
@@ -1089,14 +1095,14 @@
    }
   });
  });
- permissionArea.append(button('Desconectar',async()=>{confirmedAuthorized=false;permission.checked=false;connectCommand.textContent='';connectCommand.hidden=true;await change('/minecraft/disconnect',{});notice.textContent='Minecraft desconectado.';},false),notice);
+ permissionArea.append(button('Desconectar',async()=>{confirmedAuthorized=false;permission.checked=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;await change('/minecraft/disconnect',{});notice.textContent='Minecraft desconectado.';},false),notice);
  advanced.append(button('Guardar conexión y comandos',async()=>{await saveConnection(true);notice.textContent='Comandos guardados. Autoriza de nuevo.';}));
  edition.addEventListener('change',()=>{
   if(busy||uncertain){edition.value=currentEdition;return;}
   const next=edition.value,previous=currentEdition;if(next===previous)return;
   return operate(async()=>{
   drafts.set(previous,captureDraft());
-  password.value='';permission.checked=false;confirmedAuthorized=false;connectCommand.textContent='';connectCommand.hidden=true;
+  password.value='';permission.checked=false;confirmedAuthorized=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;
   try{
    const d=await api('/minecraft',{edition:next,select_only:true});
    epoch++;
