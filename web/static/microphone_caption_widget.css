@@ -100,20 +100,5 @@ body { font-family: "Segoe UI", Arial, sans-serif; }
 @keyframes microphone-caption-typeword { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .microphone-caption-text { transition: none; }
-  .microphone-caption-stage[data-animation="fade"] .microphone-caption-word.is-new { animation: microphone-caption-fade .42s ease-out both !important; }
-  .microphone-caption-stage[data-animation="slide"] .microphone-caption-word.is-new { animation: microphone-caption-slide .52s cubic-bezier(.2,.8,.2,1) both !important; }
-  .microphone-caption-stage[data-animation="drop"] .microphone-caption-word.is-new { animation: microphone-caption-drop .52s cubic-bezier(.2,.8,.2,1) both !important; }
-  .microphone-caption-stage[data-animation="left"] .microphone-caption-word.is-new { animation: microphone-caption-left .52s cubic-bezier(.16,.84,.32,1) both !important; }
-  .microphone-caption-stage[data-animation="right"] .microphone-caption-word.is-new { animation: microphone-caption-right .52s cubic-bezier(.16,.84,.32,1) both !important; }
-  .microphone-caption-stage[data-animation="pop"] .microphone-caption-word.is-new { animation: microphone-caption-pop .5s cubic-bezier(.18,.89,.32,1.35) both !important; }
-  .microphone-caption-stage[data-animation="bounce"] .microphone-caption-word.is-new { animation: microphone-caption-bounce .65s ease-out both !important; }
-  .microphone-caption-stage[data-animation="swing"] .microphone-caption-word.is-new { animation: microphone-caption-swing .65s ease-out both !important; }
-  .microphone-caption-stage[data-animation="flip"] .microphone-caption-word.is-new { animation: microphone-caption-flip .58s cubic-bezier(.2,.75,.2,1) both !important; }
-  .microphone-caption-stage[data-animation="blur"] .microphone-caption-word.is-new { animation: microphone-caption-blur .58s ease-out both !important; }
-  .microphone-caption-stage[data-animation="typewriter"] .microphone-caption-word.is-new { animation: microphone-caption-typeword .46s steps(var(--word-length), end) both !important; }
-  .microphone-caption-word.is-new {
-    animation-delay: var(--word-delay, 0ms) !important;
-    animation-iteration-count: 1 !important;
-  }
+  .microphone-caption-stage .microphone-caption-word, .microphone-caption-text { transition: none !important; }
 }

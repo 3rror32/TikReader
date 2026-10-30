@@ -55,6 +55,13 @@ def widget_defaults(base, panel=None):
         defaults.update(font_size=18,title_size=18,radius=8,opacity=85,show_time=False,show_connection=False,animation='none')
     if panel in ('top-donors','top-likes'):
         defaults.update(show_background=False,show_connection=False,show_time=False,max_items=10,font_size=18,title_size=19,animation='none')
+    if panel == 'webcam-frame':
+        defaults.update(frame_style='glow', frame_width=8,
+                        label_primary_text='TIKREADER', label_primary_visible=True,
+                        label_primary_position='bottom-left', label_primary_x=0, label_primary_y=100, label_primary_color='#132f3a',
+                        label_primary_background='#5de0f1', label_secondary_text='LIVE',
+                        label_secondary_visible=True, label_secondary_position='top-right', label_secondary_x=100, label_secondary_y=0,
+                        label_secondary_color='#132f3a', label_secondary_background='#5de0f1')
     if panel == 'timer':
         defaults.update(font_size=64,title_size=14,alignment='center',animation='none',show_connection=False,
                         timer_title='TIEMPO RESTANTE',timer_format='hms',timer_show_label=True,

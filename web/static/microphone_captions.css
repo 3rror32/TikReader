@@ -434,18 +434,19 @@
   border-radius: 2px 8px 8px 2px;
 }
 
-.mic-caption-preview .caption-word-animate { animation-delay: var(--word-delay, 0ms) !important; }
-.mic-caption-preview[data-animation="fade"] .caption-word-animate { animation: mic-caption-preview-fade .42s ease-out both; }
-.mic-caption-preview[data-animation="slide"] .caption-word-animate { animation: mic-caption-preview-slide .52s cubic-bezier(.2,.8,.2,1) both; }
-.mic-caption-preview[data-animation="drop"] .caption-word-animate { animation: mic-caption-preview-drop .52s cubic-bezier(.2,.8,.2,1) both; }
-.mic-caption-preview[data-animation="left"] .caption-word-animate { animation: mic-caption-preview-left .52s cubic-bezier(.16,.84,.32,1) both; }
-.mic-caption-preview[data-animation="right"] .caption-word-animate { animation: mic-caption-preview-right .52s cubic-bezier(.16,.84,.32,1) both; }
-.mic-caption-preview[data-animation="pop"] .caption-word-animate { animation: mic-caption-preview-pop .5s cubic-bezier(.18,.89,.32,1.35) both; }
-.mic-caption-preview[data-animation="bounce"] .caption-word-animate { animation: mic-caption-preview-bounce .65s ease-out both; }
-.mic-caption-preview[data-animation="flip"] .caption-word-animate { animation: mic-caption-preview-flip .58s cubic-bezier(.2,.75,.2,1) both; backface-visibility: hidden; }
-.mic-caption-preview[data-animation="blur"] .caption-word-animate { animation: mic-caption-preview-blur .58s ease-out both; }
-.mic-caption-preview[data-animation="swing"] .caption-word-animate { animation: mic-caption-preview-swing .68s ease-out both; transform-origin: top center; }
-.mic-caption-preview[data-animation="typewriter"] .caption-word-animate { animation: mic-caption-preview-typeword .46s steps(var(--word-length), end) both; }
+/* The selected caption effect is output content, independent of reduced UI motion. */
+.mic-caption-preview[data-animation="fade"] .caption-word-animate { animation: mic-caption-preview-fade .42s ease-out both !important; }
+.mic-caption-preview[data-animation="slide"] .caption-word-animate { animation: mic-caption-preview-slide .52s cubic-bezier(.2,.8,.2,1) both !important; }
+.mic-caption-preview[data-animation="drop"] .caption-word-animate { animation: mic-caption-preview-drop .52s cubic-bezier(.2,.8,.2,1) both !important; }
+.mic-caption-preview[data-animation="left"] .caption-word-animate { animation: mic-caption-preview-left .52s cubic-bezier(.16,.84,.32,1) both !important; }
+.mic-caption-preview[data-animation="right"] .caption-word-animate { animation: mic-caption-preview-right .52s cubic-bezier(.16,.84,.32,1) both !important; }
+.mic-caption-preview[data-animation="pop"] .caption-word-animate { animation: mic-caption-preview-pop .5s cubic-bezier(.18,.89,.32,1.35) both !important; }
+.mic-caption-preview[data-animation="bounce"] .caption-word-animate { animation: mic-caption-preview-bounce .65s ease-out both !important; }
+.mic-caption-preview[data-animation="flip"] .caption-word-animate { animation: mic-caption-preview-flip .58s cubic-bezier(.2,.75,.2,1) both !important; backface-visibility: hidden; }
+.mic-caption-preview[data-animation="blur"] .caption-word-animate { animation: mic-caption-preview-blur .58s ease-out both !important; }
+.mic-caption-preview[data-animation="swing"] .caption-word-animate { animation: mic-caption-preview-swing .68s ease-out both !important; transform-origin: top center; }
+.mic-caption-preview[data-animation="typewriter"] .caption-word-animate { animation: mic-caption-preview-typeword .46s steps(var(--word-length), end) both !important; }
+.mic-caption-preview[data-animation] .caption-word-animate { animation-delay: var(--word-delay, 0ms) !important; }
 
 @keyframes mic-caption-preview-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mic-caption-preview-slide { from { opacity: 0; transform: translateY(54px); } to { opacity: 1; transform: translateY(0); } }
@@ -719,26 +720,12 @@ html[data-skin="chromapulse"] body :is(.mic-caption-console, .mic-caption-previe
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .is-listening .mic-caption-meter-bars span { animation: none; }
-  .mic-caption-processing-toggle,
-  .mic-caption-processing-check::after,
-  .mic-caption-switch > span,
-  .mic-caption-switch > span::after { transition: none; }
-  /* Choosing an animation here is an explicit motion preference.  Restore its
-     real duration over the studio-wide Windows reduced-motion fallback. */
-  .mic-caption-preview[data-animation="fade"] .caption-word-animate { animation: mic-caption-preview-fade .42s ease-out both !important; }
-  .mic-caption-preview[data-animation="slide"] .caption-word-animate { animation: mic-caption-preview-slide .52s cubic-bezier(.2,.8,.2,1) both !important; }
-  .mic-caption-preview[data-animation="drop"] .caption-word-animate { animation: mic-caption-preview-drop .52s cubic-bezier(.2,.8,.2,1) both !important; }
-  .mic-caption-preview[data-animation="left"] .caption-word-animate { animation: mic-caption-preview-left .52s cubic-bezier(.16,.84,.32,1) both !important; }
-  .mic-caption-preview[data-animation="right"] .caption-word-animate { animation: mic-caption-preview-right .52s cubic-bezier(.16,.84,.32,1) both !important; }
-  .mic-caption-preview[data-animation="pop"] .caption-word-animate { animation: mic-caption-preview-pop .5s cubic-bezier(.18,.89,.32,1.35) both !important; }
-  .mic-caption-preview[data-animation="bounce"] .caption-word-animate { animation: mic-caption-preview-bounce .65s ease-out both !important; }
-  .mic-caption-preview[data-animation="swing"] .caption-word-animate { animation: mic-caption-preview-swing .65s ease-out both !important; }
-  .mic-caption-preview[data-animation="flip"] .caption-word-animate { animation: mic-caption-preview-flip .58s cubic-bezier(.2,.75,.2,1) both !important; }
-  .mic-caption-preview[data-animation="blur"] .caption-word-animate { animation: mic-caption-preview-blur .58s ease-out both !important; }
-  .mic-caption-preview[data-animation="typewriter"] .caption-word-animate { animation: mic-caption-preview-typeword .46s steps(var(--word-length), end) both !important; }
-  .mic-caption-preview .caption-word-animate {
-    animation-delay: var(--word-delay, 0ms) !important;
-    animation-iteration-count: 1 !important;
-  }
+  .mic-caption-preview .mic-caption-word { transition: none !important; }
 }
+
+.mic-caption-local-model { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.mic-caption-local-model label { display: grid; gap: 6px; font-size: .82rem; }
+.mic-caption-local-model select { width: 100%; padding: 10px; color: var(--mic-ink); background: var(--mic-surface); border: 1px solid var(--mic-border); border-radius: var(--mic-radius); }
+.mic-caption-local-model small { grid-column: 1 / -1; color: var(--mic-muted); line-height: 1.5; }
+.mic-caption-ai-settings[hidden], .mic-caption-local-model [hidden] { display: none; }
+@media (max-width: 560px) { .mic-caption-local-model { grid-template-columns: 1fr; } }

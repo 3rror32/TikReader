@@ -10,7 +10,7 @@ import time
 import urllib.request
 import zipfile
 from flask import jsonify, request
-from app_paths import ROOT, data_dir, installed, kokoro_assets, kokoro_runtime, microphone_speech_model, voice_models_dir
+from app_paths import ROOT, data_dir, installed, kokoro_assets, kokoro_runtime, microphone_speech_model, microphone_whisper_models, voice_models_dir
 
 MODELS = {
     'kokoro-v1.0.onnx': (325532387, '7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5'),
@@ -70,8 +70,8 @@ class VoiceDownloads:
              'Voces naturales sin enviar texto a Internet.', installed()),
             ('rvc', 'Conversión de voz RVC', [data_dir() / 'rvc'],
              'Motor aislado y caché para modelos de personaje.', True),
-            ('captions', 'Subtítulos locales', [microphone_speech_model()],
-             'Reconocimiento de micrófono en español.', False),
+            ('captions', 'Subtítulos locales', [microphone_speech_model(), microphone_whisper_models()],
+             'Modelos locales Vosk y Whisper; se preparan desde Subtítulos.', False),
             ('models', 'Modelos de voz personales', [voice_models_dir()],
              'Pesos e índices añadidos por el usuario.', False),
         ]

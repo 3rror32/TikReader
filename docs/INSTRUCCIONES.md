@@ -185,11 +185,19 @@ escribir `RESTABLECER PUNTOS`.
 En **Producción → Juegos → Minecraft** configura RCON de Minecraft Java. En
 `server.properties` habilita `enable-rcon=true`, asigna `rcon.password` y revisa
 `rcon.port` (normalmente 25575). TikReader acepta únicamente localhost o una IP
-privada. Guarda alias con el formato `alias = comando`, autoriza la conexión y
-prueba un alias. La contraseña permanece solo en memoria y se borra al reiniciar.
+privada. Usa **Guardar y conectar** en Conexión Java. Guarda alias con el formato
+`alias = comando` en Opciones avanzadas y vuelve a conectar antes de probar un alias. La contraseña permanece solo en memoria y se borra al reiniciar.
 Después crea una regla en Interactividad con la acción **Comando autorizado de
 Minecraft** y usa como valor el alias. Los comandos admiten `{user}`, `{gift}` y
 `{count}`; la emergencia cancela las acciones pendientes.
+
+Para **Bedrock (mundo local)**, abre Minecraft para Windows en el mismo equipo,
+activa trucos y desactiva **Require Encrypted Websockets** para la conexión local.
+Pulsa **Preparar conexión** y pega el comando recién generado en el chat del mundo.
+TikReader comprobará la conexión automáticamente: espera a que aparezca **Conectado**
+antes de probar efectos. No hay una casilla de autorización. Si la comprobación
+falla, pulsa **Desconectar**, prepara otra conexión y usa el nuevo comando; el
+anterior deja de servir. Desconecta también antes de cambiar de mundo.
 
 ## Historial y el programa de streaming
 
@@ -632,3 +640,14 @@ Pulsa **Guardar desactivada**, revisa la lista y después **Activar para LIVE**,
 Agrega `http://localhost:5000/widget/alerts` como fuente Navegador de 1080 × 1920 en tu programa de streaming. El bloque **Preparación de la transmisión** distingue la conexión al LIVE, la recepción de la fuente y las alertas activadas. **Enviar prueba a la transmisión** verifica el recorrido completo y sólo funciona cuando la fuente está abierta. La fuente no reproduce eventos antiguos al abrirla. Las alertas se encolan con hasta 10 pendientes; las que llevan más de 30 segundos esperando se descartan.
 
 Verificación sin tocar la configuración real: `python tools/qa_studio.py` abre un entorno temporal en `http://127.0.0.1:5001`, con un juego y un regalo ficticios y un receptor de teclas simulado. Ciérralo con Ctrl+C. Para comprobar la recepción de regalos reales y la compatibilidad física del juego sí hace falta la prueba final durante un LIVE.
+
+
+## Subtítulos locales: Vosk y Whisper
+
+En **Subtítulos → Motor de reconocimiento** elige **Vosk** (ligero, incluido) o **Whisper**. Whisper reconoce el español con un modelo multilingüe, sin API, clave, cuenta ni pagos por uso. Todo el audio se procesa en tu equipo y no se guarda. El reconocimiento del navegador y la mejora de texto externa están desactivados; las credenciales antiguas se conservan sin usarse.
+
+Para empezar con Whisper, selecciona **Small · recomendado** y pulsa **Descargar modelo**. Solo esta preparación necesita internet; el micrófono nunca descarga automáticamente. Después puedes usarlo sin conexión. **Base** consume menos recursos; **Medium** y **Turbo** consumen más memoria y pueden tardar en CPU. Esta versión utiliza CPU con cuantización int8. La precisión y el retraso dependen del equipo, la voz y el micrófono; los subtítulos Whisper aparecen al terminar una frase o después de unos ocho segundos de habla continua.
+
+Los modelos se guardan en la carpeta de datos, bajo `speech/whisper`. Si aparece que falta el motor, actualiza TikReader o, desde el código fuente, instala `requirements.txt` en el mismo entorno de Python que ejecuta la aplicación. Si falta el modelo, usa el botón de descarga. Una descarga incompleta puede repetirse. Cambiar de motor o modelo detiene y reinicia la captura; no se reutiliza audio pendiente del motor anterior.
+
+La vista previa y el overlay conservan las palabras que no cambian entre resultados provisionales y finales. Solo las palabras nuevas reciben animación, y se respeta la preferencia del sistema de reducir movimiento. Usa **Repetir animación** para reproducirla deliberadamente.

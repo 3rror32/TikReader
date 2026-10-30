@@ -36,6 +36,12 @@
             <span class="mic-caption-language-tag" id="mic-caption-language-tag">Español (México)</span>
             <span><strong id="mic-caption-language-engine">Motor local incluido</strong><small id="mic-caption-language-detail">La variante regional identifica tus subtítulos; las opciones en español comparten el mismo motor local.</small></span>
           </div>
+          <div class="mic-caption-local-model">
+            <label>Motor de reconocimiento<select id="mic-caption-engine"><option value="vosk">Vosk · ligero</option><option value="whisper">Whisper · mayor precisión</option></select></label>
+            <label id="mic-caption-model-label">Modelo Whisper<select id="mic-caption-model"><option value="base">Base · rápido</option><option value="small">Small · recomendado</option><option value="medium">Medium · más recursos</option><option value="turbo">Turbo · más recursos</option></select></label>
+            <button id="mic-caption-download-model" type="button" hidden>Descargar modelo</button>
+            <small id="mic-caption-model-note">Todo se procesa en este equipo. Whisper usa CPU; los modelos grandes pueden retrasar los subtítulos. La descarga inicial requiere internet, sin cuenta ni clave.</small>
+          </div>
           <p class="mic-caption-permission" id="mic-caption-permission">Comprobando el motor local de subtítulos…</p>
           <div class="mic-caption-meter" id="mic-caption-meter" role="meter" aria-label="Nivel del micrófono" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <div class="mic-caption-meter-bars" aria-hidden="true">
@@ -93,7 +99,7 @@
           <span><i aria-hidden="true"></i><small>SALIDA</small><strong>Overlay</strong></span>
         </div>
         <form id="mic-caption-form">
-          <section class="mic-caption-ai-settings" aria-labelledby="mic-caption-ai-title">
+          <section class="mic-caption-ai-settings" aria-labelledby="mic-caption-ai-title" hidden inert>
             <div class="mic-caption-ai-heading">
               <div><span class="mic-caption-ai-mark" aria-hidden="true">AI</span><span><strong id="mic-caption-ai-title">Mejorar con IA externa</strong><small>Corrige puntuación y legibilidad al terminar cada frase.</small></span></div>
               <label class="mic-caption-switch" aria-label="Usar modelo de IA externo">
@@ -238,14 +244,14 @@
   window.OperatorViewRegistry.register(section.dataset.section,section);
 
   const $ = id => document.getElementById(id);
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const Recognition = null; // Browser speech services may send audio away; local capture only.
   const LocalAudioContext = window.AudioContext || window.webkitAudioContext;
   const localAudioSupported = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && LocalAudioContext);
   const isDesktopApp = Boolean(
     (window.qt && window.qt.webChannelTransport) || /QtWebEngine/i.test(navigator.userAgent || '')
   );
-  const useLocalRecognition = Boolean(localAudioSupported && (isDesktopApp || !Recognition));
-  const recognitionSupported = Boolean(useLocalRecognition || Recognition);
+  const useLocalRecognition = localAudioSupported;
+  const recognitionSupported = localAudioSupported;
   const status = $('mic-caption-state');
   const startButton = $('mic-caption-start');
   const startLabel = $('mic-caption-start-label');
@@ -287,6 +293,12 @@
   let restartTimer = 0;
   let interimTimer = 0;
   let lastInterim = '';
+  let audioGeneration = null;
+  let captureEpoch = 0;
+  let localAudioError = false;
+  let localSending = false;
+  let localDrainRequested = false;
+  let selectionChanging = false;
   let localEngineReady = !useLocalRecognition;
   let localStream = null;
   let localContext = null;
@@ -297,6 +309,9 @@
   let localSamples = 0;
   let localSendChain = Promise.resolve();
   let localStopping = false;
+  let localStopPromise = null;
+  let microphoneSwitch = 0;
+  let disconnectedMicrophoneIntent = false;
   let engineCheckId = 0;
   let smoothedMeterLevel = 0;
   let previewWordTimer = 0;
@@ -315,14 +330,6 @@
 
   urlCode.textContent = overlayUrl;
   $('mic-caption-open').href = overlayUrl;
-  if (useLocalRecognition) {
-    const english = $('mic-caption-language').querySelector('option[value="en-US"]');
-    if (english) {
-      english.disabled = true;
-      english.textContent = 'English — requiere reconocimiento del navegador';
-    }
-  }
-
   function recognitionLanguage() {
     const value = settings && settings.language;
     return ['es-MX', 'es-US', 'es-ES', 'en-US'].includes(value) ? value : 'es-MX';
@@ -331,32 +338,14 @@
   function selectedLanguageDetails() {
     const language = recognitionLanguage();
     const info = languageInfo[language] || languageInfo['es-MX'];
-    if (useLocalRecognition) {
-      const supported = language.startsWith('es-');
-      return {
-        ...info,
-        language,
-        supported,
-        engine: supported ? 'Motor local incluido' : 'Requiere reconocimiento del navegador',
-        detail: supported
-          ? 'La variante regional identifica tus subtítulos; las opciones en español comparten el mismo motor local.'
-          : 'El motor incluido solo reconoce español. Abre TikReader en un navegador compatible para reconocer inglés.',
-        heading: supported
-          ? `Tu voz se reconoce en ${info.label} con el motor local incluido. El audio no sale de TikReader ni se guarda.`
-          : `${info.label} no está disponible con el motor local incluido. El audio nunca se guarda.`,
-        help: supported
-          ? 'Se procesa en este equipo. Las variantes de español usan el mismo modelo local.'
-          : 'No disponible en la aplicación de escritorio con el motor incluido.'
-      };
-    }
+    const whisper = settings?.engine === 'whisper';
+    const supported = whisper || language.startsWith('es-');
     return {
-      ...info,
-      language,
-      supported: true,
-      engine: 'Servicio de voz del navegador',
-      detail: 'El idioma seleccionado cambia el servicio que interpreta tu voz y puede requerir conexión a Internet.',
-      heading: `Tu voz se reconoce en ${info.label} mediante el servicio del navegador. TikReader no guarda el audio ni la transcripción.`,
-      help: 'El navegador usa este idioma para interpretar pronunciación y vocabulario.'
+      ...info, language, supported,
+      engine: whisper ? `Whisper · ${settings.whisper_model || 'small'}` : 'Vosk · ligero',
+      detail: 'La variante regional identifica tus subtítulos; las opciones en español comparten el mismo motor local.',
+      heading: 'Tu voz se reconoce en este equipo. El audio no sale de TikReader ni se guarda.',
+      help: supported ? 'Reconocimiento local, sin clave ni API.' : 'Selecciona Whisper para inglés o usa español con Vosk.'
     };
   }
 
@@ -423,7 +412,7 @@
   }
 
   function localEndpoint(parameters = {}) {
-    const query = new URLSearchParams({language: recognitionLanguage(), ...parameters});
+    const query = new URLSearchParams({language: recognitionLanguage(), ...(audioGeneration === null ? {} : {generation: String(audioGeneration)}), ...parameters});
     return `/microphone-captions/audio?${query}`;
   }
 
@@ -512,14 +501,20 @@
   }
 
   function renderPreviewWords(words, animateFrom = words.length) {
-    previewText.replaceChildren();
-    let wordIndex = 0;
+    const keep = Math.min(animateFrom, commonPrefixLength(previewWords, words));
+    // Retain matching tokens and their spaces so running animations keep their nodes.
+    let keepNodes = 0;
+    for (let index = 0; index < keep; index += 1) {
+      keepNodes += words[index] === '\n' ? 1 : (index && words[index - 1] !== '\n' ? 2 : 1);
+    }
+    while (previewText.childNodes.length > keepNodes) previewText.removeChild(previewText.lastChild);
+    let wordIndex = words.slice(0, keep).filter(word => word !== '\n').length;
     const animateWordFrom = words.slice(0, animateFrom).filter(word => word !== '\n').length;
-    words.forEach((word, index) => {
-      if (word === '\n') {
-        previewText.append(document.createElement('br'));
-        return;
-      }
+    const count = Math.max(1, words.length - animateFrom - 1);
+    const stagger = Math.min(70, Math.max(0, ((Number(settings?.duration) || 5) * 1000 - 800) / count));
+    words.slice(keep).forEach((word, offset) => {
+      const index = keep + offset;
+      if (word === '\n') { previewText.append(document.createElement('br')); return; }
       if (index && words[index - 1] !== '\n') previewText.append(document.createTextNode(' '));
       const span = document.createElement('span');
       span.className = 'mic-caption-word';
@@ -527,7 +522,7 @@
       span.style.setProperty('--word-length', String(Math.max(1, Array.from(word).length)));
       if (wordIndex >= animateWordFrom && (preview.dataset.animation || 'fade') !== 'none') {
         span.classList.add('caption-word-animate');
-        span.style.setProperty('--word-delay', `${(wordIndex - animateWordFrom) * 70}ms`);
+        span.style.setProperty('--word-delay', `${(wordIndex - animateWordFrom) * stagger}ms`);
       }
       previewText.append(span);
       wordIndex += 1;
@@ -554,7 +549,7 @@
     renderPreviewWords(previewTokens(value), 0);
   }
 
-  function showPreview(text, interim = false, sequence = false) {
+  function showPreview(text, interim = false, sequence = false, newUtterance = false) {
     const value = (text || '').trim();
     stopPreviewWords();
     preview.dataset.captionValue = value;
@@ -576,14 +571,15 @@
       playNextPreviewWord();
       return;
     }
-    const startsNewPhrase = previewWords.length && !previewWasInterim;
-    const animateFrom = startsNewPhrase ? 0 : commonPrefixLength(previewWords, words);
+    const animateFrom = newUtterance && !previewWasInterim ? 0 : commonPrefixLength(previewWords, words);
     renderPreviewWords(words, animateFrom);
     previewWasInterim = interim;
   }
 
   function readSettings() {
     return {
+      engine: $('mic-caption-engine').value,
+      whisper_model: $('mic-caption-model').value,
       language: $('mic-caption-language').value,
       position: $('mic-caption-position').value,
       font_size: Number($('mic-caption-size').value),
@@ -599,7 +595,7 @@
       noise_suppression: $('mic-caption-noise-suppression').checked,
       echo_cancellation: $('mic-caption-echo-cancellation').checked,
       auto_gain_control: $('mic-caption-auto-gain').checked,
-      ai_enabled: aiEnabled.checked,
+      ai_enabled: settings?.ai_enabled === true,
       ai_mode: aiMode.value,
       ai_target_language: aiTargetLanguage.value,
       ai_endpoint: $('mic-caption-ai-endpoint').value.trim(),
@@ -624,6 +620,9 @@
 
   function applySettings(next, options = {}) {
     settings = {...next, language: ['es-MX', 'es-US', 'es-ES', 'en-US'].includes(next.language) ? next.language : 'es-MX'};
+    $('mic-caption-engine').value = settings.engine || 'vosk';
+    $('mic-caption-model').value = settings.whisper_model || 'small';
+    $('mic-caption-model-label').hidden = settings.engine !== 'whisper';
     $('mic-caption-language').value = settings.language;
     $('mic-caption-position').value = next.position;
     $('mic-caption-size').value = next.font_size;
@@ -696,31 +695,13 @@
   }
 
   async function refineCaption(text) {
-    if (!settings?.ai_enabled) return text;
-    const requestId = ++aiRefineId;
-    previewMode.textContent = 'MEJORANDO CON IA…';
-    try {
-      const response = await fetch('/microphone-captions/ai/refine', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({text})
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'No se pudo mejorar el texto');
-      if (requestId !== aiRefineId) return '';
-      aiStatus.textContent = 'Modelo conectado · última frase mejorada.';
-      return payload.text || text;
-    } catch (error) {
-      if (requestId !== aiRefineId) return '';
-      aiStatus.textContent = `${error.message}. Se mostró la transcripción original.`;
-      return text;
-    }
+    return text;
   }
 
   async function sendTranscript(text, interim) {
     const clean = text.trim();
     if (!clean) return;
-    showPreview(clean, interim);
+    showPreview(clean, interim, false, true);
     if (interim) {
       lastInterim = clean;
       clearTimeout(interimTimer);
@@ -737,7 +718,7 @@
   }
 
   function syncButtons() {
-    const available = recognitionSupported && (!useLocalRecognition || localEngineReady);
+    const available = !selectionChanging && recognitionSupported && (!useLocalRecognition || localEngineReady);
     startButton.disabled = !available;
     startButton.classList.toggle('is-active', desired);
     startButton.setAttribute('aria-pressed', String(desired));
@@ -762,33 +743,66 @@
 
   function handleLocalResult(payload) {
     if (payload && payload.text) {
-      showPreview(payload.text, payload.interim);
-      if (!payload.interim && payload.final) sendTranscript(payload.text, false);
+      showPreview(payload.text, payload.interim, false, true);
+      // The local server already publishes this result; do not publish a duplicate final.
     }
   }
 
   function sendLocalAudio(force = false) {
-    if (!localSamples || (!force && localSamples < 8000)) return;
-    const batch = new Int16Array(localSamples);
-    let offset = 0;
-    for (const chunk of localPcm) { batch.set(chunk, offset); offset += chunk.length; }
-    localPcm = [];
-    localSamples = 0;
-    localSendChain = localSendChain.then(async () => {
-      const response = await fetch(localEndpoint(), {
-        method: 'POST',
-        headers: {'Content-Type': 'audio/pcm'},
-        body: batch.buffer
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'No se pudo reconocer la voz');
-      handleLocalResult(payload);
-    }).catch(error => {
+    if (force) localDrainRequested = true;
+    // Retain at most 16.384 seconds of PCM behind one request. Each request stays
+    // within the server's 262144-byte limit; ordinary CPU inference can take seconds.
+    if (localSamples > 262144 && !localStopping) {
       desired = false;
+      const message = 'El modelo no alcanza el ritmo del micrófono. Se conservará el audio pendiente; elige un modelo más pequeño.';
+      setStatus('error', message);
+      permission.textContent = message;
+      // Stop input, then deliver all retained speech in order and finalize it.
+      stopLocalRecognition().finally(() => setStatus('error', message));
+      return;
+    }
+    if (localSending || !localSamples || (!localDrainRequested && localSamples < 8000)) return;
+    const epoch = captureEpoch;
+    const endpoint = localEndpoint();
+    localSending = true;
+    localSendChain = (async () => {
+      while (epoch === captureEpoch && localSamples && (localDrainRequested || localSamples >= 8000)) {
+        const count = Math.min(localSamples, 131072);
+        const batch = new Int16Array(count);
+        let offset = 0;
+        while (offset < count) {
+          const chunk = localPcm[0];
+          const used = Math.min(chunk.length, count - offset);
+          batch.set(chunk.subarray(0, used), offset);
+          if (used === chunk.length) localPcm.shift();
+          else localPcm[0] = chunk.slice(used);
+          offset += used;
+        }
+        localSamples -= count;
+        const response = await fetch(endpoint, {
+          method: 'POST', headers: {'Content-Type': 'audio/pcm'}, body: batch.buffer
+        });
+        const payload = await response.json();
+        if (epoch !== captureEpoch) return;
+        if (!response.ok) throw new Error(payload.error || 'No se pudo reconocer la voz');
+        handleLocalResult(payload);
+      }
+    })().catch(error => {
+      if (epoch !== captureEpoch) return;
+      desired = false;
+      localAudioError = true;
+      captureEpoch += 1;
+      localPcm = [];
+      localSamples = 0;
+      teardownLocalAudio();
+      running = false;
       setStatus('error', error.message);
-      permission.textContent = 'No se pudo iniciar el reconocimiento de voz.';
+      permission.textContent = 'No se pudo continuar el reconocimiento de voz. Vuelve a activar el micrófono.';
       syncButtons();
-      setTimeout(() => stopLocalRecognition(false), 0);
+      setTimeout(() => stopLocalRecognition(true), 0);
+    }).finally(() => {
+      localSending = false;
+      localDrainRequested = false;
     });
   }
 
@@ -802,55 +816,81 @@
     setMeterLevel(null);
   }
 
-  async function stopLocalRecognition(preserveIntent = false) {
-    if (localStopping) return;
+  function stopLocalRecognition(preserveIntent = false) {
+    if (localStopping) return localStopPromise;
     localStopping = true;
+    const epoch = captureEpoch;
     teardownLocalAudio();
     if (preserveIntent) {
+      captureEpoch += 1;
       localPcm = [];
       localSamples = 0;
     } else {
       sendLocalAudio(true);
     }
-    try {
+    localStopPromise = (async () => { try {
       await localSendChain;
       if (preserveIntent) {
-        await fetch(localEndpoint(), {method: 'DELETE'});
-      } else {
+        const reset = await fetch(localEndpoint(), {method: 'DELETE'});
+        const state = await reset.json();
+        audioGeneration = state.generation;
+      } else if (epoch === captureEpoch && !localAudioError) {
         const response = await fetch(localEndpoint({final: '1'}), {method: 'POST'});
         const payload = await response.json();
-        if (response.ok) {
+        if (epoch === captureEpoch) {
+          if (!response.ok) throw new Error(payload.error || 'No se pudo finalizar el subtítulo');
           handleLocalResult(payload);
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      localAudioError = true;
+      setStatus('error', error.message);
+      permission.textContent = 'No se pudo finalizar el reconocimiento de voz. Vuelve a activar el micrófono.';
+    }
     running = false;
     if (!preserveIntent) {
       desired = false;
-      showReadyState();
+      if (!localAudioError) showReadyState();
     }
     update({listening: false}).catch(() => {});
     localStopping = false;
     syncButtons();
+    })();
+    return localStopPromise;
   }
 
   async function beginLocalRecognition() {
+    if (!desired) return;
     if (localStopping) {
-      restartTimer = setTimeout(beginLocalRecognition, 250);
+      restartTimer = setTimeout(beginRecognition, 250);
       return;
     }
+    disconnectedMicrophoneIntent = false;
+    const epoch = ++captureEpoch;
+    const deviceId = document.getElementById('vr-device')?.value || '';
     try {
       const engineResponse = await fetch(localEndpoint(), {method: 'DELETE'});
       const engine = await engineResponse.json();
+      if (!desired || epoch !== captureEpoch) return;
+      audioGeneration = engine.generation;
+      localAudioError = false;
+      localDrainRequested = false;
       if (!engine.available) throw new Error('El motor local de subtítulos no está listo');
-      localStream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, ...audioProcessingConstraints()}});
+      const stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1, ...audioProcessingConstraints(), ...(deviceId ? {deviceId:{exact:deviceId}} : {})}});
+      if (!desired || epoch !== captureEpoch) {
+        for (const track of stream.getTracks()) track.stop();
+        return;
+      }
+      localStream = stream;
       localContext = new LocalAudioContext();
       if (localContext.state === 'suspended') await localContext.resume();
+      if (!desired || epoch !== captureEpoch) return;
       localSource = localContext.createMediaStreamSource(localStream);
       localProcessor = localContext.createScriptProcessor(4096, 1, 1);
       localSilence = localContext.createGain();
       localSilence.gain.value = 0;
       localProcessor.onaudioprocess = event => {
+        if (!desired || localStopping || epoch !== captureEpoch) return;
         const samples = event.inputBuffer.getChannelData(0);
         setMeterLevel(samples);
         const chunk = pcm16(samples, localContext.sampleRate);
@@ -864,6 +904,7 @@
       for (const track of localStream.getAudioTracks()) {
         track.addEventListener('ended', () => {
           if (!running || localStopping) return;
+          disconnectedMicrophoneIntent = desired;
           desired = false;
           running = false;
           teardownLocalAudio();
@@ -879,6 +920,7 @@
       update({listening: true}).catch(() => {});
       syncButtons();
     } catch (error) {
+      if (epoch !== captureEpoch) return;
       teardownLocalAudio();
       desired = false;
       setStatus('error', 'No se pudo iniciar el micrófono');
@@ -889,6 +931,11 @@
 
   function stopRecognition(preserveIntent = false) {
     clearTimeout(restartTimer);
+    if (!preserveIntent) {
+      disconnectedMicrophoneIntent = false;
+      microphoneSwitch += 1;
+      if (!localStream || localStopping) captureEpoch += 1;
+    }
     if (localStream || localStopping) {
       if (!preserveIntent) desired = false;
       stopLocalRecognition(preserveIntent);
@@ -994,6 +1041,24 @@
     beginRecognition();
   });
 
+  async function microphoneSelectionChanged() {
+    if (!desired && !running && !disconnectedMicrophoneIntent) return;
+    if (disconnectedMicrophoneIntent) desired = true;
+    disconnectedMicrophoneIntent = false;
+    const change = ++microphoneSwitch;
+    clearTimeout(restartTimer);
+    captureEpoch += 1;
+    localPcm = [];
+    localSamples = 0;
+    running = false;
+    setStatus('waiting', 'Cambiando micrófono…');
+    permission.textContent = 'Aplicando el micrófono seleccionado en Configuración → Audio.';
+    syncButtons();
+    await stopLocalRecognition(true);
+    if (change === microphoneSwitch && desired) beginRecognition();
+  }
+  document.getElementById('vr-device')?.addEventListener('change', microphoneSelectionChanged);
+
   duration.addEventListener('input', () => {
     durationOutput.value = `${duration.value} s`;
     durationOutput.textContent = `${duration.value} s`;
@@ -1023,6 +1088,39 @@
         processingStatus.textContent = 'El dispositivo no pudo aplicar este cambio';
       }
     });
+  });
+  async function changeLocalModel() {
+    if (selectionChanging) return;
+    selectionChanging = true;
+    const resume = desired;
+    desired = false;
+    startButton.disabled = true;
+    const next = {engine: $('mic-caption-engine').value, whisper_model: $('mic-caption-model').value};
+    try {
+      await stopLocalRecognition(true);
+      const state = await update({settings: next});
+      applySettings(state.settings);
+      await loadEngineStatus();
+      desired = resume && localEngineReady;
+      if (desired) await beginLocalRecognition();
+    } catch (error) { setStatus('error', error.message); }
+    finally { selectionChanging = false; syncButtons(); }
+  }
+  $('mic-caption-engine').addEventListener('change', changeLocalModel);
+  $('mic-caption-model').addEventListener('change', changeLocalModel);
+  $('mic-caption-download-model').addEventListener('click', async () => {
+    const button = $('mic-caption-download-model');
+    button.disabled = true;
+    try {
+      const response = await fetch('/microphone-captions/models/download', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({model: $('mic-caption-model').value})
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'No se pudo iniciar la descarga');
+      await loadEngineStatus();
+    } catch (error) { permission.textContent = error.message; }
+    finally { button.disabled = false; }
   });
   form.addEventListener('input', event => {
     const previousLanguage = recognitionLanguage();
@@ -1055,9 +1153,6 @@
     event.preventDefault();
     const output = $('mic-caption-save-status');
     try {
-      const aiState = await aiRequest(aiConnectionPayload());
-      aiKeyConfigured = Boolean(aiState.ai_key_configured);
-      $('mic-caption-ai-key').value = '';
       const state = await update({settings: readSettings()});
       applySettings(state.settings);
       output.textContent = 'Cambios guardados.';
@@ -1123,7 +1218,13 @@
     }
   });
   window.addEventListener('pagehide', () => {
+    disconnectedMicrophoneIntent = false;
     if (!desired) return;
+    desired = false;
+    microphoneSwitch += 1;
+    captureEpoch += 1;
+    clearTimeout(restartTimer);
+    teardownLocalAudio();
     const body = JSON.stringify({listening: false});
     navigator.sendBeacon('/microphone-captions/state', new Blob([body], {type: 'application/json'}));
   });
@@ -1154,11 +1255,17 @@
       const engine = await response.json();
       if (checkId !== engineCheckId || language !== recognitionLanguage()) return;
       localEngineReady = Boolean(response.ok && engine.available);
+      const download = $('mic-caption-download-model');
+      const downloading = engine.preparation?.status === 'downloading';
+      download.hidden = settings.engine !== 'whisper' || engine.model_ready;
+      download.disabled = downloading || !engine.package_ready;
+      download.textContent = downloading ? 'Descargando modelo…' : 'Descargar modelo';
+      if (downloading) setTimeout(loadEngineStatus, 2000);
       if (localEngineReady) {
         showReadyState(`${info.label} listo`);
       } else {
         setStatus('error', `${info.label} no disponible`);
-        permission.textContent = engine.error || (engine.model_ready ? 'Falta instalar el motor de subtítulos.' : 'Falta el modelo local de español.');
+        permission.textContent = engine.preparation?.error || engine.error || (engine.model_ready ? 'Falta instalar el motor de subtítulos.' : 'Falta el modelo local de español.');
       }
     } catch (_) {
       if (checkId !== engineCheckId || language !== recognitionLanguage()) return;

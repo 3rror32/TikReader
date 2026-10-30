@@ -17,21 +17,31 @@
   }
 
   function revealSentence(value, animation, interim, replay = false, newUtterance = false) {
-    const words = value.split(/\s+/).filter(Boolean);
-    const newPhrase = renderedWords.length && !renderedInterim && (interim || newUtterance);
-    const animateFrom = replay || newPhrase ? 0 : commonPrefixLength(renderedWords, words);
-    text.replaceChildren();
+    const words = String(value).split(/\r?\n/).flatMap((line, index) => {
+      const tokens = line.split(/\s+/).filter(Boolean);
+      return index ? ['\n', ...tokens] : tokens;
+    });
+    // Finalization extends the current utterance; a later utterance starts afresh.
+    const animateFrom = replay || (newUtterance && !renderedInterim) ? 0 : commonPrefixLength(renderedWords, words);
+    let keepNodes = 0;
+    for (let index = 0; index < animateFrom; index += 1) {
+      keepNodes += words[index] === '\n' ? 1 : (index && words[index - 1] !== '\n' ? 2 : 1);
+    }
+    while (text.childNodes.length > keepNodes) text.removeChild(text.lastChild);
     text.classList.toggle('is-interim', interim);
     text.classList.toggle('is-visible', Boolean(value));
-    words.forEach((word, index) => {
-      if (index) text.append(document.createTextNode(' '));
+    const stagger = Math.min(70, Math.max(0, ((Number(stage.dataset.duration) || 5) * 1000 - 800) / Math.max(1, words.length - animateFrom - 1)));
+    words.slice(animateFrom).forEach((word, offset) => {
+      const index = animateFrom + offset;
+      if (word === '\n') { text.append(document.createElement('br')); return; }
+      if (index && words[index - 1] !== '\n') text.append(document.createTextNode(' '));
       const span = document.createElement('span');
       span.className = 'microphone-caption-word';
       span.textContent = word;
       span.style.setProperty('--word-length', String(Math.max(1, Array.from(word).length)));
-      if (index >= animateFrom && animation !== 'none') {
+      if (animation !== 'none') {
         span.classList.add('is-new');
-        span.style.setProperty('--word-delay', `${(index - animateFrom) * 70}ms`);
+        span.style.setProperty('--word-delay', `${offset * stagger}ms`);
       }
       text.append(span);
     });
@@ -58,6 +68,7 @@
     stage.dataset.position = settings.position || 'bottom';
     stage.dataset.font = settings.font_family || 'system';
     stage.dataset.animation = settings.animation || 'fade';
+    stage.dataset.duration = String(Math.max(.8, Number(state.visible_until) * 1 - Date.now() / 1000 || Number(settings.duration) || 5));
     document.documentElement.style.setProperty('--caption-color', settings.text_color || '#ffffff');
     document.documentElement.style.setProperty('--caption-background', settings.background || '#101925');
     document.documentElement.style.setProperty('--caption-size', `${Number(settings.font_size) || 48}px`);

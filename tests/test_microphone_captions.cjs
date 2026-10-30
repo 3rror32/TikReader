@@ -8,7 +8,7 @@ const widgetCss = fs.readFileSync('web/static/microphone_caption_widget.css', 'u
 const shell = fs.readFileSync('web/static/shell.js', 'utf8');
 const sidebar = fs.readFileSync('web/static/sidebar.js', 'utf8');
 
-assert.match(controls, /SpeechRecognition \|\| window\.webkitSpeechRecognition/);
+assert.match(controls, /const Recognition = null/);
 assert.match(controls, /no guarda el audio ni añade la transcripción al historial/);
 assert.match(controls, /Activar micrófono/);
 assert.match(controls, /Detener micrófono/);
@@ -40,7 +40,7 @@ assert.match(controls, /mic-caption-noise-suppression/);
 assert.match(controls, /mic-caption-echo-cancellation/);
 assert.match(controls, /mic-caption-auto-gain/);
 assert.match(controls, /audioProcessingConstraints\(source = settings \|\| \{\}\)/);
-assert.match(controls, /getUserMedia\(\{audio:\{channelCount:1, \.\.\.audioProcessingConstraints\(\)\}\}\)/);
+assert.match(controls, /getUserMedia\(\{audio:\{channelCount:1, \.\.\.audioProcessingConstraints\(\), \.\.\.\(deviceId \? \{deviceId:\{exact:deviceId\}\} : \{\}\)\}\}\)/);
 assert.match(controls, /track\.applyConstraints\(audioProcessingConstraints\(next\)\)/);
 assert.match(controls, /update\(\{settings: next\}\)/);
 assert.match(controls, /settings = \{\.\.\.settings, \.\.\.audioProcessingSettings\(state\.settings\)\}/);
@@ -107,6 +107,9 @@ assert.match(controls, /aiFields\.hidden = !enabled/);
   const previewRendererSource = controls.slice(start, end);
   const previewText = {
     children: [],
+    get childNodes() { return this.children; },
+    get lastChild() { return this.children.at(-1); },
+    removeChild(node) { this.children.splice(this.children.indexOf(node), 1); },
     replaceChildren(...nodes) { this.children = nodes; },
     append(node) { this.children.push(node); },
   };
@@ -118,7 +121,7 @@ assert.match(controls, /aiFields\.hidden = !enabled/);
     }),
   };
   const renderPreviewWords = new Function('previewText', 'preview', 'document',
-    `let previewWords = []; ${previewRendererSource}; return renderPreviewWords;`)(
+    `let previewWords = []; const settings = {duration: 5}; const window = {}; const commonPrefixLength = (a,b) => {let n=0; while(n<a.length&&a[n]===b[n])n++;return n;}; ${previewRendererSource}; return renderPreviewWords;`)(
     previewText, {dataset: {animation: 'none'}}, document);
   renderPreviewWords(['Original:', 'Hola', '\n', 'Translation:', 'Hello'], 0);
   assert.deepEqual(
@@ -131,7 +134,7 @@ assert.match(controls, /aiFields\.hidden = !enabled/);
     'preview should use the newline-aware tokenization');
 }
 assert.match(controls, /Probar conexión/);
-assert.match(controls, /\/microphone-captions\/ai\/refine/);
+assert.doesNotMatch(controls, /fetch\('\/microphone-captions\/ai\/refine'/);
 assert.match(controls, /Clave protegida/);
 assert.match(controlsCss, /mic-caption-signal-path/);
 assert.match(controlsCss, /mic-caption-header-controls/);
@@ -142,8 +145,8 @@ assert.match(controls, /const checkId = \+\+engineCheckId;[\s\S]*checkId !== eng
 assert.doesNotMatch(controls, /PALABRA EN VIVO/);
 assert.match(widgetCss, /data-animation="typewriter"[\s\S]*microphone-caption-word\.is-new/);
 assert.match(controlsCss, /mic-caption-meter\[data-signal="high"\]/);
-assert.match(controlsCss, /prefers-reduced-motion[\s\S]*data-animation="bounce"[\s\S]*animation: mic-caption-preview-bounce[^;]+!important/);
-assert.match(widgetCss, /prefers-reduced-motion[\s\S]*data-animation="bounce"[\s\S]*animation: microphone-caption-bounce[^;]+!important/);
+assert.doesNotMatch(controlsCss, /prefers-reduced-motion[\s\S]*animation: none !important/);
+assert.doesNotMatch(widgetCss, /prefers-reduced-motion[\s\S]*animation: none !important/);
 assert.match(shell, /"Subtítulos"[\s\S]*"microphone-captions"/);
 assert.match(sidebar, /basicDestinations[\s\S]*'microphone-captions'/);
 
@@ -164,6 +167,9 @@ assert.match(sidebar, /basicDestinations[\s\S]*'microphone-captions'/);
     children: [], dataset: {}, classList: new ClassList(),
     style: {setProperty() {}},
     append(node) { this.children.push(node); },
+    get childNodes() { return this.children; },
+    get lastChild() { return this.children.at(-1); },
+    removeChild(node) { this.children.splice(this.children.indexOf(node), 1); },
     replaceChildren(...nodes) { this.children = nodes; },
   });
   const stage = makeElement();
@@ -196,13 +202,13 @@ assert.match(sidebar, /basicDestinations[\s\S]*'microphone-captions'/);
   assert.equal(scheduled.length, 0, 'provisional text must not start the visible timer');
 
   renderWidget({revision: 2, text: 'Esto es', interim: true, visible_until: 0, settings});
-  assert.equal(text.children[0].classList.contains('is-new'), false);
+  assert.equal(text.children[0].classList.contains('is-new'), true);
   assert.equal(text.children[2].textContent, 'es');
   assert.equal(text.children[2].classList.contains('is-new'), true);
 
   renderWidget({revision: 3, text: 'Esto es', interim: false, visible_until: Date.now() / 1000 + 5, settings});
-  assert.equal(text.children[0].classList.contains('is-new'), false);
-  assert.equal(text.children[2].classList.contains('is-new'), false);
+  assert.equal(text.children[0].classList.contains('is-new'), true);
+  assert.equal(text.children[2].classList.contains('is-new'), true);
   assert.equal(scheduled.length, 1, 'the visible timer starts after the final phrase');
 }
 

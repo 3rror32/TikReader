@@ -55,6 +55,29 @@ def validate_widget_settings(data, panel=None):
         if key in data and type(data[key]) is not bool:
             raise ValueError("Opción inválida")
         result[key] = data.get(key, result[key]) is True
+    if panel == "webcam-frame":
+        result['frame_style'] = str(data.get('frame_style', result['frame_style']))
+        if result['frame_style'] not in ('glow', 'double', 'corners'):
+            raise ValueError("Diseño de marco inválido")
+        result['frame_width'] = max(1, min(20, int(data.get('frame_width', result['frame_width']))))
+        for label in ('primary', 'secondary'):
+            prefix = 'label_' + label + '_'
+            result[prefix + 'text'] = str(data.get(prefix + 'text', result[prefix + 'text']))[:60]
+            visible = data.get(prefix + 'visible', result[prefix + 'visible'])
+            if type(visible) is not bool:
+                raise ValueError("Visibilidad de etiqueta inválida")
+            result[prefix + 'visible'] = visible
+            position = str(data.get(prefix + 'position', result[prefix + 'position']))
+            if position not in ('top-left', 'top-right', 'bottom-left', 'bottom-right', 'custom'):
+                raise ValueError("Posición de etiqueta inválida")
+            result[prefix + 'position'] = position
+            for axis in ('x', 'y'):
+                result[prefix + axis] = max(0, min(100, int(data.get(prefix + axis, result[prefix + axis]))))
+            for suffix in ('color', 'background'):
+                color = str(data.get(prefix + suffix, result[prefix + suffix]))
+                if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+                    raise ValueError("Color de etiqueta inválido")
+                result[prefix + suffix] = color.lower()
     if panel == "timer":
         title = str(data.get("timer_title", result["timer_title"])).strip()
         result["timer_title"] = title[:40] or "TIEMPO RESTANTE"

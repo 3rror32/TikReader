@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 from flask import jsonify, render_template, request
 from app_paths import microphone_speech_model
+from local_caption_engine import MODELS, ModelPreparation, WhisperCaptionEngine, model_path, model_ready, package_ready
 
 
 AI_DEFAULT_INSTRUCTION = (
@@ -23,6 +24,8 @@ AI_MODE_INSTRUCTIONS = {
 
 
 DEFAULTS = {
+    'engine': 'vosk',
+    'whisper_model': 'small',
     'language': 'es-MX',
     'duration': 5,
     'position': 'bottom',
@@ -64,6 +67,11 @@ def validate_settings(data, current=None):
         raise ValueError('Configuración inválida')
     out = {**DEFAULTS, **(current or {})}
     current = current or {}
+    for key, choices in (('engine', {'vosk', 'whisper'}), ('whisper_model', MODELS)):
+        if key in data:
+            if data[key] not in choices:
+                raise ValueError('Motor o modelo de subtítulos inválido')
+            out[key] = data[key]
     if 'language' in data:
         value = str(data['language'])
         if value not in LANGUAGES:
@@ -167,6 +175,9 @@ class MicrophoneCaptions:
         self.recognizer = None
         self.recognizer_language = None
         self.engine_error = ''
+        self.whisper = None
+        self.preparation = ModelPreparation()
+        self.audio_generation = 0
         self.register(app)
 
     def ai_key(self):
@@ -190,75 +201,29 @@ class MicrophoneCaptions:
             raise ValueError('La clave API es demasiado larga')
         store.save('caption_ai', {'api_key': value})
 
-    def external_model_url(self, endpoint):
-        endpoint = str(endpoint or '').rstrip('/')
-        return endpoint if endpoint.endswith('/chat/completions') else endpoint + '/chat/completions'
-
     def call_external_model(self, text, config=None, api_key=None, test=False):
-        import httpx
-        config = validate_settings(config or {}, self.settings)
-        model = config.get('ai_model', '').strip()
-        if not model:
-            raise ValueError('Indica el nombre del modelo')
-        if test:
-            source = 'Responde únicamente con la palabra OK.'
-        elif config['ai_mode'] == 'translate':
-            language = {'en': 'inglés', 'es': 'español'}[config['ai_target_language']]
-            source = f'Traduce fielmente el subtítulo al {language}. Devuelve únicamente la traducción y no añadas información.'
-        elif config['ai_mode'] == 'bilingual':
-            language = {'en': 'inglés', 'es': 'español'}[config['ai_target_language']]
-            source = (
-                f'Devuelve dos líneas compactas: Original: [texto original] y Traducción ({language}): [traducción]. '
-                'Conserva el significado y no añadas información.'
-            )
-        elif config['ai_mode'] == 'custom':
-            source = config['ai_instruction']
-        else:
-            source = AI_MODE_INSTRUCTIONS[config['ai_mode']]
-        content = 'Prueba de conexión' if test else str(text or '').strip()[:300]
-        headers = {'Content-Type': 'application/json'}
-        api_key = self.ai_key() if api_key is None else str(api_key or '').strip()
-        if api_key:
-            headers['Authorization'] = f'Bearer {api_key}'
-        body = {
-            'model': model,
-            'messages': [
-                {'role': 'system', 'content': source},
-                {'role': 'user', 'content': content},
-            ],
-            'temperature': 0,
-            'max_tokens': 12 if test else 180,
-        }
-        try:
-            response = httpx.post(
-                self.external_model_url(config['ai_endpoint']), json=body, headers=headers,
-                timeout=httpx.Timeout(10), follow_redirects=False,
-            )
-        except httpx.RequestError as exc:
-            raise RuntimeError('No se pudo contactar al modelo externo') from exc
-        if response.status_code < 200 or response.status_code >= 300:
-            raise RuntimeError(f'El proveedor rechazó la conexión ({response.status_code})')
-        try:
-            result = response.json()['choices'][0]['message']['content']
-        except (ValueError, KeyError, IndexError, TypeError) as exc:
-            raise RuntimeError('El proveedor respondió con un formato no compatible') from exc
-        if config['ai_mode'] == 'bilingual' and not test:
-            result = '\n'.join(' '.join(line.split()) for line in str(result or '').splitlines() if line.strip())[:300]
-        else:
-            result = ' '.join(str(result or '').split())[:300]
-        if not result:
-            raise RuntimeError('El modelo no devolvió texto')
-        return result
+        raise RuntimeError('Los subtítulos son completamente locales. El procesamiento externo está desactivado.')
 
     def engine_status(self, language=None):
         language = language or self.settings['language']
-        package_ready = importlib.util.find_spec('vosk') is not None
-        model_ready = (self.model_path / 'am' / 'final.mdl').is_file()
+        if self.settings['engine'] == 'whisper':
+            ready = model_ready(model_path(self.settings['whisper_model']))
+            installed = package_ready()
+            return {
+                'available': installed and ready, 'package_ready': installed,
+                'model_ready': ready, 'language_ready': language in LANGUAGES,
+                'language': language, 'model_language': language.split('-')[0],
+                'engine': 'whisper', 'model': self.settings['whisper_model'],
+                'preparation': self.preparation.snapshot(),
+                'error': '' if installed and ready else ('Descarga el modelo seleccionado para usarlo sin internet.' if installed else 'Falta faster-whisper. Actualiza TikReader o instala sus dependencias.'),
+            }
+        package_ready_vosk = importlib.util.find_spec('vosk') is not None
+        vosk_ready = (self.model_path / 'am' / 'final.mdl').is_file()
         language_ready = language in LANGUAGES and language.startswith('es-')
         return {
-            'available': package_ready and model_ready and language_ready,
-            'package_ready': package_ready,
-            'model_ready': model_ready,
+            'available': package_ready_vosk and vosk_ready and language_ready,
+            'package_ready': package_ready_vosk,
+            'model_ready': vosk_ready,
             'language_ready': language_ready,
             'language': language,
             'model_language': 'es',
@@ -293,6 +258,11 @@ class MicrophoneCaptions:
             raise RuntimeError(self.engine_error) from exc
 
     def reset_recognizer(self, forget_language=False):
+        self.audio_generation += 1
+        if self.whisper is not None:
+            self.whisper.reset()
+        if forget_language:
+            self.whisper = None
         if self.recognizer is not None:
             try:
                 self.recognizer.Reset()
@@ -300,6 +270,7 @@ class MicrophoneCaptions:
                 self.recognizer = None
                 self.recognizer_language = None
         if forget_language:
+            self.recognizer = None
             self.recognizer_language = None
 
     def apply_transcript(self, text, interim):
@@ -322,6 +293,16 @@ class MicrophoneCaptions:
         self.emit()
 
     def accept_audio(self, pcm, finish=False, language=None):
+        if len(pcm) % 2:
+            raise RuntimeError('Audio PCM16 inválido')
+        if self.settings['engine'] == 'whisper':
+            if self.whisper is None:
+                name = self.settings['whisper_model']
+                self.whisper = WhisperCaptionEngine(model_path(name), name, (language or self.settings['language']).split('-')[0])
+            result = self.whisper.accept(pcm, finish=finish)
+            if result['text']:
+                self.apply_transcript(result['text'], False)
+            return result
         recognizer = self.ensure_recognizer(language)
         if finish:
             payload = json.loads(recognizer.FinalResult())
@@ -388,7 +369,7 @@ class MicrophoneCaptions:
         def microphone_caption_state():
             with self.lock:
                 if request.method == 'DELETE':
-                    self.reset_recognizer()
+                    self.reset_recognizer(forget_language=True)
                     self.text = self.interim = ''
                     self.listening = False
                     self.visible_until = 0
@@ -402,9 +383,9 @@ class MicrophoneCaptions:
                         return jsonify(error='Datos inválidos'), 400
                     try:
                         if 'settings' in data:
-                            previous_language = self.settings['language']
+                            previous_engine = tuple(self.settings[key] for key in ('language', 'engine', 'whisper_model'))
                             self.settings = validate_settings(data['settings'], self.settings)
-                            if self.settings['language'] != previous_language:
+                            if tuple(self.settings[key] for key in ('language', 'engine', 'whisper_model')) != previous_engine:
                                 self.reset_recognizer(forget_language=True)
                             archive = getattr(self.r, 'archive', None)
                             if archive:
@@ -436,6 +417,15 @@ class MicrophoneCaptions:
                     return jsonify(error='Idioma no compatible'), 400
                 return jsonify(self.engine_status(language))
 
+        @app.post('/microphone-captions/models/download')
+        def microphone_caption_download():
+            data = request.get_json(silent=True) or {}
+            try:
+                self.preparation.start(data.get('model', self.settings['whisper_model']))
+                return jsonify(self.preparation.snapshot()), 202
+            except (ValueError, RuntimeError) as exc:
+                return jsonify(error=str(exc)), 400
+
         @app.route('/microphone-captions/audio', methods=['POST', 'DELETE'])
         def microphone_caption_audio():
             with self.lock:
@@ -443,9 +433,12 @@ class MicrophoneCaptions:
                 if language not in LANGUAGES:
                     return jsonify(error='Idioma no compatible'), 400
                 if request.method == 'DELETE':
-                    self.reset_recognizer()
+                    self.reset_recognizer(forget_language=True)
                     self.interim = ''
-                    return jsonify(ok=True, **self.engine_status(language))
+                    return jsonify(ok=True, generation=self.audio_generation, **self.engine_status(language))
+                generation = request.args.get('generation')
+                if generation is not None and generation != str(self.audio_generation):
+                    return jsonify(error='La sesión de audio cambió; vuelve a activar el micrófono.'), 409
                 if request.content_length and request.content_length > 262144:
                     return jsonify(error='Fragmento de audio demasiado grande'), 413
                 pcm = request.get_data(cache=False)
@@ -508,26 +501,7 @@ class MicrophoneCaptions:
 
         @app.post('/microphone-captions/ai/refine')
         def microphone_caption_ai_refine():
-            production = getattr(self.r, 'production', None)
-            local_check = getattr(production, 'local', None)
-            if callable(local_check) and not local_check():
-                return jsonify(error='Solo disponible desde este equipo'), 403
-            data = request.get_json(silent=True)
-            text = str(data.get('text') or '').strip() if isinstance(data, dict) else ''
-            if not text or len(text) > 300:
-                return jsonify(error='Texto inválido'), 400
-            with self.lock:
-                if not self.settings.get('ai_enabled'):
-                    return jsonify(error='El modelo externo no está activado'), 409
-                config = dict(self.settings)
-                api_key = self.ai_key()
-            try:
-                refined = self.call_external_model(text, config, api_key)
-            except ValueError as exc:
-                return jsonify(error=str(exc)), 400
-            except RuntimeError as exc:
-                return jsonify(error=str(exc)), 503
-            return jsonify(ok=True, text=refined)
+            return jsonify(error='Los subtítulos son completamente locales. El procesamiento externo está desactivado.'), 409
 
         @app.get('/broadcast/microphone-captions')
         def microphone_caption_broadcast():

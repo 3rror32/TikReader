@@ -114,52 +114,38 @@ class MicrophoneCaptionTests(unittest.TestCase):
         self.assertEqual(updated['ai_mode'], 'translate')
         self.assertEqual(updated['ai_target_language'], 'es')
 
-    def test_ai_mode_prompts_are_selected_without_changing_provider_shape(self):
-        class Response:
-            status_code = 200
+    def test_external_processing_is_refused_without_network(self):
+        with self.assertRaisesRegex(RuntimeError, 'locales'):
+            self.captions.call_external_model('Hola', {'ai_model': 'legacy'})
+        with patch.object(self.captions, 'call_external_model') as external:
+            response = self.client.post('/microphone-captions/ai/refine', json={'text': 'hola'})
+        self.assertEqual(response.status_code, 409)
+        external.assert_not_called()
 
-            @staticmethod
-            def json():
-                return {'choices': [{'message': {'content': 'Original: Hello world\nTraducción (español): Hola mundo'}}]}
+    def test_whisper_selection_is_saved_without_loading_or_download(self):
+        with patch('microphone_captions.WhisperCaptionEngine') as engine, patch.object(self.captions.preparation, 'start') as download:
+            response = self.client.post('/microphone-captions/state', json={'settings': {'engine': 'whisper', 'whisper_model': 'base'}})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['settings']['whisper_model'], 'base')
+        engine.assert_not_called()
+        download.assert_not_called()
 
-        class FakeHttpx:
-            RequestError = type('RequestError', (Exception,), {})
+    def test_stale_audio_generation_is_rejected(self):
+        session = self.client.delete('/microphone-captions/audio').json['generation']
+        self.client.delete('/microphone-captions/audio')
+        with patch.object(self.captions, 'accept_audio') as accept:
+            response = self.client.post('/microphone-captions/audio?generation=' + str(session), data=b'\x00\x00')
+        self.assertEqual(response.status_code, 409)
+        accept.assert_not_called()
 
-            @staticmethod
-            def Timeout(_):
-                return None
-
-            def __init__(self):
-                self.calls = []
-
-            def post(self, *args, **kwargs):
-                self.calls.append((args, kwargs))
-                return Response()
-
-        httpx = FakeHttpx()
-        prompts = {
-            'correct': 'Corrige puntuación, mayúsculas y errores evidentes sin cambiar el sentido ni añadir información. Devuelve únicamente el subtítulo corregido.',
-            'translate': 'Traduce fielmente el subtítulo al español. Devuelve únicamente la traducción y no añadas información.',
-            'bilingual': 'Devuelve dos líneas compactas: Original: [texto original] y Traducción (español): [traducción]. Conserva el significado y no añadas información.',
-            'simplify': 'Reescribe el subtítulo con palabras más sencillas y de forma más breve, sin cambiar el sentido ni añadir información. Devuelve únicamente el texto simplificado.',
-            'custom': 'Usa mi instrucción personalizada.',
-        }
-        with patch.dict('sys.modules', {'httpx': httpx}):
-            for mode, expected in prompts.items():
-                with self.subTest(mode=mode):
-                    config = validate_settings({
-                        'ai_model': 'caption-model',
-                        'ai_mode': mode,
-                        'ai_target_language': 'es',
-                        'ai_instruction': 'Usa mi instrucción personalizada.',
-                    })
-                    result = self.captions.call_external_model('Hello world', config, api_key='key')
-                    body = httpx.calls[-1][1]['json']
-                    self.assertEqual(set(body), {'model', 'messages', 'temperature', 'max_tokens'})
-                    self.assertEqual(body['messages'][0]['content'], expected)
-                    self.assertEqual(body['messages'][1], {'role': 'user', 'content': 'Hello world'})
-                    if mode == 'bilingual':
-                        self.assertEqual(result, 'Original: Hello world\nTraducción (español): Hola mundo')
+    def test_whisper_status_separates_missing_package_and_missing_model(self):
+        self.captions.settings['engine'] = 'whisper'
+        with patch('microphone_captions.package_ready', return_value=True), patch('microphone_captions.model_ready', return_value=False):
+            status = self.client.get('/microphone-captions/engine').json
+        self.assertFalse(status['available'])
+        self.assertTrue(status['package_ready'])
+        self.assertFalse(status['model_ready'])
+        self.assertIn('Descarga', status['error'])
 
     def test_ai_mode_and_target_language_save_load_and_stay_private(self):
         config = {
@@ -195,10 +181,9 @@ class MicrophoneCaptionTests(unittest.TestCase):
             'ai_instruction': 'Corrige la frase sin cambiar su sentido.',
             'api_key': 'private-caption-key',
         }
-        with patch.object(self.captions, 'call_external_model', return_value='OK') as external:
-            tested = self.client.post('/microphone-captions/ai', json={**config, 'test': True})
-        self.assertEqual(tested.status_code, 200)
-        external.assert_called_once()
+        tested = self.client.post('/microphone-captions/ai', json={**config, 'test': True})
+        self.assertEqual(tested.status_code, 503)
+        self.assertIn('locales', tested.json['error'])
 
         saved = self.client.post('/microphone-captions/ai', json=config)
         self.assertEqual(saved.status_code, 200)
@@ -208,7 +193,8 @@ class MicrophoneCaptionTests(unittest.TestCase):
 
         with patch.object(self.captions, 'call_external_model', return_value='Hola, mundo.'):
             refined = self.client.post('/microphone-captions/ai/refine', json={'text': 'hola mundo'})
-        self.assertEqual(refined.json['text'], 'Hola, mundo.')
+        self.assertEqual(refined.status_code, 409)
+        self.assertIn('locales', refined.json['error'])
 
         public = self.client.get('/broadcast/microphone-captions').json
         self.assertNotIn('ai_endpoint', public['settings'])
