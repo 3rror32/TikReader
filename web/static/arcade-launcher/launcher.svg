@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="96" viewBox="0 0 384 96" shape-rendering="crispEdges">
+  <view id="cradle" viewBox="0 0 128 96"/>
+  <view id="hub" viewBox="128 0 32 32"/>
+  <view id="aim" viewBox="192 0 32 72"/>
+  <!-- Fixed brass cradle: a stepped arch and a compact gift supply tray. -->
+  <g stroke-linejoin="miter">
+    <path fill="#38232b" d="M18 87V77h7V52h5V38h7V29h10V23h12V20h12v3h12v6h10v9h7v14h5v25h7v10h6v9H12v-9z"/>
+    <path fill="#ab581d" d="M27 86V76h5V51h5V38h7V31h12v-5h17v5h12v7h7v13h5v25h5v10H88V73h-5V45h-7v-7H54v7h-7v28h-5v13z"/>
+    <path fill="#e59a32" d="M31 75V50h5V37h8v-8h13v-5h15v5h13v8h8v13h5v25h-7V51h-5V40h-9v-6H53v6h-9v11h-5v24z"/>
+    <path fill="#ffe29a" d="M32 69V49h5V36h8v-7h12v-4h13v4H56v5H46v8h-5v11h-5v16zm46-38h7v7h7v12h-4V40h-6v-5h-4z"/>
+    <path fill="#613318" d="M42 72h6v9h8v5h18v-5h8v-9h6v18H42z"/>
+    <path fill="#e59a32" d="M46 76h6v7h26v-7h6v10h-6v4H52v-4h-6z"/>
+    <path fill="#613318" d="M20 85h89v8H20z"/>
+    <path fill="#e59a32" d="M15 89h100v5H15z"/>
+    <path fill="#ffe29a" d="M19 88h91v2H19z"/>
+    <path fill="#38232b" d="M16 66h26v4h5v16H11V70h5z"/>
+    <path fill="#ab581d" d="M16 72h26v11H16z"/>
+    <path fill="#e59a32" d="M13 69h31v5H13z"/>
+    <path fill="#ffe29a" d="M16 68h26v2H16z"/>
+    <path fill="#38232b" d="M19 70h20v2H19z"/>
+    <path fill="#5e3563" d="M56 86h18v5H56z"/>
+    <path fill="#b273a9" d="M58 86h14v1H58z"/>
+    <path fill="#ffe29a" d="M37 76h3v3h-3zm54 0h3v3h-3z"/>
+  </g>
+  <!-- Steel hub, centered on the same pivot as the needle and loaded gift. -->
+  <g transform="translate(128 0)">
+    <path fill="#263238" d="M10 0h12v2h5v3h3v5h2v12h-2v5h-3v3h-5v2H10v-2H5v-3H2v-5H0V10h2V5h3V2h5z"/>
+    <path fill="#67838b" d="M10 2h12v2h4v3h3v5h1v10h-3v5h-5v3H10v-2H6v-4H3V10h3V6h4z"/>
+    <path fill="#a8c3c9" d="M10 3h12v2h4v4H15v3H8v9H4V10h3V6h3z"/>
+    <path fill="#e0eff0" d="M10 4h10v3H10zM6 9h4v5H6z"/>
+    <path fill="#34464b" d="M13 8h10v3h3v10h-3v4H12v-3H8V12h5z"/>
+    <path fill="#131e25" d="M14 11h8v3h2v6h-3v3h-8v-3h-2v-6h3z"/>
+    <path fill="#53686e" d="M14 11h7v3h-7zm-3 4h3v5h-3z"/>
+    <path fill="#c4d9da" d="M8 25h5v3h9v-2h4v2h-4v2H11v-2H8z"/>
+  </g>
+  <!-- Slender brass pointer; pivot is (16,61) in this view. -->
+  <g transform="translate(192 0)">
+    <path fill="#613318" d="M14 0h4v5h2v7h3v8h-4v29h5v5h4v13h-5v5H9v-5H4V54h4v-5h5V20H9v-8h3V5h2z"/>
+    <path fill="#e59a32" d="M15 3h2v9h3v6h-4v34h6v4h3v9h-5v4h-9v-4H7v-9h4v-4h4V18h-3v-5h3z"/>
+    <path fill="#ffe29a" d="M15 5h2v11h-2zm0 16h2v29h-2zM10 56h10v3H10z"/>
+    <path fill="#613318" d="M13 58h7v6h-7z"/>
+    <path fill="#ffe29a" d="M11 66h9v2h-9z"/>
+  </g>
+</svg>

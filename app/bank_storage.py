@@ -10,6 +10,7 @@ CUSTOM_BANK_DEFAULTS = {
     'bank_position': {'x': 50.0, 'y': 50.0},
     'bank_scale': 100.0,
     'bank_scales': dict(DEFAULT_BANK_SCALES),
+    'bank_positions': {},
     'entry_point': {'x': 50.0, 'y': 16.0},
 }
 ASSET_ID = re.compile(r'[a-f0-9]{32}\.(?:png|jpg|webp)\Z')
@@ -55,6 +56,7 @@ def normalize_custom_bank_fields(value):
         'bank_position': dict(position) if _valid_pair(position) else dict(CUSTOM_BANK_DEFAULTS['bank_position']),
         'bank_scale': scales[selected],
         'bank_scales': scales,
+        'bank_positions': {bank: dict(pair) for bank, pair in value.get('bank_positions', {}).items() if bank in BANKS and _valid_pair(pair)} if isinstance(value.get('bank_positions'), dict) else {},
         'entry_point': dict(entry) if _valid_pair(entry) else dict(CUSTOM_BANK_DEFAULTS['entry_point']),
     }
 
@@ -76,6 +78,11 @@ def validate_custom_bank_fields(data, current):
             if not _number_in_range(scale, 25, 200):
                 raise ValueError('El tamaño de la alcancía debe estar entre 25% y 200%')
             scales[bank] = float(scale)
+    if 'bank_positions' in data:
+        positions = data['bank_positions']
+        if not isinstance(positions, dict) or any(bank not in BANKS or not _valid_pair(pair) for bank, pair in positions.items()):
+            raise ValueError('Usa posiciones de alcancía con X e Y entre 0 y 100')
+        result['bank_positions'].update({bank: {axis: float(pair[axis]) for axis in ('x', 'y')} for bank, pair in positions.items()})
     asset = data.get('custom_bank_asset', result['custom_bank_asset'])
     if asset is not None and not _valid_asset_id(asset):
         raise ValueError('Imagen de alcancía inválida')

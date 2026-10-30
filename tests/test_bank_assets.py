@@ -44,6 +44,12 @@ class BankAssetTests(unittest.TestCase):
             content_type='multipart/form-data',
         )
 
+    def test_delete_rejects_paths_and_tolerates_missing_assets(self):
+        store=self.app.extensions['point_drop_bank_assets']
+        for asset in ('../outside.png', '/tmp/image.png', 'invalid', None):
+            with self.subTest(asset=asset), self.assertRaises(ValueError):store.delete(asset)
+        store.delete('a'*32+'.png')
+
     def test_decoded_raster_formats_are_saved_with_opaque_ids_and_safe_headers(self):
         formats = (('PNG', 'png', 'image/png'), ('JPEG', 'jpg', 'image/jpeg'),
                    ('WEBP', 'webp', 'image/webp'))

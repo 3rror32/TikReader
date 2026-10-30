@@ -175,6 +175,21 @@ class InteractiveTests(unittest.TestCase):
         self.assertEqual(bad.status_code,400)
         self.assertEqual(self.i.overlay_games['drop']['bank'],'gato')
 
+    def test_builtin_image_transform_persists_after_configure_and_shape_reload(self):
+        original_archive = self.i.r.archive
+        saved = {}
+        self.i.r.archive = SimpleNamespace(settings=lambda: saved, set_setting=lambda key, value: saved.__setitem__(key, value))
+        self.addCleanup(setattr, self.i.r, 'archive', original_archive)
+        for action in ('configure', 'shape'):
+            response = self.client.post('/interactivity/overlays', json={
+                'game': 'drop', 'action': action, 'bank': 'pato', 'shape': None,
+                'bank_positions': {'pato': {'x': 28, 'y': 61}}, 'bank_scale': 145})
+            self.assertEqual(response.status_code, 200, response.get_json())
+            self.i.overlay_games['drop'].update(bank_positions={}, bank_scale=100)
+            self.i.restore_overlays()
+            self.assertEqual(self.i.overlay_games['drop']['bank_positions']['pato'], {'x': 28, 'y': 61})
+            self.assertEqual(self.i.overlay_games['drop']['bank_scale'], 145)
+
     def test_custom_bank_transform_is_validated_and_persisted(self):
         original_archive=self.i.r.archive
         saved_settings={}

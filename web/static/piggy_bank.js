@@ -3,10 +3,10 @@
   const models={
     cochito:{label:'Cochito',src:'/static/piggy-bank-glass.png',area:[0,0,0,100],slot:[44,16]},
     cochita:{label:'Cochita',src:'/static/banks/cochita.png?v=2',area:[0,0,0,100],slot:[40,23]},
-    pato:{label:'Pato',src:'/static/banks/pato.png',area:[0,0,0,100],slot:[46,40]},
-    oso:{label:'Oso',src:'/static/banks/oso.png',area:[0,0,0,100],slot:[54,41]},
-    perro:{label:'Perro',src:'/static/banks/perro.png',area:[0,0,0,100],slot:[53,41]},
-    gato:{label:'Gato',src:'/static/banks/gato.png',area:[0,0,0,100],slot:[55,41]},
+    pato:{label:'Pato',src:'/static/banks/pato.png?v=3',transparent:true,area:[0,0,0,100],slot:[60,6]},
+    oso:{label:'Oso',src:'/static/banks/oso.png?v=3',transparent:true,area:[0,0,0,100],slot:[50,9]},
+    perro:{label:'Perro',src:'/static/banks/perro.png?v=3',transparent:true,area:[0,0,0,100],slot:[52,5]},
+    gato:{label:'Gato',src:'/static/banks/gato.png?v=3',transparent:true,area:[0,0,0,100],slot:[55,12]},
     custom:{label:'Personalizada',src:'',area:[0,0,0,100],slot:[50,16]}
   };
   let customShapes={};
@@ -21,10 +21,11 @@
     const custom=key==='custom'&&assetId(options.custom_bank_asset);
     key=custom?'custom':Object.hasOwn(models,key)&&key!=='custom'?key:'cochito';
     const shape=shapeFor(key),revision=JSON.stringify(shape);
-    const position={x:percent(options.bank_position?.x,50),y:percent(options.bank_position?.y,50)};
+    const savedPosition=options.bank_positions?.[key]||(custom?(options.bank_position||{x:50,y:50}):null);
+    const position=savedPosition?{x:percent(savedPosition.x,50),y:percent(savedPosition.y,50)}:null;
     const entry={x:percent(options.entry_point?.x,shape.slot[0]),y:percent(options.entry_point?.y,shape.slot[1])};
     const scale=Number.isFinite(Number(options.bank_scale))&&Number(options.bank_scale)>=25&&Number(options.bank_scale)<=200?Number(options.bank_scale):100;
-    const customRevision=custom?JSON.stringify([options.custom_bank_asset,position,entry,scale]):'';
+    const customRevision=custom?JSON.stringify([options.custom_bank_asset,position,entry,scale]):JSON.stringify(position);
     if(pig.dataset.bank===key&&pig.dataset.shape===revision&&pig.dataset.bankScale===String(scale)&&pig.dataset.customRevision===customRevision)return;
     pig.dataset.shape=revision;
     pig.dataset.bank=key;pig.dataset.customRevision=customRevision;const model=models[key];
@@ -61,7 +62,8 @@
       customImage.style.display='none';selectedImage.style.removeProperty('display');
       ['left','top','bottom','width','aspect-ratio'].forEach(part=>pig.style.removeProperty(part));
       pig.dataset.bankScale=String(scale);
-      pig.style.setProperty('transform',`translateX(-50%) scale(${scale/100})`,'important');
+      if(position){pig.style.setProperty('left',`${position.x}%`,'important');pig.style.setProperty('top',`${position.y}%`,'important');pig.style.setProperty('bottom','auto','important');}
+      pig.style.setProperty('transform',position?`translate(-50%, -50%) scale(${scale/100})`:`translateX(-50%) scale(${scale/100})`,'important');
     }
     pig.querySelector('.piggy-fill').style.clipPath='polygon('+shape.points.map(p=>p.join('% ')+'%').join(',')+')';
     pig.classList.toggle('bank-variant',key!=='cochito');
@@ -86,6 +88,8 @@
       const source = new Image();
       source.onload = () => {
         try {
+          // Generated glass already carries alpha; preserve its native colors and edges.
+          if (model.transparent) { resolve(model.src); return; }
           const canvas = document.createElement('canvas');
           canvas.width = source.naturalWidth;
           canvas.height = source.naturalHeight;

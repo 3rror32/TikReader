@@ -34,14 +34,14 @@ test('built-in bank scale stays available and saves through the existing configu
   assert.equal(ui.requests.at(-1).bank_scale, 135);
 });
 
-test('switching bank hydration restores that model scale without enabling built-in placement', async () => {
+test('switching bank hydration restores that model scale with built-in placement controls', async () => {
   const ui = await makeEditor('cochito', {}, false, {
     bank: 'pato', bankScale: 142, bankScales: { cochito: 92, pato: 142, custom: 85 },
     bankPosition: { x: 50, y: 50 }, entryPoint: { x: 50, y: 16 }
   });
   const placement = ui.box.children.find(node => node.className === 'bank-editor-placement');
   assert.equal(Number(placement.children.at(-1).children[1].value), 142);
-  assert.equal(placement.children[0].hidden, true);
+  assert.equal(placement.children[0].hidden, false);
   ui.window.dispatchEvent({ type: 'point-drop-bank-hydrated', detail: {
     bank: 'cochito', bankScale: 92, bankScales: { cochito: 92, pato: 142, custom: 85 },
     bankPosition: { x: 50, y: 50 }, entryPoint: { x: 50, y: 16 }
@@ -52,8 +52,8 @@ test('switching bank hydration restores that model scale without enabling built-
 test('bank editor cleans up drag state when closed and on preview reload', () => {
   assert.match(editor, /function close\(\)/);
   assert.match(editor, /onpointercancel/);
-  assert.match(editor, /addEventListener\(['"]load['"],\s*close\)/);
-  assert.match(editor, /change['"],\s*close\)/);
+  assert.match(editor, /addEventListener\(['"]load['"],/);
+  assert.match(editor, /change['"],\s*cancel\)/);
 });
 
 class Style {
@@ -117,7 +117,7 @@ async function makeEditor(bank, initialDrop = {}, openEditor = true, initialHydr
   vm.runInContext(editor, context);
   const box = panel.children[0], open = findButton(box, 'Editar alcancía');
   if (openEditor) await open.onclick();
-  return { box, pig, slot, image, requests, context, window, fetch, stored: () => stored, prepared, open, listeners };
+  return { box, pig, slot, image, requests, context, window, frame, fetch, stored: () => stored, prepared, open, listeners };
 }
 
 test('bank editor actions are grouped, concise, and retain working handlers', async () => {
@@ -130,7 +130,7 @@ test('bank editor actions are grouped, concise, and retain working handlers', as
     'Editar alcancía', 'Añadir punto', 'Quitar punto', 'Guardar cavidad', 'Guardar cambios', 'Restaurar contorno', 'Cancelar',
   ]);
   assert.ok(actions.children.every(button => typeof button.onclick === 'function'));
-  const svg = ui.pig.children.at(-1), pointsBefore = svg.children.length;
+  const svg = ui.pig.children.find(n => n.tagName === 'svg'), pointsBefore = svg.children.length;
   await findButton(actions, 'Añadir punto').onclick();
   assert.equal(svg.children.length, pointsBefore + 1, 'the concise Add point button still runs its editor action');
 });
@@ -193,7 +193,7 @@ test('initial load normalizes the actual nested server response into shared edit
   vm.runInContext(functionSource(source, 'applyInitialBankState'), context);
   const response = { timer: {}, wheel: {}, drop: { bank: 'custom', custom_bank_asset: `${'1a2e'.repeat(8)}.png`, bank_position: { x: 36, y: 63 }, bank_scale: 86, entry_point: { x: 51, y: 16.5 }, shapes: { custom: { slot: [51, 16.5] } } } };
   context.applyInitialBankState(response);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.bankState)), { custom_bank_asset: `${'1a2e'.repeat(8)}.png`, bank_position: { x: 36, y: 63 }, bank_scale: 86, bank_scales: { cochito: 100, cochita: 100, pato: 100, oso: 100, perro: 100, gato: 100, custom: 86 }, entry_point: { x: 51, y: 16.5 } });
+  assert.deepEqual(JSON.parse(JSON.stringify(context.bankState)), { custom_bank_asset: `${'1a2e'.repeat(8)}.png`, bank_position: { x: 36, y: 63 }, bank_scale: 86, bank_scales: { cochito: 100, cochita: 100, pato: 100, oso: 100, perro: 100, gato: 100, custom: 86 }, bank_positions: {}, entry_point: { x: 51, y: 16.5 } });
   assert.equal(context.bankSelect.value, 'custom');
   assert.equal(context.window.PiggyBank.last.data.custom_bank_asset, `${'1a2e'.repeat(8)}.png`);
 });
@@ -215,10 +215,10 @@ test('real periodic sync hydrates placement, entry point, and asset from nested 
   vm.runInContext(context.hydrateBankState, context);
   vm.runInContext(functionSource(games, 'publishBankHydration'), context);
   await vm.runInContext(`${functionSource(games, 'syncGames')}; syncGames()`, context);
-  assert.deepEqual(JSON.parse(JSON.stringify(context.bankState)), { custom_bank_asset: `${'1a2e'.repeat(8)}.png`, bank_position: { x: 36, y: 63 }, bank_scale: 86, bank_scales: { cochito: 100, cochita: 100, pato: 100, oso: 100, perro: 100, gato: 100, custom: 86 }, entry_point: { x: 51, y: 16.5 } });
+  assert.deepEqual(JSON.parse(JSON.stringify(context.bankState)), { custom_bank_asset: `${'1a2e'.repeat(8)}.png`, bank_position: { x: 36, y: 63 }, bank_scale: 86, bank_scales: { cochito: 100, cochita: 100, pato: 100, oso: 100, perro: 100, gato: 100, custom: 86 }, bank_positions: {}, entry_point: { x: 51, y: 16.5 } });
   assert.equal(bankSelect.value, 'custom');
   assert.deepEqual(JSON.parse(JSON.stringify(context.window.PiggyBank.last.data.bank_position)), { x: 36, y: 63 });
-  assert.deepEqual(JSON.parse(JSON.stringify(context.window.lastHydration.detail)), { bank: 'custom', customBankAsset: `${'1a2e'.repeat(8)}.png`, bankPosition: { x: 36, y: 63 }, bankScale: 86, bankScales: { cochito: 100, cochita: 100, pato: 100, oso: 100, perro: 100, gato: 100, custom: 86 }, entryPoint: { x: 51, y: 16.5 } });
+  assert.deepEqual(JSON.parse(JSON.stringify(context.window.lastHydration.detail)), { bank: 'custom', customBankAsset: `${'1a2e'.repeat(8)}.png`, bankPosition: { x: 36, y: 63 }, bankScale: 86, bankScales: { cochito: 100, cochita: 100, pato: 100, oso: 100, perro: 100, gato: 100, custom: 86 }, bankPositions: {}, entryPoint: { x: 51, y: 16.5 } });
   assert.equal(context.total, 12);
 });
 
@@ -228,7 +228,7 @@ test('real editor keeps built-in transform intact through open and cancel', asyn
   await findButton(ui.box, 'Editar alcancía').onclick();
   const controls = ui.box.children.find(node => node.className === 'bank-editor-placement');
   assert.equal(controls.hidden, false);
-  assert.equal(controls.children[0].hidden, true);
+  assert.equal(controls.children[0].hidden, false);
   assert.equal(controls.children.at(-1).hidden, false);
   await findButton(ui.box, 'Cancelar').onclick();
   assert.deepEqual([ui.pig.style.getPropertyValue('left'), ui.pig.style.getPropertyValue('top'), ui.pig.style.getPropertyValue('transform'), ui.slot.style.getPropertyValue('left'), ui.slot.style.getPropertyValue('top')], before);
@@ -291,7 +291,7 @@ test('real editor cancel restores custom preview, and save synchronizes immediat
   await findButton(ui.box, 'Cancelar').onclick();
   assert.equal(ui.pig.style.getPropertyValue('left'), '22%');
   assert.equal(ui.slot.style.getPropertyValue('left'), '46%');
-  assert.equal(ui.image.captured, null);
+  assert.equal(ui.pig.captured, null);
 
   await findButton(ui.box, 'Editar alcancía').onclick();
   for (const [index, value] of [[0,24],[1,76],[2,125]]) { const input = placement.children[index].children[1]; input.value = value; input.oninput(); }
@@ -387,7 +387,7 @@ function makeDropSaveContext(overlayCall, onHydration = () => {}) {
     bankState: { custom_bank_asset: null, bank_position: { x: 50, y: 50 }, bank_scale: 200,
       bank_scales: { cochito: 100, cochita: 200, pato: 100, oso: 100, perro: 100, gato: 100, custom: 100 }, entry_point: { x: 50, y: 16 } },
     dropTitle: { value: 'Test' }, dropSpeed: { value: 4 }, dropSize: { value: 64 }, dropDensity: { value: 8 }, dropShow: { checked: true },
-    window: { PiggyBank: { models }, dispatchEvent(event) { published.push(event.detail); onHydration(event.detail); } },
+    window: { PiggyBank: { models }, dispatchEvent(event) { if(event.type==='point-drop-bank-hydrated'){published.push(event.detail); onHydration(event.detail);} } },
     CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init.detail; } },
     overlayCall,
   });
@@ -425,4 +425,124 @@ test('stale bank-save responses do not publish hydration to the editor', async (
   resolveSave({ drop: { bank: 'pato', bank_scale: 100, bank_scales: { pato: 100 }, bank_position: { x: 50, y: 50 }, entry_point: { x: 50, y: 16 }, density: 8 } });
   await pending;
   assert.deepEqual(published, []);
+});
+
+
+test('built-in image drag preserves its grab offset and saves per-model position', async () => {
+  const ui = await makeEditor('pato');
+  ui.pig.onpointerdown({ pointerId: 11, clientX: 20, clientY: 30, preventDefault() {} });
+  ui.pig.onpointermove({ pointerId: 11, clientX: 30, clientY: 45 });
+  ui.pig.onpointerup({ pointerId: 11 });
+  assert.equal(ui.pig.style.getPropertyValue('left'), '60%');
+  assert.equal(ui.pig.style.getPropertyValue('top'), '65%');
+  await findButton(ui.box, 'Guardar cambios').onclick();
+  assert.deepEqual(ui.requests.at(-1).bank_positions.pato, { x: 60, y: 65 });
+});
+
+test('corner resizing scales built-in and uploaded images proportionally and cancel restores', async () => {
+  for (const bank of ['pato', 'custom']) {
+    const ui = await makeEditor(bank);
+    const handle = ui.pig.children.find(n => n.attributes['aria-label'] === 'Redimensionar imagen');
+    assert.ok(handle);
+    handle.onpointerdown({ pointerId: 12, clientX: 100, clientY: 100, preventDefault() {}, stopPropagation() {} });
+    handle.onpointermove({ pointerId: 12, clientX: 125, clientY: 125 });
+    handle.onpointerup({ pointerId: 12 });
+    assert.ok(ui.pig.style.getPropertyValue('transform').includes('scale(1.5)'));
+    await findButton(ui.box, 'Cancelar').onclick();
+    assert.equal(ui.pig.style.getPropertyValue('transform'), 'translateX(-50%)');
+    assert.equal(ui.pig.onpointerdown, null);
+    assert.equal(ui.pig.children.includes(handle), false);
+  }
+});
+
+
+test('saved image position and size reopen while cancel discards the next draft', async () => {
+  const ui = await makeEditor('pato');
+  const fields = ui.box.children.find(n => n.className === 'bank-editor-placement').children;
+  for (const [i, value] of [[0, 27], [1, 64], [2, 140]]) { fields[i].children[1].value = value; fields[i].children[1].oninput(); }
+  await findButton(ui.box, 'Guardar cambios').onclick();
+  await ui.open.onclick();
+  assert.equal(ui.pig.style.getPropertyValue('left'), '27%');
+  assert.equal(ui.pig.style.getPropertyValue('top'), '64%');
+  assert.equal(ui.pig.style.getPropertyValue('transform'), 'translate(-50%, -50%) scale(1.4)');
+  fields[0].children[1].value = 88; fields[0].children[1].oninput();
+  await findButton(ui.box, 'Cancelar').onclick();
+  await ui.open.onclick();
+  assert.equal(ui.pig.style.getPropertyValue('left'), '27%');
+});
+
+
+test('position sliders work before editing and after cancel without losing model coordinates', async () => {
+  const ui = await makeEditor('pato', {}, false, { bank: 'pato', bankPositions: { pato: { x: 31, y: 68 } }, bankPosition: { x: 50, y: 50 }, bankScale: 100 });
+  const fields = ui.box.children.find(n => n.className === 'bank-editor-placement').children;
+  assert.equal(Number(fields[0].children[1].value), 31);
+  fields[0].children[1].value = 42;
+  assert.doesNotThrow(() => fields[0].children[1].oninput());
+  await findButton(ui.box, 'Guardar cambios').onclick();
+  assert.deepEqual(ui.requests.at(-1).bank_positions.pato, { x: 42, y: 68 });
+  await ui.open.onclick();
+  await findButton(ui.box, 'Cancelar').onclick();
+  fields[1].children[1].value = 73;
+  assert.doesNotThrow(() => fields[1].children[1].oninput());
+  await findButton(ui.box, 'Guardar cambios').onclick();
+  assert.deepEqual(ui.requests.at(-1).bank_positions.pato, { x: 42, y: 73 });
+});
+
+test('placement sliders update the iframe before Edit and preserve their draft into Edit', async () => {
+  for (const bank of ['pato', 'custom']) {
+    const ui = await makeEditor(bank, {}, false, {bank, bankScale:100, bankScales:{[bank]:100}, bankPosition:{x:50,y:50}});
+    const controls=ui.box.children.find(n=>n.className==='bank-editor-placement').children.map(n=>n.children[1]);
+    controls[0].value=31;controls[0].oninput();controls[1].value=62;controls[1].oninput();controls[2].value=125;controls[2].oninput();
+    assert.equal(ui.pig.style.getPropertyValue('left'),'31%');
+    assert.equal(ui.pig.style.getPropertyValue('top'),'62%');
+    assert.equal(ui.pig.style.getPropertyValue('transform'),'translate(-50%, -50%) scale(1.25)');
+    await ui.open.onclick();
+    assert.equal(Number(controls[0].value),31);
+    await findButton(ui.box,'Guardar cambios').onclick();
+    assert.equal(ui.requests.at(-1).bank_positions[bank].x,31);
+  }
+});
+
+
+test('placement cancel restores iframe and local state and reload reapplies pending placement',async()=>{
+ const ui=await makeEditor('custom',{},false,{bank:'custom',bankScale:100,bankPosition:{x:50,y:50}});
+ const inputs=ui.box.children.find(n=>n.className==='bank-editor-placement').children.map(n=>n.children[1]);
+ inputs[0].value=29;inputs[0].oninput();
+ ui.frame.listeners.load();
+ assert.equal(ui.pig.style.getPropertyValue('left'),'29%');
+ await findButton(ui.box,'Cancelar').onclick();
+ assert.equal(ui.pig.style.getPropertyValue('left'),'22%');
+ assert.equal(Number(inputs[0].value),50);
+});
+
+
+test('main configuration save becomes the cancel baseline for placement',async()=>{
+ const ui=await makeEditor('custom',{},false,{bank:'custom',bankScale:100,bankPosition:{x:50,y:50}});
+ const input=ui.box.children.find(n=>n.className==='bank-editor-placement').children[0].children[1];
+ input.value=29;input.oninput();ui.window.dispatchEvent({type:'point-drop-bank-saved',detail:{}});
+ input.value=41;input.oninput();await findButton(ui.box,'Cancelar').onclick();
+ assert.equal(ui.pig.style.getPropertyValue('left'),'29%');assert.equal(Number(input.value),29);
+});
+
+
+test('ordinary server polling preserves placement draft through the main save',async()=>{
+ const ui=await makeEditor('pato',{},false,{bank:'pato',bankScale:100,bankPosition:{x:50,y:50}});
+ let saved;
+ const {context}=makeDropSaveContext(async payload=>{if(payload){saved=payload;return {drop:{...payload,density:8}};}return {wheel:{},drop:{bank:'pato',bank_scale:100,bank_positions:{},score:17,size:64,events:[]}};});
+ Object.assign(context,{window:ui.window,document:{hidden:false,activeElement:null},wheel:{hidden:true},drop:{hidden:false},gamesBusy:false,spinning:true,dropActionBusy:false,piggy:ui.pig,total:0,score:{},sizePending:false,sizeSending:false,settledCoins:0,arena:{querySelectorAll:()=>[]},showDeposit(){},configNote:{}});
+ ui.window.PiggyBank.setShapes=()=>{};ui.window.PiggyBank.setSize=()=>{};
+ context.bankSelect.value='pato';
+ for(const name of ['acceptBankEditorState','syncGames'])vm.runInContext(functionSource(games,name),context);
+ ui.listeners['point-drop-bank-state']=event=>context.acceptBankEditorState(event.detail);
+ const inputs=ui.box.children.find(n=>n.className==='bank-editor-placement').children.map(n=>n.children[1]);
+ inputs[0].value=31;inputs[0].oninput();inputs[2].value=125;inputs[2].oninput();
+ await context.syncGames();
+ assert.equal(context.score.textContent,17,'donation accounting still refreshes during a draft');
+ await context.saveDrop();
+ assert.equal(saved.bank_positions.pato.x,31);assert.equal(saved.bank_scale,125);
+ assert.equal(ui.window.__pointDropBankDraft,false,'main save clears the polling guard');
+ inputs[0].value=39;inputs[0].oninput();assert.equal(ui.window.__pointDropBankDraft,true);
+ await findButton(ui.box,'Cancelar').onclick();assert.equal(ui.window.__pointDropBankDraft,false,'cancel clears the polling guard');
+ inputs[0].value=42;inputs[0].oninput();ui.context.document.getElementById('drop-bank-model').listeners.change();
+ assert.equal(ui.window.__pointDropBankDraft,false,'model change clears the polling guard');
 });

@@ -81,6 +81,13 @@ class BankAssetStore:
             return None
         return self.folder / asset_id
 
+    def delete(self, asset_id):
+        """Delete one validated opaque asset; missing files are already deleted."""
+        path = self.path_for(asset_id)
+        if path is None:
+            raise ValueError("Imagen personalizada inválida")
+        path.unlink(missing_ok=True)
+
 
 def register_routes(app):
     store = BankAssetStore(data_dir() / "custom_banks")

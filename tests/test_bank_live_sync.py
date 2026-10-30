@@ -32,6 +32,52 @@ def bank():
 
 
 class BankLiveSyncTests(unittest.TestCase):
+    def test_delete_custom_bank_preserves_donations_and_builtin_configuration(self):
+        from flask import Flask
+        from bank_assets import BankAssetStore
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as folder:
+            i=bank();i.running=False;i.remaining=0
+            i.overlay_games['wheel']={'spinning':False}
+            state=i.overlay_games['drop'];asset='a'*32+'.png'
+            state.update(bank='custom',custom_bank_asset=asset,score=17,contents=[{'id':1}],
+                         bank_scales={'pato':135,'custom':125},bank_positions={'pato':{'x':20,'y':30},'custom':{'x':31,'y':62}},
+                         shapes={'pato':{'slot':[50,10]},'custom':{'slot':[50,16]}})
+            app=Flask(__name__);store=BankAssetStore(Path(folder));app.extensions['point_drop_bank_assets']=store
+            store.path_for(asset).write_bytes(b'image');i.register(app);client=app.test_client()
+            stale=client.post('/interactivity/overlays',json={'game':'drop','action':'delete_custom_bank','expected_asset_id':'../outside'})
+            self.assertEqual(stale.status_code,400);self.assertTrue(store.path_for(asset).exists())
+            with patch.object(Path,'unlink',side_effect=PermissionError):
+                failed=client.post('/interactivity/overlays',json={'game':'drop','action':'delete_custom_bank','expected_asset_id':asset})
+            self.assertEqual(failed.status_code,500);self.assertEqual(state['custom_bank_asset'],asset)
+            response=client.post('/interactivity/overlays',json={'game':'drop','action':'delete_custom_bank','expected_asset_id':asset})
+            self.assertEqual(response.status_code,200,response.get_json());self.assertFalse(store.path_for(asset).exists())
+            self.assertEqual(state['bank'],'cochito');self.assertIsNone(state['custom_bank_asset'])
+            self.assertEqual((state['score'],state['contents'],state['epoch']),(17,[{'id':1}],'test'))
+            self.assertEqual(state['bank_positions'],{'pato':{'x':20,'y':30}})
+            self.assertEqual(state['bank_scales'],{'pato':135,'custom':100})
+            self.assertEqual(state['shapes'],{'pato':{'slot':[50,10]}})
+            saved=dict(i.r.archive.set_setting.call_args_list[-2].args[1]['drop'])
+            self.assertIsNone(saved['custom_bank_asset']);self.assertEqual(saved['bank'],'cochito')
+            state.update(bank='pato',bank_scale=135,custom_bank_asset=asset)
+            again=client.post('/interactivity/overlays',json={'game':'drop','action':'delete_custom_bank','expected_asset_id':asset})
+            self.assertEqual(again.status_code,200);self.assertEqual(state['bank'],'pato');self.assertEqual(state['bank_scale'],135)
+
+    def test_model_positions_validate_and_restore_independently(self):
+        current = {'bank': 'pato', 'bank_position': {'x': 20, 'y': 30}}
+        updated = bank_storage.validate_custom_bank_fields({'bank_positions': {'pato': {'x': 24, 'y': 65}}}, current)
+        restored = bank_storage.normalize_custom_bank_fields(updated)
+        self.assertEqual(restored['bank_positions'], {'pato': {'x': 24, 'y': 65}})
+        self.assertEqual(restored['bank_position'], {'x': 20, 'y': 30})
+        self.assertEqual(bank_storage.normalize_custom_bank_fields({})['bank_positions'], {})
+        for pair in ({'x': True, 'y': 50}, {'x': float('nan'), 'y': 50}, {'x': float('inf'), 'y': 50}, {'x': -1, 'y': 50}, {'x': 50, 'y': 101}):
+            with self.subTest(pair=pair), self.assertRaises(ValueError):
+                bank_storage.validate_custom_bank_fields({'bank_positions': {'pato': pair}}, current)
+        with self.assertRaises(ValueError):
+            bank_storage.validate_custom_bank_fields({'bank_positions': {'unknown': {'x': 50, 'y': 50}}}, current)
+
     def test_legacy_bank_scale_migrates_only_to_selected_bank_and_validates_ids(self):
         restored = bank_storage.normalize_custom_bank_fields({'bank': 'pato', 'bank_scale': 137})
         self.assertEqual(restored['bank_scale'], 137)

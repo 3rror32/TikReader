@@ -433,12 +433,30 @@ class Interactivity:
                         elif game=='wheel' and action=='finish':self.finish_wheel()
                         elif game=='drop' and action=='reset':
                             self.reset_live_session()
+                        elif game=='drop' and action=='delete_custom_bank':
+                            asset=state.get('custom_bank_asset')
+                            if 'expected_asset_id' in data and data['expected_asset_id']!=asset:
+                                raise ValueError('La imagen cambió. Actualiza la página antes de eliminarla')
+                            if asset:
+                                try:app.extensions['point_drop_bank_assets'].delete(asset)
+                                except OSError:return jsonify(error='No se pudo eliminar la imagen. Inténtalo de nuevo'),500
+                            selected=state.get('bank','cochito')
+                            if selected=='custom':selected='cochito'
+                            scales=dict(state.get('bank_scales',bank_storage.DEFAULT_BANK_SCALES));scales['custom']=100.0
+                            positions=dict(state.get('bank_positions',{}));positions.pop('custom',None)
+                            state.update(bank=selected,custom_bank_asset=None,bank_position={'x':50.0,'y':50.0},
+                                         entry_point={'x':50.0,'y':16.0},bank_scales=scales,
+                                         bank_scale=scales.get(selected,100.0),bank_positions=positions)
+                            state['shapes'].pop('custom',None)
+                            if self.r.archive:
+                                self.r.archive.set_setting('interactive_overlay_games',{name:{k:v for k,v in value.items() if k in ('options','duration','turns','title','show_result','speed','size','density','show_score','bank',*bank_storage.CUSTOM_BANK_DEFAULTS)} for name,value in self.overlay_games.items()})
+                            bank_storage.persist(self.r,state)
                         elif game=='drop' and action=='shape':
                             bank=data.get('bank')
                             if bank not in bank_storage.BANKS:raise ValueError('Alcancía desconocida')
                             shape=bank_storage.validate_shape(data['shape']) if data.get('shape') is not None else None
                             custom=None
-                            if bank=='custom' and any(key in data for key in bank_storage.CUSTOM_BANK_DEFAULTS):
+                            if any(key in data for key in bank_storage.CUSTOM_BANK_DEFAULTS):
                                 custom=bank_storage.validate_custom_bank_fields(data,state)
                             if custom:state.update(custom)
                             if shape is None:state['shapes'].pop(bank,None)

@@ -34,7 +34,7 @@ class FakeElement {
   }
 }
 
-function loadPiggyBank(reduced = false) {
+function loadPiggyBank(reduced = false, loadImages = false) {
   const fill = new FakeElement(200, 100); fill.selector = '.piggy-fill';
   const glass = new FakeElement(); glass.selector = '.piggy-glass';
   const customImage = new FakeElement(); customImage.selector = '.piggy-custom-image';
@@ -48,12 +48,33 @@ function loadPiggyBank(reduced = false) {
     performance: { now: () => 0 },
     localStorage: { setItem() {}, getItem() { return null; } },
     fetch: async () => ({ ok: true, json: async () => ({ gifts: [] }) }),
-    Image: class {},
+    Image: class { set src(value) { if (loadImages) this.onload(); } },
     Map, WeakMap, Set, Math, Date, Promise, Number, String, Object, JSON,
   };
   vm.runInNewContext(fs.readFileSync('web/static/piggy_bank.js', 'utf8'), context);
   return { PiggyBank: context.window.PiggyBank, pig, fill, glass, customImage, slot };
 }
+
+test('built-in bank entries align with the top hollow surface rather than the chest', () => {
+  const expected = { cochito: [44, 16], cochita: [40, 23], pato: [60, 6], oso: [50, 9], perro: [52, 5], gato: [55, 12] };
+  for (const [key, [x, y]] of Object.entries(expected)) {
+    const { PiggyBank, pig } = loadPiggyBank();
+    PiggyBank.prepare(pig, key);
+    assert.equal(pig.style['--bank-slot-x'], `${x}%`, `${key} horizontal entry`);
+    assert.equal(pig.style['--bank-slot-y'], `${y}%`, `${key} top entry`);
+  }
+});
+
+test('transparent animal artwork retains native alpha without black-matte conversion', async () => {
+  for (const key of ['pato', 'oso', 'perro', 'gato']) {
+    const { PiggyBank, pig, glass } = loadPiggyBank(false, true);
+    PiggyBank.prepare(pig, key);
+    await Promise.resolve();
+    assert.equal(glass.src, `/static/banks/${key}.png?v=3`);
+    assert.ok(glass.classes.has('is-ready'));
+    assert.equal(glass.style.mixBlendMode, undefined, 'native alpha needs no screen fallback');
+  }
+});
 
 test('custom bank uses its safe asset id, natural ratio, and one transformed coordinate space', () => {
   const { PiggyBank, pig, fill, glass, customImage, slot } = loadPiggyBank();
@@ -330,4 +351,22 @@ test('catalog fallback selects the gift ID, not a conflicting or similar name',a
  }
  const {requests}=await renderGift({gift_id:'99999',gift:'Rose'},gifts);
  assert.deepEqual(requests,[]);
+});
+
+
+test('position-only updates invalidate renderer cache and legacy placement stays unchanged', () => {
+  const { PiggyBank, pig } = loadPiggyBank();
+  PiggyBank.prepare(pig, 'pato', { bank_scale: 125 });
+  assert.equal(pig.style.top, undefined);
+  assert.equal(pig.style.transform, 'translateX(-50%) scale(1.25)');
+  PiggyBank.prepare(pig, 'pato', { bank_scale: 125, bank_positions: { pato: { x: 26, y: 67 } } });
+  assert.equal(pig.style.left, '26%');
+  assert.equal(pig.style.top, '67%');
+  PiggyBank.prepare(pig, 'pato', { bank_scale: 125, bank_positions: { pato: { x: 41, y: 52 } } });
+  assert.equal(pig.style.left, '41%');
+  assert.equal(pig.style.top, '52%');
+  assert.equal(pig.style.transform, 'translate(-50%, -50%) scale(1.25)');
+  PiggyBank.prepare(pig, 'oso', { bank_positions: { pato: { x: 41, y: 52 } } });
+  assert.equal(pig.style.top, undefined);
+  assert.equal(pig.style.left, undefined);
 });
