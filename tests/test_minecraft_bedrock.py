@@ -1,5 +1,6 @@
 import json
 import time
+import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
@@ -103,28 +104,35 @@ class BedrockTests(unittest.TestCase):
         self.assertFalse(self.bridge.snapshot()['prepared'])
         with self.assertRaises(OSError):self.peer()
 
-    def test_controller_authorizes_only_current_world_and_disconnect_revokes_idle_authority(self):
+    def test_controller_automatically_checks_current_world_and_disconnect_revokes_authority(self):
         from minecraft_connector import MinecraftConnector
         app=Flask(__name__)
         runtime=SimpleNamespace(archive=None,production=SimpleNamespace(local=lambda:True,settings={'emergency':False,'scene':'talk'}))
         connector=MinecraftConnector(app,runtime)
         connector.edition='bedrock';connector.config={'commands':{'probe':'list'}}
-        connector.bedrock=self.bridge;self.bridge.on_change=connector._bedrock_changed
-        with self.peer() as ws, ThreadPoolExecutor(1) as pool:
+        self.bridge.close();self.bridge=connector.bedrock
+        self.url=self.bridge.prepare().removeprefix('/wsserver ')
+        self.addCleanup(self.bridge.close)
+        with self.peer() as ws:
             self.wait_connected()
-            future=pool.submit(lambda:app.test_client().post('/minecraft/authorize',json={'edition':'bedrock','enabled':True}))
-            packet=json.loads(ws.recv(timeout=1));self.reply(ws,packet)
-            self.assertEqual(future.result(2).status_code,200)
+            packet=json.loads(ws.recv(timeout=1))
+            self.assertEqual(packet['body']['commandLine'],'list')
+            self.assertFalse(connector.authorized_now())
+            self.reply(ws,packet)
+            deadline=time.monotonic()+2
+            while not connector.authorized_now() and time.monotonic()<deadline:time.sleep(.005)
             self.assertTrue(connector.authorized_now());revision=connector.revision
             queued=('probe','list',time.monotonic(),None,revision)
         self.wait_connected(False)
         self.assertFalse(connector.authorized_now());self.assertGreater(connector.revision,revision)
-        with self.peer():
+        with self.peer() as ws:
             self.wait_connected();self.assertFalse(connector.enqueue('probe'))
+            packet=json.loads(ws.recv(timeout=1))
             with patch.object(self.bridge,'execute') as execute:
                 connector.run_job(queued)
             execute.assert_not_called()
             self.assertEqual(connector.log[0]['outcome'],'cancelled')
+            self.reply(ws,packet)
 
     def test_previous_generation_is_rejected_before_sending(self):
         with self.peer() as ws:
@@ -135,6 +143,68 @@ class BedrockTests(unittest.TestCase):
 
 
 class HandshakeTests(unittest.TestCase):
+    def controller(self):
+        from minecraft_connector import MinecraftConnector
+        app=Flask(__name__)
+        runtime=SimpleNamespace(archive=None,production=SimpleNamespace(local=lambda:True,settings={'emergency':False,'scene':'talk'}))
+        connector=MinecraftConnector(app,runtime)
+        self.addCleanup(connector.bedrock.close)
+        connector.edition='bedrock';connector.config={'commands':{}}
+        connector.bedrock.generation=7
+        return connector
+
+    def test_failed_connection_checks_do_not_enable_or_retry_commands(self):
+        for outcome in ('rejected','unconfirmed','timeout'):
+            with self.subTest(outcome=outcome):
+                connector=self.controller()
+                def execute(*args,**kwargs):
+                    if outcome=='timeout':raise TimeoutError()
+                    return {'outcome':outcome}
+                with patch.object(connector.bedrock,'snapshot',return_value={'connected':True}), \
+                     patch.object(connector.bedrock,'execute',side_effect=execute) as query:
+                    connector.bedrock.on_change()
+                    deadline=time.monotonic()+1
+                    while connector.connection_check=='checking' and time.monotonic()<deadline:time.sleep(.005)
+                    self.assertEqual(connector.connection_check,'failed')
+                    self.assertFalse(connector.authorized_now())
+                    for _ in range(3):connector.snapshot()
+                    query.assert_called_once_with('list',expected_generation=7)
+
+    def test_pending_check_cannot_authorize_changed_session_configuration_or_edition(self):
+        for change in ('disconnect','configuration','edition'):
+            with self.subTest(change=change):
+                connector=self.controller();started=threading.Event();release=threading.Event();done=threading.Event()
+                connected=True
+                def execute(*args,**kwargs):
+                    started.set();release.wait(1);return {'outcome':'success'}
+                original=connector._check_bedrock
+                def check(*args):
+                    try:original(*args)
+                    finally:done.set()
+                with patch.object(connector,'_check_bedrock',side_effect=check), \
+                     patch.object(connector.bedrock,'snapshot',side_effect=lambda:{'connected':connected}), \
+                     patch.object(connector.bedrock,'execute',side_effect=execute):
+                    connector.bedrock.on_change();self.assertTrue(started.wait(1))
+                    self.assertEqual(connector.connection_check,'checking')
+                    if change=='disconnect':
+                        connected=False;connector.bedrock.generation+=1
+                    elif change=='edition':connector.edition='java'
+                    connector._bedrock_changed()
+                    release.set();self.assertTrue(done.wait(1))
+                    self.assertFalse(connector.authorized_now())
+
+    def test_connected_generation_is_checked_without_manual_authorization(self):
+        connector=self.controller()
+        checked=threading.Event()
+        with patch.object(connector.bedrock,'snapshot',return_value={'connected':True}), \
+             patch.object(connector.bedrock,'execute',side_effect=lambda *a,**k:(checked.set() or {'outcome':'success'})) as execute:
+            connector.bedrock.on_change()
+            self.assertTrue(checked.wait(.2),'connection must automatically request player list')
+            deadline=time.monotonic()+1
+            while not connector.authorized_now() and time.monotonic()<deadline:time.sleep(.005)
+            self.assertTrue(connector.authorized_now())
+            execute.assert_called_once_with('list',expected_generation=7)
+
     def test_nonloopback_peer_is_denied_and_listener_bounds_are_explicit(self):
         server=SimpleNamespace(serve_forever=lambda:None,shutdown=lambda:None,
                                socket=SimpleNamespace(getsockname=lambda:('127.0.0.1',1234)))

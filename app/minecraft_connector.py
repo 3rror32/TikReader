@@ -36,7 +36,9 @@ class MinecraftConnector:
         self.preset_usage = deque()
         self.last_preset_at = None
         self.admission_reason = ''
-        self.bedrock = BedrockBridge(self._bedrock_changed)
+        self.checked_generation = None
+        self.connection_check = 'idle'
+        self.bedrock = BedrockBridge(self._bedrock_transport_changed)
         threading.Thread(target=self.worker, daemon=True).start()
         self.register(app)
 
@@ -64,14 +66,44 @@ class MinecraftConnector:
         with self.preset_lock:
             self.authorized = False
             self.authorized_generation = None
+            self.connection_check = 'idle'
             self.revision += 1
             self.preset_generation += 1
+
+    def _bedrock_transport_changed(self):
+        self._bedrock_changed()
+        with self.preset_lock:
+            generation = self.bedrock.generation
+            if (self.edition != 'bedrock' or not self.bedrock.snapshot()['connected'] or
+                    self.checked_generation == generation):
+                return
+            self.checked_generation = generation
+            self.connection_check = 'checking'
+            revision = self.revision
+        # The receive callback must return before command responses can arrive.
+        threading.Thread(target=self._check_bedrock, args=(generation, revision), daemon=True).start()
+
+    def _check_bedrock(self, generation, revision):
+        try:
+            success = self.bedrock.execute('list', expected_generation=generation)['outcome'] == 'success'
+        except Exception:
+            success = False
+        with self.preset_lock:
+            if (self.edition != 'bedrock' or revision != self.revision or
+                    generation != self.bedrock.generation or not self.bedrock.snapshot()['connected']):
+                return
+            self.connection_check = 'ready' if success else 'failed'
+            self.authorized = success
+            self.authorized_generation = generation if success else None
+            self.note('Minecraft conectado: bedrock' if success else
+                      'No se pudo comprobar Bedrock. Desconecta, prepara otra conexión y pega el nuevo comando.')
 
     def snapshot(self):
         return dict(config=self.config, edition=self.edition, profiles=self.profiles,
                     authorized=self.authorized_now(), queued=self.jobs.qsize(), log=self.log,
                     bedrock=self.bedrock.snapshot(), presets=mappings(self.config.get('presets')),
-                    preset_catalog=catalog(), preset_categories=categories(), preset_sections=sections(), authorization_mode='checkbox',
+                    preset_catalog=catalog(), preset_categories=categories(), preset_sections=sections(), authorization_mode='automatic',
+                    connection_check=self.connection_check,
                     limits=limits(self.config.get('limits')), name_format=self.config.get('name_format', 'modern'))
 
     def authorized_now(self):
@@ -158,7 +190,7 @@ class MinecraftConnector:
             if not selected:reason = 'No hay acciones activas para este regalo.'
             elif (not self.authorized_now() or self.r.production.settings['emergency'] or
                   self.r.production.settings.get('scene', 'talk') != 'talk'):
-                reason = 'Autoriza Minecraft y revisa la escena y la pausa.'
+                reason = 'Conecta Minecraft y revisa la escena y la pausa.'
             elif automatic and any(not rows[key]['enabled'] or not rows[key]['gift_id'] for key in selected):
                 reason = 'La acción ya no está activa.'
             elif self.preset_owner is not None or not self.jobs.empty():
