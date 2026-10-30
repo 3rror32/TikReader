@@ -49,7 +49,8 @@ The current feature branch is fifteen commits ahead of local `main` and also con
   - Outcome: complete. Rewrote the README in professional English, preserving installation, platform, voice, development, and support information while highlighting local captions, voice ripples, startup readiness, Minecraft controls, overlay animation settings, gift bank and simulation tools, and the shared operator workspace. No public 1.0.0.9 release is announced.
   - Screenshots captured from the running TikReader 1.0.0.9 desktop UI: `docs/screenshots/studio-overview-1.0.0.9.png` (1362x892, 402,917 bytes; live studio); `docs/screenshots/microphone-captions-1.0.0.9.png` (1362x892, 422,019 bytes; local Whisper settings and sample caption); `docs/screenshots/overlay-animation-studio-1.0.0.9.png` (1362x892, 530,141 bytes; energy-ring preview and trigger/appearance controls). All are valid PNGs and show the 1.0.0.9 window title. No personal account details or local paths appear in the captured views.
   - Omitted screenshots: gift simulation catalog (the simulator warns that test events can execute real game, sound, voice, and overlay actions; no event was sent); Minecraft command results (the displayed world was disconnected, and no test action was run); startup readiness flow (not available in the already-open app session). The running app title matched 1.0.0.9, but process-to-checkout provenance could not be checked because Windows denied CIM access.
-  - Validation: 20 local README targets checked, zero missing; 7 external URLs recorded; all 3 referenced screenshots passed PNG decode, dimensions, and size checks; `git diff --check` exited 0 before commit. Post-commit range check and clean status are recorded below.
+  - Validation: 20 local README targets checked, zero missing; 7 external URLs recorded; all 3 referenced screenshots passed PNG signature, decode, dimensions, and size checks; pre-commit `git diff --check` exited 0. The committed range `HEAD^..HEAD` passed `git diff --check`; `git status --short` returned empty.
+  - Commit: `1b794bb45ee68e495cfb1cbb43a369267a8ef93f` — `docs: refresh README for 1.0.0.9 features`.
 - [ ] `RM-03` Fast-forward local `main`, run release preflight, and build the 1.0.0.9 Windows installer from the final candidate.
   - Route: delegated direct.
   - Trigger: build execution and release artifact verification must run in a fresh worker context.
@@ -74,7 +75,7 @@ The current feature branch is fifteen commits ahead of local `main` and also con
 - Exploration: local `main` (`986e05a`) is the exact merge base; the initial branch head (`714257f`) was fifteen commits ahead and zero behind.
 - Safety audit: `.tmp/` contains approximately 8,384 files and 1.34 GB of caches, QA output, preserved installers, and local secret-like files; it is excluded from every work unit.
 - Release map: version sources agree on 1.0.0.9 and the expected installer path is `release/TikReader-1.0.0.9-Beta-Setup.exe`.
-- RM-02 screenshot and README evidence is recorded above. The output commit identity and post-commit checks are added after the work-unit commit.
+- RM-02 commit and post-commit check evidence is recorded above.
 
 ## Next step
 
