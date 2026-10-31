@@ -249,7 +249,8 @@ window.Studio = (() => {
     for(const gift of snapshot.gifts) {
       if(gift.summary)continue;
       const previous=gifts.get(gift.id)||0;
-      if(giftsReady && gift.count>previous && $('tts-gifts-enabled').checked){
+      const firstSimulatedGift=!giftsReady&&gift.simulated===true&&gift.ongoing!==true&&gift.count>previous;
+      if((giftsReady&&gift.count>previous||firstSimulatedGift) && $('tts-gifts-enabled').checked){
         const user=gift.user.replace(/^@/,'');
         const phrase=gift.count===1?`${user} regaló una ${gift.gift}`:`${user} regaló ${gift.gift}, cantidad ${gift.count}`;
         speak(phrase,false,$('tts-priority').value==='gifts'?2:0,'gift');

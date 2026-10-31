@@ -13,6 +13,7 @@ from flask import jsonify, request
 class Simulation:
     def __init__(self, app, runtime):
         self.r = runtime
+        self._gift_event_token = object()
         self.lock = threading.RLock()
         self.active = False
         self.instance = uuid4().hex
@@ -162,7 +163,8 @@ class Simulation:
                 type=1 if streak else 0, image=S(url_list=[spec['image']] if spec['image'] else []))
             result = r.handle_gift_event(S(user=user, gift=gift, gift_id=spec['gift_id'],
                 group_id=group if streak else 0, common=S(msg_id=message),
-                repeat_count=index if streak else 1, repeat_end=final or not streak), update_catalog=False)
+                repeat_count=index if streak else 1, repeat_end=final or not streak,
+                _simulation_event_token=self._gift_event_token), update_catalog=False)
             gift_count = index if streak else 1
             self.events.append(dict(id=message, at=time.time(), user='@'+spec['user'], kind='gift',
                 gift=spec['gift'], count=gift_count,

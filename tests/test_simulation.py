@@ -152,6 +152,28 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(spec['diamonds'], 1)
         self.assertIsNone(spec['image'])
 
+    def test_simulated_gift_record_has_explicit_origin_flag(self):
+        live_like_event = type('LiveLikeEvent', (), {'simulated': True})()
+        self.assertFalse(server._is_simulation_gift_event(live_like_event))
+        live_like_event._simulation_event_token = self.sim._gift_event_token
+        self.assertTrue(server._is_simulation_gift_event(live_like_event))
+
+        self.activate()
+        spec = self.sim.validate({'kind': 'gift', 'mode': 'separate', 'gift': 'Rose'})
+        self.sim.deliver(spec, 1, 'simulated-origin')
+        record = next(reversed(server.gift_history.values()))
+        self.assertIs(record['simulated'], True)
+
+        event = type('LiveGiftEvent', (), {
+            'user': type('User', (), {'unique_id': 'live-donor'})(),
+            'gift': type('Gift', (), {'id': 'live-gift', 'name': 'Rose', 'diamond_count': 1,
+                                      'type': 0, 'image': None})(),
+            'gift_id': 'live-gift', 'common': type('Common', (), {'msg_id': 'live-message'})(),
+            'repeat_count': 1, 'repeat_end': True,
+        })()
+        live_record = server.handle_gift_event(event, update_catalog=False)['record']
+        self.assertIs(live_record['simulated'], False)
+
     def test_separate_events_have_distinct_identity_and_respect_cooldown(self):
         self.activate()
         server.game_hotkeys.mappings = [server.game_hotkeys.validate(dict(id='sim-key',
