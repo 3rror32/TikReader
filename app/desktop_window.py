@@ -387,11 +387,7 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(STYLE)
         self._build()
         # Keep a last-known palette for a busy or temporarily unavailable renderer.
-        self._skin_timer = QTimer(self)
-        self._skin_timer.setInterval(750)
-        self._skin_timer.timeout.connect(self._refresh_desktop_skin)
         self.studio.loadFinished.connect(lambda loaded: self._refresh_desktop_skin() if loaded else None)
-        self._skin_timer.start()
 
         self.poll = QTimer(self)
 

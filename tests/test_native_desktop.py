@@ -56,6 +56,33 @@ class DesktopApiTests(unittest.TestCase):
 
 
 class DesktopWindowSafetyTests(unittest.TestCase):
+    def test_palette_refresh_is_load_triggered_without_repeating_timer(self):
+        source = (Path(__file__).resolve().parents[1] / 'app' / 'desktop_window.py').read_text(
+            encoding='utf-8'
+        )
+        tree = ast.parse(source)
+        window = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'MainWindow')
+        init = next(node for node in window.body if isinstance(node, ast.FunctionDef) and node.name == '__init__')
+
+        repeating_palette_timers = {
+            node.targets[0].attr
+            for node in ast.walk(init)
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and
+            isinstance(node.targets[0], ast.Attribute) and isinstance(node.value, ast.Call) and
+            isinstance(node.value.func, ast.Name) and node.value.func.id == 'QTimer'
+        }
+        self.assertNotIn('_skin_timer', repeating_palette_timers)
+
+        load_refreshes = [
+            node for node in ast.walk(init)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and
+            node.func.attr == 'connect' and isinstance(node.func.value, ast.Attribute) and
+            node.func.value.attr == 'loadFinished' and node.args and
+            any(isinstance(child, ast.Attribute) and child.attr == '_refresh_desktop_skin'
+                for child in ast.walk(node.args[0]))
+        ]
+        self.assertTrue(load_refreshes, 'successful studio load must refresh the cached palette')
+
     @staticmethod
     def _close_behavior_harness(response, api_error=None):
         source = (Path(__file__).resolve().parents[1] / 'app' / 'desktop_window.py').read_text(
