@@ -19,7 +19,7 @@ test('nested submenu containers reuse the outer guide and destination columns', 
   assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*margin:0[^}]*padding:0[^}]*border:0/.test(styles), 'nested submenu containers must not repeat the outer indentation or guide');
   assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-group>details,\.nav-advanced-section\)>summary\{[^}]*min-height:40px[^}]*padding-inline:10px[^}]*gap:10px/.test(styles), 'nested group summaries must match destination target and text columns');
   assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-group>details,\.nav-advanced-section\)>summary \.sidebar-icon\{[^}]*width:18px[^}]*flex:0 0 18px/.test(styles), 'nested group summaries must match destination icon columns');
-  assert.ok(/:is\(html,html\[data-skin\]\) body:not\(\.sidebar-collapsed\) #app-sidebar details \[data-section-nav\]\{[^}]*justify-content:flex-start/.test(styles), 'expanded disclosure destinations must beat global button alignment and leave collapsed mode centered');
+  assert.ok(/:is\(html,html\[data-skin\]\) body:not\(\.sidebar-collapsed\) #app-sidebar details \[data-section-nav\]\{[^}]*justify-content:flex-start!important/.test(styles), 'expanded disclosure destinations must beat global button alignment while excluding collapsed mode');
 });
 
 test('all sidebar disclosures use the smooth curtain animation', () => {
