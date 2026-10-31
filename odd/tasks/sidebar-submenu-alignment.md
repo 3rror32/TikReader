@@ -74,6 +74,22 @@ The sidebar applies the same indentation rule to both the advanced-section conta
 - RDD: unavailable because `gentle-ai` is not installed in this shell; no native review assessment or review lifecycle was run.
 - Engram mirror remains pending because no Engram memory tools are available.
 
+### SSA-02 independent correction
+
+- Reopened after independent actual-app verification found that root destinations outside `details` still computed centered, and open summaries began at x=57 px while closed summaries began at x=56 px because the open-state border changed layout.
+- Correction RED: `node tests/test_sidebar_navigation.cjs` on `2083f92` failed (13 passed, 1 failed) after the regression required `nav [data-section-nav]` expanded flex-start coverage and a non-layout open guide; the failure was the missing guide positioning contract.
+- Correction: expanded destination alignment now covers all `#app-sidebar nav [data-section-nav]` while excluding collapsed mode; the parent guide uses an absolutely positioned logical-inline pseudo-element, so it does not add a border to the details box or move its summary. Existing parent/child submenu margins and guides are unchanged.
+- Correction GREEN: `node tests/test_sidebar_navigation.cjs` passed 14/14 and `node tests/test_compact_navigation.cjs` passed 7/7; `git diff --check` passed with no output.
+- First expanded actual-app diagnostic after adding open/closed summary sampling captured Chat with the mobile menu closed; a follow-up caught the same menu state before geometry assertions. Those captures were treated as failed diagnostics. The browser script now reopens the menu through the production toggle and waits for `body.menu-open` before measuring and capturing each disclosure.
+- Final actual-app verification passed `npx playwright test --config runtime/sidebar-left-hierarchy/playwright.config.cjs` (1/1) against production templates, scripts, and CSS. At 390×930 and 280×930, root destination labels share x=54 px (0 px spread); Overlays and Chat summary labels share x=56 px in both open and closed states (0 px spread); child destination labels share x=85 px (0 px spread), a fixed 29 px indent from parent summaries. Root and child destinations use computed `justify-content:flex-start` and targets are at least 40 px; the tallest wrapped target at 280 px is 56.19 px.
+- At both mobile widths, each expanded Overlays and Chat group retained its one parent-level guide and one content guide where present; sidebar scroll width equaled client width, and viewport left/right overflow were both 0 px. The wrapped “Mis animaciones” label stayed within the sidebar at 280 px.
+- Actual collapsed desktop check at 1000×930 measured 37 visible destination controls: computed alignment was `center` for all, maximum icon-center deviation was 0 px, and sidebar overflow was 0 px.
+- Final captures and measurements: `runtime/sidebar-left-hierarchy/390-overlays.png`, `runtime/sidebar-left-hierarchy/390-chat.png`, `runtime/sidebar-left-hierarchy/280-overlays.png`, `runtime/sidebar-left-hierarchy/280-chat.png`, `runtime/sidebar-left-hierarchy/1000-collapsed.png`, and `runtime/sidebar-left-hierarchy/measurements.json`.
+- The original root-destination issue is corrected by applying the expanded `!important` flex-start contract to `#app-sidebar nav [data-section-nav]`, still excluding `body.sidebar-collapsed`. The opened disclosure guide is now a positioned pseudo-element, preserving the guide while keeping open and closed summary coordinates identical. Parent and child hierarchy margins remain unchanged.
+- Latest exact checks: `node tests/test_sidebar_navigation.cjs` passed 14/14; `node tests/test_compact_navigation.cjs` passed 7/7; Playwright actual-app diagnostic passed 1/1; `git diff --check` passed.
+- RDD remains unavailable because `gentle-ai` is missing in this environment. Engram mirror remains pending.
+- Next step: parent spot-check of this correction commit; integration or merge remains outside this task.
+
 ## Applicable checks
 
 - `node tests/test_sidebar_navigation.cjs`
@@ -84,4 +100,4 @@ The sidebar applies the same indentation rule to both the advanced-section conta
 
 ## Next step
 
-SSA-02 is complete on `codex/sidebar-left-hierarchy`. Parent to spot-check this work unit; integration or merge is outside this task.
+SSA-02 is complete on `codex/sidebar-left-hierarchy`; all acceptance checks, including real narrow-viewport geometry and collapsed icon centering, passed. Parent to spot-check this work unit; integration or merge is outside this task.
