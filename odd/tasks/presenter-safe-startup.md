@@ -62,6 +62,8 @@ Keep TikReader focused on the normal operator view by removing the unused presen
 - Browser: `npm run test:operator -- tests/browser/safety.spec.cjs` passed all 6 tests, including loading a legacy profile and checking its sanitized saved layout.
 - Migration: `normalizeLayout` accepts only a valid numeric split, clamps it to 40–70, defaults invalid values to 58, and returns only `{split}`. Startup and profile loading save this canonical layout; profile data and unrelated local-storage keys remain unchanged.
 - Directed production-source searches found no removed control IDs, presenter layout state, body-class toggles, presenter CSS selectors, or visual-mode copy. Remaining translation references describe human moderator/question flows.
+- Independent verification repeated all focused checks successfully, confirmed the configuration card contains only the chat-width description/control with no orphaned presenter nodes, and found no candidate-caused failure.
+- Pre-existing follow-up: changing `split` updates storage, the displayed percentage, and `--chat-share`, but `web/static/live_refinement.css` currently fixes the visible three-column layout and prevents the control from changing the rendered column width. This limitation exists unchanged in the parent commit and is outside PSS-02.
 - Limitation: the Engram mirror remains pending because no Engram memory tools are available.
 
 ## Commit
