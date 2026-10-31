@@ -147,10 +147,18 @@ test('mobile navigation, actionable empty states and reduced motion are present'
 });
 
 test('recommended themes are visible before the full legacy catalog', () => {
-  assert.match(template, /class="skin-recommendations"/);
-  assert.match(template, /data-skin-choice="original"/);
-  assert.match(template, /class="skin-more settings-disclosure"/);
+  const recommendations = template.match(/<div class="skin-recommendations"[\s\S]*?<\/div>/)?.[0];
+  assert(recommendations, 'recommended theme group should be present');
+  for (const [value, name] of [['original', 'TikReader'], ['light', 'Luz de estudio'], ['cute', 'Creativo']]) {
+    const button = recommendations.match(new RegExp(`<button\\b[^>]*data-skin-choice="${value}"[^>]*>[\\s\\S]*?<\\/button>`))?.[0];
+    assert(button, `recommended theme ${name} should keep its data-skin-choice`);
+    assert.match(button, new RegExp(`<strong>${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}</strong>`));
+    assert.doesNotMatch(button, /<small\b/, `${name} should show only its theme name`);
+  }
   assert.match(css, /\.skin-recommendations/);
+  assert.match(css, /\.skin-recommendations button[\s\S]*?min-height:\s*(?:4[4-9]|[5-9][0-9]|[1-9][0-9]{2,})px/);
+  assert.match(css, /\.skin-recommendations button[\s\S]*?text-align:\s*center/);
+  assert.match(template, /class="skin-more settings-disclosure"/);
 });
 
 test('settings groups keep a responsive gutter inside every theme treatment', () => {

@@ -294,17 +294,16 @@ html body :is(#profile-delete, .platform-remove, .danger-lite) {
 }
 .skin-recommendations button {
   display: grid;
-  gap: 5px;
-  min-height: 76px;
-  padding: 13px 14px;
+  place-items: center;
+  min-height: 48px;
+  padding: 10px 14px;
   border: 1px solid var(--tr-divider);
   border-radius: 10px;
   background: transparent;
   color: var(--skin-text, var(--tr-text));
-  text-align: left;
+  text-align: center;
 }
 .skin-recommendations button strong { font-size: 14px; }
-.skin-recommendations button small { color: var(--skin-muted, var(--tr-muted)); font-size: 11px; line-height: 1.45; }
 .skin-recommendations button:is(:hover, :focus-visible, .active) { border-color: var(--skin-accent, var(--tr-signal)); }
 .skin-recommendations button.active { background: color-mix(in srgb, var(--skin-accent, var(--tr-signal)) 10%, transparent); }
 .skin-more { margin-top: 14px; }
