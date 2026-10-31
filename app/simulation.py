@@ -136,11 +136,15 @@ class Simulation:
         gift = str(data.get('gift', 'Rose')).strip()
         if kind == 'gift' and not 1 <= len(gift) <= 100:
             raise ValueError('Selecciona o escribe el nombre del regalo')
-        catalog = self.r.gift_catalog.get(str(data.get('gift_id', '')), {})
-        if not catalog:
-            catalog = next((g for g in self.r.gift_catalog.values() if g['name'].casefold() == gift.casefold()), {})
+        explicit_gift_id = str(data.get('gift_id', '')).strip()
+        catalog = self.r.gift_catalog.get(explicit_gift_id, {})
+        if not explicit_gift_id:
+            matches = [g for g in self.r.gift_catalog.values() if g['name'].casefold() == gift.casefold()]
+            if len(matches) == 1:
+                catalog = matches[0]
         return dict(kind=kind, mode=mode, user=user, text=text, count=count, interval=interval,
-            delay=delay, gift=catalog.get('name', gift), gift_id=catalog.get('id', 'simulation-'+gift),
+            delay=delay, gift=catalog.get('name', gift),
+            gift_id=catalog.get('id', explicit_gift_id or 'simulation-'+gift),
             diamonds=catalog.get('diamonds', self.number(data, 'diamonds', 1, 0, 100000, True)),
             image=catalog.get('image_url'))
 

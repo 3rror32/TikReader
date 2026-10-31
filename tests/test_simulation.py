@@ -105,25 +105,25 @@ class SimulationTests(unittest.TestCase):
                 server.game_hotkeys.injector.reset_mock()
 
     def test_simulated_catalog_gift_reaches_minecraft_preset_with_donor_name(self):
-        rose = {'id': 'rose-catalog-42', 'name': 'Rose', 'diamonds': 1,
-                'image_url': 'https://example.test/rose.png'}
+        gift = {'id': 'gg-catalog-42', 'name': 'GG', 'diamonds': 1,
+                'image_url': 'https://example.test/gg.png'}
         minecraft = server.minecraft
         saved_presets = copy.deepcopy(minecraft.config.get('presets'))
         saved_authorized = minecraft.authorized
         minecraft.config['presets'] = {'zombie': {
-            'gift_id': str(rose['id']), 'gift_name': 'Rose', 'enabled': True}}
+            'gift_id': str(gift['id']), 'gift_name': 'GG', 'enabled': True}}
         minecraft.authorized = True
         try:
-            with patch.object(self.sim.r, 'gift_catalog', {rose['id']: rose}), \
+            with patch.object(self.sim.r, 'gift_catalog', {gift['id']: gift}), \
                     patch.object(minecraft, 'jobs', queue.Queue()):
-                spec = self.sim.validate({'kind': 'gift', 'mode': 'separate', 'gift': 'Rose',
-                                          'user': 'RoseDonor'})
-                self.assertEqual(spec['gift_id'], str(rose['id']))
-                self.sim.deliver(spec, 1, 'minecraft-rose')
+                spec = self.sim.validate({'kind': 'gift', 'mode': 'separate', 'gift': 'GG',
+                                          'user': 'GGDonor'})
+                self.assertEqual(spec['gift_id'], str(gift['id']))
+                self.sim.deliver(spec, 1, 'minecraft-gg')
                 self.assertEqual(minecraft.jobs.qsize(), 1)
                 job = minecraft.jobs.get_nowait()
                 self.assertEqual(job.selected_ids, ('zombie',))
-                self.assertIn('CustomName:{text:"RoseDonor"}', job.commands[0])
+                self.assertIn('CustomName:{text:"GGDonor"}', job.commands[0])
         finally:
             minecraft.config.pop('presets', None)
             if saved_presets is not None:
@@ -140,6 +140,17 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(spec['gift_id'], 'rose-special')
         self.assertEqual(spec['diamonds'], 5)
         self.assertEqual(spec['image'], second['image_url'])
+
+    def test_simulation_does_not_guess_between_duplicate_catalog_names(self):
+        first = {'id': 'gift-first', 'name': 'Mystery', 'diamonds': 1,
+                 'image_url': 'https://example.test/first.png'}
+        second = {'id': 'gift-second', 'name': 'Mystery', 'diamonds': 5,
+                  'image_url': 'https://example.test/second.png'}
+        with patch.object(self.sim.r, 'gift_catalog', {first['id']: first, second['id']: second}):
+            spec = self.sim.validate({'kind': 'gift', 'gift': 'Mystery'})
+        self.assertEqual(spec['gift_id'], 'simulation-Mystery')
+        self.assertEqual(spec['diamonds'], 1)
+        self.assertIsNone(spec['image'])
 
     def test_separate_events_have_distinct_identity_and_respect_cooldown(self):
         self.activate()
