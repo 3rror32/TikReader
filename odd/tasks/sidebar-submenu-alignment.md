@@ -59,6 +59,8 @@ The sidebar applies the same indentation rule to both the advanced-section conta
 - Cascade correction commit: `317aa0c` — `fix(sidebar): override global button alignment`.
 - Scoped important correction commit: `d7ebca0` — `fix(sidebar): enforce expanded destination alignment`.
 - Concurrent commits preserved before this correction: `f4dc63f` and `f86388c`.
+- Selective `main` integration: `f11865a`, `f7f1721`, `beead12`, `94c227a`, and `dfe7f6d`; the concurrent motion commits were not integrated.
+- Parent spot-check on selective `main`: `node tests/test_sidebar_navigation.cjs` passed 14/14, `node tests/test_compact_navigation.cjs` passed 7/7, and `git diff --check` passed. The sidebar suite has one fewer test than the feature branch because the unrelated motion test was intentionally excluded with its commit.
 - RDD: unavailable because `gentle-ai` is not installed in this shell; no native review assessment or review lifecycle was run.
 - Engram mirror remains pending because no Engram memory tools are available.
 
