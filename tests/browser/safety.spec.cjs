@@ -56,7 +56,7 @@ test('canceling alert activation leaves the streaming configuration unchanged', 
 test('loading an enabled profile keeps voice and local alerts paused after reload', async ({ operator }) => {
   const { page } = operator;
   const storedProfile = { voice:true, alerts:true, settings:{'alerts-enabled':true},
-    layout:{split:58,presenter:false} };
+    layout:{split:64,presenter:true,obsolete:'legacy'} };
   await page.evaluate(profile => {
     localStorage.setItem('tikreader.profiles', JSON.stringify({Enabled:profile}));
   }, storedProfile);
@@ -78,10 +78,12 @@ test('loading an enabled profile keeps voice and local alerts paused after reloa
   expect(confirmation).toContain('seguirán pausadas');
   const persisted = await page.evaluate(() => ({
     voice:localStorage.getItem('tikreader.voiceWanted'),
+    layout:JSON.parse(localStorage.getItem('tikreader.layout')),
     preferences:JSON.parse(localStorage.getItem('tikreader.preferences') || '{}'),
     profile:JSON.parse(localStorage.getItem('tikreader.profiles')).Enabled,
   }));
   expect(persisted.voice).toBe('false');
+  expect(persisted.layout).toEqual({split:64});
   expect(persisted.preferences['alerts-enabled']).toBe(false);
   expect(persisted.profile.voice).toBe(true);
   expect(persisted.profile.alerts).toBe(true);

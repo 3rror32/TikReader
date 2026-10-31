@@ -603,10 +603,8 @@ Voz normal|Normal voice|Voix normale
 Continuar lectura|Resume reading|Reprendre la lecture
 Continuar la cola de lectura|Resume reading queue|Reprendre la file de lecture
 Pausar sin perder los comentarios pendientes|Pause without losing pending comments|Suspendre sans perdre les commentaires en attente
-Salir de modo presentador|Exit presenter mode|Quitter le mode présentation
 Reducir chat|Narrow chat|Réduire le chat
 Ampliar chat|Widen chat|Élargir le chat
-Salir del modo presentador|Exit presenter mode|Quitter le mode présentation
 Perfil guardado en este navegador.|Profile saved in this browser.|Profil enregistré dans ce navigateur.
 Selecciona un perfil.|Select a profile.|Sélectionnez un profil.
 Perfil cargado. Revisa reglas desactivadas y restaura la emisión antes de reactivar voz.|Profile loaded. Review disabled rules and restore the broadcast before reactivating voice.|Profil chargé. Vérifiez les règles désactivées et rétablissez la diffusion avant de réactiver la voix.
@@ -965,10 +963,8 @@ Conexión lista|Connection ready|Connexion prête
 Aún no hay comentarios.|No comments yet.|Il n’y a pas encore de commentaires.
 Aún no hay regalos.|No gifts yet.|Pas encore de cadeaux.
 El ranking se formará automáticamente con los regalos de esta sesión.|The ranking will be built automatically from this session's gifts.|Le classement sera créé automatiquement à partir des cadeaux de cette session.
-Distribución del panel|Panel layout|Disposition du panneau
-Ajusta cuánto espacio ocupa el chat o activa una vista limpia para presentar.|Adjust the chat width or enable a clean presenter view.|Ajustez la largeur du chat ou activez une vue épurée pour la présentation.
 Ancho del chat|Chat width|Largeur du chat
-Activar modo presentador|Enable presenter mode|Activer le mode présentation
+Ajusta cuánto espacio ocupa el chat.|Adjust how much space the chat occupies.|Ajustez la place qu’occupe le chat.
 Perfiles guardados|Saved profiles|Profils enregistrés
 Guarda una combinación completa para entrevistas, juegos u otros tipos de transmisión.|Save a complete setup for interviews, games or other streams.|Enregistrez une configuration complète pour les entretiens, les jeux ou d’autres directs.
 Perfil|Profile|Profil

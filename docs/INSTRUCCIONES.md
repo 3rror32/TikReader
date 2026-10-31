@@ -309,8 +309,7 @@ La configuración se conserva en el navegador y en los perfiles guardados.
 - Prioridad de lectura: orden de llegada, preguntas, usuarios elegidos o regalos.
   La lectura actual no se interrumpe; la prioridad organiza lo que sigue. Se omiten
   mensajes que superan la espera máxima configurada (45 segundos por defecto).
-- En Estudio ajusta el ancho del chat o activa el modo presentador con letras grandes.
-  El botón Salir del modo presentador permanece accesible.
+- En Estudio ajusta el ancho del chat. Ese valor también se guarda en los perfiles.
 - Guarda perfiles con voz, filtros, alertas, metas y distribución. Se guardan en
   este navegador, no en la cuenta de TikTok ni entre equipos. Cargar un perfil no
   cambia el usuario conectado. Guardar con el mismo nombre reemplaza el perfil.

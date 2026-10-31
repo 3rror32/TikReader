@@ -4,23 +4,28 @@ const assert = require('node:assert/strict');
 
 const read = path => fs.readFileSync(path, 'utf8');
 
-test('presenter activation is session-only while persisted layout data is restored safely', () => {
+test('presenter mode is removed while chat width remains available', () => {
   const workspace = read('web/static/workspace.js');
+  const template = read('web/templates/index.html');
+  const studioStyles = read('web/static/studio.css');
+  const shellStyles = read('web/static/shell.css');
+  const translations = read('web/static/translations.js');
+  const docs = read('docs/INSTRUCCIONES.md');
 
-  assert.match(workspace, /if\(!layout\|\|typeof layout!=='object'\|\|Array\.isArray\(layout\)\)layout=\{split:58,presenter:false\}/,
-    'invalid persisted layouts fall back to a safe object');
-  assert.match(workspace, /layout\.presenter=false/,
-    'startup clears stale presenter activation');
-  assert.match(workspace, /else layout=\{\.\.\.layout,presenter:false\}/,
-    'normalizing presenter state preserves other saved layout fields');
-  assert.match(workspace, /layout\.split=Math\.max\(40,Math\.min\(70,Number\(layout\.split\)\|\|58\)\)/,
-    'the saved split is normalized and restored');
-  assert.match(workspace, /\};applyLayout\(\);save\('tikreader\.layout',layout\);/,
-    'startup persists the normalized layout');
-  assert.match(workspace, /\$\('presenter-toggle'\)\.onclick=\(\)=>\{layout\.presenter=!layout\.presenter;applyLayout\(\);save\('tikreader\.layout',layout\);\}/,
-    'the toolbar can still toggle presenter mode and persist the session choice');
-  assert.match(workspace, /exit\.onclick=\(\)=>\{layout\.presenter=false;applyLayout\(\);save\('tikreader\.layout',layout\);\}/,
-    'the presenter exit control can still leave the mode and persist it');
+  for (const [source, name] of [[workspace,'runtime'],[template,'template']]) {
+    assert.doesNotMatch(source, /presenter-toggle|presenter-exit|layout\.presenter|classList\.toggle\('presenter'/,
+      `${name} no longer exposes presenter controls or state`);
+  }
+  assert.doesNotMatch(studioStyles + shellStyles, /\.presenter\b|#presenter-exit/,
+    'presenter-specific styles are removed');
+  assert.doesNotMatch(docs, /modo presentador|presenter mode|mode présentation/i,
+    'operator documentation describes only supported workspace controls');
+  assert.match(template, /id="layout-split"/);
+  assert.match(template, /id="layout-split-value"/);
+  assert.match(translations, /Ajusta cuánto espacio ocupa el chat\.\|Adjust how much space the chat occupies\.\|Ajustez la place qu’occupe le chat\./,
+    'the combined workspace description only explains chat width in all locales');
+  assert.doesNotMatch(translations, /Activar modo presentador|Enable presenter mode|Activer le mode présentation|vista limpia para presentar|clean presenter view|vue épurée pour la présentation/,
+    'presenter-mode copy is removed while human-facing translations remain');
 });
 
 test('operational changes explain their effect before the request and report only confirmed results', () => {

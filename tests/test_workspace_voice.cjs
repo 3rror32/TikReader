@@ -81,8 +81,29 @@ test('invalid or unavailable stored preference defaults to voice off', () => {
   assert.equal(setup({get(){throw Error('Unavailable');}}).get('tts-enabled').checked, false);
 });
 
+test('legacy stored layout is reduced to a valid chat width', () => {
+  const accessibility = JSON.stringify({highContrast:true});
+  const storage = new Map([
+    ['tikreader.layout', JSON.stringify({split:'64', presenter:true, obsolete:'legacy'})],
+    ['tikreader.voiceWanted', 'true'],
+    ['tikreader.accessibility', accessibility],
+  ]);
+  const page = setup(storage);
+  assert.deepEqual(JSON.parse(storage.get('tikreader.layout')), {split:64});
+  assert.equal(storage.get('tikreader.voiceWanted'), 'true');
+  assert.equal(storage.get('tikreader.accessibility'), accessibility);
+  assert.equal(page.get('layout-split').value, 64);
+  assert.equal(page.get('layout-split-value').textContent, '64% chat · 36% panel');
+
+  for (const invalid of ['null', '[]', '"broken"', '{"split":"wide","presenter":true}', '{"split":true}']) {
+    const malformedStorage = new Map([['tikreader.layout', invalid]]);
+    setup(malformedStorage);
+    assert.deepEqual(JSON.parse(malformedStorage.get('tikreader.layout')), {split:58});
+  }
+});
+
 test('loading an enabled profile persists voice off before reload without rewriting the profile', async () => {
-  const profile = {voice:true, alerts:true, settings:{}, layout:{split:58,presenter:false}};
+  const profile = {voice:true, alerts:true, settings:{}, layout:{split:62,presenter:true,obsolete:'legacy'}};
   const storage = new Map([['tikreader.profiles', JSON.stringify({Enabled:profile})]]);
   const page = setup(storage);
   page.get('profile-select').value = 'Enabled';
@@ -93,6 +114,7 @@ test('loading an enabled profile persists voice off before reload without rewrit
   assert.equal(page.alertChanges(), 1, 'profile pause dispatches one local-alert change');
   assert.equal(storage.get('tikreader.voiceWanted'), 'false');
   assert.equal(page.get('tts-enabled').checked, false);
+  assert.deepEqual(JSON.parse(storage.get('tikreader.layout')), {split:62});
   assert.deepEqual(JSON.parse(storage.get('tikreader.profiles')).Enabled, profile);
   const reloaded = setup(storage);
   assert.equal(reloaded.get('tts-enabled').checked, false, 'voice remains paused until a later user change');
