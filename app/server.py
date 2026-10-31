@@ -885,17 +885,13 @@ def gift_event_key(event, username, gift_id, streakable, ongoing, count):
     return key
 
 
-def _is_simulation_gift_event(event):
-    simulator = globals().get("simulation")
-    return bool(simulator is not None and
-                getattr(event, "_simulation_event_token", None) is simulator._gift_event_token)
-
-
 def handle_gift_event(event, update_catalog=True):
     global gift_revision
     user = getattr(event, "user", None)
     gift = getattr(event, "gift", None)
-    simulated = _is_simulation_gift_event(event)
+    simulator = globals().get("simulation")
+    simulated = bool(simulator is not None and
+                     getattr(event, "_simulation_event_token", None) is simulator._gift_event_token)
     username = getattr(user, "unique_id", None) or getattr(user, "nickname", None) or "Usuario"
     observe_participant(user, "gift")
     gift_id = getattr(event, "gift_id", 0) or getattr(gift, "id", 0)

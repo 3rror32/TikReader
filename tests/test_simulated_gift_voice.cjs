@@ -10,7 +10,7 @@ function setupStudio() {
       value: '', checked: false, options: [], textContent: '', type: 'text',
       events: {}, classList: {add() {}, remove() {}, toggle() {}}, style: {},
       addEventListener(name, fn) { this.events[name] = fn; },
-      replaceChildren() { this.options = []; }, append() {}, querySelectorAll() { return []; },
+      replaceChildren() { this.options = []; }, append(child) { this.options.push(child); }, querySelectorAll() { return []; },
       setAttribute() {}, removeAttribute() {}, focus() {},
     });
     return elements.get(id);
@@ -21,7 +21,7 @@ function setupStudio() {
   const speechSynthesis = {
     cancel() {}, pause() {}, resume() {},
     getVoices: () => [{voiceURI: 'local-es', name: 'Local español', lang: 'es-MX', localService: true}],
-    addEventListener() {}, dispatchEvent() {}, speak: utterance => spoken.push(utterance),
+    addEventListener() {}, dispatchEvent() {}, speak: utterance => { spoken.push(utterance); utterance.onstart?.(); },
   };
   const window = {speechSynthesis};
   const documentListeners = {};
@@ -43,6 +43,7 @@ test('ordinary initial gift history stays silent while first simulated gift is r
   const {studio, element, spoken} = setupStudio();
   element('tts-gifts-enabled').checked = true;
   element('tts-priority').value = 'gifts';
+  element('tts-voice').value = 'local-es';
   element('alert-gift').value = '';
   element('alert-min').value = '1';
 
@@ -52,7 +53,10 @@ test('ordinary initial gift history stays silent while first simulated gift is r
 
   const newGift = {id: 'new', user: '@sender', gift: 'GG', count: 1, simulated: true, ongoing: false};
   studio.gifts({session: 'simulation-session', gifts: [newGift]});
+  assert.equal(spoken.length, 1);
+  assert.equal(spoken[0].text, 'sender regaló una GG');
+  assert.equal(spoken[0].voice.voiceURI, 'local-es');
+  spoken[0].onend();
   studio.gifts({session: 'simulation-session', gifts: [newGift]});
-  const reads = studio.voiceSnapshot().log.filter(item => item.text === 'sender regaló una GG');
-  assert.equal(reads.length, 1);
+  assert.equal(spoken.length, 1);
 });

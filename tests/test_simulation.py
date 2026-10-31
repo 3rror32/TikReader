@@ -153,11 +153,6 @@ class SimulationTests(unittest.TestCase):
         self.assertIsNone(spec['image'])
 
     def test_simulated_gift_record_has_explicit_origin_flag(self):
-        live_like_event = type('LiveLikeEvent', (), {'simulated': True})()
-        self.assertFalse(server._is_simulation_gift_event(live_like_event))
-        live_like_event._simulation_event_token = self.sim._gift_event_token
-        self.assertTrue(server._is_simulation_gift_event(live_like_event))
-
         self.activate()
         spec = self.sim.validate({'kind': 'gift', 'mode': 'separate', 'gift': 'Rose'})
         self.sim.deliver(spec, 1, 'simulated-origin')
@@ -165,6 +160,7 @@ class SimulationTests(unittest.TestCase):
         self.assertIs(record['simulated'], True)
 
         event = type('LiveGiftEvent', (), {
+            'simulated': True,
             'user': type('User', (), {'unique_id': 'live-donor'})(),
             'gift': type('Gift', (), {'id': 'live-gift', 'name': 'Rose', 'diamond_count': 1,
                                       'type': 0, 'image': None})(),
