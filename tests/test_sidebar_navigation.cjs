@@ -15,6 +15,12 @@ test('primary and advanced menu disclosures share one visual contract', () => {
   assert.doesNotMatch(sidebar,/setAttribute\('name',\s*'advanced-navigation'\)/);
 });
 
+test('nested submenu containers reuse the outer guide and destination columns', () => {
+  assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*margin:0[^}]*padding:0[^}]*border:0/.test(styles), 'nested submenu containers must not repeat the outer indentation or guide');
+  assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-group>details,\.nav-advanced-section\)>summary\{[^}]*min-height:40px[^}]*padding-inline:10px[^}]*gap:10px/.test(styles), 'nested group summaries must match destination target and text columns');
+  assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-group>details,\.nav-advanced-section\)>summary \.sidebar-icon\{[^}]*width:18px[^}]*flex:0 0 18px/.test(styles), 'nested group summaries must match destination icon columns');
+});
+
 test('all sidebar disclosures use the smooth curtain animation', () => {
   assert.match(sidebar,/function enhanceDisclosure\(details, content, beforeOpen\)/);
   assert.match(sidebar,/clipPath: 'inset\(0 0 100% 0\)'/);
