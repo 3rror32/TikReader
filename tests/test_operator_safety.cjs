@@ -4,6 +4,25 @@ const assert = require('node:assert/strict');
 
 const read = path => fs.readFileSync(path, 'utf8');
 
+test('presenter activation is session-only while persisted layout data is restored safely', () => {
+  const workspace = read('web/static/workspace.js');
+
+  assert.match(workspace, /if\(!layout\|\|typeof layout!=='object'\|\|Array\.isArray\(layout\)\)layout=\{split:58,presenter:false\}/,
+    'invalid persisted layouts fall back to a safe object');
+  assert.match(workspace, /layout\.presenter=false/,
+    'startup clears stale presenter activation');
+  assert.match(workspace, /else layout=\{\.\.\.layout,presenter:false\}/,
+    'normalizing presenter state preserves other saved layout fields');
+  assert.match(workspace, /layout\.split=Math\.max\(40,Math\.min\(70,Number\(layout\.split\)\|\|58\)\)/,
+    'the saved split is normalized and restored');
+  assert.match(workspace, /\};applyLayout\(\);save\('tikreader\.layout',layout\);/,
+    'startup persists the normalized layout');
+  assert.match(workspace, /\$\('presenter-toggle'\)\.onclick=\(\)=>\{layout\.presenter=!layout\.presenter;applyLayout\(\);save\('tikreader\.layout',layout\);\}/,
+    'the toolbar can still toggle presenter mode and persist the session choice');
+  assert.match(workspace, /exit\.onclick=\(\)=>\{layout\.presenter=false;applyLayout\(\);save\('tikreader\.layout',layout\);\}/,
+    'the presenter exit control can still leave the mode and persist it');
+});
+
 test('operational changes explain their effect before the request and report only confirmed results', () => {
   const overlays = read('web/static/overlay_gallery.js');
   const creator = read('web/static/creator.js');

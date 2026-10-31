@@ -37,7 +37,8 @@ window.Workspace=(()=>{
   const save=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch(_){$('workspace-notice').textContent='No se pudo guardar: almacenamiento del navegador no disponible.';return false;}};
   let profiles=read('tikreader.profiles',{}), layout=read('tikreader.layout',{split:58,presenter:false}), lastState;
   if(!profiles||typeof profiles!=='object'||Array.isArray(profiles))profiles={};
-  if(!layout||typeof layout!=='object')layout={split:58,presenter:false};
+  if(!layout||typeof layout!=='object'||Array.isArray(layout))layout={split:58,presenter:false};
+  else layout={...layout,presenter:false};
   let wantsVoice=read('tikreader.voiceWanted',false)===true;
   // Restore the user's choice before rendering the toolbar after a reload.
   $('tts-enabled').checked=wantsVoice;
@@ -62,7 +63,7 @@ window.Workspace=(()=>{
   $('voice-pause').onclick=()=>$('tts-pause').click();$('voice-next').onclick=()=>$('tts-skip').click();voiceStatus();
   function applyLayout(){layout.split=Math.max(40,Math.min(70,Number(layout.split)||58));document.documentElement.style.setProperty('--chat-share',layout.split+'%');document.body.classList.toggle('presenter',!!layout.presenter);$('layout-split').value=layout.split;$('layout-split-value').textContent=`${layout.split}% chat · ${100-layout.split}% panel`;$('presenter-toggle').textContent=layout.presenter?'Salir de modo presentador':'Activar modo presentador';}
   $('layout-split').oninput=()=>{layout.split=Number($('layout-split').value);applyLayout();save('tikreader.layout',layout);};
-  $('presenter-toggle').onclick=()=>{layout.presenter=!layout.presenter;applyLayout();save('tikreader.layout',layout);};applyLayout();
+  $('presenter-toggle').onclick=()=>{layout.presenter=!layout.presenter;applyLayout();save('tikreader.layout',layout);};applyLayout();save('tikreader.layout',layout);
   // Presenter always retains its exit control, including when the settings pane is hidden.
   const exit=document.createElement('button');exit.id='presenter-exit';exit.textContent='Salir del modo presentador';exit.onclick=()=>{layout.presenter=false;applyLayout();save('tikreader.layout',layout);};document.body.append(exit);
   const voiceKeys=['tikreader.voiceCharacters','tikreader.voiceCharacter','tikreader.rvcResourceConsent','tikreader.timerDuration','tikreader.timerSound'];
