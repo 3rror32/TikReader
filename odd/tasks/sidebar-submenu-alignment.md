@@ -2,7 +2,7 @@
 
 ## Objective
 
-Align every expanded sidebar submenu to one shared horizontal margin so direct destinations and nested destinations form a consistent navigation column.
+Align every expanded sidebar level to the left while preserving a consistent, intentional margin for menus and their child submenus.
 
 ## Problem and why
 
@@ -33,12 +33,17 @@ The sidebar applies the same indentation rule to both the advanced-section conta
   - Trigger: the shared CSS contract and regression test span two non-trivial files; visual verification is required across multiple menu groups.
   - Test-first policy: add a failing structural regression for nested submenu flattening, then implement GREEN.
   - Acceptance: direct and nested submenu labels share the same text start; only one vertical guide is visible per expanded advanced section; collapsed/mobile behavior remains intact; focused navigation tests and `git diff --check` pass.
+- [x] `SSA-02` Restore visible hierarchy: menu summaries align to the left at the parent inset, while submenu destinations align to the left at one consistent child inset.
+  - Route: delegated direct.
+  - Trigger: the correction updates the shared CSS contract and its regression test, and requires responsive visual verification.
+  - Test-first policy: strengthen the structural regression to distinguish parent and child margins before changing CSS.
+  - Acceptance: no menu or submenu content is centered; every item at the same hierarchy level shares one left edge; each child level has a deliberate, consistent inset and guide; collapsed icons remain centered; focused tests and narrow-view visual checks pass.
 
 ## Evidence
 
-- Current shared container rule applies `margin-left: 22px`, `padding-left: 10px`, and a left border to both `.sidebar-disclosure-content` and `.nav-submenu`.
-- A `.nav-submenu` nested inside `.sidebar-disclosure-content` therefore repeats that indentation and guide.
-- Screenshot evidence shows second-level entries visibly farther right than their direct siblings.
+- The initial shared container rule applied the same 22 px margin, 10 px padding, and guide to `.sidebar-disclosure-content` and `.nav-submenu`.
+- Before SSA-01, a `.nav-submenu` nested inside `.sidebar-disclosure-content` repeated that indentation and guide.
+- Initial screenshot evidence showed second-level entries visibly farther right than their direct siblings; SSA-02 now preserves that difference as a single deliberate hierarchy step.
 - RED: the new nested-container/summary regression failed against the original CSS (13 passed, 1 failed); it identified the missing flattened nested-container and summary-column rules.
 - GREEN: `node tests/test_sidebar_navigation.cjs` passes 14/14 after adding the nested reset and shared nested-summary columns.
 - Superseded first visual attempt: the representative DOM under `runtime/sidebar-alignment/` was not an actual-app verification. Independent verification on the actual app found expanded destination label starts differed by 33.41 px at 390 px and 30.61 px at 280 px because buttons remained centered.
@@ -61,6 +66,11 @@ The sidebar applies the same indentation rule to both the advanced-section conta
 - Concurrent commits preserved before this correction: `f4dc63f` and `f86388c`.
 - Selective `main` integration: `f11865a`, `f7f1721`, `beead12`, `94c227a`, and `dfe7f6d`; the concurrent motion commits were not integrated.
 - Parent spot-check on selective `main`: `node tests/test_sidebar_navigation.cjs` passed 14/14, `node tests/test_compact_navigation.cjs` passed 7/7, and `git diff --check` passed. The sidebar suite has one fewer test than the feature branch because the unrelated motion test was intentionally excluded with its commit.
+- SSA-02 RED: the strengthened hierarchy regression failed on the pre-correction CSS (13/14 passed), first because nested containers had `margin:0`, then because expanded parent disclosures had no parent-level guide.
+- SSA-02 GREEN: nested expanded containers now add an 18 px inline inset with their own guide; open parent details show a shared guide, while their child content retains its own 22 px guide. Expanded destinations use the existing left-aligned `!important` contract; collapsed overrides continue to center icons.
+- SSA-02 actual-app check: the isolated Playwright fixture rendered production templates, scripts, and CSS at 390×930 and 280×930. Parent summary labels start at x=57 px; direct child destination labels start at x=86 px, a consistent 29 px hierarchy inset. At both widths, same-level destination spread was 0 px, parent and child guides were each 1 px, targets were at least 40 px, and the sidebar had no horizontal overflow or viewport clipping.
+- SSA-02 visual captures and measurements: `runtime/sidebar-left-hierarchy/390-overlays.png`, `runtime/sidebar-left-hierarchy/390-chat.png`, `runtime/sidebar-left-hierarchy/280-overlays.png`, `runtime/sidebar-left-hierarchy/280-chat.png`, and `runtime/sidebar-left-hierarchy/measurements.json`.
+- SSA-02 exact checks: `node tests/test_sidebar_navigation.cjs` passed 14/14; `node tests/test_compact_navigation.cjs` passed 7/7; the isolated actual-app Playwright check passed 1/1; `git diff --check` passed.
 - RDD: unavailable because `gentle-ai` is not installed in this shell; no native review assessment or review lifecycle was run.
 - Engram mirror remains pending because no Engram memory tools are available.
 
@@ -74,4 +84,4 @@ The sidebar applies the same indentation rule to both the advanced-section conta
 
 ## Next step
 
-Complete. Integrate only the four sidebar correction commits and this verification record into `main`; continue monitoring the shared button contract for future cascade regressions.
+SSA-02 is complete on `codex/sidebar-left-hierarchy`. Parent to spot-check this work unit; integration or merge is outside this task.

@@ -15,11 +15,14 @@ test('primary and advanced menu disclosures share one visual contract', () => {
   assert.doesNotMatch(sidebar,/setAttribute\('name',\s*'advanced-navigation'\)/);
 });
 
-test('nested submenu containers reuse the outer guide and destination columns', () => {
-  assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*margin:0[^}]*padding:0[^}]*border:0/.test(styles), 'nested submenu containers must not repeat the outer indentation or guide');
+test('expanded navigation keeps one deliberate inset and guide per hierarchy level', () => {
+  assert.ok(/\.app-sidebar :is\(\.nav-group>details,\.nav-advanced-section\)\[open\]\{[^}]*border-inline-start:1px solid var\(--nav-line\)/.test(styles), 'expanded parent summaries must have one shared parent-level guide');
+  assert.ok(/\.app-sidebar :is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*margin-inline-start:22px[^}]*padding-inline-start:10px[^}]*border-inline-start:1px solid var\(--nav-line\)/.test(styles), 'parent disclosures must share the parent-level inset and guide');
+  assert.ok(/\.app-sidebar :is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*margin-inline-start:18px[^}]*padding-inline-start:10px[^}]*border-inline-start:1px solid var\(--nav-line\)/.test(styles), 'each real child disclosure level must add one consistent inset and its own guide');
   assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-group>details,\.nav-advanced-section\)>summary\{[^}]*min-height:40px[^}]*padding-inline:10px[^}]*gap:10px/.test(styles), 'nested group summaries must match destination target and text columns');
   assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-group>details,\.nav-advanced-section\)>summary \.sidebar-icon\{[^}]*width:18px[^}]*flex:0 0 18px/.test(styles), 'nested group summaries must match destination icon columns');
   assert.ok(/:is\(html,html\[data-skin\]\) body:not\(\.sidebar-collapsed\) #app-sidebar details \[data-section-nav\]\{[^}]*justify-content:flex-start!important/.test(styles), 'expanded disclosure destinations must beat global button alignment while excluding collapsed mode');
+  assert.ok(/body\.sidebar-collapsed \.app-sidebar \[data-section-nav\]\{justify-content:center/.test(styles), 'collapsed navigation must keep destination icons centered');
 });
 
 test('all sidebar disclosures use the smooth curtain animation', () => {
