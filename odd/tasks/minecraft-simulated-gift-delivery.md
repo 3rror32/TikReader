@@ -18,12 +18,18 @@ Simulation must exercise the same saved automation that a real gift would use; o
 - Preserve catalog IDs and duplicate-name safety.
 - Add a deterministic regression test for the reported `GG` scenario.
 - Announce each successful preset once in Minecraft chat with the sanitized donor name and effective quantity.
+- Replace synthetic `observed:*` catalog entries when a real gift with the same name becomes available.
+- Treat an assigned gift as an active Minecraft preset without a separate enable toggle.
+- Add text search to the Minecraft gift picker and make removal clear the persisted assignment.
+- Capitalize the donor's first alphabetic character without changing the rest of the username casing.
 
 ## Constraints
 
 - Do not guess when multiple distinct gift IDs share the same name.
 - Do not weaken Minecraft authorization, emergency, queue, interval, or budget checks.
 - Do not change Bedrock command generation for the `diamonds` preset.
+- Preserve distinct real TikTok gift IDs even when they share the same visible name.
+- Accept legacy preset profiles containing `enabled`, but derive activity from an assigned gift ID.
 
 ## Authorized scope
 
@@ -67,10 +73,48 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Commit: `2996342f4350c1911acbec31a0fa3c5bac00f095` (`feat(minecraft): announce successful preset gifts`).
   - RDD assessment: unavailable/unknown; `gentle-ai` is not available on the parent PATH.
 
+- [ ] **MSG-3 — Canonicalize real and observed gift catalog entries**
+  - Route: delegated direct.
+  - Trigger evidence: startup restoration, live catalog merging, persistence, and regression coverage require coordinated non-trivial changes in server catalog logic and tests.
+  - Test-first policy: add focused fallback/merge regressions and observe failure before implementation.
+  - Acceptance criteria:
+    - A real gift removes a same-name synthetic `observed:*` entry.
+    - Two distinct real IDs with the same name remain available.
+    - Restored caches are normalized before either UI receives the catalog.
+  - Checks:
+    - Focused server catalog tests.
+    - Relevant simulation tests.
+
+- [ ] **MSG-4 — Derive preset activity from gift assignment**
+  - Route: delegated direct.
+  - Trigger evidence: profile migration, backend admission, queued-job validity, simulator fallback, donor formatting, and regression coverage cross multiple non-trivial files.
+  - Test-first policy: observe focused migration/admission/name regressions fail before implementation, then pass after the change.
+  - Acceptance criteria:
+    - Any preset with a non-empty gift ID is active; an unassigned preset is inactive.
+    - Legacy `enabled: false` does not disable an assigned gift, and legacy profiles load without data loss.
+    - Simulator name fallback uses assigned mappings and keeps ambiguity safety.
+    - `gordo` becomes `Gordo`, while existing internal uppercase characters remain unchanged.
+  - Checks:
+    - Focused preset, connector, and simulation tests.
+
+- [ ] **MSG-5 — Search and simplify Minecraft gift mappings**
+  - Route: delegated direct.
+  - Trigger evidence: the behavior spans JavaScript state, rendered controls, persistence, CSS layout, and DOM regression tests.
+  - Test-first policy: add DOM regressions for search, removal, and absence of the enable checkbox before implementation.
+  - Acceptance criteria:
+    - Minecraft offers a text gift search comparable to the simulator.
+    - No per-preset enable checkbox is rendered or persisted.
+    - Assigning a gift activates the preset; removing the row clears the saved assignment.
+    - Rose ID `5655` can be mapped to three zombies and verified live in Bedrock with donor `Gordo`.
+  - Checks:
+    - `node --test tests/test_minecraft_controls.cjs`.
+    - Relevant Python preset and Bedrock tests.
+    - Live Bedrock verification after the persisted mapping is updated.
+
 ## Delivery
 
 - Strategy: `ask-on-risk`.
-- Forecast: fewer than 240 authored changed lines across both work units, excluding this task document.
+- Forecast: about 390 authored changed lines across all five work units, excluding this task document.
 - Running authored changed lines: 198 (MSG-1: 60; MSG-2: 138; task document excluded).
 - Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`.
 
