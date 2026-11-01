@@ -44,7 +44,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - Relevant simulation and Minecraft test modules.
     - Parent spot check of one reported command.
   - Evidence: regression observed RED (`simulation-GG` instead of `saved-gg-id`), then GREEN after the fix; added coverage for donor, streak count, and duplicate saved mapping names.
-  - Commit: `44f93f6` (`fix(simulation): resolve saved Minecraft gift mappings`).
+  - Commit: `4fa5a9e` (`fix(simulation): resolve saved Minecraft gift mappings`).
   - RDD assessment: unavailable/unknown; `gentle-ai` is not available on the parent PATH.
 
 ## Delivery
@@ -65,8 +65,10 @@ Verification results:
 
 - `tests/test_simulation.py::SimulationTests::test_simulated_unresolved_gift_reaches_unique_saved_minecraft_mapping -q`: RED before implementation (`simulation-GG` did not equal `saved-gg-id`); the same regression passed after the fix.
 - `.\.venv\Scripts\python.exe -m pytest tests/test_simulation.py -q`: passed, 19 tests and 3 subtests; 2 existing dependency deprecation warnings.
-- `.\.venv\Scripts\python.exe -m pytest tests/test_simulation.py tests/test_points_minecraft.py tests/test_minecraft_bedrock.py -q`: partial, 37 passed and 9 failed (29 subtests passed). The two points tests could not open SQLite files under the sandbox temp directory; all nine Bedrock tests were blocked by `WinError 10013` when opening local sockets. The simulation tests in this command passed.
+- `.\.venv\Scripts\python.exe -m pytest tests/test_simulation.py tests/test_points_minecraft.py tests/test_minecraft_bedrock.py -q`: the sandbox run was limited by SQLite and loopback socket permissions; an independent rerun with the normal sandbox escalation passed, 46 tests and 29 subtests with 2 dependency deprecation warnings.
+- Live Bedrock verification: TikReader was restarted on the candidate, Minecraft was reconnected and authorized, the persisted `GG` → `Diamantes` action was confirmed enabled, and a simulated `GG` produced `Éxito confirmado · diamonds · simulador · paso 1/1: Dio Diamante * 5` in the Minecraft log. Minecraft chat independently displayed `Recibiste Diamante * 5`.
+- The simulator activity message `Juegos · No hay una acción para este regalo...` belongs to the separate game-hotkey integration and does not describe Minecraft delivery; Minecraft success is recorded in the Minecraft recent log.
 
 ## Next step
 
-MSG-1 is committed locally. Engram mirror remains pending because no Engram memory tools are available in this session; the broader verification command also remains limited by sandbox SQLite and socket permissions.
+MSG-1 is implemented, independently verified, and confirmed against the connected local Minecraft world. The feature branch is ready for the user's ordinary delivery decision. Engram mirror remains pending because no Engram memory tools are available in this session.
