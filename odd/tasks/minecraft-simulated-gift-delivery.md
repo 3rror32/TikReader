@@ -91,7 +91,9 @@ Verification results:
 - `tests/test_minecraft_presets.py` focused MSG-2 regressions: RED before implementation (3 failures) and GREEN after implementation (4 passed, 28 deselected).
 - `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q`: passed, 33 tests and 298 subtests.
 - `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py tests/test_minecraft_bedrock.py tests/test_simulation.py -q`: sandbox attempt failed 7 Bedrock loopback tests with `WinError 10013`; the exact command rerun with sandbox escalation passed, 63 tests and 307 subtests, with 2 existing dependency deprecation warnings.
+- Independent MSG-2 verification found no actionable issues; `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py tests/test_minecraft_bedrock.py -q` passed with loopback access (44 tests and 304 subtests).
+- Live donor-announcement verification: TikReader was restarted on `2996342f`, Minecraft Bedrock was reconnected, and a simulated catalog-backed `GG` from `Simulador` executed the enabled zombie preset. Minecraft chat displayed `Simulador te envió 3 Zombie`, matching the preset's configured quantity of three. The deterministic diamonds regression separately verifies `Simulador te envió 5 diamantes`.
 
 ## Next step
 
-MSG-1 and MSG-2 are implemented and committed. The feature branch is ready for the parent to complete its RDD assessment and the user's ordinary delivery decision. Engram mirror remains pending because no Engram memory tools are available in this session.
+MSG-1 and MSG-2 are implemented, independently verified, and live-tested in Minecraft Bedrock. The feature branch is ready for the user's ordinary delivery decision. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
