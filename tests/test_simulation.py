@@ -130,6 +130,56 @@ class SimulationTests(unittest.TestCase):
                 minecraft.config['presets'] = saved_presets
             minecraft.authorized = saved_authorized
 
+    def test_simulated_unresolved_gift_reaches_unique_saved_minecraft_mapping(self):
+        minecraft = server.minecraft
+        saved_presets = copy.deepcopy(minecraft.config.get('presets'))
+        saved_authorized = minecraft.authorized
+        saved_preset_owner = minecraft.preset_owner
+        saved_preset_usage = copy.deepcopy(minecraft.preset_usage)
+        saved_last_preset_at = minecraft.last_preset_at
+        minecraft.config['presets'] = {'zombie': {
+            'gift_id': 'saved-gg-id', 'gift_name': 'GG', 'enabled': True}}
+        minecraft.authorized = True
+        minecraft.preset_owner = None
+        minecraft.preset_usage.clear()
+        minecraft.last_preset_at = None
+        try:
+            with patch.object(self.sim.r, 'gift_catalog', {}), \
+                    patch.object(minecraft, 'jobs', queue.Queue()):
+                spec = self.sim.validate({'kind': 'gift', 'mode': 'streak', 'gift': 'GG',
+                                          'user': 'GGDonor', 'count': 3})
+                self.assertEqual(spec['gift_id'], 'saved-gg-id')
+                self.sim.deliver(spec, 3, 'minecraft-gg', final=True)
+                self.assertEqual(minecraft.jobs.qsize(), 1)
+                job = minecraft.jobs.get_nowait()
+                self.assertEqual(job.selected_ids, ('zombie',))
+                self.assertEqual(job.donor, 'GGDonor')
+                self.assertEqual(job.gift_count, 3)
+        finally:
+            minecraft.config.pop('presets', None)
+            if saved_presets is not None:
+                minecraft.config['presets'] = saved_presets
+            minecraft.authorized = saved_authorized
+            minecraft.preset_owner = saved_preset_owner
+            minecraft.preset_usage = saved_preset_usage
+            minecraft.last_preset_at = saved_last_preset_at
+
+    def test_simulated_unresolved_gift_does_not_guess_duplicate_saved_mapping_names(self):
+        minecraft = server.minecraft
+        saved_presets = copy.deepcopy(minecraft.config.get('presets'))
+        minecraft.config['presets'] = {
+            'zombie': {'gift_id': 'saved-gg-one', 'gift_name': 'GG', 'enabled': True},
+            'diamonds': {'gift_id': 'saved-gg-two', 'gift_name': 'GG', 'enabled': True},
+        }
+        try:
+            with patch.object(self.sim.r, 'gift_catalog', {}):
+                spec = self.sim.validate({'kind': 'gift', 'gift': 'GG'})
+            self.assertEqual(spec['gift_id'], 'simulation-GG')
+        finally:
+            minecraft.config.pop('presets', None)
+            if saved_presets is not None:
+                minecraft.config['presets'] = saved_presets
+
     def test_simulation_preserves_selected_catalog_id_when_names_are_duplicated(self):
         first = {'id': 'rose-standard', 'name': 'Rose', 'diamonds': 1,
                  'image_url': 'https://example.test/rose.png'}

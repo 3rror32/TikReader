@@ -139,13 +139,21 @@ class Simulation:
             raise ValueError('Selecciona o escribe el nombre del regalo')
         explicit_gift_id = str(data.get('gift_id', '')).strip()
         catalog = self.r.gift_catalog.get(explicit_gift_id, {})
+        mapped_gift_id = ''
         if not explicit_gift_id:
             matches = [g for g in self.r.gift_catalog.values() if g['name'].casefold() == gift.casefold()]
             if len(matches) == 1:
                 catalog = matches[0]
+            elif not matches:
+                presets = self.r.minecraft.config.get('presets', {})
+                mapped_ids = {row.get('gift_id', '').strip() for row in presets.values()
+                              if row.get('enabled') and row.get('gift_name', '').casefold() == gift.casefold()
+                              and row.get('gift_id', '').strip()}
+                if len(mapped_ids) == 1:
+                    mapped_gift_id = next(iter(mapped_ids))
         return dict(kind=kind, mode=mode, user=user, text=text, count=count, interval=interval,
             delay=delay, gift=catalog.get('name', gift),
-            gift_id=catalog.get('id', explicit_gift_id or 'simulation-'+gift),
+            gift_id=catalog.get('id', explicit_gift_id or mapped_gift_id or 'simulation-'+gift),
             diamonds=catalog.get('diamonds', self.number(data, 'diamonds', 1, 0, 100000, True)),
             image=catalog.get('image_url'))
 
