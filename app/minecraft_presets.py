@@ -218,6 +218,25 @@ def commands_for(preset_id, edition, donor='Prueba', java_format='modern', quant
     return _COMMON[preset_id][2]
 
 
+def announcement_for(preset_id, edition, donor='Prueba', quantity=None, gift_count=1):
+    if preset_id not in _COMMON or edition not in ('java', 'bedrock'):
+        raise ValueError('Acción rápida inválida')
+    if type(gift_count) is not int or gift_count < 1:
+        raise ValueError('Cantidad de regalos inválida')
+    name = donor_name(donor)
+    if preset_id == 'diamonds':
+        description = '5 diamantes'
+    elif is_spawn(preset_id):
+        amount = quantity_for(preset_id, quantity) * gift_count
+        label = 'Zombie' if preset_id == 'zombie' else ('TNT' if preset_id == 'tnt_rain' else _MOBS[preset_id][0])
+        description = f'{amount} {label}'
+    else:
+        description = _COMMON[preset_id][0]
+    message = f'{name} te envió {description}'
+    component = {'text': message} if edition == 'java' else {'rawtext': [{'text': message}]}
+    return 'tellraw @p ' + json.dumps(component, ensure_ascii=False, separators=(',', ':'))
+
+
 def mappings(values=None, previous=None):
     if values is None:
         values = {}
@@ -259,3 +278,4 @@ class PresetJob:
     command_labels: tuple = ()
     gift_count: int = 1
     quantities: tuple = ()
+    announcements: tuple = ()

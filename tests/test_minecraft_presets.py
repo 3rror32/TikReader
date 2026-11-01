@@ -91,6 +91,83 @@ class PresetTests(unittest.TestCase):
         self.assertIn("O\\'Neil",legacy)
         self.assertEqual(bedrock,'execute @p ~ ~ ~ summon zombie "Ana" ~2 ~ ~')
 
+    def test_successful_preset_announcements_are_native_json_and_quantity_aware(self):
+        from minecraft_presets import announcement_for
+        java=announcement_for('zombie','java','Ana"; tellraw @a',quantity=3,gift_count=2)
+        self.assertEqual(java,'tellraw @p {"text":"Ana\\\" tellraw @a te envió 6 Zombie"}')
+        self.assertEqual(announcement_for('zombie','java','Simulador'),
+                         'tellraw @p {"text":"Simulador te envió 1 Zombie"}')
+        bedrock=announcement_for('diamonds','bedrock','Simulador',quantity=1,gift_count=8)
+        self.assertEqual(bedrock,'tellraw @p {"rawtext":[{"text":"Simulador te envió 5 diamantes"}]}')
+        self.assertEqual(announcement_for('rain','java','Ana'),
+                         'tellraw @p {"text":"Ana te envió Lluvia"}')
+
+    def test_preset_job_keeps_one_announcement_per_selected_preset(self):
+        self.client.post('/minecraft/presets',json={'edition':'java','presets':{
+            'zombie':{'gift_id':'1','gift_name':'Rose','enabled':True,'quantity':2},
+            'diamonds':{'gift_id':'1','gift_name':'Rose','enabled':True}}})
+        self.assertTrue(self.mc.admit_presets(('zombie','diamonds'),'Simulador',automatic=True,gift_count=3))
+        job=self.mc.jobs.get_nowait()
+        self.assertEqual(len(job.commands),7)
+        self.assertEqual(len(job.announcements),2)
+        self.assertIn('6 Zombie',job.announcements[0])
+        self.assertIn('5 diamantes',job.announcements[1])
+        sent=[]
+        def execute(command):
+            sent.append(command)
+            return 'Gave 5 [Diamond] to Ana' if command.startswith('give ') else 'Summoned new Zombie'
+        with patch.object(self.mc,'execute',side_effect=execute):
+            self.mc.run_preset(job)
+        self.assertEqual(sent,list(job.commands)+list(job.announcements))
+        self.assertEqual(len(sent)-len(job.commands),2)
+
+    def test_announcements_follow_all_confirmed_actions_and_skip_unconfirmed_jobs(self):
+        self.save(preset='zombie')
+        self.gift(count=2)
+        job=self.mc.jobs.get_nowait()
+        sent=[]
+        def execute(command):
+            sent.append(command)
+            return 'Summoned new Zombie'
+        with patch.object(self.mc,'execute',side_effect=execute):
+            self.mc.run_preset(job)
+        self.assertEqual(sent,list(job.commands)+list(job.announcements))
+
+        self.now+=3
+        self.assertTrue(self.mc.admit_presets(('zombie',),'Ana'))
+        job=self.mc.jobs.get_nowait();sent=[]
+        with patch.object(self.mc,'execute',side_effect=lambda command: sent.append(command) or 'Respuesta localizada'):
+            self.mc.run_preset(job)
+        self.assertEqual(sent,list(job.commands))
+
+        self.now+=3
+        self.assertTrue(self.mc.admit_presets(('zombie',),'Ana'))
+        job=self.mc.jobs.get_nowait();sent=[]
+        with patch.object(self.mc,'execute',side_effect=lambda command: sent.append(command) or 'No entity was found'):
+            self.mc.run_preset(job)
+        self.assertEqual(sent,list(job.commands[:1]))
+
+    def test_bedrock_announces_once_after_confirmed_action(self):
+        self.mc.edition='bedrock'
+        self.mc.authorized_generation=self.mc.bedrock.generation
+        self.save(preset='zombie',edition='bedrock')
+        self.gift()
+        job=self.mc.jobs.get_nowait();sent=[]
+        def execute(command, expected_generation=None):
+            sent.append(command)
+            return {'response':'Command executed','outcome':'success'}
+        with patch.object(self.mc.bedrock,'execute',side_effect=execute):
+            self.mc.run_preset(job)
+        self.assertEqual(sent,list(job.commands)+list(job.announcements))
+        self.assertTrue(sent[-1].startswith('tellraw @p {"rawtext":'))
+
+    def test_java_wrapped_summons_require_strict_positive_feedback(self):
+        classify=self.mc.response_outcome
+        command='execute at @p run summon minecraft:zombie ~2 ~ ~ {CustomName:{text:"Ana"}}'
+        self.assertEqual(classify(command,'Summoned new Zombie'), 'success')
+        self.assertEqual(classify(command,'Summoned new Zombie\nextra'), 'unconfirmed')
+        self.assertEqual(classify(command,'No entity was found'), 'rejected')
+
     def test_bedrock_zombie_quantity_uses_valid_legacy_execute_and_summon_order(self):
         from minecraft_presets import commands_for
         bedrock=commands_for('zombie','bedrock','Prueba',quantity=3)
@@ -472,8 +549,10 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(self.client.post('/minecraft/presets/test',json={'edition':'bedrock','id':'speed'}).status_code,200)
         with patch.object(self.mc.bedrock,'execute',return_value={'outcome':'success','response':'ok'}) as execute:
             self.mc.run_job(self.mc.jobs.get_nowait())
-        self.assertEqual(execute.call_args.args[0],'effect @p speed 20 1')
-        self.assertEqual(execute.call_args.kwargs['expected_generation'],self.mc.authorized_generation)
+        self.assertEqual([call.args[0] for call in execute.call_args_list],
+                         ['effect @p speed 20 1','tellraw @p {"rawtext":[{"text":"Prueba te envió Velocidad II"}]}'])
+        self.assertTrue(all(call.kwargs['expected_generation']==self.mc.authorized_generation
+                            for call in execute.call_args_list))
 
     def test_server_hook_dispatches_unchanged_count_final_and_simulation_path(self):
         # Compile the current function in isolation; importing server starts unrelated services.

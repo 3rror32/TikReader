@@ -10,7 +10,7 @@ import time
 from collections import OrderedDict, deque
 from flask import jsonify, request
 from minecraft_bedrock import BedrockBridge
-from minecraft_presets import PresetJob, catalog, categories, sections, commands_for, mappings, limits, name_format, donor_name, command_cost, is_spawn
+from minecraft_presets import PresetJob, catalog, categories, sections, commands_for, announcement_for, mappings, limits, name_format, donor_name, command_cost, is_spawn
 
 logger = logging.getLogger(__name__)
 
@@ -215,7 +215,10 @@ class MinecraftConnector:
                             self.revision, self.edition, self.preset_generation,
                             self.authorized_generation, automatic, tuple(selected), donor_name(donor),
                             owner, tuple(labels), gift_count,
-                            tuple((key, rows[key].get('quantity', 1)) for key in selected))
+                            tuple((key, rows[key].get('quantity', 1)) for key in selected),
+                            tuple(announcement_for(key, self.edition, donor,
+                                                   quantity=rows[key].get('quantity'),
+                                                   gift_count=gift_count) for key in selected))
             try:
                 self.jobs.put_nowait(job)
             except queue.Full:
@@ -260,6 +263,7 @@ class MinecraftConnector:
                     self.preset_owner = None
 
     def _run_preset(self, job):
+        all_actions_confirmed = True
         for step, command in enumerate(job.commands, 1):
             alias = job.command_labels[step-1] if job.command_labels else job.preset_id
             if not self._preset_valid(job):
@@ -284,10 +288,35 @@ class MinecraftConnector:
                           alias=alias, outcome=outcome, response=response,
                           step=step, total=len(job.commands), donor=job.donor)
                 if outcome == 'rejected':return
+                all_actions_confirmed = all_actions_confirmed and outcome == 'success'
             except Exception as exc:
                 self.note(f'Acción rápida sin confirmar · paso {step}/{len(job.commands)}: {type(exc).__name__}',
                           alias=job.preset_id, outcome='connection_error' if isinstance(exc, OSError) else 'unconfirmed', response='')
                 return
+        if not all_actions_confirmed:
+            return
+        for index, command in enumerate(job.announcements):
+            alias = job.selected_ids[index] if index < len(job.selected_ids) else job.preset_id
+            if not self._preset_valid(job):
+                return
+            try:
+                if job.edition == 'java':
+                    with self.lock:
+                        if not self._preset_valid(job):return
+                        response = self.execute(command)
+                    # RCON does not provide a bounded success signal for tellraw.
+                    self.note(f'Anuncio de entrega enviado · {alias} · {job.donor}',
+                              alias=alias, outcome='unconfirmed', response=response,
+                              donor=job.donor, announcement=True)
+                else:
+                    result = self.bedrock.execute(command, expected_generation=job.transport_generation)
+                    self.note(f'Anuncio de entrega · {alias} · {job.donor}: {result["response"] or "sin respuesta"}',
+                              alias=alias, outcome=result['outcome'], response=result['response'],
+                              donor=job.donor, announcement=True)
+            except Exception as exc:
+                self.note(f'Anuncio de entrega sin confirmar · {alias} · {type(exc).__name__}',
+                          alias=alias, outcome='connection_error' if isinstance(exc, OSError) else 'unconfirmed',
+                          response='', donor=job.donor, announcement=True)
 
     @staticmethod
     def packet(request_id, kind, payload):
@@ -356,6 +385,8 @@ class MinecraftConnector:
                     r'No targets matched selector|You do not have permission)(?:[\s.,:]|$)', text):
             return 'rejected'
         verb = command.strip().split(maxsplit=1)[0] if command.strip() else ''
+        if verb == 'execute' and re.match(r'^execute\s+at\s+@p\s+run\s+summon\s+', command):
+            verb = 'summon'
         patterns = {
             'list': r'There are \d+ of a max of \d+ players online: ?[^\r\n]*',
             'summon': r'Summoned new [^\r\n]+',
