@@ -32,7 +32,7 @@ window.SimulationUI = (() => {
           </div>
           <label id="simulation-float-comment-label"><span>Mensaje</span><textarea id="simulation-float-text" rows="2" maxlength="400" placeholder="Escribe lo que enviaría el espectador…"></textarea></label>
           <div id="simulation-float-gift-fields" class="simulation-float-row" hidden>
-            <label><span>Regalo</span><div class="simulation-gift-control"><input id="simulation-float-gift" value="Rose" maxlength="100" autocomplete="off" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="simulation-gift-picker" aria-expanded="false"><div id="simulation-float-gift-selection" class="simulation-gift-selection" role="status" hidden></div></div></label>
+            <label><span>Regalo</span><div class="simulation-gift-control"><button id="simulation-float-gift" class="simulation-gift-trigger" type="button" role="combobox" aria-haspopup="listbox" aria-controls="simulation-gift-picker" aria-expanded="false" data-gift-name="Rose">Rose</button></div></label>
             <label><span>Cantidad</span><input id="simulation-float-count" type="number" min="1" max="9999" step="1" value="1"></label>
           </div>
           <div class="simulation-float-send-row"><label><span>Espera</span><span class="simulation-float-number"><input id="simulation-float-delay" type="number" min="0" max="60" step="1" value="0"><em>s</em></span></label><button id="simulation-float-send" type="submit">Enviar ahora</button></div>
@@ -136,7 +136,7 @@ window.SimulationUI = (() => {
   $('simulation-float-stop').onclick=()=>action(stopSimulation);
   dock.querySelectorAll('[data-simulation-float-tab]').forEach(button=>button.onclick=()=>setDockTab(button.dataset.simulationFloatTab));
   $('simulation-float-kind').onchange=()=>{const gift=$('simulation-float-kind').value==='gift';$('simulation-float-gift-fields').hidden=!gift;$('simulation-float-comment-label').hidden=gift;$('simulation-float-send').textContent=gift?'Enviar regalo':'Enviar ahora';};
-  $('simulation-float-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-float-kind').value,gift=$('simulation-float-gift');const data={kind,user:$('simulation-float-user').value,text:$('simulation-float-text').value,gift:gift.value,gift_id:gift.dataset.giftId||'',mode:'separate',count:Number($('simulation-float-count').value),interval:.5,delay:Number($('simulation-float-delay').value),diamonds:1};apply(await api('/simulation/events',data));mainStatus('Evento enviado desde el panel flotante. Observa la pantalla y la pestaña Actividad.');if(kind==='comment')$('simulation-float-text').select();});};
+  $('simulation-float-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-float-kind').value,gift=$('simulation-float-gift');const data={kind,user:$('simulation-float-user').value,text:$('simulation-float-text').value,gift:gift.dataset.giftName||'',gift_id:gift.dataset.giftId||'',mode:'separate',count:Number($('simulation-float-count').value),interval:.5,delay:Number($('simulation-float-delay').value),diamonds:1};apply(await api('/simulation/events',data));mainStatus('Evento enviado desde el panel flotante. Observa la pantalla y la pestaña Actividad.');if(kind==='comment')$('simulation-float-text').select();});};
   installDockDrag();
   addEventListener('resize',()=>{if(!dock.hidden)restoreDockPosition();});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dock.hidden&&!event.defaultPrevented)closeDock();});
@@ -146,7 +146,7 @@ window.SimulationUI = (() => {
   $('simulation-resume').onclick=()=>action(async()=>{await window.ProductionUI?.resumeSimulation();mainStatus('Emisión reanudada en la escena Charla. Puedes continuar las pruebas.');});
   $('simulation-audio').onclick=()=>action(async()=>{const owned=await window.TikReaderAudio?.claimForSimulation();mainStatus(owned?'Audio disponible en esta pestaña. La voz y los avisos respetan tus ajustes del LIVE.':'No se pudo obtener el control de audio.');});
   for(const [id,enabled] of [['simulation-games-on',true],['simulation-games-off',false]])$(id).onclick=()=>action(async()=>{await window.GameHotkeysUI.setAll(enabled);mainStatus(enabled?'Juegos activados. Envía el regalo configurado y vuelve al juego durante la espera.':'Todos los juegos desactivados y pulsaciones pendientes canceladas.');});
-  $('simulation-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-kind').value,gift=$('simulation-gift');const data={kind,user:$('simulation-user').value,text:$('simulation-text').value,gift:gift.value,gift_id:gift.dataset.giftId||'',mode:$('simulation-mode').value,count:Number($('simulation-count').value),interval:Number($('simulation-interval').value),delay:Number($('simulation-delay').value),diamonds:Number($('simulation-diamonds').value)};apply(await api('/simulation/events',data));mainStatus('Envío programado. Puedes cambiar al juego o a una ventana de overlay.');});};
+  $('simulation-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-kind').value,gift=$('simulation-gift');const data={kind,user:$('simulation-user').value,text:$('simulation-text').value,gift:gift.dataset.giftName||'',gift_id:gift.dataset.giftId||'',mode:$('simulation-mode').value,count:Number($('simulation-count').value),interval:Number($('simulation-interval').value),delay:Number($('simulation-delay').value),diamonds:Number($('simulation-diamonds').value)};apply(await api('/simulation/events',data));mainStatus('Envío programado. Puedes cambiar al juego o a una ventana de overlay.');});};
   $('simulation-kind').onchange=()=>{const gift=$('simulation-kind').value==='gift';$('simulation-gift-fields').hidden=!gift;$('simulation-comment-label').hidden=gift;$('simulation-send').textContent=gift?'Enviar regalos':'Enviar comentario';};
   $('simulation-mode').onchange=()=>{$('simulation-rachainfo').textContent=$('simulation-mode').value==='streak'?'La racha pasa por 1, 2, 3… hasta N y termina sin contar dos veces el último regalo.':'Cada envío tiene su propio identificador y cantidad 1. Se respetan los tiempos de espera entre activaciones.';};
   document.querySelectorAll('[data-simulation-open]').forEach(button=>button.onclick=()=>window.Shell?.show(button.dataset.simulationOpen));
@@ -157,8 +157,7 @@ window.SimulationUI = (() => {
   giftOptions.id='simulation-gift-options';giftOptions.className='simulation-gift-options';giftOptions.setAttribute('role','listbox');giftOptions.setAttribute('aria-label','Regalos disponibles');
   picker.append(giftSearch,giftSearchStatus,giftOptions);document.body.append(picker);
   let giftCatalog=[],pickerInput=null,pickerIndex=-1;
-  let suppressGiftFocus=false;
-  function closeGiftPicker(restoreFocus=false){const input=pickerInput;picker.hidden=true;input?.setAttribute('aria-expanded','false');giftSearch.setAttribute('aria-expanded','false');giftSearch.removeAttribute('aria-activedescendant');pickerInput=null;pickerIndex=-1;if(restoreFocus&&input){suppressGiftFocus=true;input.focus();}}
+  function closeGiftPicker(restoreFocus=false){const input=pickerInput;picker.hidden=true;input?.setAttribute('aria-expanded','false');giftSearch.setAttribute('aria-expanded','false');giftSearch.removeAttribute('aria-activedescendant');pickerInput=null;pickerIndex=-1;if(restoreFocus&&input)input.focus();}
   function giftArtwork(gift){
     const art=el('span');art.className='simulation-gift-option-art';
     const fallback=()=>{const label=el('span',gift.name);label.className='simulation-gift-option-fallback';art.replaceChildren(label);};
@@ -172,13 +171,12 @@ window.SimulationUI = (() => {
     return detail;
   }
   function showGiftSelection(input,gift){
-    const id=input.id==='simulation-gift'?'simulation-gift-selection':'simulation-float-gift-selection';
-    const selection=$(id);selection.replaceChildren();selection.hidden=!gift;
-    if(gift)selection.append(giftArtwork(gift),giftDetails(gift));
+    if(gift){input.dataset.giftName=gift.name;input.textContent=gift.name;input.replaceChildren(giftArtwork(gift),giftDetails(gift));}
+    else{delete input.dataset.giftId;input.textContent=input.dataset.giftName||'Seleccionar regalo';}
   }
   function chooseGift(index){
     const gift=giftCatalog[index];if(!gift||!pickerInput)return;
-    const input=pickerInput;input.value=gift.name;input.dataset.giftId=String(gift.id);
+    const input=pickerInput;input.dataset.giftName=gift.name;input.dataset.giftId=String(gift.id);
     showGiftSelection(input,gift);closeGiftPicker(true);
   }
   function positionGiftPicker(input){
@@ -222,9 +220,7 @@ window.SimulationUI = (() => {
     }
   }
   for(const input of giftInputs){
-    input.addEventListener('focus',()=>{if(suppressGiftFocus){suppressGiftFocus=false;return;}if(picker.hidden||pickerInput!==input){renderGiftPicker(input,true);giftSearch.focus();}});
     input.addEventListener('click',()=>{if(picker.hidden||pickerInput!==input){renderGiftPicker(input,true);giftSearch.focus();}});
-    input.addEventListener('input',()=>{delete input.dataset.giftId;showGiftSelection(input,null);if(pickerInput===input)renderGiftPicker(input);});
   }
   giftSearch.addEventListener('input',()=>{if(pickerInput)renderGiftPicker(pickerInput);});
   giftSearch.addEventListener('keydown',onGiftKeydown);
@@ -234,7 +230,7 @@ window.SimulationUI = (() => {
   api('/gift-catalog').then(data=>{
     giftCatalog=Array.isArray(data.gifts)?data.gifts:[];
     for(const input of giftInputs){
-      const query=input.value.trim().toLocaleLowerCase();
+      const query=(input.dataset.giftName||'').trim().toLocaleLowerCase();
       const match=giftCatalog.find(gift=>gift.name.toLocaleLowerCase()===query);
       if(match){input.dataset.giftId=String(match.id);showGiftSelection(input,match);}
     }

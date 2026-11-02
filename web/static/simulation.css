@@ -82,3 +82,4 @@ body.simulation-active #simulation-fab,body.simulation-active #simulation-float{
 .simulation-gift-search-status{margin:6px 2px;padding:7px;color:var(--control-field-muted,#a4b6c8);font-size:var(--ui-type-caption,12px)}
 .simulation-gift-options{max-height:220px;overflow:auto}
 @media(max-width:480px){#simulation-gift-picker{padding:6px}.simulation-gift-options{max-height:min(190px,34dvh)}}
+.simulation-gift-trigger{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:4px 8px;text-align:left}.simulation-gift-trigger::after{content:"▾";margin-left:auto;color:var(--control-field-muted,#a4b6c8)}.simulation-gift-trigger .simulation-gift-option-art{width:32px;height:32px;flex-basis:32px}.simulation-gift-trigger .simulation-gift-option-detail small{color:var(--control-field-muted,#a4b6c8)}
