@@ -141,7 +141,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
 
 - Commit: `08c2d4a` (`fix(minecraft): queue simulated gift presets reliably`).
 
-- [ ] **MSG-7 — Add an in-popover search field to simulator gift pickers**
+- [x] **MSG-7 — Add an in-popover search field to simulator gift pickers**
   - Route: delegated direct.
   - Trigger evidence: picker behavior, responsive styling, and DOM regressions require coordinated non-trivial edits to `web/static/simulation.js`, `web/static/simulation.css`, and `tests/test_simulation_ui.cjs`.
   - Test-first policy: add focused DOM regressions and observe them fail before implementing the picker changes.
@@ -154,7 +154,8 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Checks:
     - `node --test tests/test_simulation_ui.cjs`.
     - Parent spot check of that exact command.
-  - Evidence: the test-first run was RED (4 failed, 4 passed) because both picker surfaces lacked the search field and keyboard/no-result behaviors. After implementation, the exact focused command passed (8 tests, 0 failures); coverage includes both surfaces, case-insensitive filtering, query reset/clear, selected ID and preview, no-match status, arrows/Enter, Escape, Tab, and unchanged submit payload. Parent commit and spot check remain pending.
+  - Evidence: the test-first run was RED (4 failed, 4 passed) because both picker surfaces lacked the search field and keyboard/no-result behaviors. After implementation, the exact focused command passed (8 tests, 0 failures); coverage includes both surfaces, case-insensitive filtering, query reset/clear, selected ID and preview, no-match status, arrows/Enter, Escape, Tab, and unchanged submit payload. Parent spot check passed (8 tests, 0 failures).
+  - Commit: `f4134d7` (`feat(simulation): search gifts in chat picker`).
   - Engram mirror: pending because no Engram memory tools are available in this session.
 
 ## Delivery
@@ -163,7 +164,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
 - Forecast: about 635 authored changed lines across all seven work units, excluding task-document changes.
 - Chain strategy: `stacked-to-main` (selected by the user).
 - Running authored changed lines: approximately 513 (MSG-1: 60; MSG-2: 138; MSG-6: approximately 200; MSG-7: 113; task document excluded).
-- Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-6 at `08c2d4a` (stacked to main).
+- Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-5 search at `5e5f77a`; MSG-6 at `08c2d4a`; MSG-7 at `f4134d7` (stacked to main).
 
 ## Progress
 
