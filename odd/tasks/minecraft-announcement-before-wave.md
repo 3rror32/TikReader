@@ -35,11 +35,14 @@ The durable effect worker currently emits the `tellraw` announcement only after 
 ## Task Checklist
 
 - [x] MWA-1: Add a durable-path regression test, observe RED, implement announcement-before-wave ordering, and verify retry behavior.
+- [x] MWA-2: Correct Java announcement rejection handling and persist progress after each confirmed announcement.
 
 ## Acceptance Criteria
 
 - A durable gift-triggered wave sends its announcement before its first mob command.
 - The announcement is not sent again if the wave command path retries.
+- Java command rejection or unconfirmed tellraw feedback must not mark the announcement complete or start the wave.
+- Multi-action announcement progress survives retries and restart without replaying already confirmed messages.
 - Existing pause, persistence, and recovery behavior remains intact.
 - Focused verification command passes.
 
@@ -57,4 +60,13 @@ The durable effect worker currently emits the `tellraw` announcement only after 
 - Implementation: the durable effect records `announcement_sent`, sends the announcement before its first command, persists the flag, retries clean Java connection failures without replaying a completed announcement, and holds ambiguous/failed announcements for review.
 - Structural readback: `run_next_effect` calls `_announce_effect` and persists `announcement_sent` before `_effect_object` and command execution; the regression test restores a new connector from the same history store after a retry and verifies it proceeds without announcing again.
 - Work-unit commit: `8e482d4` (`fix(minecraft): announce gift wave before commands`).
-- Next step: complete; the Engram mirror remains pending because memory tools are unavailable.
+- Review findings for MWA-2: Java `_announce_effect` currently treats any returned RCON response as sent even when `response_outcome` is rejected/unconfirmed; the batch-level `announcement_sent` flag is persisted only after every selected announcement, so a later announcement retry can replay earlier ones.
+- Correction scope: add tellraw response classification for confirmed vanilla feedback, require a confirmed Java outcome before advancing, and persist a per-announcement cursor in the existing durable effect JSON. Keep existing effects compatible by mapping legacy `announcement_sent=True` to the end of the announcement list; otherwise default the cursor to zero.
+- RED for MWA-2: `.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` failed both new regressions. A rejected tellraw still led to a second command call; after announcement one succeeded and announcement two hit a retryable connection error, the durable cursor remained at zero. The other 56 tests and 300 subtests passed.
+- GREEN for MWA-2: `.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed: 58 tests and 300 subtests.
+- Correction rationale: `response_outcome` now recognizes the vanilla tellraw success reply, and `_announce_effect` accepts only `success`; it increments and persists `announcement_index` after each confirmed message. Legacy effects with `announcement_sent=True` and no cursor map to the end of the announcement list, preserving prior behavior without replay.
+- Structural readback: `run_next_effect` lines 557-572 holds the effect and returns on an unconfirmed announcement before `_effect_object` at line 573; `_announce_effect` lines 639-680 checks the Java outcome and persists each cursor step; `response_outcome` lines 864-884 classifies tellraw.
+- Correction verification: focused suite passed with 58 tests and 300 subtests; both new regression cases pass.
+- Running authored change count for this correction: 118 lines (95 insertions + 23 deletions across the three authorized paths; generated files excluded).
+- Correction work-unit commit: pending.
+- Next step: commit the verified correction and record its exact commit identity.

@@ -271,7 +271,7 @@ class MinecraftConnector:
                                for key in job.command_labels],
                       'command_groups':groups, 'total':total_commands,
                       'announcements':list(job.announcements), 'edition':job.edition,
-                      'announcement_sent':False,
+                      'announcement_sent':False, 'announcement_index':0,
                       'automatic':bool(automatic), 'session':job.session,
                       'next_index':0, 'status':'pending', 'received_at':time.time(),
                       'gift_count':gift_count}
@@ -570,16 +570,6 @@ class MinecraftConnector:
                     return False
                 self._hold_effect_unconfirmed(chosen, type(exc).__name__)
                 return False
-            chosen['announcement_sent'] = True
-            archive = getattr(self.r, 'archive', None)
-            if archive and hasattr(archive, 'update_minecraft_effect'):
-                try:
-                    if not archive.update_minecraft_effect(chosen):
-                        self._hold_effect_unconfirmed(chosen, 'announcement_not_persisted')
-                        return False
-                except Exception:
-                    self._hold_effect_unconfirmed(chosen, 'announcement_not_persisted')
-                    return False
         command, alias = self._effect_object(chosen, index)
         step = self._effect_summary(chosen)
         action_name = step['action']
@@ -647,7 +637,12 @@ class MinecraftConnector:
         return True
 
     def _announce_effect(self, effect):
-        for index, command in enumerate(effect.get('announcements', ())):
+        announcements = effect.get('announcements', ())
+        start = effect.get('announcement_index')
+        if start is None:
+            start = len(announcements) if effect.get('announcement_sent') else 0
+        for index in range(start, len(announcements)):
+            command = announcements[index]
             alias = effect.get('selected_ids', [effect['preset_id']])[index]
             try:
                 if effect['edition'] == 'java':
@@ -655,15 +650,27 @@ class MinecraftConnector:
                         if not self.authorized_now():
                             return False
                         response = self.execute(command)
-                    self.note(f'Anuncio de entrega enviado · {alias} · {effect["donor"]}',
-                              alias=alias, outcome='unconfirmed', response=response,
+                    outcome = self.response_outcome(command, response)
+                    label = {'success':'Anuncio de entrega enviado',
+                             'rejected':'Anuncio de entrega rechazado',
+                             'unconfirmed':'Anuncio de entrega sin confirmar'}[outcome]
+                    self.note(f'{label} · {alias} · {effect["donor"]}',
+                              alias=alias, outcome=outcome, response=response,
                               donor=effect['donor'], identity=effect['identity'], announcement=True)
+                    if outcome != 'success':
+                        return False
                 else:
                     result = self.bedrock.execute(command, expected_generation=self.bedrock.generation)
                     self.note(f'Anuncio de entrega · {alias} · {effect["donor"]}: {result["response"] or "sin respuesta"}',
                               alias=alias, outcome=result['outcome'], response=result['response'],
                               donor=effect['donor'], identity=effect['identity'], announcement=True)
                     if result['outcome'] != 'success':
+                        return False
+                effect['announcement_index'] = index + 1
+                effect['announcement_sent'] = effect['announcement_index'] >= len(announcements)
+                archive = getattr(self.r, 'archive', None)
+                if archive and hasattr(archive, 'update_minecraft_effect'):
+                    if not archive.update_minecraft_effect(effect):
                         return False
             except Exception as exc:
                 self.note(f'Anuncio de entrega sin confirmar · {alias} · {type(exc).__name__}',
@@ -869,6 +876,7 @@ class MinecraftConnector:
             'list': r'There are \d+ of a max of \d+ players online: ?[^\r\n]*',
             'summon': r'Summoned new [^\r\n]+',
             'give': r'Gave \d+ \[[^\r\n]+\] to [^\r\n]+',
+            'tellraw': r'\d+ player\(s\) received message',
             'weather': r'Set the weather to (?:clear|rain|thunder)',
         }
         if verb in patterns and re.fullmatch(patterns[verb], text):
