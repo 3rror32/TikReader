@@ -435,6 +435,32 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(sent,list(job.commands)+list(job.announcements))
         self.assertEqual(len(sent)-len(job.commands),2)
 
+    def test_durable_multi_action_steps_keep_each_preset_and_action_label(self):
+        folder=tempfile.TemporaryDirectory(dir=Path.cwd());self.addCleanup(folder.cleanup)
+        self.runtime.archive=HistoryStore(Path(folder.name)/'effects.sqlite3')
+        self.mc.config['immediate_effects']=True
+        self.client.post('/minecraft/presets',json={'edition':'java','presets':{
+            'zombie':{'gift_id':'1','gift_name':'Rose','enabled':True,'quantity':2},
+            'diamonds':{'gift_id':'1','gift_name':'Rose','enabled':True}}})
+        self.assertTrue(self.mc.admit_presets(('zombie','diamonds'),'Ana',automatic=True,
+                                              gift_count=1,identity='multi-action-event',
+                                              gift_name='Rose',gift_id='1'))
+        job=self.mc.jobs.get_nowait()
+        action_names={'zombie':'Zombi','diamonds':'Diamantes'}
+        sent=[]
+        def execute(command):
+            sent.append(command)
+            return 'ok'
+        self.mc.response_outcome=lambda command,response:'success'
+        with patch.object(self.mc,'execute',side_effect=execute):
+            for command,preset_id in zip(job.commands,job.command_labels):
+                state=self.mc.queue_snapshot()
+                self.assertEqual(state['next']['preset_id'],preset_id)
+                self.assertEqual(state['next']['action'],action_names[preset_id])
+                self.assertTrue(self.mc.run_next_effect())
+        self.assertEqual(sent[:len(job.commands)],list(job.commands))
+        self.assertEqual(job.command_labels[-1],'diamonds')
+
     def test_announcements_follow_all_confirmed_actions_and_skip_unconfirmed_jobs(self):
         self.save(preset='zombie')
         self.gift(count=2)

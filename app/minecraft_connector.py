@@ -267,6 +267,8 @@ class MinecraftConnector:
                       'gift_id':str(gift_id)[:100], 'action_name':action_names.get(job.preset_id, job.preset_id),
                       'preset_id':job.preset_id, 'selected_ids':list(job.selected_ids),
                       'commands':list(job.commands), 'command_labels':list(job.command_labels),
+                      'steps':[{'preset_id':key, 'action_name':action_names.get(key, key)}
+                               for key in job.command_labels],
                       'command_groups':groups, 'total':total_commands,
                       'announcements':list(job.announcements), 'edition':job.edition,
                       'automatic':bool(automatic), 'session':job.session,
@@ -315,10 +317,14 @@ class MinecraftConnector:
     def _effect_summary(effect):
         total = effect.get('total', len(effect.get('commands', ())))
         remaining = max(0, total-effect.get('next_index', 0))
+        step_index = effect.get('next_index', 0)
+        steps = effect.get('steps', ())
+        step = steps[step_index] if step_index < len(steps) else {}
         return {'identity':effect['identity'], 'donor':effect['donor'],
                 'gift':effect.get('gift_name', ''), 'gift_id':effect.get('gift_id', ''),
-                'action':effect.get('action_name', effect['preset_id']),
-                'preset_id':effect['preset_id'], 'quantity':effect.get('gift_count', total),
+                'action':step.get('action_name', effect.get('action_name', effect['preset_id'])),
+                'preset_id':step.get('preset_id', effect['preset_id']),
+                'quantity':effect.get('gift_count', total),
                 'state':effect.get('status', 'pending'), 'remaining':remaining,
                 'failures':effect.get('failures', 0)}
 
@@ -438,13 +444,14 @@ class MinecraftConnector:
         held = dict(effect, status='unconfirmed', failures=effect.get('failures', 0) + 1,
                     unconfirmed_reason=str(reason)[:80],
                     unconfirmed_at=time.time())
+        step = self._effect_summary(effect)
         archive = getattr(self.r, 'archive', None)
         if archive and hasattr(archive, 'update_minecraft_effect'):
             archive.update_minecraft_effect(held)
         else:
             self._memory_effects[effect['identity']] = held
-        self.note(f'Entrega sin confirmar · {effect.get("action_name", effect["preset_id"])} · {effect["donor"]}: requiere revisión manual',
-                  alias=effect.get('action_name', effect['preset_id']), outcome='unconfirmed',
+        self.note(f'Entrega sin confirmar · {step["action"]} · {effect["donor"]}: requiere revisión manual',
+                  alias=step['action'], action=step['action'], preset_id=step['preset_id'], outcome='unconfirmed',
                   identity=effect['identity'], donor=effect['donor'], gift=effect.get('gift_name',''))
 
     def _finish_effect_reservation(self, identity):
@@ -514,6 +521,8 @@ class MinecraftConnector:
         if self.effects_paused() or not self._connection_ready() or not self._effect_executable(chosen):
             return False
         command, alias = self._effect_object(chosen, index)
+        step = self._effect_summary(chosen)
+        action_name = step['action']
         self.current_effect = {**self._effect_summary(chosen), 'step':index+1,
                                'total':chosen.get('total',len(chosen.get('commands', ())))}
         try:
@@ -533,8 +542,9 @@ class MinecraftConnector:
             outcome = ('connection_error' if chosen['edition'] == 'java' and isinstance(exc, OSError)
                        and not isinstance(exc, AmbiguousMinecraftExecution) else 'unconfirmed')
             response = ''
-            self.note(f'Objeto pendiente · {alias} · {chosen["donor"]}: {type(exc).__name__}',
-                      alias=alias, outcome=outcome, identity=chosen['identity'], step=index+1,
+            self.note(f'Objeto pendiente · {action_name} · {chosen["donor"]}: {type(exc).__name__}',
+                      alias=action_name, action=action_name, preset_id=step['preset_id'], outcome=outcome,
+                      identity=chosen['identity'], step=index+1,
                       total=chosen.get('total', len(chosen.get('commands', ()))), donor=chosen['donor'])
             self._record_effect_failure(chosen['identity'], type(exc).__name__)
             if outcome == 'unconfirmed':
@@ -545,9 +555,8 @@ class MinecraftConnector:
             return False
         self.current_effect = None
         total = chosen.get('total', len(chosen.get('commands', ())))
-        action_name = chosen.get('action_name', alias)
         self.note(f'{"Éxito confirmado" if outcome == "success" else "Sin confirmar"} · {action_name} · {chosen["donor"]} · objeto {index+1}/{total}: {response or "sin respuesta"}',
-                  alias=action_name, action=action_name, outcome=outcome, response=response,
+                  alias=action_name, action=action_name, preset_id=step['preset_id'], outcome=outcome, response=response,
                   identity=chosen['identity'], gift_id=chosen.get('gift_id',''), gift=chosen.get('gift_name',''),
                   quantity=chosen.get('gift_count',1), state=outcome,
                   step=index+1, total=total, donor=chosen['donor'])
