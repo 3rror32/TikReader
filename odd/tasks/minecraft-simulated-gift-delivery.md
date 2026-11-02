@@ -135,13 +135,15 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - Live back-to-back simulated Rose verification after the mapping is updated.
   - Evidence: focused regressions were RED before implementation (queue rejected a second gift, mob chat lacked plural forms, and simulator text lacked singular/plural wording). GREEN afterward: FIFO/count, TNT quantity one, Spanish plural labels, canceled-job retirement, stop schedule rebasing, and simulator singular/plural regressions passed. Final focused preset selection passed (5 tests); cancellation/budget/plural selection passed independently (4 tests); stop-rebase/canceled-wait selection passed (2 tests); and the simulator suite passed (20 tests, 3 subtests; 2 dependency deprecation warnings). The complete preset suite emitted partial output containing a failure and did not complete; `tests/test_server.py` emitted `F..` and exceeded 60 seconds. Both full-suite outcomes remain unresolved. No live Minecraft verification was run for this work unit.
 
+- Commit: `08c2d4a` (`fix(minecraft): queue simulated gift presets reliably`).
+
 ## Delivery
 
 - Strategy: `ask-on-risk`.
 - Forecast: about 520 authored changed lines across all six work units, excluding this task document.
 - Chain strategy: `stacked-to-main` (selected by the user).
 - Running authored changed lines: approximately 400 (MSG-1: 60; MSG-2: 138; MSG-6: approximately 200; task document excluded).
-- Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`.
+- Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-6 at `08c2d4a` (stacked to main).
 
 ## Progress
 
