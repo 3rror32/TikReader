@@ -68,5 +68,5 @@ The durable effect worker currently emits the `tellraw` announcement only after 
 - Structural readback: `run_next_effect` lines 557-572 holds the effect and returns on an unconfirmed announcement before `_effect_object` at line 573; `_announce_effect` lines 639-680 checks the Java outcome and persists each cursor step; `response_outcome` lines 864-884 classifies tellraw.
 - Correction verification: focused suite passed with 58 tests and 300 subtests; both new regression cases pass.
 - Running authored change count for this correction: 118 lines (95 insertions + 23 deletions across the three authorized paths; generated files excluded).
-- Correction work-unit commit: pending.
-- Next step: commit the verified correction and record its exact commit identity.
+- Correction work-unit commit: `7b4037e` (`fix(minecraft): confirm each gift announcement`).
+- Next step: deliver the committed correction; no additional code work remains.
