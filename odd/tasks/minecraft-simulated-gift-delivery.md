@@ -162,6 +162,17 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Independent verification correction: when one gift activates multiple presets, the durable effect now persists a `steps` entry per command with its own `preset_id` and canonical action label; queue/current/unconfirmed summaries and execution notes select the active step. The deterministic multi-action regression was RED (`diamonds` reported `zombie`), then GREEN (1 passed); it checks each durable snapshot step and confirms the original queued commands execute in order. `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (53 tests, 300 subtests); `git diff --check` passed.
   - Correction commit: `b49565b` (`fix(minecraft): preserve per-step action provenance`); Engram mirror remains pending.
 
+- [x] **MSG-11 — Resolve compact and legacy per-step queue provenance**
+  - Route: delegated direct continuation; isolated one-file correction and focused tests.
+  - Trigger evidence: compact effects omit expanded step labels, and legacy durable rows predate the per-step metadata field.
+  - Acceptance criteria:
+    - Summaries derive the current preset ID and canonical action label from compact command groups when expanded `steps` are absent.
+    - Legacy rows without `steps` use their compatible grouped/label metadata and retain the correct action at each index.
+    - Compact command lists remain unexpanded; order, generation, pacing, and retry behavior stay unchanged.
+  - Checks: `tests/test_minecraft_presets.py::PresetTests::test_compact_large_effect_derives_current_provenance_from_command_groups -q` and `tests/test_minecraft_presets.py::PresetTests::test_legacy_effect_without_steps_derives_provenance_from_command_groups -q`, both RED then GREEN; `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (55 tests, 300 subtests); `git diff --check` passed.
+  - Evidence: both regressions were RED with `preset_id` reported as `zombie` although `_effect_object` identified the next command as `diamonds`. `_effect_summary` now resolves metadata from expanded `steps`, compact repeated `command_groups`, or compatible legacy labels without expanding compact commands. Both exact nodes passed after the fix, including the >10,000-command admission case.
+  - Work-unit commit: `07da1a6` (`fix(minecraft): derive compact queue step provenance`); Engram mirror remains pending.
+
 - [x] **MSG-6 — Queue valid Minecraft gifts with execution spacing**
   - Route: delegated direct.
   - Trigger evidence: admission ownership, FIFO reservations, interval timing, budget accounting, stale-job validation, and safety regression coverage require coordinated non-trivial connector and test changes.
