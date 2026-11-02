@@ -60,6 +60,9 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
     panel:id=>nodes.find(n=>n.role==='tabpanel'&&n.dataset.categoryPanel===id),
     catalog:value=>giftCatalog=value,
     preset:(id,control)=>nodes.find(n=>n.isConnected&&n.dataset[control==='gift'?'presetGift':'presetEnabled']===id),
+    actionSearch:()=>nodes.find(n=>n.dataset.actionSearch),
+    actionOption:id=>nodes.find(n=>n.isConnected&&n.dataset.actionOption===id),
+    actionOptions:()=>nodes.filter(n=>n.isConnected&&n.dataset.actionOption),
     async addAction(id){const picker=nodes.find(n=>n.dataset.actionPicker);picker.value=id;await picker.events.change();await nodes.find(n=>n.dataset.addAction).onclick();await flush();},
     async tick(){const [id,timer]=timers.entries().next().value||[];assert.ok(timer,'refresh timer exists');timers.delete(id);timer.fn();await flush();},
     async hidden(value){pane.hidden=value;for(const o of observers)if(o.options.attributes)o.fn([]);await flush();},
@@ -362,6 +365,61 @@ test('empty action picker adds multiple allowed rows once and persists selection
   const reloaded=setup({storage});await reloaded.flush();
   assert.deepEqual(reloaded.nodes.filter(n=>n.dataset.quickAction&&n.isConnected).map(n=>n.dataset.quickAction),['zombie','cow']);
   await reloaded.edition('bedrock');assert.deepEqual(reloaded.nodes.filter(n=>n.dataset.quickAction&&n.isConnected).map(n=>n.dataset.quickAction),['pig']);
+});
+
+test('action search exposes bounded accessible suggestions with aliases and accent-insensitive matching',async()=>{
+  const s=setup();await s.flush();const search=s.actionSearch();
+  assert.equal(search.role,'combobox');assert.equal(search.getAttribute('aria-autocomplete'),'list');
+  assert.equal(search.getAttribute('aria-controls'),'minecraft-action-options');
+  search.events.focus();
+  const list=s.nodes.find(n=>n.id==='minecraft-action-options');
+  assert.equal(list.getAttribute('role'),'listbox');assert.equal(search.getAttribute('aria-expanded'),'true');
+  assert.ok(s.actionOptions().length<=8,'suggestions stay bounded');
+  search.value='dar diamantes';await search.events.input();
+  assert.deepEqual(s.actionOptions().map(option=>option.dataset.actionOption),['diamonds']);
+  const diamonds=s.actionOption('diamonds');assert.equal(diamonds.getAttribute('role'),'option');
+  assert.match(diamonds.textContent,/Diamantes/);assert.match(diamonds.textContent,/Objetos/);assert.match(diamonds.textContent,/5 diamantes/);
+  search.value='curacion';await search.events.input();
+  assert.deepEqual(s.actionOptions().map(option=>option.dataset.actionOption),['heal']);
+  search.value='tnt';await search.events.input();
+  assert.deepEqual(s.actionOptions().map(option=>option.dataset.actionOption),['tnt_rain']);
+});
+
+test('action search supports keyboard choice and keeps adding explicit',async()=>{
+  const s=setup();await s.flush();const search=s.actionSearch();search.focus();search.events.focus();search.value='diamantes';await search.events.input();
+  const down={key:'ArrowDown',preventDefault(){this.prevented=true;}};search.events.keydown(down);
+  assert.equal(down.prevented,true);assert.equal(search.getAttribute('aria-activedescendant'),s.actionOption('diamonds').id);assert.equal(s.actionOption('diamonds').getAttribute('aria-selected'),'true');
+  const up={key:'ArrowUp',preventDefault(){this.prevented=true;}};search.events.keydown(up);
+  assert.equal(up.prevented,true);assert.equal(search.getAttribute('aria-activedescendant'),s.actionOptions().at(-1).id,'ArrowUp starts at the last suggestion');
+  search.events.keydown(down);assert.equal(search.getAttribute('aria-activedescendant'),s.actionOption('diamonds').id);
+  const enter={key:'Enter',preventDefault(){this.prevented=true;}};await search.events.keydown(enter);
+  assert.equal(enter.prevented,true);assert.equal(s.nodes.find(n=>n.dataset.actionPicker).value,'diamonds');
+  assert.equal(s.nodes.find(n=>n.dataset.addAction).disabled,false,'the explicit add action remains available');
+  assert.equal(s.requests.some(request=>request.path==='/minecraft/presets'&&request.method==='POST'),false,'choosing does not add the action');
+  search.events.focus();const escape={key:'Escape',preventDefault(){this.prevented=true;}};search.events.keydown(escape);
+  assert.equal(escape.prevented,true);assert.equal(search.getAttribute('aria-expanded'),'false');
+  await s.nodes.find(n=>n.dataset.addAction).onclick();await s.flush();
+  assert.ok(s.preset('diamonds','gift'),'only the explicit add button adds the selected action');
+});
+
+test('pointer selection survives the browser blur-before-click sequence',async()=>{
+  const s=setup();await s.flush();const search=s.actionSearch();search.focus();search.events.focus();search.value='diamantes';await search.events.input();
+  const option=s.actionOption('diamonds'),list=s.nodes.find(n=>n.id==='minecraft-action-options');
+  const pointerdown={preventDefault(){this.prevented=true;}};option.events.pointerdown?.(pointerdown);
+  if(!pointerdown.prevented)search.events.blur();
+  if(!list.hidden)option.events.click();
+  assert.equal(s.nodes.find(n=>n.dataset.actionPicker).value,'diamonds','the option click selects even when browsers blur before click');
+});
+
+test('polling preserves the highlighted action before Enter chooses it',async()=>{
+  const s=setup();await s.flush();const search=s.actionSearch();search.focus();search.events.focus();
+  const down={key:'ArrowDown',preventDefault(){this.prevented=true;}};search.events.keydown(down);search.events.keydown(down);
+  const intended=s.actionOptions()[1].dataset.actionOption,activeId=s.actionOptions()[1].id;
+  assert.equal(search.getAttribute('aria-activedescendant'),activeId);
+  await s.tick();
+  assert.equal(search.getAttribute('aria-activedescendant'),activeId,'refresh retains the active option identity');
+  const enter={key:'Enter',preventDefault(){this.prevented=true;}};search.events.keydown(enter);
+  assert.equal(s.nodes.find(n=>n.dataset.actionPicker).value,intended,'Enter chooses the highlighted option after refresh');
 });
 
 test('adding a mob action switches to its visible category panel',async()=>{

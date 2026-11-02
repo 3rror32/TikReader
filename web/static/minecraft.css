@@ -30,7 +30,15 @@
 .minecraft-actions-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .studio-pane .minecraft-actions-heading h3 { margin: 0 auto 0 0; font-size: 18px; }
 .minecraft-action-picker { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; }
+.minecraft-action-picker-control { position: relative; flex: 1 1 220px; min-width: 0; }
 .studio-pane .minecraft-action-picker-select { width: min(38vw, 320px); min-width: 190px; max-width: 100%; }
+.minecraft-action-picker-control .minecraft-action-picker-select { box-sizing: border-box; width: 100%; }
+.minecraft-action-picker-results { position: absolute; z-index: 30; top: calc(100% + 5px); left: 0; right: 0; max-height: min(18rem, 55vh); overflow-y: auto; overscroll-behavior: contain; padding: 5px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-glass); box-shadow: 0 12px 30px rgb(0 0 0 / 28%); }
+.minecraft-action-picker-results[hidden] { display: none; }
+.minecraft-action-picker-results [role="option"] { min-height: 38px; display: flex; align-items: center; padding: 7px 9px; border-radius: 6px; color: var(--text-main); cursor: pointer; font-size: 13px; line-height: 1.35; }
+.minecraft-action-picker-results [role="option"]:hover, .minecraft-action-picker-results [role="option"][data-active-option="true"], .minecraft-action-picker-results [role="option"][aria-selected="true"] { background: color-mix(in srgb, var(--teal) 13%, var(--bg-glass)); }
+.minecraft-action-picker-results [role="option"][data-active-option="true"] { outline: 2px solid var(--teal); outline-offset: -2px; }
+.minecraft-action-picker-status { display: block; min-height: 1.25em; margin-top: 4px; color: var(--text-muted); font-size: 11px; }
 .minecraft-action-row, .minecraft-action-columns { display: grid; grid-template-columns: var(--minecraft-action-grid); gap: 10px; align-items: center; }
 .minecraft-action-columns { padding: 8px 0; color: var(--text-muted); font-size: 12px; }
 .minecraft-action-columns span:nth-child(3), .minecraft-action-columns span:nth-child(4), .minecraft-action-columns span:nth-child(5) { text-align: center; }
@@ -82,6 +90,7 @@
   .minecraft-action-columns span:nth-child(4) { text-align: center; }
   .minecraft-action-picker { flex: 1 1 100%; align-items: stretch; flex-direction: column; gap: 5px; }
   .studio-pane .minecraft-action-picker-select { width: 100%; min-width: 0; }
+  .minecraft-action-picker-control { width: 100%; flex-basis: 100%; }
   .minecraft-status-strip { display: flex; flex-direction: column; align-items: stretch; }
   .minecraft-status-strip > * { flex: 1 1 100%; }
   .minecraft-status-strip button { width: 100%; }
