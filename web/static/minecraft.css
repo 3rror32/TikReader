@@ -28,8 +28,9 @@
 .studio-pane .minecraft-bedrock-setup .minecraft-connect-command { min-width: 0; flex: 1 1 0; width: 100%; height: 36px; min-height: 36px; margin: 0; box-sizing: border-box; font-family: var(--tr-data, monospace); font-size: 13px; line-height: 1.2; padding: 8px; background: var(--bg-glass); user-select: all; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .studio-pane .minecraft-quick-actions { --minecraft-action-grid: minmax(130px, 1fr) minmax(180px, 1.15fr) 76px minmax(6rem, max-content) 6rem 2.25rem; margin: 16px 0; border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: var(--bg-glass); }
 .minecraft-actions-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.minecraft-actions-heading > button { align-self: flex-start; }
 .studio-pane .minecraft-actions-heading h3 { margin: 0 auto 0 0; font-size: 18px; }
-.minecraft-action-picker { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; }
+.studio-pane .minecraft-action-picker { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; }
 .minecraft-action-picker-control { position: relative; flex: 1 1 220px; min-width: 0; }
 .studio-pane .minecraft-action-picker-select { width: min(38vw, 320px); min-width: 190px; max-width: 100%; }
 .minecraft-action-picker-control .minecraft-action-picker-select { box-sizing: border-box; width: 100%; }
@@ -88,7 +89,7 @@
   .minecraft-action-columns { display: none; }
   .minecraft-action-columns span:first-child { display: none; }
   .minecraft-action-columns span:nth-child(4) { text-align: center; }
-  .minecraft-action-picker { flex: 1 1 100%; align-items: stretch; flex-direction: column; gap: 5px; }
+  .studio-pane .minecraft-action-picker { flex: 1 1 100%; align-items: stretch; flex-direction: column; gap: 5px; }
   .studio-pane .minecraft-action-picker-select { width: 100%; min-width: 0; }
   .minecraft-action-picker-control { width: 100%; flex-basis: 100%; }
   .minecraft-status-strip { display: flex; flex-direction: column; align-items: stretch; }
@@ -125,23 +126,22 @@
 .minecraft-action-quantity span { display: none; }
 @media (max-width: 760px) { .minecraft-action-quantity span { display: block; } }
 
-.minecraft-category-tabs { display: flex; flex-wrap: wrap; gap: 6px; overflow: visible; max-width: 100%; padding: 6px 2px 10px; scrollbar-width: thin; }
-.minecraft-category-group-label { align-self: center; margin: 0 2px 0 8px; padding-left: 10px; border-left: 1px solid var(--border); color: var(--text-muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
-.minecraft-category-group-label:first-child { margin-left: 0; padding-left: 0; border-left: 0; }
-.studio-pane .minecraft-category-tabs button { flex: 0 0 auto; padding: 8px 12px; min-height: 38px; white-space: nowrap; font-size: 13px; border: 1px solid var(--border); }
-.studio-pane .minecraft-category-tabs button[aria-selected="true"] { border-color: var(--teal); color: var(--teal); background: var(--bg-glass); }
-.minecraft-category-tabs button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.minecraft-action-view-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; margin: 12px 0 4px; padding-top: 11px; border-top: 1px solid var(--border); }
+.minecraft-action-filters { display: flex; flex: 1 1 420px; flex-wrap: wrap; gap: 6px; }
+.studio-pane .minecraft-action-filters button { min-height: 34px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; color: var(--text-muted); background: var(--bg-glass); font-size: 12px; white-space: nowrap; }
+.studio-pane .minecraft-action-filters button[aria-pressed="true"] { border-color: var(--teal); color: var(--teal); background: color-mix(in srgb, var(--teal) 10%, var(--bg-glass)); }
+.minecraft-action-filters button:focus-visible, .minecraft-action-category-filter select:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.minecraft-action-category-filter { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--text-muted); font-size: 11px; }
+.studio-pane .minecraft-action-category-filter select { width: auto; min-width: 190px; max-width: min(48vw, 270px); min-height: 34px; padding: 5px 8px; font-size: 12px; }
+.minecraft-action-context { flex-basis: 100%; color: var(--text-muted); font-size: 10px !important; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .studio-pane .minecraft-action-title .minecraft-action-note { flex-basis: 100%; white-space: normal; overflow-wrap: anywhere; font-size: 11px; }
-.minecraft-quick-actions [role="tabpanel"][hidden] { display: none; }
-
-@media (max-width: 760px) { .minecraft-category-tabs { flex-wrap: nowrap; overflow-x: auto; } }
-
-.minecraft-primary-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 6px 0 10px; }
-.studio-pane .minecraft-primary-tabs button { min-width: 0; padding: 8px 4px; min-height: 40px; font-size: 13px; white-space: nowrap; }
-.studio-pane .minecraft-primary-tabs button[aria-selected="true"] { border-color: var(--teal); color: var(--teal); background: var(--bg-glass); }
-.minecraft-primary-tabs button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.minecraft-quick-actions [role="tablist"][hidden] { display: none; }
-.studio-pane .minecraft-quick-actions h4 { margin: 8px 0 0; font-size: 14px; }
+.minecraft-action-row[hidden] { display: none; }
+@media (max-width: 760px) {
+  .minecraft-action-view-controls { align-items: stretch; }
+  .minecraft-action-filters { flex-basis: 100%; }
+  .studio-pane .minecraft-action-category-filter { width: 100%; justify-content: space-between; }
+  .studio-pane .minecraft-action-category-filter select { flex: 1 1 auto; min-width: 0; max-width: 68%; }
+}
 .minecraft-actions-heading > small { flex-basis: 100%; color: var(--text-muted); font-size: 12px; }
 .studio-pane[data-section="minecraft"] details > p:first-of-type { margin: 10px 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
 @media (min-width: 761px) and (max-width: 980px) { .studio-pane .minecraft-quick-actions { --minecraft-action-grid: minmax(110px, 1fr) minmax(140px, 1fr) 76px minmax(5.5rem, max-content) 5.75rem 2.25rem; } }

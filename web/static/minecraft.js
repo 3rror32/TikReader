@@ -817,13 +817,18 @@
   }
 ];
  const compatibility=el('p','Conectando con TikReader…');compatibility.className='minecraft-compatibility';
- const catalogNotice=el('p'),actionList=el('div');catalogNotice.setAttribute('role','status');
+ const catalogNotice=el('p'),actionList=el('div');catalogNotice.setAttribute('role','status');actionList.id='minecraft-actions-list';actionList.className='minecraft-actions-list';actionList.dataset.actionsList='true';
  const sectionOptions=[['environment','Ambiente'],['abilities','Habilidades'],['items','Objetos'],['mobs','Mobs']];
  const categoryOptions=[['animals','Animales'],['aquatic','Acuáticos'],['helpers','Ayudantes'],['undead','No-muertos'],['hostile','Hostiles'],['nether','Nether'],['end','End'],['bosses','Jefes']];
  const categoryGroupStarts=new Map([['animals','Superficie'],['nether','Dimensiones'],['bosses','Encuentros']]);
  const actionSearchAliases={tnt_rain:['TNT','lluvia de explosivos'],diamonds:['dar diamantes','dar objetos','dar objeto','entregar diamantes']};
  const actionSearchLimit=8;
- const navigationSelections=new Map(),sectionTabs=new Map(),sectionPanels=new Map(),categoryTabs=new Map(),categoryPanels=new Map(),emptyStates=new Map();
+ const actionFilterOptions=[['all','Todos'],...sectionOptions],actionFilterButtons=new Map();
+ let currentActionFilter='all',currentMobCategory='all',mobCategorySignature='';
+ const actionFilterToolbar=el('div');actionFilterToolbar.className='minecraft-action-filters';actionFilterToolbar.setAttribute('role','toolbar');actionFilterToolbar.setAttribute('aria-label','Filtrar acciones por sección');actionFilterToolbar.setAttribute('aria-orientation','horizontal');
+ const actionCategoryLabel=el('label');actionCategoryLabel.className='minecraft-action-category-filter';actionCategoryLabel.append(el('span','Categoría de mob'));
+ const actionCategoryFilter=el('select');actionCategoryFilter.role='combobox';actionCategoryFilter.dataset.actionCategoryFilter='true';actionCategoryFilter.setAttribute('aria-label','Filtrar mobs por categoría');actionCategoryFilter.hidden=true;actionCategoryLabel.append(actionCategoryFilter);actionCategoryLabel.hidden=true;
+ const actionEmptyState=el('p','No hay acciones añadidas. Usa “Agregar acción” para elegir una.');actionEmptyState.className='minecraft-empty-actions';actionEmptyState.dataset.actionEmpty='true';
  const actionStorageKey=edition=>`tikreader.minecraft.actions.v1.${edition}`;
  const actionById=new Map(defaultActions.map(action=>[action.id,action]));
  function persistSelectedActions(edition){try{localStorage.setItem(actionStorageKey(edition),JSON.stringify(selectedActionsByEdition.get(edition)||[]));return true;}catch(_){return false;}}
@@ -853,86 +858,53 @@
   }
   return selected;
  }
- let confirmedPresetValues={},navigationEditionConfirmed=false,pendingInitialSelection=null;
- const mainTabList=el('div');mainTabList.className='minecraft-primary-tabs';mainTabList.setAttribute('role','tablist');mainTabList.setAttribute('aria-label','Secciones de Minecraft');
- const tabList=el('div');tabList.className='minecraft-category-tabs';tabList.setAttribute('role','tablist');tabList.setAttribute('aria-label','Categorías de mobs');
- function navigation(){return navigationSelections.get(currentEdition)||pendingInitialSelection||{section:'environment',mobCategory:'animals'};}
- function rememberNavigation(selection){
-  if(navigationEditionConfirmed)navigationSelections.set(currentEdition,selection);
-  else pendingInitialSelection=selection;
+ for(const [id,name] of actionFilterOptions){
+  const filter=el('button',`${name} · 0`);filter.type='button';filter.onclick=()=>setActionFilter(id);filter.dataset.actionFilter=id;filter.setAttribute('aria-pressed',String(id==='all'));filter.setAttribute('aria-controls',actionList.id);filter.tabIndex=id==='all'?0:-1;
+  filter.addEventListener('keydown',event=>navigateActionFilters(event,id));actionFilterButtons.set(id,filter);actionFilterToolbar.append(filter);
  }
- function navigateKey(event,id,options,tabs,select){
-  const index=options.findIndex(([key])=>key===id);let next;
-  if(event.key==='ArrowRight')next=(index+1)%options.length;
-  if(event.key==='ArrowLeft')next=(index+options.length-1)%options.length;
-  if(event.key==='Home')next=0;
-  if(event.key==='End')next=options.length-1;
+ function navigateActionFilters(event,id){
+  const index=actionFilterOptions.findIndex(([key])=>key===id);let next;
+  if(event.key==='ArrowRight')next=(index+1)%actionFilterOptions.length;
+  else if(event.key==='ArrowLeft')next=(index+actionFilterOptions.length-1)%actionFilterOptions.length;
+  else if(event.key==='Home')next=0;
+  else if(event.key==='End')next=actionFilterOptions.length-1;
   if(next===undefined)return;
-  event.preventDefault();event.stopPropagation?.();
-  const key=options[next][0];select(key,true);tabs.get(key).focus();
-  tabs.get(key).scrollIntoView?.({block:'nearest',inline:'nearest'});
+  event.preventDefault();event.stopPropagation?.();const target=actionFilterButtons.get(actionFilterOptions[next][0]);target.focus();setActionFilter(actionFilterOptions[next][0]);
  }
- for(const [id,name] of sectionOptions){
-  const tab=el('button',name);tab.type='button';tab.dataset.primarySection=id;tab.id='minecraft-section-tab-'+id;
-  tab.setAttribute('role','tab');tab.setAttribute('aria-controls','minecraft-section-panel-'+id);
-  tab.onclick=()=>selectSection(id,true);
-  tab.addEventListener('keydown',event=>navigateKey(event,id,sectionOptions,sectionTabs,selectSection));
-  const panel=el('div');panel.id='minecraft-section-panel-'+id;panel.dataset.primaryPanel=id;
-  panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);
-  if(id==='mobs')panel.append(el('h4','Categorías de mobs'),tabList);
-  panel.append(makeColumns());const empty=el('p','No hay acciones en esta sección. Usa “Agregar acción” para elegir una.');empty.className='minecraft-empty-actions';panel.append(empty);emptyStates.set(id,empty);panel.dataset.emptyState=id;sectionTabs.set(id,tab);sectionPanels.set(id,panel);mainTabList.append(tab);actionList.append(panel);
+ function setActionFilter(id){
+  if(!actionFilterButtons.has(id))return;
+  currentActionFilter=id;updateActionViews(selectedActionsByEdition.get(currentEdition)||[]);
  }
- for(const [id,name] of categoryOptions){
-  if(categoryGroupStarts.has(id)){const group=el('span',categoryGroupStarts.get(id));group.className='minecraft-category-group-label';group.setAttribute('aria-hidden','true');tabList.append(group);}
-  const tab=el('button',name);tab.type='button';tab.dataset.category=id;tab.id='minecraft-tab-'+id;
-  tab.setAttribute('role','tab');tab.setAttribute('aria-controls','minecraft-panel-'+id);
-  tab.onclick=()=>selectCategory(id,true);
-  tab.addEventListener('keydown',event=>navigateKey(event,id,categoryOptions,categoryTabs,selectCategory));
-  const panel=el('div');panel.id='minecraft-panel-'+id;panel.dataset.categoryPanel=id;
-  panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);
-  const empty=el('p','No hay acciones en esta categoría. Usa “Agregar acción” para elegir una.');empty.className='minecraft-empty-actions';panel.append(empty);emptyStates.set(id,empty);panel.dataset.emptyState=id;
-  categoryTabs.set(id,tab);categoryPanels.set(id,panel);tabList.append(tab);sectionPanels.get('mobs').append(panel);
- }
- function showNavigation(selection){
-  for(const [id,tab] of sectionTabs){
-   const selected=id===selection.section;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;
-   sectionPanels.get(id).hidden=!selected;
+ function updateMobCategoryOptions(selected){
+  const counts=new Map();for(const id of selected){const preset=actionById.get(id);if(preset?.section==='mobs')counts.set(preset.category,(counts.get(preset.category)||0)+1);}
+  if(currentMobCategory!=='all'&&!counts.has(currentMobCategory))currentMobCategory='all';
+  const signature=JSON.stringify([...counts]);if(signature===mobCategorySignature){actionCategoryFilter.value=currentMobCategory;return;}mobCategorySignature=signature;
+  const all=el('option','Todas las categorías');all.value='all';actionCategoryFilter.replaceChildren(all);
+  let group;
+  const flushGroup=()=>{if(group?.children.length)actionCategoryFilter.append(group);group=null;};
+  for(const [id,name] of categoryOptions){
+   if(categoryGroupStarts.has(id)){flushGroup();group=el('optgroup');group.label=categoryGroupStarts.get(id);}
+   if(!counts.has(id))continue;
+   const option=el('option',`${name} · ${counts.get(id)}`);option.value=id;(group||actionCategoryFilter).append(option);
   }
-  tabList.hidden=selection.section!=='mobs';
-  for(const [id,tab] of categoryTabs){
-   const selected=id===selection.mobCategory;tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;
-   categoryPanels.get(id).hidden=selection.section!=='mobs'||!selected;
+  flushGroup();actionCategoryFilter.value=currentMobCategory;
+ }
+ function updateActionViews(selected){
+  const selectedSet=new Set(selected),visibleRows=[];
+  for(const [id,name] of actionFilterOptions){
+   const count=id==='all'?selected.length:selected.filter(actionId=>actionById.get(actionId)?.section===id).length,filter=actionFilterButtons.get(id);
+   filter.textContent=`${name} · ${count}`;filter.setAttribute('aria-label',`${name}, ${count} ${count===1?'acción añadida':'acciones añadidas'}`);filter.setAttribute('aria-pressed',String(currentActionFilter===id));filter.tabIndex=currentActionFilter===id?0:-1;
   }
- }
- function selectSection(id,remember=false){
-  const selection={...navigation(),section:id};if(remember)rememberNavigation(selection);showNavigation(selection);
- }
- function selectCategory(id,remember=false){
-  const selection={section:'mobs',mobCategory:id};if(remember)rememberNavigation(selection);showNavigation(selection);
- }
- function updateCategories(confirmed){
-  if(confirmed){
-   if(!navigationEditionConfirmed){
-    navigationEditionConfirmed=true;
-    if(pendingInitialSelection!==null){navigationSelections.set(currentEdition,pendingInitialSelection);pendingInitialSelection=null;}
-   }
-   confirmedPresetValues=structuredClone(confirmed);
-   if(!navigationSelections.has(currentEdition)){
-    const active=row=>confirmed[row.id]?.enabled&&confirmed[row.id]?.gift_id;
-    const firstSection=sectionOptions.find(([id])=>defaultActions.some(row=>row.section===id&&active(row)));
-    const firstMob=categoryOptions.find(([id])=>defaultActions.some(row=>row.section==='mobs'&&row.category===id&&active(row)));
-    navigationSelections.set(currentEdition,{section:firstSection?.[0]||'environment',mobCategory:firstMob?.[0]||'animals'});
-   }
+  updateMobCategoryOptions(selected);actionCategoryLabel.hidden=currentActionFilter!=='mobs';actionCategoryFilter.hidden=currentActionFilter!=='mobs';
+  for(const row of presetRows.values()){
+   const preset=actionById.get(row.id),inSection=currentActionFilter==='all'||preset?.section===currentActionFilter,inCategory=currentActionFilter!=='mobs'||currentMobCategory==='all'||preset?.category===currentMobCategory;
+   row.node.hidden=!(selectedSet.has(row.id)&&inSection&&inCategory);if(!row.node.hidden)visibleRows.push(row);
   }
-  for(const [options,tabs,field] of [[sectionOptions,sectionTabs,'section'],[categoryOptions,categoryTabs,'category']]){
-   for(const [id,name] of options){
-    const count=defaultActions.filter(row=>row[field]===id&&confirmedPresetValues[row.id]?.enabled&&confirmedPresetValues[row.id]?.gift_id).length;
-    const tab=tabs.get(id);tab.textContent=name+(count?' · '+count:'');tab.setAttribute('aria-label',name+(count?`, ${count} activas`:''));
-   }
-  }
-  showNavigation(navigation());
+  actionEmptyState.hidden=visibleRows.length>0;
+  if(currentActionFilter==='all')actionEmptyState.textContent='No hay acciones añadidas. Usa “Agregar acción” para elegir una.';
+  else if(currentActionFilter==='mobs')actionEmptyState.textContent='No hay mobs en esta categoría. Agrega un mob o elige otra categoría.';
+  else actionEmptyState.textContent='No hay acciones en esta sección. Usa “Todos” o “Agregar acción” para elegir una.';
  }
- showNavigation(navigation());
  function updatePresetState(row,preset,active){
   if(!row.gift.value){
    if(row.enabled.tagName!=='span'){
@@ -1025,7 +997,9 @@
  }
  function createPresetRow(preset){
   const node=el('div');node.className='minecraft-action-row';node.dataset.quickAction=preset.id;
-  const title=el('div');title.className='minecraft-action-title';title.append(el('strong',preset.name),el('small',preset.description));
+  const title=el('div');title.className='minecraft-action-title';
+  const context=preset.section==='mobs'?`Mobs · ${categoryOptions.find(([id])=>id===preset.category)?.[1]||'Mobs'}`:sectionOptions.find(([id])=>id===preset.section)?.[1]||preset.section;
+  const contextLabel=el('small',context);contextLabel.className='minecraft-action-context';title.append(el('strong',preset.name),el('small',preset.description),contextLabel);
   if(preset.note){const note=el('small',preset.note);note.className='minecraft-action-note';title.append(note);}
   const gift=el('select');gift.hidden=true;gift.dataset.presetGift=preset.id;gift.setAttribute('aria-label','Regalo para '+preset.name);
   const giftControl=el('div');giftControl.className='minecraft-gift-picker';
@@ -1061,17 +1035,13 @@
   }
   const confirmed=d.authorization_mode==='automatic',selected=selectedActions(currentEdition,confirmed,presetValues),selectedSet=new Set(selected);
   for(const [id,row] of presetRows)if(!selectedSet.has(id)&&row.node.isConnected)row.node.remove();
-  const counts=new Map();
   for(const id of selected){
    const preset=actionById.get(id);if(!preset)continue;
-   const row=presetRows.get(id)||createPresetRow(preset),parent=preset.section==='mobs'?categoryPanels.get(preset.category):sectionPanels.get(preset.section);
-   if(row.node.parentElement!==parent||!row.node.isConnected)parent.append(row.node);
-   counts.set(preset.section,(counts.get(preset.section)||0)+1);
-   if(preset.section==='mobs')counts.set(preset.category,(counts.get(preset.category)||0)+1);
+   const row=presetRows.get(id)||createPresetRow(preset);
+   if(row.node.parentElement!==actionList||!row.node.isConnected)actionList.append(row.node);
    fillGiftOptions(row,presetValues[id]||{gift_id:'',gift_name:'',enabled:false,quantity:preset.quantity});
   }
-  for(const [id,empty] of emptyStates)empty.hidden=(counts.get(id)||0)>0;
-  updateActionPicker();updateCategories(confirmed?presetValues:null);syncControls();
+  updateActionViews(selected);updateActionPicker();syncControls();
  }
  function updateActionPicker(){
   if(!actionPicker)return;
@@ -1137,14 +1107,15 @@
   pendingPresetEnabled.get(edition)?.delete(id);
   selectedActionsByEdition.set(edition,selected.filter(actionId=>actionId!==id));persistSelectedActions(edition);
   renderPresets({authorization_mode:'automatic',presets:presetValues},true);
-  notice.textContent='Acción quitada. Puedes volver a agregarla cuando quieras.';actionPicker.focus();
+  notice.textContent='Acción quitada. Puedes volver a agregarla cuando quieras.';actionSearch.focus();
  }
  async function savePreset(id){
   if(busy||uncertain||!backendReady){renderPresets({presets:presetValues},true);return;}
   return operate(async()=>{
    const row=presetRows.get(id),giftId=row.gift.value;
    const name=giftCatalog.find(g=>String(g.id)===giftId)?.name||presetValues[id]?.gift_name||'';
-   presetValues={...presetValues,[id]:{gift_id:giftId,gift_name:name,enabled:!!giftId&&row.enabled.tagName==='input'&&row.enabled.type==='checkbox'&&row.enabled.checked,...(row.quantity?{quantity:Number(row.quantity.value)}:{})}};presetDirty=true;
+   const enabled=row.enabled.tagName==='input'&&row.enabled.type==='checkbox'?!!row.enabled.checked:!!presetValues[id]?.enabled;
+   presetValues={...presetValues,[id]:{gift_id:giftId,gift_name:name,enabled,...(row.quantity?{quantity:Number(row.quantity.value)}:{})}};presetDirty=true;
    try{
     const d=await api('/minecraft/presets',{edition:currentEdition,presets:presetValues});
     delete rowDrafts()[id];presetDirty=false;renderPresets(d,true);notice.textContent='Acciones rápidas guardadas.';
@@ -1184,10 +1155,13 @@
  actionPickerControl.append(actionSearch,actionOptionList,actionSearchStatus);actionPickerLabel.append(actionPickerControl,actionPicker);
  actionSearch.addEventListener('focus',openActionPicker);actionSearch.addEventListener('blur',()=>{if(actionPickerOpen)closeActionPicker();});actionSearch.addEventListener('click',()=>{if(!actionPickerOpen)openActionPicker();});actionSearch.addEventListener('input',()=>{actionPicker.value='';activeActionOption=-1;activeActionId='';updateActionPicker();openActionPicker();});actionSearch.addEventListener('keydown',onActionSearchKeydown);
  document.addEventListener('pointerdown',event=>{if(!actionPickerControl.contains(event.target))closeActionPicker();});actionPicker.addEventListener('change',()=>syncControls());
- addActionButton=button('Agregar acción',async()=>{const id=actionPicker.value,selected=selectedActionsByEdition.get(currentEdition),preset=actionById.get(id);if(!backendReady||!preset||!selected||selected.includes(id))return;selected.push(id);persistSelectedActions(currentEdition);actionPicker.value='';actionSearch.value='';closeActionPicker();renderPresets({authorization_mode:'automatic',presets:presetValues},true);if(preset.section==='mobs'){selectSection('mobs',true);selectCategory(preset.category,true);}else selectSection(preset.section,true);notice.textContent='Acción agregada.';});addActionButton.dataset.addAction='true';
+ addActionButton=button('Agregar acción',async()=>{const id=actionPicker.value,selected=selectedActionsByEdition.get(currentEdition),preset=actionById.get(id);if(!backendReady||!preset||!selected||selected.includes(id))return;const defaultEnabled=!presetValues[id]?.gift_id;if(defaultEnabled)presetValues={...presetValues,[id]:{...presetValues[id],enabled:true}};selected.push(id);persistSelectedActions(currentEdition);currentActionFilter='all';currentMobCategory='all';actionPicker.value='';actionSearch.value='';closeActionPicker();renderPresets({authorization_mode:'automatic',presets:presetValues},true);if(defaultEnabled){let pending=pendingPresetEnabled.get(currentEdition);if(!pending){pending=new Map();pendingPresetEnabled.set(currentEdition,pending);}pending.set(id,true);}notice.textContent='Acción agregada.';});addActionButton.dataset.addAction='true';
  actionHeading.append(el('h3','Acciones predeterminadas'),actionPickerLabel,addActionButton,button('Actualizar regalos',loadGiftCatalog,false),stopButton,el('small','Cancela los pasos pendientes; no deshace los efectos que ya ocurrieron.'));
  function makeColumns(){const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Cantidad','Habilitar','Probar',''])columns.append(el('span',text));return columns;}
- quickActions.append(actionHeading,el('p','Elige un grupo de acciones; en Mobs, selecciona también una categoría. Cantidad por regalo. Las rachas multiplican mobs y TNT; el exceso se descarta.'),compatibility,catalogNotice,mainTabList,actionList);
+ const actionViewControls=el('div');actionViewControls.className='minecraft-action-view-controls';actionViewControls.append(actionFilterToolbar,actionCategoryLabel);
+ actionCategoryFilter.addEventListener('change',()=>{currentMobCategory=actionCategoryFilter.value||'all';updateActionViews(selectedActionsByEdition.get(currentEdition)||[]);});
+ actionList.append(makeColumns(),actionEmptyState);
+ quickActions.append(actionHeading,el('p','Agrega acciones una vez y usa estos filtros para revisar la lista sin cambiar la configuración. Cantidad por regalo. Las rachas multiplican mobs y TNT; el exceso se descarta.'),compatibility,catalogNotice,actionViewControls,actionList);
  const safety=el('section');safety.className='minecraft-tools';safety.append(el('h3','Límites de seguridad'));
  const safetyFields=el('div');safetyFields.className='minecraft-tool-fields';
  const interval=field('Intervalo mínimo (segundos)','number',safetyFields),perMinute=field('Efectos por minuto','number',safetyFields);

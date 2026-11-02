@@ -54,12 +54,13 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
     holdPost:path=>heldPost=path,releasePost:()=>{heldPost=null;releasePost();},
     staleNextPresetResponse(){stalePresetResponse=true;},
     get serverEdition(){return state.edition;},get profilesSnapshot(){return JSON.stringify(state.profiles);},get activeElement(){return document.activeElement;},get clipboard(){return clipboard;},setClipboardError(value){clipboardErrorState=value;},get storage(){return storage;},
-    tab:id=>nodes.find(n=>n.role==='tab'&&n.dataset.category===id),
-    mainTab:id=>nodes.find(n=>n.role==='tab'&&n.dataset.primarySection===id),
-    mainPanel:id=>nodes.find(n=>n.role==='tabpanel'&&n.dataset.primaryPanel===id),
-    panel:id=>nodes.find(n=>n.role==='tabpanel'&&n.dataset.categoryPanel===id),
     catalog:value=>giftCatalog=value,
     preset:(id,control)=>nodes.find(n=>n.isConnected&&n.dataset[control==='gift'?'presetGift':'presetEnabled']===id),
+    actionFilter:id=>nodes.find(n=>n.dataset.actionFilter===id),
+    actionFilters:()=>nodes.filter(n=>n.dataset.actionFilter),
+    actionCategory:()=>nodes.find(n=>n.dataset.actionCategoryFilter),
+    actionRows:()=>nodes.filter(n=>n.isConnected&&n.dataset.quickAction),
+    actionRow:id=>nodes.find(n=>n.isConnected&&n.dataset.quickAction===id),
     actionSearch:()=>nodes.find(n=>n.dataset.actionSearch),
     actionOption:id=>nodes.find(n=>n.isConnected&&n.dataset.actionOption===id),
     actionOptions:()=>nodes.filter(n=>n.isConnected&&n.dataset.actionOption),
@@ -231,8 +232,8 @@ test('action state explains missing gifts and toggles saved activation without l
   quantity.value='4';quantity.events.input();await quantity.events.change();await s.flush();
   gift.value='1';await gift.events.change();await s.flush();
   const toggle=s.preset('tnt_rain','enabled');
-  assert.equal(toggle.tagName,'input');assert.equal(toggle.type,'checkbox');assert.equal(toggle.checked,false);assert.equal(toggle.textContent,'');assert.equal(toggle.children.length,0);
-  assert.match(toggle['aria-label'],/Lluvia de TNT.*Pausada/);assert.match(toggle.title,/Lluvia de TNT/);
+  assert.equal(toggle.tagName,'input');assert.equal(toggle.type,'checkbox');assert.equal(toggle.checked,true,'a newly added action is active after it receives a gift');assert.equal(toggle.textContent,'');assert.equal(toggle.children.length,0);
+  assert.equal(toggle['aria-label'],'Lluvia de TNT: Activa. Pausar acción');assert.equal(toggle.title,'Lluvia de TNT: Pausar acción');
   toggle.checked=true;await toggle.events.change();await s.flush();
   let saved=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data.presets.tnt_rain;
   assert.equal(toggle.checked,true);assert.equal(toggle.textContent,'');assert.equal(toggle.children.length,0);assert.match(toggle['aria-label'],/Activa/);
@@ -259,7 +260,7 @@ test('quick-action controls use a standalone named checkbox and icon-only test/r
   const checkbox=s.preset('tnt_rain','enabled');
   const testButton=s.nodes.find(n=>n.tagName==='button'&&n.className==='minecraft-action-test');
   const removeButton=s.nodes.find(n=>n.tagName==='button'&&n.className==='minecraft-action-remove');
-  assert.equal(checkbox.tagName,'input');assert.equal(checkbox.type,'checkbox');assert.equal(checkbox.parentElement.className,'minecraft-action-enabled');assert.equal(checkbox['aria-label'],'Lluvia de TNT: Pausada. Activar acción');assert.equal(checkbox.title,'Lluvia de TNT: Activar acción');
+  assert.equal(checkbox.tagName,'input');assert.equal(checkbox.type,'checkbox');assert.equal(checkbox.parentElement.className,'minecraft-action-enabled');assert.equal(checkbox.checked,true);assert.equal(checkbox['aria-label'],'Lluvia de TNT: Activa. Pausar acción');assert.equal(checkbox.title,'Lluvia de TNT: Pausar acción');
   assert.ok(testButton);assert.equal(testButton.textContent,'');assert.equal(testButton.children.length,1);assert.equal(testButton.children[0].tagName,'svg');assert.match(testButton.children[0].children[0].attributes.d,/^M8 5v14l11-7z$/);assert.equal(testButton['aria-label'],'Probar acción: Lluvia de TNT');assert.equal(testButton.title,'Probar acción: Lluvia de TNT');
   assert.ok(removeButton);assert.equal(removeButton.textContent,'');assert.equal(removeButton.children.length,1);assert.equal(removeButton.children[0].tagName,'svg');assert.match(removeButton.children[0].children[0].attributes.d,/M4 7h16/);assert.equal(removeButton['aria-label'],'Quitar acción: Lluvia de TNT');assert.equal(removeButton.title,'Quitar acción: Lluvia de TNT');
   assert.ok(!s.requests.some(r=>r.path==='/minecraft/presets/simulate'));
@@ -422,13 +423,64 @@ test('polling preserves the highlighted action before Enter chooses it',async()=
   assert.equal(s.nodes.find(n=>n.dataset.actionPicker).value,intended,'Enter chooses the highlighted option after refresh');
 });
 
-test('adding a mob action switches to its visible category panel',async()=>{
+test('Todos initially lists every added action and counts disabled or unconfigured rows',async()=>{
+  const storage=new Map([['tikreader.minecraft.actions.v1.java',JSON.stringify(['zombie','cow','ghast','warden','diamonds'])]]);
+  const s=setup({storage,initialPresets:{zombie:{gift_id:'',gift_name:'',enabled:false}}});await s.flush();
+  assert.deepEqual(s.actionRows().map(row=>row.dataset.quickAction),['zombie','cow','ghast','warden','diamonds']);
+  assert.ok(s.actionRows().every(row=>!row.hidden),'Todos starts with each added action visible');
+  assert.match(s.actionFilter('all').textContent,/5/);assert.match(s.actionFilter('mobs').textContent,/4/);assert.match(s.actionFilter('items').textContent,/1/);
+  assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');
+  assert.match(s.actionRow('zombie').children[0].children.find(node=>node.className==='minecraft-action-context').textContent,/Mobs · No-muertos/);
+});
+
+test('section filters change only row visibility and do not mutate presets',async()=>{
+  const storage=new Map([['tikreader.minecraft.actions.v1.java',JSON.stringify(['zombie','cow','diamonds'])]]);
+  const s=setup({storage,initialPresets:{zombie:{gift_id:'1',gift_name:'Rose',enabled:false}}});await s.flush();
+  const before=s.profilesSnapshot,posts=s.requests.filter(request=>request.method==='POST').length;
+  s.actionFilter('items').onclick();
+  assert.equal(s.actionRow('diamonds').hidden,false);assert.equal(s.actionRow('zombie').hidden,true);assert.equal(s.actionRow('cow').hidden,true);
+  assert.equal(s.actionFilter('items').getAttribute('aria-pressed'),'true');
+  s.actionFilter('all').onclick();assert.ok(s.actionRows().every(row=>!row.hidden));
+  assert.equal(s.profilesSnapshot,before);assert.equal(s.requests.filter(request=>request.method==='POST').length,posts);
+});
+
+test('Mob filter uses one grouped selector with only populated categories',async()=>{
+  const storage=new Map([['tikreader.minecraft.actions.v1.java',JSON.stringify(['zombie','cow','ghast','warden','diamonds'])]]),s=setup({storage});await s.flush();
+  s.actionFilter('mobs').onclick();const selector=s.actionCategory();
+  assert.equal(selector.tagName,'select');assert.equal(selector.role,'combobox');assert.equal(selector.getAttribute('aria-label'),'Filtrar mobs por categoría');assert.equal(selector.hidden,false);
+  const groups=selector.children.filter(node=>node.tagName==='optgroup');assert.deepEqual(groups.map(group=>group.label),['Superficie','Dimensiones','Encuentros']);
+  const options=selector.children.flatMap(node=>node.tagName==='optgroup'?node.children:[node]).filter(node=>node.tagName==='option');assert.deepEqual(options.map(option=>option.value),['all','animals','undead','nether','bosses']);
+  assert.equal(options[0].textContent,'Todas las categorías');
+  for(const [value,label] of [['animals','Animales · 1'],['undead','No-muertos · 1'],['nether','Nether · 1'],['bosses','Jefes · 1']])assert.equal(options.find(option=>option.value===value).textContent,label);
+  const posts=s.requests.filter(request=>request.method==='POST').length;selector.value='undead';selector.events.change();
+  assert.equal(s.actionRow('zombie').hidden,false);assert.equal(s.actionRow('cow').hidden,true);assert.equal(s.actionRow('ghast').hidden,true);assert.equal(s.actionRow('diamonds').hidden,true);
+  assert.equal(s.requests.filter(request=>request.method==='POST').length,posts);
+});
+
+test('adding and removing actions keeps Todos, Mob counts, editions, and polling coherent',async()=>{
+  const storage=new Map([['tikreader.minecraft.actions.v1.java',JSON.stringify(['zombie'])],['tikreader.minecraft.actions.v1.bedrock',JSON.stringify(['cow'])]]);
+  const s=setup({storage});await s.flush();s.actionFilter('items').onclick();await s.addAction('cow');
+  assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');assert.equal(s.actionRow('cow').hidden,false);assert.equal(s.actionRow('zombie').hidden,false);
+  s.actionFilter('mobs').onclick();const selector=s.actionCategory();selector.value='undead';selector.events.change();
+  await s.tick();assert.equal(s.actionFilter('mobs').getAttribute('aria-pressed'),'true');assert.equal(s.actionRow('zombie').hidden,false);
+  await s.actionRow('zombie').children.at(-1).onclick();
+  assert.equal(selector.value,'all','removing the final selected-category row falls back to all categories');
+  assert.equal(s.actionRow('cow').hidden,false);assert.match(s.actionFilter('mobs').textContent,/1/);
+  await s.edition('bedrock');assert.equal(s.actionFilter('mobs').getAttribute('aria-pressed'),'true');assert.equal(s.actionRow('cow').hidden,false);
+});
+
+test('top action filters support arrow-key navigation and activation',async()=>{
+  const s=setup();await s.flush();const all=s.actionFilter('all');all.focus();
+  const right={key:'ArrowRight',preventDefault(){this.prevented=true;}};all.events.keydown(right);
+  assert.equal(right.prevented,true);assert.equal(s.activeElement,s.actionFilter('environment'));
+  assert.equal(s.actionFilter('environment').getAttribute('aria-pressed'),'true');
+});
+
+test('adding a mob action returns to Todos and shows its section context',async()=>{
   const s=setup();await s.flush();await s.addAction('cow');
-  assert.equal(s.mainTab('mobs')['aria-selected'],'true');
-  assert.equal(s.mainPanel('mobs').hidden,false);
-  assert.equal(s.tab('animals')['aria-selected'],'true');
-  assert.equal(s.panel('animals').hidden,false);
-  assert.equal(s.nodes.find(n=>n.dataset.quickAction==='cow').isConnected,true);
+  assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');
+  assert.equal(s.actionRow('cow').hidden,false);
+  assert.match(s.actionRow('cow').children[0].children.find(node=>node.className==='minecraft-action-context').textContent,/Mobs · Animales/);
 });
 
 test('configured disabled mappings migrate into the picker and empty explicit selection stays empty',async()=>{
@@ -459,13 +511,12 @@ test('partially valid saved selections keep allowed IDs and reveal newly active 
   assert.deepEqual(s.nodes.filter(n=>n.dataset.quickAction&&n.isConnected).map(n=>n.dataset.quickAction),['zombie','cow']);
 });
 
-test('Mobs parent empty state clears when a mob row is added',async()=>{
+test('Todos empty state clears when the first action row is added',async()=>{
   const s=setup();await s.flush();
-  const mobsEmpty=s.mainPanel('mobs').children.find(n=>n.className==='minecraft-empty-actions');
-  const animalsEmpty=s.panel('animals').children.find(n=>n.className==='minecraft-empty-actions');
-  assert.equal(mobsEmpty.hidden,false);assert.equal(animalsEmpty.hidden,false);
+  const empty=s.nodes.find(n=>n.dataset.actionEmpty);
+  assert.equal(empty.hidden,false);
   await s.addAction('cow');
-  assert.equal(mobsEmpty.hidden,true);assert.equal(animalsEmpty.hidden,true);
+  assert.equal(empty.hidden,true);
 });
 
 test('removing an enabled action disables its saved mapping first and keeps it on failure',async()=>{
@@ -576,13 +627,15 @@ test('old quantity capability blocks mutation and uncertain quantity saves recov
  s.fail(false);await s.tick();assert.equal(Number(quantity.value),4);assert.equal(quantity.disabled,false);
 });
 
-test('catalog category tabs exist before GET and keep only one category visible',async()=>{
+test('Todos filters exist before GET and default to one unified list after hydration',async()=>{
  const s=setup({holdInitial:true});
  assert.equal(s.nodes.filter(n=>n.dataset.quickAction&&n.isConnected).length,0);
- const tabs=s.nodes.filter(n=>n.role==='tab');assert.equal(tabs.length,12);
- assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&!n.hidden).length,1);
- assert.ok(tabs.find(n=>n.textContent.startsWith('Jefes')));
+ assert.equal(s.actionFilters().length,5);
+ assert.equal(s.nodes.filter(n=>n.role==='tab').length,0);
+ assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');
  s.release();await s.flush();
+ assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');
+ assert.equal(s.actionCategory().hidden,true);
 });
 
 test('Minecraft controls group connection, actions, command guidance, help and activity',async()=>{
@@ -614,95 +667,71 @@ test('Minecraft controls group connection, actions, command guidance, help and a
  assert.match(fs.readFileSync(`${__dirname}/../web/static/minecraft.css`,'utf8'),/\.minecraft-action-remove[^\{]*\{[^}]*color:\s*var\(--text-muted\)/s);
 });
 
-test('category keyboard navigation and per-edition choices survive polling without mutations',async()=>{
+test('Mob category selection and filters survive polling and edition changes without mutations',async()=>{
  const s=setup({initialPresets:{zombie:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});await s.flush();
- assert.equal(s.tab('undead')['aria-selected'],'true');assert.equal(s.panel('undead').hidden,false);
- assert.match(s.tab('undead').textContent,/1/);
+ assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');assert.equal(s.actionRow('zombie').hidden,false);
+ s.actionFilter('mobs').onclick();const selector=s.actionCategory();
+ assert.deepEqual(selector.children.flatMap(node=>node.tagName==='optgroup'?node.children:[node]).filter(option=>option.tagName==='option').map(option=>option.value),['all','undead']);
  const posts=s.requests.filter(r=>r.method==='POST').length;
- s.tab('undead').events.keydown({key:'End',preventDefault(){}});
- assert.equal(s.activeElement,s.tab('bosses'));assert.equal(s.tab('bosses').tabIndex,0);
- s.tab('bosses').events.keydown({key:'ArrowRight',preventDefault(){}});
- assert.equal(s.activeElement,s.tab('animals'));
- s.tab('animals').events.keydown({key:'ArrowLeft',preventDefault(){}});
- assert.equal(s.activeElement,s.tab('bosses'));
- s.tab('bosses').events.keydown({key:'Home',preventDefault(){}});
- assert.equal(s.activeElement,s.tab('animals'));
- s.tab('end').onclick();await s.tick();assert.equal(s.panel('end').hidden,false);
+ selector.value='undead';selector.events.change();await s.tick();assert.equal(s.actionRow('zombie').hidden,false);
  assert.equal(s.requests.filter(r=>r.method==='POST').length,posts);
- await s.edition('bedrock');assert.equal(s.mainPanel('environment').hidden,false);
- s.tab('animals').onclick();await s.edition('java');assert.equal(s.panel('end').hidden,false);
- assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&n.dataset.primaryPanel&&!n.hidden).length,1);
- assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&n.dataset.categoryPanel&&!n.hidden).length,1);
+ await s.edition('bedrock');assert.equal(s.actionFilter('mobs').getAttribute('aria-pressed'),'true');assert.equal(selector.value,'all');
+ await s.edition('java');assert.equal(s.actionFilter('mobs').getAttribute('aria-pressed'),'true');assert.equal(selector.value,'all');
 });
 
-test('hidden category drafts and mappings survive full saves, pending operations and recovery',async()=>{
+test('filtered rows retain action drafts and mappings during saves, polling, and recovery',async()=>{
  const s=setup({initialPresets:{cow:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:3},zombie:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});await s.flush();
- assert.equal(s.panel('animals').hidden,false);
  const cow=s.nodes.find(n=>n.dataset.presetQuantity==='cow');cow.value='7';cow.events.input();
- s.mainTab('abilities').onclick();s.mainTab('mobs').onclick();s.tab('undead').onclick();await s.tick();assert.equal(cow.value,'7');
+ s.actionFilter('abilities').onclick();await s.tick();assert.equal(cow.value,'7');assert.equal(s.actionRow('cow').hidden,true);
  const zombie=s.preset('zombie','enabled');zombie.checked=false;await zombie.events.change();await s.flush();
  let body=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
  assert.equal(body.presets.cow.quantity,3);assert.equal(body.presets.cow.gift_id,'1');assert.equal(cow.value,'7');
- s.tab('animals').onclick();s.holdPost('/minecraft/presets');const saving=cow.events.change();await s.flush();
-const count=s.requests.length;s.tab('bosses').onclick();await s.click('Probar acción: Zombi');assert.equal(s.requests.length,count);
- assert.equal(s.panel('bosses').hidden,false);
+ s.actionFilter('all').onclick();s.holdPost('/minecraft/presets');const saving=cow.events.change();await s.flush();
+const count=s.requests.length;s.actionFilter('items').onclick();await s.click('Probar acción: Zombi');assert.equal(s.requests.length,count);
  s.fail(true);s.releasePost();await saving;await s.flush();s.fail(false);await s.tick();
- assert.equal(Number(cow.value),7);assert.equal(s.panel('bosses').hidden,false);
+ assert.equal(Number(cow.value),7);assert.equal(s.actionFilter('items').getAttribute('aria-pressed'),'true');
  body=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
  assert.equal(body.presets.cow.quantity,7);assert.equal(body.presets.zombie.enabled,false);assert.equal(body.presets.zombie.quantity,2);
 });
 
-test('a category chosen before initial hydration binds only to the confirmed edition',async()=>{
+test('each edition hydrates with Todos and later filter choice survives polling and edition changes',async()=>{
  for(const initialEdition of ['java','bedrock']){
   const s=setup({holdInitial:true,initialEdition,initialPresets:{cow:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});
-  s.tab('bosses').onclick();await s.flush();assert.equal(s.panel('bosses').hidden,false);
+  assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');
   s.release();await s.flush();assert.equal(s.field('Edición').value,initialEdition);
-  assert.equal(s.panel('bosses').hidden,false);await s.tick();assert.equal(s.panel('bosses').hidden,false);
+  assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');await s.tick();assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');
+  s.actionFilter('mobs').onclick();await s.tick();assert.equal(s.actionFilter('mobs').getAttribute('aria-pressed'),'true');
   const other=initialEdition==='java'?'bedrock':'java';await s.edition(other);
-  assert.equal((other==='java'?s.panel('animals'):s.mainPanel('environment')).hidden,false);
-  s.tab('end').onclick();await s.edition(initialEdition);assert.equal(s.panel('bosses').hidden,false);
-  await s.edition(other);assert.equal(s.panel('end').hidden,false);
+  assert.equal(s.actionFilter('mobs').getAttribute('aria-pressed'),'true');
+  await s.edition(initialEdition);assert.equal(s.actionFilter('mobs').getAttribute('aria-pressed'),'true');
  }
 });
 
-test('four primary sections contain eight mob tabs without changing saved profiles',async()=>{
+test('five top filters replace the Mob category tabs without changing saved profiles',async()=>{
  const s=setup();await s.flush();
- const main=s.nodes.filter(n=>n.role==='tab'&&n.dataset.primarySection);
- assert.equal(main.length,4);
- assert.deepEqual(main.map(n=>n.textContent),['Ambiente','Habilidades','Objetos','Mobs']);
- const mobs=s.nodes.find(n=>n.role==='tablist'&&n['aria-label']==='Categorías de mobs');assert.ok(mobs.hidden);
- const mobButton=main.find(n=>n.dataset.primarySection==='mobs');mobButton.onclick();
- assert.equal(mobs.hidden,false);assert.equal(s.nodes.filter(n=>n.role==='tabpanel'&&n.dataset.primaryPanel&&!n.hidden).length,1);
+ const before=s.profilesSnapshot,filters=s.actionFilters();
+ assert.deepEqual(filters.map(filter=>filter.textContent.replace(/\s+·\s+\d+$/,'')),['Todos','Ambiente','Habilidades','Objetos','Mobs']);
+ assert.equal(s.nodes.filter(n=>n.role==='tab').length,0);
+ const selector=s.actionCategory();s.actionFilter('mobs').onclick();assert.equal(selector.hidden,false);
+ assert.equal(s.nodes.filter(n=>n.tagName==='button'&&n.dataset.category).length,0,'category choices are not a row of buttons');
+ assert.equal(s.profilesSnapshot,before);
 });
 
-test('nested keyboard scopes, visibility and child memory stay independent from primary sections',async()=>{
+test('action filters and the Mob selector expose accessible single-list controls',async()=>{
  const s=setup();await s.flush();
- const strip=s.nodes.find(n=>n.role==='tablist'&&n['aria-label']==='Categorías de mobs');
- s.mainTab('environment').events.keydown({key:'End',preventDefault(){},stopPropagation(){}});
- assert.equal(s.activeElement,s.mainTab('mobs'));assert.equal(strip.hidden,false);
- s.tab('animals').events.keydown({key:'End',preventDefault(){},stopPropagation(){}});
- assert.equal(s.activeElement,s.tab('bosses'));assert.equal(s.mainTab('mobs')['aria-selected'],'true');
- s.mainTab('mobs').events.keydown({key:'ArrowRight',preventDefault(){},stopPropagation(){}});
- assert.equal(s.activeElement,s.mainTab('environment'));assert.ok(strip.hidden);
- assert.ok(s.nodes.filter(n=>n.dataset.categoryPanel).every(n=>n.hidden));
- s.mainTab('mobs').onclick();assert.equal(s.panel('bosses').hidden,false);
- const ids=s.nodes.filter(n=>n.role==='tab'||n.role==='tabpanel').map(n=>n.id);assert.equal(ids.length,new Set(ids).size);
- for(const tab of s.nodes.filter(n=>n.role==='tab')){
-  const panel=s.nodes.find(n=>n.id===tab['aria-controls']);assert.ok(panel);assert.equal(panel['aria-labelledby'],tab.id);
- }
- assert.equal(s.nodes.filter(n=>n.dataset.primarySection&&n.tabIndex===0).length,1);
- assert.equal(s.nodes.filter(n=>n.dataset.category&&n.tabIndex===0).length,1);
+ const toolbar=s.nodes.find(n=>n.role==='toolbar'&&n['aria-label']==='Filtrar acciones por sección');assert.ok(toolbar);
+ assert.equal(toolbar.getAttribute('aria-orientation'),'horizontal');assert.equal(s.actionFilter('all').tabIndex,0);assert.ok(s.actionFilters().filter(n=>n!==s.actionFilter('all')).every(n=>n.tabIndex===-1));
+ const selector=s.actionCategory();s.actionFilter('mobs').onclick();assert.equal(selector.role,'combobox');assert.equal(selector.getAttribute('aria-label'),'Filtrar mobs por categoría');
+ selector.value='all';selector.events.change();assert.equal(selector.value,'all');
 });
 
-test('initial primary intent binds to the actual edition and survives later section switches',async()=>{
+test('Todos remains the initial action view across Java and Bedrock hydration',async()=>{
  for(const initialEdition of ['java','bedrock']){
   const s=setup({holdInitial:true,initialEdition,initialPresets:{zombie:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});
-  s.mainTab('items').onclick();await s.flush();s.release();await s.flush();
-  assert.equal(s.mainPanel('items').hidden,false);await s.tick();assert.equal(s.mainPanel('items').hidden,false);
+  assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');await s.flush();s.release();await s.flush();
+  assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');await s.tick();assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');
   const other=initialEdition==='java'?'bedrock':'java';await s.edition(other);
-  assert.equal(s.mainPanel(other==='java'?'mobs':'environment').hidden,false);
-  s.mainTab('abilities').onclick();await s.edition(initialEdition);assert.equal(s.mainPanel('items').hidden,false);
-  await s.edition(other);assert.equal(s.mainPanel('abilities').hidden,false);
+  assert.equal(s.actionFilter('all').getAttribute('aria-pressed'),'true');
  }
 });
 
@@ -710,10 +739,11 @@ test('load and navigation preserve all saved fields in both profiles and skills 
  const source=JSON.parse(fs.readFileSync(minecraftSource,'utf8').match(/const defaultActions=(\[.*?\]);/s)[1]);
  const saved=Object.fromEntries(source.map((row,i)=>[row.id,{gift_id:'saved-'+row.id,gift_name:'Gift '+row.id,enabled:i%3===0,...(row.quantity?{quantity:row.id==='tnt_rain'?7:2}:{})}]));
  const s=setup({initialPresets:saved,initialBedrockPresets:structuredClone(saved)});const before=s.profilesSnapshot;await s.flush();
- for(const section of ['environment','abilities','items','mobs'])s.mainTab(section).onclick();
- for(const id of ['animals','aquatic','helpers','undead','hostile','nether','end','bosses'])s.tab(id).onclick();
+ for(const section of ['environment','abilities','items','mobs'])s.actionFilter(section).onclick();
+ const mobCategory=s.actionCategory();assert.equal(mobCategory.hidden,false);
+ for(const id of ['all','animals','undead','nether','bosses']){mobCategory.value=id;mobCategory.events.change();}
  await s.tick();assert.equal(s.profilesSnapshot,before);assert.equal(s.requests.filter(r=>r.method==='POST').length,0);
- s.mainTab('abilities').onclick();const speed=s.preset('speed','gift');speed.value='1';await speed.events.change();await s.flush();
+ s.actionFilter('abilities').onclick();const speed=s.preset('speed','gift');speed.value='1';await speed.events.change();await s.flush();
  const payload=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data.presets;
  for(const [id,row] of Object.entries(saved))if(id!=='speed')assert.deepEqual(payload[id],row);
  assert.equal(payload.speed.gift_id,'1');assert.equal(Object.keys(payload).length,96);
