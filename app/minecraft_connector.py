@@ -314,12 +314,45 @@ class MinecraftConnector:
         return len(self._pending_effects())
 
     @staticmethod
+    def _effect_step_metadata(effect, index):
+        steps = effect.get('steps', ())
+        if index < len(steps):
+            step = steps[index]
+            if step.get('preset_id') or step.get('action_name'):
+                return step
+        selected = effect.get('selected_ids', ())
+        for group_index, group in enumerate(effect.get('command_groups', ())):
+            commands = group.get('commands', ())
+            if not commands:
+                continue
+            width = len(commands) * group.get('repeats', 1)
+            if index < width:
+                labels = group.get('labels', ())
+                label_index = index % len(commands)
+                preset_id = (labels[label_index] if label_index < len(labels) else
+                             group.get('preset_id') or
+                             (selected[group_index] if group_index < len(selected) else effect['preset_id']))
+                action_name = group.get('action_name')
+                if not action_name:
+                    action_name = next((row['name'] for row in catalog()
+                                        if row.get('id') == preset_id), preset_id)
+                return {'preset_id':preset_id, 'action_name':action_name}
+            index -= width
+        labels = effect.get('command_labels', ())
+        if index < len(labels):
+            preset_id = labels[index]
+            action_name = next((row['name'] for row in catalog()
+                                if row.get('id') == preset_id), preset_id)
+            return {'preset_id':preset_id, 'action_name':action_name}
+        return {'preset_id':effect['preset_id'],
+                'action_name':effect.get('action_name', effect['preset_id'])}
+
+    @staticmethod
     def _effect_summary(effect):
         total = effect.get('total', len(effect.get('commands', ())))
         remaining = max(0, total-effect.get('next_index', 0))
         step_index = effect.get('next_index', 0)
-        steps = effect.get('steps', ())
-        step = steps[step_index] if step_index < len(steps) else {}
+        step = MinecraftConnector._effect_step_metadata(effect, step_index)
         return {'identity':effect['identity'], 'donor':effect['donor'],
                 'gift':effect.get('gift_name', ''), 'gift_id':effect.get('gift_id', ''),
                 'action':step.get('action_name', effect.get('action_name', effect['preset_id'])),

@@ -461,6 +461,41 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(sent[:len(job.commands)],list(job.commands))
         self.assertEqual(job.command_labels[-1],'diamonds')
 
+    def test_compact_large_effect_derives_current_provenance_from_command_groups(self):
+        folder=tempfile.TemporaryDirectory(dir=Path.cwd());self.addCleanup(folder.cleanup)
+        self.runtime.archive=HistoryStore(Path(folder.name)/'effects.sqlite3')
+        self.client.post('/minecraft/presets',json={'edition':'java','presets':{
+            'zombie':{'gift_id':'1','gift_name':'Rose','enabled':True},
+            'diamonds':{'gift_id':'1','gift_name':'Rose','enabled':True}}})
+        self.assertTrue(self.mc.admit_presets(('zombie','diamonds'),'Ana',automatic=True,
+                                              gift_count=10001,identity='compact-multi-action',
+                                              gift_name='Rose',gift_id='1'))
+        effect=self.runtime.archive.pending_minecraft_effects()[0]
+        self.assertEqual(effect['steps'],[])
+        self.assertEqual(effect['commands'],[])
+        diamond_index=len(effect['command_groups'][0]['commands'])*effect['command_groups'][0]['repeats']
+        effect['next_index']=diamond_index
+        command,preset_id=self.mc._effect_object(effect,diamond_index)
+        self.assertEqual(preset_id,'diamonds')
+        self.assertIn('diamond',command)
+        summary=self.mc._effect_summary(effect)
+        self.assertEqual(summary['preset_id'],'diamonds')
+        self.assertEqual(summary['action'],'Diamantes')
+
+    def test_legacy_effect_without_steps_derives_provenance_from_command_groups(self):
+        legacy={'identity':'legacy-multi-action','donor':'Ana','gift_name':'Rose','gift_id':'1',
+                'preset_id':'zombie','action_name':'Zombi','selected_ids':['zombie','diamonds'],
+                'commands':[],'command_labels':[],'command_groups':[
+                    {'commands':['summon-zombie'],'labels':['zombie'],'repeats':2},
+                    {'commands':['give-diamond'],'labels':['diamonds'],'repeats':1}],
+                'total':3,'next_index':2,'status':'pending'}
+        self.assertNotIn('steps',legacy)
+        command,preset_id=self.mc._effect_object(legacy,legacy['next_index'])
+        self.assertEqual((command,preset_id),('give-diamond','diamonds'))
+        summary=self.mc._effect_summary(legacy)
+        self.assertEqual(summary['preset_id'],'diamonds')
+        self.assertEqual(summary['action'],'Diamantes')
+
     def test_announcements_follow_all_confirmed_actions_and_skip_unconfirmed_jobs(self):
         self.save(preset='zombie')
         self.gift(count=2)
