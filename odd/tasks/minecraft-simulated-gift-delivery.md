@@ -182,7 +182,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - Parent spot check of one reported focused command.
   - Evidence: the four new deterministic regressions were RED before implementation (4 failed: unsupported rate shape, missing durable store API, absent fair scheduler, and saturation rejection) and GREEN afterward (4 passed). The durable SQLite queue deduplicates stable event IDs, retains per-object progress through reopen/restart, and stores repeated command groups compactly; manual tests receive unique identities. The scheduler confirms one object at a time, derives 1.5 seconds from 20 objects per 30 seconds, rotates to another donor after five successful objects, and preserves work across pause, disconnection, and temporary failures. Legacy `{interval, per_minute}` profiles remain accepted with an effective interval that respects both former limits. The snapshot exposes current/next/pending summaries, remaining quantities, pacing countdown, backlog pressure, and failure count for MSG-9. The former transient job queue is only a wake-up path; durable SQLite rows are authoritative.
   - Checks: `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (44 tests, 298 subtests). `git diff --check -- app/minecraft_connector.py app/minecraft_presets.py app/history_store.py tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md` passed. No live Minecraft connection was used.
-  - Commit: pending.
+  - Commit: `56e6306` (`feat(minecraft): persist paced gift queue`).
 
 - [ ] **MSG-9 — Make Activity and queue the Minecraft control center**
   - Route: delegated direct.
@@ -214,7 +214,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
 - MSG-7 implementation and focused DOM checks are complete; parent commit and spot check remain pending.
 - Engram mirror: pending because no Engram memory tools are available in this session.
 - MSG-8 and MSG-9 were added after the user replaced saturation rejection with durable eventual execution and promoted Activity and queue to the primary Minecraft operations surface.
-- MSG-8 is implemented and its focused backend suite passes; the work-unit commit and parent spot check remain pending. MSG-9 remains open.
+- MSG-8 is implemented, committed, and its focused backend suite passes; the parent spot check remains pending. MSG-9 remains open.
 
 ## Verification evidence
 
@@ -233,4 +233,4 @@ Verification results:
 
 ## Next step
 
-MSG-1, MSG-2, MSG-6, and MSG-8 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass, but its saturation/cancellation contract is superseded by MSG-8. MSG-8's focused suite passes; its work-unit commit and parent spot check are pending. MSG-3 through MSG-5 and MSG-9 remain open. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
+MSG-1, MSG-2, MSG-6, and MSG-8 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass, but its saturation/cancellation contract is superseded by MSG-8. MSG-8's focused suite passes and its work-unit commit is `56e6306`; the parent spot check is pending. MSG-3 through MSG-5 and MSG-9 remain open. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
