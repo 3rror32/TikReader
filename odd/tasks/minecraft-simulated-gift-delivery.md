@@ -184,7 +184,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Correction evidence: independent review found stop did not pause durable work and an unready Bedrock row could block Java-ready work. The two focused regressions were RED before correction (2 failed) and GREEN afterward (2 passed). Stop now persists an effective queue pause without deleting rows; the local `/minecraft/presets/resume` endpoint resumes the same queue, and the snapshot exposes `effect_queue.paused`. Scheduling now filters rows by current edition and active mapping before fair selection, retaining unready rows for later.
   - Checks: `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed after MSG-8 (44 tests, 298 subtests) and after the correction (46 tests, 298 subtests). `git diff --check -- app/minecraft_connector.py app/minecraft_presets.py app/history_store.py tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md` passed. No live Minecraft connection was used.
   - Commit: `56e6306` (`feat(minecraft): persist paced gift queue`).
-  - Correction commit: pending.
+  - Correction commit: `6c05801` (`fix(minecraft): preserve paused queue execution`).
 
 - [ ] **MSG-9 — Make Activity and queue the Minecraft control center**
   - Route: delegated direct.
