@@ -207,14 +207,15 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Commit: `92ac82a` (`feat(minecraft): surface gift queue activity`); 213 authored changed lines excluding the task document.
   - Countdown correction evidence: the deterministic regression was RED (`30 != 22` after a second object confirmation), then GREEN (1 passed, 46 deselected). A persisted wave anchor now starts with the first queued effect, survives snapshot polling and restart, cycles independently of object confirmations, and resets once the queue drains. The default 1.5-second object interval is unchanged; a configured 40-second period also drives its own wave cycle.
   - Countdown correction checks: `node tests/test_minecraft_controls.cjs` passed (56 tests); `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (47 tests, 298 subtests); `git diff --check -- app/minecraft_connector.py tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md` passed.
+  - Correction commit: `8f77b23` (`fix(minecraft): stabilize queue wave countdown`); 87 authored changed lines excluding the task document.
 
 ## Delivery
 
 - Strategy: `ask-on-risk`.
-- Forecast: revise to about 1,600 authored changed lines across all nine work units, excluding task-document changes; MSG-8 and MSG-9 together added about 933 authored lines including the countdown correction.
+- Forecast: revise to about 1,600 authored changed lines across all nine work units, excluding task-document changes; MSG-8 and MSG-9 together added about 923 authored lines including the countdown correction.
 - Chain strategy: `stacked-to-main` (selected by the user).
-- Running authored changed lines: approximately 1,446 after the MSG-9 correction (prior MSG-1/2/6/7 estimate: 513; MSG-8 and correction: 623; MSG-9: 213; countdown correction: 97; task document excluded).
-- Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-5 search at `5e5f77a`; MSG-6 at `08c2d4a`; MSG-7 at `f4134d7`; MSG-8 at `56e6306`; MSG-9 at `92ac82a` (stacked to main).
+- Running authored changed lines: approximately 1,436 after the MSG-9 correction (prior MSG-1/2/6/7 estimate: 513; MSG-8 and correction: 623; MSG-9: 213; countdown correction: 87; task document excluded).
+- Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-5 search at `5e5f77a`; MSG-6 at `08c2d4a`; MSG-7 at `f4134d7`; MSG-8 at `56e6306`; MSG-9 at `92ac82a`, countdown correction at `8f77b23` (stacked to main).
 
 ## Progress
 
