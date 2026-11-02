@@ -328,6 +328,15 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(event['gift'], 'Rose')
         self.assertEqual(event['count'], 1)
         self.assertEqual(event['image_url'], rose['image_url'])
+        self.assertEqual(event['text'], '1 regalo · Rose')
+
+    def test_simulated_gift_event_uses_plural_wording_for_multiple_gifts(self):
+        with patch.object(server, 'handle_gift_event', return_value={
+                'hotkeys': [], 'record': {'image_url': None}}):
+            spec = self.sim.validate({'kind': 'gift', 'mode': 'streak', 'count': 2, 'gift': 'Creeper'})
+            self.sim.deliver(spec, 2, 'plural-event')
+        self.assertEqual(self.sim.events[-1]['count'], 2)
+        self.assertEqual(self.sim.events[-1]['text'], '2 regalos · Creeper')
 
     def test_simulated_gift_event_uses_validated_catalog_artwork_url(self):
         rose = {'id': 'rose-catalog-unsafe', 'name': 'Rose', 'diamonds': 1,

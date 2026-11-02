@@ -174,10 +174,11 @@ class Simulation:
                 repeat_count=index if streak else 1, repeat_end=final or not streak,
                 _simulation_event_token=self._gift_event_token), update_catalog=False)
             gift_count = index if streak else 1
+            gift_word = 'regalo' if gift_count == 1 else 'regalos'
             self.events.append(dict(id=message, at=time.time(), user='@'+spec['user'], kind='gift',
                 gift=spec['gift'], count=gift_count,
                 image_url=(result.get('record') or {}).get('image_url'),
-                text=f"{spec['gift']} × {gift_count}" + (' · fin de racha' if final else ''),
+                text=f"{gift_count} {gift_word} · {spec['gift']}" + (' · fin de racha' if final else ''),
                 hotkeys=result['hotkeys']))
 
     def run(self, spec, cancellation, generation):

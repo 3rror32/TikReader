@@ -119,6 +119,40 @@ _MOBS = {
     'wither': ('Wither', 'bosses'),
     'ender_dragon': ('Dragón del End', 'bosses'),
 }
+_MOB_PLURALS = {
+    'pig': 'Cerdos', 'cow': 'Vacas', 'sheep': 'Ovejas', 'chicken': 'Gallinas',
+    'bee': 'Abejas', 'armadillo': 'Armadillos', 'horse': 'Caballos', 'donkey': 'Burros',
+    'mule': 'Mulas', 'camel': 'Camellos', 'rabbit': 'Conejos', 'cat': 'Gatos',
+    'wolf': 'Lobos', 'fox': 'Zorros', 'ocelot': 'Ocelotes', 'panda': 'Pandas',
+    'polar_bear': 'Osos polares', 'goat': 'Cabras', 'llama': 'Llamas',
+    'trader_llama': 'Llamas del comerciante', 'mooshroom': 'Champiñacas',
+    'parrot': 'Loros', 'bat': 'Murciélagos', 'sniffer': 'Rastreadores',
+    'axolotl': 'Ajolotes', 'frog': 'Ranas', 'tadpole': 'Renacuajos',
+    'turtle': 'Tortugas', 'dolphin': 'Delfines', 'squid': 'Calamares',
+    'glow_squid': 'Calamares brillantes', 'cod': 'Bacalaos', 'salmon': 'Salmones',
+    'tropical_fish': 'Peces tropicales', 'pufferfish': 'Peces globo',
+    'nautilus': 'Nautilos', 'guardian': 'Guardianes', 'elder_guardian': 'Guardianes ancianos',
+    'villager': 'Aldeanos', 'wandering_trader': 'Comerciantes ambulantes', 'allay': 'Allays',
+    'iron_golem': 'Gólems de hierro', 'snow_golem': 'Gólems de nieve',
+    'copper_golem': 'Gólems de cobre', 'happy_ghast': 'Ghasts felices',
+    'zombie': 'Zombis', 'skeleton': 'Esqueletos', 'drowned': 'Ahogados',
+    'husk': 'Zombis momificados', 'zombie_villager': 'Aldeanos zombis',
+    'zombie_horse': 'Caballos zombis', 'camel_husk': 'Camellos momificados',
+    'zombie_nautilus': 'Nautilos zombis', 'stray': 'Esqueletos glaciales',
+    'bogged': 'Esqueletos pantanosos', 'parched': 'Esqueletos resecos',
+    'skeleton_horse': 'Caballos esqueletos', 'creeper': 'Creepers', 'spider': 'Arañas',
+    'cave_spider': 'Arañas de cueva', 'slime': 'Slimes', 'silverfish': 'Lepismas',
+    'phantom': 'Fantasmas', 'witch': 'Brujas', 'pillager': 'Saqueadores',
+    'vindicator': 'Vindicadores', 'evoker': 'Invocadores', 'vex': 'Vexes',
+    'ravager': 'Devastadores', 'breeze': 'Breezes', 'creaking': 'Crujidores',
+    'sulfur_cube': 'Cubos de azufre', 'blaze': 'Blazes', 'ghast': 'Ghasts',
+    'magma_cube': 'Cubos de magma', 'hoglin': 'Hoglins', 'zoglin': 'Zoglins',
+    'piglin': 'Piglins', 'piglin_brute': 'Piglins brutos',
+    'zombified_piglin': 'Piglins zombificados', 'wither_skeleton': 'Esqueletos wither',
+    'strider': 'Lavagantes', 'enderman': 'Endermanes', 'endermite': 'Endermites',
+    'shulker': 'Shulkers', 'warden': 'Wardens', 'wither': 'Withers',
+    'ender_dragon': 'Dragones del End',
+}
 _BEDROCK_ALIASES = {'evoker': 'evocation_illager', 'zombified_piglin': 'zombie_pigman',
                     'tropical_fish': 'tropicalfish'}
 _NOTES = {'ender_dragon': 'La visibilidad del nombre depende de Minecraft.'}
@@ -228,7 +262,12 @@ def announcement_for(preset_id, edition, donor='Prueba', quantity=None, gift_cou
         description = '5 diamantes'
     elif is_spawn(preset_id):
         amount = quantity_for(preset_id, quantity) * gift_count
-        label = 'Zombie' if preset_id == 'zombie' else ('TNT' if preset_id == 'tnt_rain' else _MOBS[preset_id][0])
+        if preset_id == 'tnt_rain':
+            label = 'TNT'
+        else:
+            label = 'Zombie' if preset_id == 'zombie' else _MOBS[preset_id][0]
+            if amount != 1:
+                label = _MOB_PLURALS[preset_id]
         description = f'{amount} {label}'
     else:
         description = _COMMON[preset_id][0]

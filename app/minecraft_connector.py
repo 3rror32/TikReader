@@ -176,7 +176,9 @@ class MinecraftConnector:
             with self.jobs.mutex:
                 abandoned = self.jobs.unfinished_tasks == 0
             if abandoned and not self.running_presets:
-                self.finish_reservation(self.preset_owner, now)
+                for entry in tuple(self.preset_usage):
+                    if entry['finished'] is None:
+                        self.finish_reservation(entry['owner'], now)
                 self.preset_owner = None
             self.preset_usage = deque(entry for entry in self.preset_usage
                                       if entry['finished'] is None or now - entry['finished'] < 60)
@@ -193,10 +195,6 @@ class MinecraftConnector:
                 reason = 'Conecta Minecraft y revisa la escena y la pausa.'
             elif automatic and any(not rows[key]['enabled'] or not rows[key]['gift_id'] for key in selected):
                 reason = 'La acción ya no está activa.'
-            elif self.preset_owner is not None or not self.jobs.empty():
-                reason = 'Hay una acción pendiente o en ejecución. Regalo descartado.'
-            elif self.last_preset_at is not None and now - self.last_preset_at < settings['interval']:
-                reason = 'Espera el intervalo mínimo. Regalo descartado.'
             elif sum(entry['cost'] for entry in self.preset_usage) + cost > settings['per_minute']:
                 reason = 'Límite de efectos por minuto alcanzado. Regalo descartado.'
             if reason:
@@ -211,7 +209,8 @@ class MinecraftConnector:
                 commands.extend(sequence * repeats)
                 labels.extend([key] * (len(sequence) * repeats))
             owner = object()
-            job = PresetJob(selected[0], tuple(commands), now, getattr(self.r, 'feed_session', None),
+            scheduled_at = max(now, self.last_preset_at + settings['interval']) if self.last_preset_at is not None else now
+            job = PresetJob(selected[0], tuple(commands), scheduled_at, getattr(self.r, 'feed_session', None),
                             self.revision, self.edition, self.preset_generation,
                             self.authorized_generation, automatic, tuple(selected), donor_name(donor),
                             owner, tuple(labels), gift_count,
@@ -227,7 +226,7 @@ class MinecraftConnector:
                 return False
             self.preset_owner = owner
             self.preset_usage.append({'owner': owner, 'cost': cost, 'finished': None})
-            self.last_preset_at = now
+            self.last_preset_at = scheduled_at
             self.admission_reason = ''
             return True
 
@@ -238,19 +237,38 @@ class MinecraftConnector:
                 entry['finished'] = now
                 break
 
+    def finish_preset_job(self, job):
+        with self.preset_lock:
+            self.finish_reservation(job.admission_id, time.monotonic())
+            if self.preset_owner is job.admission_id:
+                self.preset_owner = next((entry['owner'] for entry in reversed(self.preset_usage)
+                                          if entry['finished'] is None), None)
+
     def _preset_valid(self, job):
         with self.preset_lock:
             rows = mappings(self.config.get('presets'))
             enabled = all(rows[key]['enabled'] and rows[key]['gift_id'] for key in (job.selected_ids or (job.preset_id,)))
-            return (job.admission_id is self.preset_owner and self.authorized_now() and job.edition == self.edition and
+            reserved = any(entry['owner'] is job.admission_id and entry['finished'] is None
+                           for entry in self.preset_usage)
+            return (reserved and self.authorized_now() and job.edition == self.edition and
                     job.revision == self.revision and job.preset_generation == self.preset_generation and
-                    job.session == getattr(self.r, 'feed_session', None) and time.monotonic()-job.created <= 10 and
+                    job.session == getattr(self.r, 'feed_session', None) and
                     not self.r.production.settings['emergency'] and
                     self.r.production.settings.get('scene', 'talk') == 'talk' and
                     (not job.automatic or enabled) and
                     (job.edition == 'java' or job.transport_generation == self.bedrock.generation))
 
     def run_preset(self, job):
+        while True:
+            if not self._preset_valid(job):
+                self.note('Acción rápida cancelada antes de ejecutarse', alias=job.preset_id,
+                          outcome='cancelled', response='')
+                self.finish_preset_job(job)
+                return
+            delay = job.created - time.monotonic()
+            if delay <= 0:
+                break
+            time.sleep(min(delay, .1))
         with self.preset_lock:
             self.running_presets.add(job.admission_id)
         try:
@@ -258,9 +276,7 @@ class MinecraftConnector:
         finally:
             with self.preset_lock:
                 self.running_presets.discard(job.admission_id)
-                self.finish_reservation(job.admission_id, time.monotonic())
-                if self.preset_owner is job.admission_id:
-                    self.preset_owner = None
+            self.finish_preset_job(job)
 
     def _run_preset(self, job):
         all_actions_confirmed = True
@@ -546,6 +562,9 @@ class MinecraftConnector:
             with self.preset_lock:
                 if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
                 self.preset_generation += 1
+                now = time.monotonic()
+                if self.last_preset_at is not None and self.last_preset_at > now:
+                    self.last_preset_at = now - limits(self.config.get('limits'))['interval']
             return jsonify(ok=True)
 
         @app.post('/minecraft/bedrock/prepare')

@@ -22,6 +22,8 @@ Simulation must exercise the same saved automation that a real gift would use; o
 - Treat an assigned gift as an active Minecraft preset without a separate enable toggle.
 - Add text search to the Minecraft gift picker and make removal clear the persisted assignment.
 - Capitalize the donor's first alphabetic character without changing the rest of the username casing.
+- Queue every valid Minecraft gift in FIFO order and use the configured interval as execution spacing instead of an admission rejection.
+- Preserve the incoming gift count through preset execution and describe one versus multiple gifts with singular/plural chat wording.
 
 ## Constraints
 
@@ -30,6 +32,7 @@ Simulation must exercise the same saved automation that a real gift would use; o
 - Do not change Bedrock command generation for the `diamonds` preset.
 - Preserve distinct real TikTok gift IDs even when they share the same visible name.
 - Accept legacy preset profiles containing `enabled`, but derive activity from an assigned gift ID.
+- Keep authorization, connection, edition, session, scene, emergency, and configuration-generation invalidation checks for queued work.
 
 ## Authorized scope
 
@@ -111,11 +114,33 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - Relevant Python preset and Bedrock tests.
     - Live Bedrock verification after the persisted mapping is updated.
 
+- [x] **MSG-6 — Queue valid Minecraft gifts with execution spacing**
+  - Route: delegated direct.
+  - Trigger evidence: admission ownership, FIFO reservations, interval timing, budget accounting, stale-job validation, and safety regression coverage require coordinated non-trivial connector and test changes.
+  - Test-first policy: add focused regressions that demonstrate the current pending-owner and interval rejections before changing admission.
+  - Acceptance criteria:
+    - Multiple valid gifts are admitted and processed in FIFO order by the existing serial worker.
+    - The configured interval delays the next job instead of rejecting it.
+    - Legitimate queue waiting does not expire solely because it exceeded the previous ten-second age limit.
+    - Each queued job owns an independent reservation and preserves its donor, count, commands, and announcement.
+    - A single “You're awesome” gift mapped to TNT is admitted and triggers the TNT preset.
+    - Two Creeper gifts with a configured quantity of three each emit six mob commands.
+    - Minecraft announcements use singular wording for a total of one and plural wording for totals of two or more; invariant TNT wording remains `1 TNT` / `2 TNT`.
+    - Simulator event text uses singular for one gift and plural for two or more while retaining the selected display name.
+    - Queue overflow remains observable, while disconnect, edition/session/configuration changes, stop, emergency, and incompatible scene changes still invalidate unsafe pending work.
+  - Checks:
+    - Focused preset queue and singular/plural RED/GREEN tests with a deterministic clock.
+    - Focused simulator event wording tests.
+    - `tests/test_minecraft_presets.py`, `tests/test_simulation.py`, and `tests/test_server.py`.
+    - Live back-to-back simulated Rose verification after the mapping is updated.
+  - Evidence: focused regressions were RED before implementation (queue rejected a second gift, mob chat lacked plural forms, and simulator text lacked singular/plural wording). GREEN afterward: FIFO/count, TNT quantity one, Spanish plural labels, canceled-job retirement, stop schedule rebasing, and simulator singular/plural regressions passed. Final focused preset selection passed (5 tests); cancellation/budget/plural selection passed independently (4 tests); stop-rebase/canceled-wait selection passed (2 tests); and the simulator suite passed (20 tests, 3 subtests; 2 dependency deprecation warnings). The complete preset suite emitted partial output containing a failure and did not complete; `tests/test_server.py` emitted `F..` and exceeded 60 seconds. Both full-suite outcomes remain unresolved. No live Minecraft verification was run for this work unit.
+
 ## Delivery
 
 - Strategy: `ask-on-risk`.
-- Forecast: about 390 authored changed lines across all five work units, excluding this task document.
-- Running authored changed lines: 198 (MSG-1: 60; MSG-2: 138; task document excluded).
+- Forecast: about 520 authored changed lines across all six work units, excluding this task document.
+- Chain strategy: `stacked-to-main` (selected by the user).
+- Running authored changed lines: approximately 400 (MSG-1: 60; MSG-2: 138; MSG-6: approximately 200; task document excluded).
 - Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`.
 
 ## Progress
@@ -140,4 +165,4 @@ Verification results:
 
 ## Next step
 
-MSG-1 and MSG-2 are implemented, independently verified, and live-tested in Minecraft Bedrock. The feature branch is ready for the user's ordinary delivery decision. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
+MSG-1, MSG-2, and MSG-6 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass. Full preset and server suites remain unresolved after partial failures and timeouts; live Minecraft verification for MSG-6 was skipped. MSG-3 through MSG-5 remain open. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
