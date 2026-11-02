@@ -209,12 +209,31 @@ def donor_name(value, fallback='Invitado'):
 
 
 def limits(values=None):
-    values = {'interval': 3, 'per_minute': 20} if values is None else values
-    if (not isinstance(values, dict) or set(values) != {'interval', 'per_minute'} or
-            type(values['interval']) is not int or not 1 <= values['interval'] <= 60 or
-            type(values['per_minute']) is not int or not 5 <= values['per_minute'] <= 120):
-        raise ValueError('Usa un intervalo de 1 a 60 segundos y entre 5 y 120 efectos por minuto')
-    return dict(values)
+    values = {'objects': 20, 'period_seconds': 30} if values is None else values
+    if not isinstance(values, dict):
+        raise ValueError('Configuración de ritmo inválida')
+    if set(values) == {'interval', 'per_minute'}:
+        if (type(values['interval']) is not int or not 1 <= values['interval'] <= 60 or
+                type(values['per_minute']) is not int or not 5 <= values['per_minute'] <= 120):
+            raise ValueError('Usa un intervalo de 1 a 60 segundos y entre 5 y 120 efectos por minuto')
+        return dict(values)
+    if set(values) not in ({'objects', 'period_seconds'}, {'objects', 'period_seconds', 'interval'}):
+        raise ValueError('Configuración de ritmo inválida')
+    objects, period = values.get('objects'), values.get('period_seconds')
+    if (type(objects) is not int or not 1 <= objects <= 120 or
+            type(period) is not int or not objects <= period <= 600):
+        raise ValueError('Usa entre 1 y 120 objetos, con un máximo de un objeto por segundo')
+    interval = period / objects
+    if 'interval' in values and (type(values['interval']) not in (int, float) or values['interval'] != interval):
+        raise ValueError('El intervalo debe coincidir con el ritmo configurado')
+    return {'objects': objects, 'period_seconds': period, 'interval': interval}
+
+
+def pacing_interval(values=None):
+    clean = limits(values)
+    if 'objects' in clean:
+        return clean['period_seconds'] / clean['objects']
+    return max(clean['interval'], 60 / clean['per_minute'])
 
 
 def name_format(value='modern'):

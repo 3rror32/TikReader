@@ -7,10 +7,11 @@ import socket
 import struct
 import threading
 import time
+import uuid
 from collections import OrderedDict, deque
 from flask import jsonify, request
 from minecraft_bedrock import BedrockBridge
-from minecraft_presets import PresetJob, catalog, categories, sections, commands_for, announcement_for, mappings, limits, name_format, donor_name, command_cost, is_spawn
+from minecraft_presets import PresetJob, catalog, categories, sections, commands_for, announcement_for, mappings, limits, name_format, donor_name, command_cost, is_spawn, pacing_interval
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,16 @@ class MinecraftConnector:
         self.password = ''
         self.authorized = False
         self.authorized_generation = None
-        self.jobs = queue.Queue(maxsize=30)
+        self.jobs = queue.Queue()
+        self._memory_effects = OrderedDict()
+        self._next_object_at = None
+        self._last_effect_donor = None
+        self._same_donor_count = 0
+        self._fairness_loaded = False
+        self._retry_at = 0
+        self._retry_count = 0
+        self.execution_log = []
+        self.current_effect = None
         self.log = []
         self.revision = 0
         self.lock = threading.RLock()
@@ -100,7 +110,8 @@ class MinecraftConnector:
 
     def snapshot(self):
         return dict(config=self.config, edition=self.edition, profiles=self.profiles,
-                    authorized=self.authorized_now(), queued=self.jobs.qsize(), log=self.log,
+                    authorized=self.authorized_now(), queued=self.pending_effect_count(), log=self.log,
+                    effect_queue=self.queue_snapshot(),
                     bedrock=self.bedrock.snapshot(), presets=mappings(self.config.get('presets')),
                     preset_catalog=catalog(), preset_categories=categories(), preset_sections=sections(), authorization_mode='automatic',
                     connection_check=self.connection_check,
@@ -158,7 +169,10 @@ class MinecraftConnector:
             while len(self.final_gifts) > 1000:self.final_gifts.popitem(last=False)
             selected = self.matching_presets(str(record.get('gift_id', '')))
             if selected:
-                self.admit_presets(selected, record.get('user'), automatic=True, gift_count=record.get('count', 1))
+                stable_id = identity[1]
+                self.admit_presets(selected, record.get('user'), automatic=True,
+                                   gift_count=record.get('count', 1), identity=stable_id,
+                                   gift_name=record.get('gift', ''))
 
     def matching_presets(self, gift_id):
         return tuple(key for key, row in mappings(self.config.get('presets')).items()
@@ -166,12 +180,12 @@ class MinecraftConnector:
 
     def enqueue_preset(self, preset_id, automatic=False):
         command_cost(preset_id, None, 1)  # Validate IDs without building commands.
-        return self.admit_presets((preset_id,), 'Prueba', automatic)
+        return self.admit_presets((preset_id,), 'Prueba', automatic,
+                                  identity='manual:'+uuid.uuid4().hex)
 
-    def admit_presets(self, selected, donor, automatic=False, gift_count=1):
+    def admit_presets(self, selected, donor, automatic=False, gift_count=1, identity=None, gift_name=''):
         with self.preset_lock:
             now = time.monotonic()
-            settings = limits(self.config.get('limits'))
             # The general simulator may drain pending queue items and call task_done.
             with self.jobs.mutex:
                 abandoned = self.jobs.unfinished_tasks == 0
@@ -190,26 +204,30 @@ class MinecraftConnector:
             cost = sum(command_cost(key, rows[key].get('quantity'), gift_count) for key in selected)
             reason = ''
             if not selected:reason = 'No hay acciones activas para este regalo.'
-            elif (not self.authorized_now() or self.r.production.settings['emergency'] or
-                  self.r.production.settings.get('scene', 'talk') != 'talk'):
-                reason = 'Conecta Minecraft y revisa la escena y la pausa.'
             elif automatic and any(not rows[key]['enabled'] or not rows[key]['gift_id'] for key in selected):
                 reason = 'La acción ya no está activa.'
-            elif sum(entry['cost'] for entry in self.preset_usage) + cost > settings['per_minute']:
-                reason = 'Límite de efectos por minuto alcanzado. Regalo descartado.'
             if reason:
                 self.admission_reason = reason
                 self.note(reason, outcome='cancelled', alias='regalo', response='')
                 return False
-            commands, labels = [], []
+            groups = []
+            total_commands = 0
             for key in selected:
                 sequence = commands_for(key, self.edition, donor, self.config.get('name_format', 'modern'),
                                         quantity=rows[key].get('quantity'))
                 repeats = gift_count if is_spawn(key) else 1
-                commands.extend(sequence * repeats)
-                labels.extend([key] * (len(sequence) * repeats))
-            owner = object()
-            scheduled_at = max(now, self.last_preset_at + settings['interval']) if self.last_preset_at is not None else now
+                groups.append({'commands':list(sequence), 'labels':[key] * len(sequence), 'repeats':repeats})
+                total_commands += len(sequence) * repeats
+            commands, labels = [], []
+            if total_commands <= 10000:
+                for group in groups:
+                    for _ in range(group['repeats']):
+                        commands.extend(group['commands'])
+                        labels.extend(group['labels'])
+            identity = str(identity or 'event:'+uuid.uuid4().hex)
+            owner = identity
+            interval = pacing_interval(self.config.get('limits'))
+            scheduled_at = max(now, self.last_preset_at + interval) if self.last_preset_at is not None else now
             job = PresetJob(selected[0], tuple(commands), scheduled_at, getattr(self.r, 'feed_session', None),
                             self.revision, self.edition, self.preset_generation,
                             self.authorized_generation, automatic, tuple(selected), donor_name(donor),
@@ -218,29 +236,253 @@ class MinecraftConnector:
                             tuple(announcement_for(key, self.edition, donor,
                                                    quantity=rows[key].get('quantity'),
                                                    gift_count=gift_count) for key in selected))
+            effect = {'identity':str(identity), 'donor':job.donor, 'gift_name':str(gift_name)[:100],
+                      'preset_id':job.preset_id, 'selected_ids':list(job.selected_ids),
+                      'commands':list(job.commands), 'command_labels':list(job.command_labels),
+                      'command_groups':groups, 'total':total_commands,
+                      'announcements':list(job.announcements), 'edition':job.edition,
+                      'automatic':bool(automatic), 'session':job.session,
+                      'next_index':0, 'status':'pending', 'received_at':time.time(),
+                      'gift_count':gift_count}
             try:
+                if not self._enqueue_effect(effect):
+                    self.admission_reason = ''
+                    return True
                 self.jobs.put_nowait(job)
-            except queue.Full:
-                self.admission_reason = 'Cola llena. Regalo descartado.'
-                self.note(self.admission_reason, outcome='cancelled', alias='regalo', response='')
-                return False
+            except queue.Full:  # Durable storage remains the source of truth.
+                pass
             self.preset_owner = owner
             self.preset_usage.append({'owner': owner, 'cost': cost, 'finished': None})
             self.last_preset_at = scheduled_at
             self.admission_reason = ''
+            self.note('Regalo recibido y guardado en la cola de Minecraft', alias=job.preset_id,
+                      outcome='queued', identity=str(identity), donor=job.donor,
+                      gift=effect['gift_name'], remaining=total_commands)
             return True
+
+    def _enqueue_effect(self, effect):
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'enqueue_minecraft_effect'):
+            return archive.enqueue_minecraft_effect(effect)
+        if effect['identity'] in self._memory_effects:
+            return False
+        self._memory_effects[effect['identity']] = effect
+        return True
+
+    def _pending_effects(self):
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'pending_minecraft_effects'):
+            return archive.pending_minecraft_effects()
+        return [effect for effect in self._memory_effects.values() if effect.get('status') == 'pending']
+
+    def pending_effect_count(self):
+        return len(self._pending_effects())
+
+    @staticmethod
+    def _effect_summary(effect):
+        total = effect.get('total', len(effect.get('commands', ())))
+        remaining = max(0, total-effect.get('next_index', 0))
+        return {'identity':effect['identity'], 'donor':effect['donor'],
+                'gift':effect.get('gift_name', ''), 'preset_id':effect['preset_id'],
+                'remaining':remaining, 'failures':effect.get('failures', 0)}
+
+    def queue_snapshot(self):
+        pending = self._pending_effects()
+        count = len(pending)
+        interval = self.pacing_interval()
+        wait = max(0, self._next_object_at-time.monotonic()) if self._next_object_at is not None else 0
+        pressure = 'normal' if count <= 5 else ('accumulating' if count <= 20 else 'saturated')
+        next_effect = pending[0] if pending else None
+        if pending and self._same_donor_count >= 5:
+            next_effect = next((row for row in pending if row['donor'] != self._last_effect_donor), next_effect)
+        return {'pending_count':count, 'current':self.current_effect,
+                'next':self._effect_summary(next_effect) if next_effect else None,
+                'pending':[self._effect_summary(row) for row in pending[:20]],
+                'interval_seconds':interval, 'next_object_in_seconds':round(wait, 2),
+                'pressure':pressure, 'pressure_thresholds':{'normal_max':5,'accumulating_max':20},
+                'failure_count':sum(row.get('failures',0) for row in pending),
+                'retry_in_seconds':round(max(0,self._retry_at-time.monotonic()),2)}
+
+    def pacing_interval(self):
+        return pacing_interval(self.config.get('limits'))
+
+    def _confirm_effect_object(self, effect, index):
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'confirm_minecraft_object'):
+            confirmed = archive.confirm_minecraft_object(effect['identity'], index)
+        else:
+            current = self._memory_effects.get(effect['identity'])
+            if not current or current.get('next_index') != index:
+                return False
+            current['next_index'] = index + 1
+            current['last_confirmed_at'] = time.time()
+            if current['next_index'] >= current.get('total', len(current['commands'])):
+                current['status'] = 'complete'
+            confirmed = True
+        if confirmed and index + 1 >= effect.get('total', len(effect.get('commands', ()))):
+            self._finish_effect_reservation(effect['identity'])
+        return confirmed
+
+    def _record_effect_failure(self, identity, reason):
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'record_minecraft_failure'):
+            archive.record_minecraft_failure(identity, reason)
+        else:
+            current = self._memory_effects.get(identity)
+            if current:
+                current['failures'] = current.get('failures', 0) + 1
+                current['last_failure'] = str(reason)[:80]
+
+    def _finish_effect_reservation(self, identity):
+        with self.preset_lock:
+            self.finish_reservation(identity, time.monotonic())
+            if self.preset_owner == identity:
+                self.preset_owner = next((entry['owner'] for entry in reversed(self.preset_usage)
+                                          if entry['finished'] is None), None)
+
+    def _load_effect_fairness(self):
+        if self._fairness_loaded:
+            return
+        self._fairness_loaded = True
+        archive = getattr(self.r, 'archive', None)
+        state = archive.minecraft_fairness() if archive and hasattr(archive, 'minecraft_fairness') else {}
+        self._last_effect_donor = state.get('last_donor')
+        self._same_donor_count = int(state.get('same_donor_count', 0))
+        last_at = state.get('last_confirmed_at')
+        if isinstance(last_at, (int, float)):
+            wait = max(0, self.pacing_interval() - (time.time() - last_at))
+            self._next_object_at = time.monotonic() + wait
+
+    def _save_effect_fairness(self):
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'set_minecraft_fairness'):
+            archive.set_minecraft_fairness({'last_donor':self._last_effect_donor,
+                'same_donor_count':self._same_donor_count,'last_confirmed_at':time.time()})
+
+    def run_next_effect(self):
+        """Execute one confirmed object without removing work during pauses or outages."""
+        self._load_effect_fairness()
+        if not (self.authorized_now() and not self.r.production.settings.get('emergency') and
+                self.r.production.settings.get('scene', 'talk') == 'talk'):
+            return False
+        if time.monotonic() < self._retry_at:
+            return False
+        pending = self._pending_effects()
+        if not pending:
+            return False
+        if self._next_object_at is not None:
+            while time.monotonic() < self._next_object_at:
+                if not self.authorized_now() or self.r.production.settings.get('emergency') or self.r.production.settings.get('scene', 'talk') != 'talk':
+                    return False
+                time.sleep(min(.1, self._next_object_at-time.monotonic()))
+        chosen = pending[0]
+        if self._same_donor_count >= 5:
+            chosen = next((row for row in pending if row['donor'] != self._last_effect_donor), chosen)
+        index = chosen.get('next_index', 0)
+        if index >= chosen.get('total', len(chosen.get('commands', ()))):
+            return False
+        if chosen.get('edition') != self.edition:
+            return False
+        if chosen.get('automatic'):
+            rows = mappings(self.config.get('presets'))
+            if any(not rows[key]['enabled'] or not rows[key]['gift_id']
+                   for key in chosen.get('selected_ids', (chosen['preset_id'],))):
+                return False
+        command, alias = self._effect_object(chosen, index)
+        self.current_effect = {**self._effect_summary(chosen), 'step':index+1,
+                               'total':chosen.get('total',len(chosen.get('commands', ())))}
+        try:
+            if chosen['edition'] == 'java':
+                with self.lock:
+                    if not self.authorized_now() or self.r.production.settings.get('emergency') or self.r.production.settings.get('scene', 'talk') != 'talk':
+                        self.current_effect = None
+                        return False
+                    response = self.execute(command)
+                outcome = self.response_outcome(command, response)
+            else:
+                generation = self.bedrock.generation
+                result = self.bedrock.execute(command, expected_generation=generation)
+                response, outcome = result['response'], result['outcome']
+        except Exception as exc:
+            self.current_effect = None
+            outcome = 'connection_error' if isinstance(exc, OSError) else 'unconfirmed'
+            response = ''
+            self.note(f'Objeto pendiente · {alias} · {chosen["donor"]}: {type(exc).__name__}',
+                      alias=alias, outcome=outcome, identity=chosen['identity'], step=index+1,
+                      total=chosen.get('total', len(chosen.get('commands', ()))), donor=chosen['donor'])
+            self._record_effect_failure(chosen['identity'], type(exc).__name__)
+            self._retry_count += 1
+            self._retry_at = time.monotonic() + min(30, 2 ** min(self._retry_count-1, 5))
+            return False
+        self.current_effect = None
+        total = chosen.get('total', len(chosen.get('commands', ())))
+        self.note(f'{"Éxito confirmado" if outcome == "success" else "Sin confirmar"} · {alias} · {chosen["donor"]} · objeto {index+1}/{total}: {response or "sin respuesta"}',
+                  alias=alias, outcome=outcome, response=response, identity=chosen['identity'],
+                  step=index+1, total=total, donor=chosen['donor'], gift=chosen.get('gift_name',''))
+        self.execution_log.append({'identity':chosen['identity'],'donor':chosen['donor'],
+                                   'command':command,'outcome':outcome,'step':index+1})
+        if outcome != 'success' or not self._confirm_effect_object(chosen, index):
+            self._record_effect_failure(chosen['identity'], outcome)
+            self._retry_count += 1
+            self._retry_at = time.monotonic() + min(30, 2 ** min(self._retry_count-1, 5))
+            return False
+        self._retry_count = 0
+        self._retry_at = 0
+        if index + 1 >= chosen.get('total', len(chosen.get('commands', ()))):
+            self._announce_effect(chosen)
+        if self._last_effect_donor == chosen['donor']:
+            self._same_donor_count += 1
+        else:
+            self._last_effect_donor, self._same_donor_count = chosen['donor'], 1
+        self._save_effect_fairness()
+        self._next_object_at = time.monotonic()+self.pacing_interval()
+        return True
+
+    def _announce_effect(self, effect):
+        for index, command in enumerate(effect.get('announcements', ())):
+            alias = effect.get('selected_ids', [effect['preset_id']])[index]
+            try:
+                if effect['edition'] == 'java':
+                    with self.lock:
+                        if not self.authorized_now():
+                            return
+                        response = self.execute(command)
+                    self.note(f'Anuncio de entrega enviado · {alias} · {effect["donor"]}',
+                              alias=alias, outcome='unconfirmed', response=response,
+                              donor=effect['donor'], identity=effect['identity'], announcement=True)
+                else:
+                    result = self.bedrock.execute(command, expected_generation=self.bedrock.generation)
+                    self.note(f'Anuncio de entrega · {alias} · {effect["donor"]}: {result["response"] or "sin respuesta"}',
+                              alias=alias, outcome=result['outcome'], response=result['response'],
+                              donor=effect['donor'], identity=effect['identity'], announcement=True)
+            except Exception as exc:
+                self.note(f'Anuncio de entrega sin confirmar · {alias} · {type(exc).__name__}',
+                          alias=alias, outcome='connection_error' if isinstance(exc, OSError) else 'unconfirmed',
+                          response='', donor=effect['donor'], identity=effect['identity'], announcement=True)
+
+    @staticmethod
+    def _effect_object(effect, index):
+        groups = effect.get('command_groups')
+        if groups:
+            for group in groups:
+                width = len(group['commands']) * group['repeats']
+                if index < width:
+                    offset = index % len(group['commands'])
+                    return group['commands'][offset], group['labels'][offset]
+                index -= width
+        return effect['commands'][index], effect.get('command_labels', [effect['preset_id']])[index]
 
     def finish_reservation(self, owner, now):
         # Caller holds preset_lock. Pending/running costs cannot expire before completion.
         for entry in self.preset_usage:
-            if entry['owner'] is owner and entry['finished'] is None:
+            if entry['owner'] == owner and entry['finished'] is None:
                 entry['finished'] = now
                 break
 
     def finish_preset_job(self, job):
         with self.preset_lock:
             self.finish_reservation(job.admission_id, time.monotonic())
-            if self.preset_owner is job.admission_id:
+            if self.preset_owner == job.admission_id:
                 self.preset_owner = next((entry['owner'] for entry in reversed(self.preset_usage)
                                           if entry['finished'] is None), None)
 
@@ -248,7 +490,7 @@ class MinecraftConnector:
         with self.preset_lock:
             rows = mappings(self.config.get('presets'))
             enabled = all(rows[key]['enabled'] and rows[key]['gift_id'] for key in (job.selected_ids or (job.preset_id,)))
-            reserved = any(entry['owner'] is job.admission_id and entry['finished'] is None
+            reserved = any(entry['owner'] == job.admission_id and entry['finished'] is None
                            for entry in self.preset_usage)
             return (reserved and self.authorized_now() and job.edition == self.edition and
                     job.revision == self.revision and job.preset_generation == self.preset_generation and
@@ -453,9 +695,17 @@ class MinecraftConnector:
 
     def worker(self):
         while True:
-            job = self.jobs.get()
-            try:self.run_job(job)
-            finally:self.jobs.task_done()
+            try:
+                try:job = self.jobs.get(timeout=.1)
+                except queue.Empty:job = None
+                if job is not None:
+                    try:
+                        if not isinstance(job, PresetJob):self.run_job(job)
+                    finally:self.jobs.task_done()
+                self.run_next_effect()
+            except Exception:
+                logger.exception('Minecraft durable effect worker iteration failed')
+                time.sleep(.5)
 
     def register(self, app):
         @app.route('/minecraft', methods=['GET', 'POST'])
@@ -564,7 +814,7 @@ class MinecraftConnector:
                 self.preset_generation += 1
                 now = time.monotonic()
                 if self.last_preset_at is not None and self.last_preset_at > now:
-                    self.last_preset_at = now - limits(self.config.get('limits'))['interval']
+                    self.last_preset_at = now - pacing_interval(self.config.get('limits'))
             return jsonify(ok=True)
 
         @app.post('/minecraft/bedrock/prepare')

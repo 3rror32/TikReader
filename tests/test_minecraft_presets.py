@@ -1,8 +1,9 @@
 import ast
 from collections import OrderedDict
-from pathlib import Path
 import queue
 import threading
+import tempfile
+from pathlib import Path
 import time
 from types import SimpleNamespace as S
 import unittest
@@ -12,6 +13,7 @@ from unittest.mock import patch
 from flask import Flask
 
 from minecraft_connector import MinecraftConnector
+from history_store import HistoryStore
 
 
 class PresetTests(unittest.TestCase):
@@ -32,6 +34,71 @@ class PresetTests(unittest.TestCase):
     def gift(self, event_id='g', count=1, ongoing=False, gift_id='1'):
         self.mc.gift({'id':event_id,'gift_id':gift_id,'gift':'Rose','count':count,'ongoing':ongoing},event_id)
 
+    def test_new_rate_profile_defaults_to_twenty_objects_per_thirty_seconds(self):
+        from minecraft_presets import limits
+        self.assertEqual(limits(), {'objects':20,'period_seconds':30,'interval':1.5})
+        self.assertEqual(limits({'interval':3,'per_minute':20}), {'interval':3,'per_minute':20})
+        with self.assertRaises(ValueError):limits({'objects':20,'period_seconds':19})
+
+    def test_history_store_persists_deduplicated_effects_and_object_confirmations(self):
+        with tempfile.TemporaryDirectory(dir=Path.cwd()) as folder:
+            store=HistoryStore(Path(folder)/'history.sqlite3')
+            effect={'identity':'live-a:event-1','donor':'Ana','commands':['one','two'],
+                    'next_index':0,'status':'pending'}
+            self.assertTrue(store.enqueue_minecraft_effect(effect))
+            self.assertFalse(store.enqueue_minecraft_effect(effect))
+            restarted=HistoryStore(Path(folder)/'history.sqlite3')
+            self.assertEqual(restarted.pending_minecraft_effects(),[effect])
+            restarted.confirm_minecraft_object(effect['identity'],0)
+            self.assertEqual(restarted.pending_minecraft_effects()[0]['next_index'],1)
+
+    def test_valid_gifts_survive_a_full_transient_job_queue(self):
+        self.save(preset='zombie')
+        self.mc.jobs=queue.Queue(1)
+        self.gift('first-full')
+        self.gift('second-full')
+        self.assertEqual(self.mc.admission_reason,'')
+        self.assertEqual(self.mc.pending_effect_count(),2)
+
+    def test_snapshot_exposes_activity_queue_and_pacing_for_the_ui_contract(self):
+        self.save(preset='zombie')
+        self.mc.gift({'id':'event-a','gift_id':'1','gift':'Rose','user':'Ana','count':3},'event-a')
+        state=self.client.get('/minecraft').get_json()['effect_queue']
+        self.assertEqual(state['pending_count'],1)
+        self.assertEqual(state['next']['donor'],'Ana')
+        self.assertEqual(state['next']['gift'],'Rose')
+        self.assertEqual(state['next']['remaining'],3)
+        self.assertEqual(state['interval_seconds'],1.5)
+        self.assertIn(state['pressure'],('normal','accumulating','saturated'))
+
+    def test_spawn_objects_are_spaced_and_rotate_after_five_per_donor(self):
+        self.save(preset='zombie')
+        self.gift('ana',count=6)
+        self.mc.gift({'id':'luis','gift_id':'1','gift':'Rose','count':1,'user':'Luis'},'luis')
+        sent=[]
+        with patch.object(self.mc,'execute',side_effect=lambda command: sent.append(command) or 'Summoned new Zombie'), \
+                patch('minecraft_connector.time.sleep',side_effect=lambda delay: setattr(self,'now',self.now+delay)):
+            for _ in range(6):
+                self.mc.run_next_effect()
+        self.assertEqual([row['donor'] for row in self.mc.execution_log],
+                         ['Invitado']*5+['Luis'])
+        self.assertEqual(self.mc.pacing_interval(),1.5)
+
+    def test_pause_and_temporary_minecraft_failure_preserve_pending_effects(self):
+        self.save(preset='zombie');self.gift('recoverable')
+        self.runtime.production.settings['scene']='pause'
+        self.assertFalse(self.mc.run_next_effect())
+        self.assertEqual(self.mc.pending_effect_count(),1)
+        self.runtime.production.settings['scene']='talk'
+        with patch.object(self.mc,'execute',side_effect=OSError('offline')):
+            self.assertFalse(self.mc.run_next_effect())
+        self.assertEqual(self.mc.pending_effect_count(),1)
+        self.mc.authorized=True
+        self.now+=1
+        with patch.object(self.mc,'execute',return_value='Summoned new Zombie'):
+            self.assertTrue(self.mc.run_next_effect())
+        self.assertEqual(self.mc.pending_effect_count(),0)
+
     def test_simulation_is_local_strict_atomic_and_names_donor(self):
         self.save(preset='zombie')
         body={'edition':'java','gift_id':'1','user':'Ana'}
@@ -48,7 +115,7 @@ class PresetTests(unittest.TestCase):
         with patch.object(self.runtime.production,'local',return_value=False):
             self.assertEqual(self.client.post('/minecraft/presets/simulate',json=body).status_code,403)
 
-    def test_shared_limits_reserve_full_cost_across_queued_gifts(self):
+    def test_legacy_profiles_keep_pacing_and_never_reject_on_throughput_capacity(self):
         rules={key:{'gift_id':'1','gift_name':'Rose','enabled':True} for key in ('tnt_rain','zombie')}
         self.client.post('/minecraft/presets',json={'edition':'java','presets':rules})
         with patch('minecraft_connector.time.monotonic',return_value=100) as clock:
@@ -57,20 +124,21 @@ class PresetTests(unittest.TestCase):
             with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(job)
             self.assertTrue(self.mc.enqueue_preset('rain'))
             rain=self.mc.jobs.get_nowait()
-            self.assertEqual(rain.created,103)
-            clock.return_value=103
+            self.assertEqual(rain.created,101.5)
+            clock.return_value=101.5
             self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
             tnt_one=self.mc.jobs.get_nowait()
-            clock.return_value=106
+            clock.return_value=103
             self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
             tnt_two=self.mc.jobs.get_nowait()
-            self.assertFalse(self.mc.enqueue_preset('tnt_rain'))
-            self.assertTrue(self.mc.jobs.empty())
+            self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
+            tnt_three=self.mc.jobs.get_nowait()
             with patch.object(self.mc,'execute',return_value='ok'), \
                     patch('minecraft_connector.time.sleep',side_effect=lambda delay: setattr(clock,'return_value',clock.return_value+delay)):
                 self.mc.run_job(rain)
                 self.mc.run_job(tnt_one)
                 self.mc.run_job(tnt_two)
+                self.mc.run_job(tnt_three)
 
     def test_limit_settings_are_strict_preserved_and_do_not_revoke(self):
         body={'edition':'java','limits':{'interval':5,'per_minute':10},'name_format':'legacy'}
@@ -206,7 +274,7 @@ class PresetTests(unittest.TestCase):
         job=self.mc.jobs.get_nowait()
         self.assertEqual(len(job.commands),7)
         self.assertEqual(len(job.announcements),2)
-        self.assertIn('6 Zombie',job.announcements[0])
+        self.assertIn('6 Zombis',job.announcements[0])
         self.assertIn('5 diamantes',job.announcements[1])
         sent=[]
         def execute(command):
@@ -292,6 +360,7 @@ class PresetTests(unittest.TestCase):
                 self.assertTrue(self.mc.enqueue_preset('rain'))
             finally:release.set()
             run.result(2)
+        self.now=max(self.now,queued.created)+20
         self.mc.run_job(queued)
         while not self.mc.jobs.empty():
             self.mc.run_job(self.mc.jobs.get_nowait())
@@ -304,28 +373,32 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(self.client.post('/minecraft/presets/simulate',json={**body,'gift_id':'missing'}).get_json()['accepted'],False)
         self.assertTrue(self.mc.jobs.empty())
         self.mc.authorized=False
-        self.assertEqual(self.client.post('/minecraft/presets/simulate',json=body).status_code,409)
+        response=self.client.post('/minecraft/presets/simulate',json=body)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(self.mc.pending_effect_count(),1)
+        self.mc.jobs.get_nowait()
         self.mc.authorized=True
         for user in ('Ana','Luis'):
             self.assertEqual(self.client.post('/minecraft/presets/simulate',json={**body,'user':user}).status_code,200)
             job=self.mc.jobs.get_nowait()
             self.assertEqual(job.donor,user)
+            self.now+=2
             with patch.object(self.mc,'execute',return_value='ok') as execute:self.mc.run_job(job)
             self.assertIn(user,execute.call_args.args[0]);self.now+=3
         for extra in [{'commands':['op @a']},{'edition':'bedrock'},{'gift_id':True}]:
             self.assertIn(self.client.post('/minecraft/presets/simulate',json={**body,**extra}).status_code,(400,409))
         self.assertEqual(self.runtime.feed_session,'A')
 
-    def test_budget_is_not_reset_by_stop_profile_switch_or_setting_saves(self):
+    def test_pending_gifts_are_not_rejected_by_legacy_budget_or_profile_switch(self):
         self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
         with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(self.mc.jobs.get_nowait())
         self.client.post('/minecraft/presets/stop',json={'edition':'java'})
         self.client.post('/minecraft/presets/settings',json={'edition':'java','limits':{'interval':1,'per_minute':5},'name_format':'modern'})
-        self.now+=5;self.assertFalse(self.mc.enqueue_preset('rain'))
+        self.now+=5;self.assertTrue(self.mc.enqueue_preset('rain'))
         self.client.post('/minecraft',json={'edition':'bedrock','select_only':True})
         self.mc.authorized=True;self.mc.authorized_generation=self.mc.bedrock.generation
         self.client.post('/minecraft/presets/settings',json={'edition':'bedrock','limits':{'interval':1,'per_minute':5},'name_format':'modern'})
-        self.assertFalse(self.mc.enqueue_preset('rain'))
+        self.assertTrue(self.mc.enqueue_preset('rain'))
         self.now+=55;self.assertTrue(self.mc.enqueue_preset('rain'))
 
     def test_discarded_queue_jobs_do_not_leave_admission_permanently_busy(self):
@@ -338,7 +411,7 @@ class PresetTests(unittest.TestCase):
         execute.assert_not_called()
         self.assertIs(self.mc.preset_owner,owner)
 
-    def test_minute_budget_waits_until_sixty_seconds_after_actual_completion(self):
+    def test_legacy_minute_budget_does_not_reject_new_pending_work(self):
         self.mc.config['limits']={'interval':3,'per_minute':5}
         self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
         dispatched=[]
@@ -351,12 +424,11 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(dispatched,[1000,1001,1002,1003,1004])
         for instant in (1060,1064):
             self.now=instant
-            self.assertFalse(self.mc.enqueue_preset('tnt_rain'))
-            self.assertTrue(self.mc.jobs.empty())
+            self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
         self.now=1065
         self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
 
-    def test_failed_cancelled_and_drained_activations_keep_full_reservation(self):
+    def test_failed_cancelled_and_drained_activations_remain_durable(self):
         for ending in ('failure','cancel','drain'):
             with self.subTest(ending=ending):
                 self.setUp();self.mc.config['limits']={'interval':3,'per_minute':5}
@@ -368,10 +440,10 @@ class PresetTests(unittest.TestCase):
                 else:
                     if ending=='cancel':self.mc.preset_generation+=1
                     with patch.object(self.mc,'execute',side_effect=OSError):self.mc.run_job(job)
-                # Recovery detects a drained pending reservation at this instant.
-                self.assertFalse(self.mc.enqueue_preset('tnt_rain'))
+                self.assertEqual(self.mc.pending_effect_count(),1)
+                self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
                 self.now=1060
-                self.assertFalse(self.mc.enqueue_preset('tnt_rain'))
+                self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
                 self.now=1064
                 self.assertTrue(self.mc.enqueue_preset('tnt_rain'))
 
@@ -497,8 +569,9 @@ class PresetTests(unittest.TestCase):
         execute.assert_not_called();self.now+=3
         with patch('minecraft_connector.commands_for') as build:
             self.gift('over-budget',count=4)
-            build.assert_not_called();self.assertTrue(self.mc.jobs.empty())
-        self.now+=60
+            build.assert_called();self.assertEqual(self.mc.jobs.qsize(),1)
+        self.assertEqual(self.mc.pending_effect_count(),2)
+        self.mc.jobs.get_nowait()
         response=self.client.post('/minecraft/presets/simulate',json={'edition':'java','gift_id':'1','user':'Ana'})
         self.assertEqual(response.status_code,200)
         job=self.mc.jobs.get_nowait();self.assertEqual(len(job.commands),6)
@@ -558,31 +631,37 @@ class PresetTests(unittest.TestCase):
             with patch.object(self.runtime.production,'local',return_value=False):
                 self.assertEqual(self.client.post(endpoint,json={}).status_code,403)
 
-    def test_final_gifts_are_deduplicated_by_id_and_session_not_name_or_count(self):
+    def test_final_gifts_are_deduplicated_by_stable_event_id_across_sessions(self):
         self.save();self.gift(ongoing=True,count=1);self.assertTrue(self.mc.jobs.empty())
         self.gift(count=1);self.gift(count=2);self.assertEqual(self.mc.jobs.qsize(),1)
         self.gift('different-id',gift_id='2');self.assertEqual(self.mc.jobs.qsize(),1)
         with patch.object(self.mc,'execute',return_value='ok'):self.mc.run_job(self.mc.jobs.get_nowait())
         self.now+=3
-        self.runtime.feed_session='B';self.gift();self.assertEqual(self.mc.jobs.qsize(),1)
+        self.runtime.feed_session='B';self.gift();self.assertEqual(self.mc.jobs.qsize(),0)
         self.save(False);self.gift('disabled');self.save(True);self.gift('disabled')
-        self.assertEqual(self.mc.jobs.qsize(),1,'enabling must not replay a previously observed gift')
+        self.assertEqual(self.mc.jobs.qsize(),0,'enabling must not replay a previously observed gift')
         self.mc.authorized=False;self.gift('unauthorized');self.mc.authorized=True;self.gift('unauthorized')
         self.assertEqual(self.mc.jobs.qsize(),1)
 
-    def test_default_five_tnt_commands_remain_atomic_and_reject_oversized_streaks(self):
-        self.save();self.gift(count=1000000);self.assertTrue(self.mc.jobs.empty())
+    def test_default_tnt_streak_is_compact_and_transient_queue_capacity_never_rejects(self):
+        self.save();self.gift(count=1000001);self.assertTrue(self.mc.jobs.empty())
+        self.gift('million',count=1000000);self.assertEqual(self.mc.jobs.qsize(),1)
+        large=self.mc.jobs.get_nowait()
+        self.assertEqual(large.commands,())
+        self.assertEqual(self.mc._pending_effects()[0]['total'],5000000)
         self.gift('bounded',count=1);self.assertEqual(self.mc.jobs.qsize(),1)
         job=self.mc.jobs.get_nowait()
+        self.now+=2
         with patch.object(self.mc,'execute',return_value='custom feedback') as execute:
             self.mc.run_job(job)
         self.assertEqual(execute.call_count,5)
         self.assertEqual(len({call.args[0] for call in execute.call_args_list}),5)
         self.assertTrue(all(row['outcome']=='unconfirmed' for row in self.mc.log[:5]))
-        self.assertEqual(self.mc.log[5]['outcome'],'cancelled')
+        self.assertIn(self.mc.log[5]['outcome'],('queued','unconfirmed'))
         self.now+=3
         self.mc.jobs=queue.Queue(1);self.gift('fills-queue');self.gift('full-queue')
         self.assertEqual(self.mc.jobs.qsize(),1)
+        self.assertEqual(self.mc.pending_effect_count(),4)
 
     def test_each_step_rechecks_cancellation_without_blocking_mapping_or_stop(self):
         changes=[lambda:self.save(False),lambda:self.client.post('/minecraft/presets/stop',json={'edition':'java'}),
@@ -666,7 +745,7 @@ class PresetTests(unittest.TestCase):
                  gift_history=OrderedDict(),gift_catalog={},state={'gift_count':0},gifter_totals={},gifter_diamonds={},
                  diagnostics={},observe_participant=noop,avatar_url=lambda user:'',image_url=lambda image:'',
                  remember_id=lambda cache,key,value:cache.__setitem__(key,value),creator_suite=service,
-                 live_counters=service,interactive=service,points=service,game_hotkeys=S(gift=lambda *args:[]),
+                 live_counters=service,interactive=service,points=service,game_hotkeys=S(gift=lambda *args,**kwargs:[]),
                  animation_studio=service,overlay_animations=service,archive=None,feed_session='A',
                  publish_gift_history=noop,publish_stats=noop,gift_revision=0,minecraft=self.mc)
         exec(compile(ast.Module(body=[node],type_ignores=[]),'app/server.py','exec'),env)

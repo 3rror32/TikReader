@@ -24,6 +24,9 @@ Simulation must exercise the same saved automation that a real gift would use; o
 - Capitalize the donor's first alphabetic character without changing the rest of the username casing.
 - Queue every valid Minecraft gift in FIFO order and use the configured interval as execution spacing instead of an admission rejection.
 - Preserve the incoming gift count through preset execution and describe one versus multiple gifts with singular/plural chat wording.
+- Persist every valid Minecraft donation until its mapped effects are confirmed, including across pause, disconnect, and application restart.
+- Pace spawned objects at 20 per 30 seconds, one object at a time, while retaining overflow in a fair donor-aware queue.
+- Replace the passive help/recent-log layout with an always-visible Activity and queue board that exposes the current effect, next wave, countdown, backlog pressure, and failures.
 
 ## Constraints
 
@@ -33,6 +36,8 @@ Simulation must exercise the same saved automation that a real gift would use; o
 - Preserve distinct real TikTok gift IDs even when they share the same visible name.
 - Accept legacy preset profiles containing `enabled`, but derive activity from an assigned gift ID.
 - Keep authorization, connection, edition, session, scene, emergency, and configuration-generation invalidation checks for queued work.
+- Never reject or silently discard a valid donation because throughput capacity is exhausted; pause unsafe execution while preserving durable pending state.
+- Deduplicate replayed TikTok gifts by their stable event identity before adding effects to the durable queue.
 
 ## Authorized scope
 
@@ -158,12 +163,49 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Commit: `f4134d7` (`feat(simulation): search gifts in chat picker`).
   - Engram mirror: pending because no Engram memory tools are available in this session.
 
+- [x] **MSG-8 — Persist and pace the fair Minecraft effect queue**
+  - Route: delegated direct.
+  - Trigger evidence: durable storage, replay-safe identities, fair scheduling, per-object pacing, pause/reconnect recovery, execution confirmation, and regression coverage span multiple non-trivial backend files.
+  - Reopen reason: MSG-6 admitted FIFO jobs but still allowed saturation rejection and invalidated pending work on stop or disconnect; the user replaced that contract with durable eventual execution.
+  - Test-first policy: observe focused failures for saturation retention, restart recovery, duplicate replay, five-object rotation, pause preservation, and 20-per-30-second pacing before implementation.
+  - Acceptance criteria:
+    - Every valid live or simulated gift is durably recorded before execution and is never rejected because the throughput budget is full.
+    - Stable gift identities prevent a replayed event from executing twice.
+    - Zombies and TNT execute one at a time at a default rate of 20 objects per 30 seconds.
+    - After five objects from one donation, another ready donor receives a turn before the first donation continues.
+    - Pause, disconnect, process restart, and temporary Minecraft failure preserve the remaining quantity for later execution.
+    - Manual Test clicks enqueue repeatedly through the same paced scheduler.
+    - Gift reception and individual Minecraft execution confirmation remain separately observable.
+  - Checks:
+    - Focused RED/GREEN selections in `tests/test_minecraft_presets.py`.
+    - Relevant persistence and gift-ingestion regressions without modifying pre-existing unrelated working-tree changes.
+    - Parent spot check of one reported focused command.
+  - Evidence: the four new deterministic regressions were RED before implementation (4 failed: unsupported rate shape, missing durable store API, absent fair scheduler, and saturation rejection) and GREEN afterward (4 passed). The durable SQLite queue deduplicates stable event IDs, retains per-object progress through reopen/restart, and stores repeated command groups compactly; manual tests receive unique identities. The scheduler confirms one object at a time, derives 1.5 seconds from 20 objects per 30 seconds, rotates to another donor after five successful objects, and preserves work across pause, disconnection, and temporary failures. Legacy `{interval, per_minute}` profiles remain accepted with an effective interval that respects both former limits. The snapshot exposes current/next/pending summaries, remaining quantities, pacing countdown, backlog pressure, and failure count for MSG-9. The former transient job queue is only a wake-up path; durable SQLite rows are authoritative.
+  - Checks: `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (44 tests, 298 subtests). `git diff --check -- app/minecraft_connector.py app/minecraft_presets.py app/history_store.py tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md` passed. No live Minecraft connection was used.
+  - Commit: pending.
+
+- [ ] **MSG-9 — Make Activity and queue the Minecraft control center**
+  - Route: delegated direct.
+  - Trigger evidence: snapshot/API state, DOM structure, responsive styling, accessible live updates, configuration controls, and UI regressions require coordinated non-trivial edits across backend, JavaScript, CSS, and tests.
+  - Test-first policy: observe DOM regressions fail for removed Help, merged Rhythm controls, always-visible Activity, next-wave countdown, queue pressure, and current/next/pending rows before implementation.
+  - Acceptance criteria:
+    - Help is removed and Advanced options plus Safety limits become one plain-language `Ritmo y cola` section.
+    - `Actividad y cola` is always expanded and shows the executing effect, next effect, donor, gift, remaining quantity, failures, and estimated wait.
+    - A visible 30-second wave countdown says `Espera la siguiente oleada de regalos` and creates the requested Tetris-like anticipation without releasing pending effects simultaneously.
+    - Queue pressure is classified as normal, accumulating, or saturated without rejecting valid donations.
+    - Controls configure the object count and period while displaying the derived interval.
+    - Pause and resume preserve pending work; no ordinary control silently clears the queue.
+  - Checks:
+    - `node tests/test_minecraft_controls.cjs` with RED/GREEN evidence.
+    - Focused Python snapshot/API regressions.
+    - Parent spot check of one reported focused command.
+
 ## Delivery
 
 - Strategy: `ask-on-risk`.
-- Forecast: about 635 authored changed lines across all seven work units, excluding task-document changes.
+- Forecast: about 1,250 authored changed lines across all nine work units, excluding task-document changes; MSG-8 and MSG-9 add an estimated 600 authored lines.
 - Chain strategy: `stacked-to-main` (selected by the user).
-- Running authored changed lines: approximately 513 (MSG-1: 60; MSG-2: 138; MSG-6: approximately 200; MSG-7: 113; task document excluded).
+- Running authored changed lines: approximately 513 before MSG-8 and MSG-9 (MSG-1: 60; MSG-2: 138; MSG-6: approximately 200; MSG-7: 113; task document excluded).
 - Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-5 search at `5e5f77a`; MSG-6 at `08c2d4a`; MSG-7 at `f4134d7` (stacked to main).
 
 ## Progress
@@ -171,6 +213,8 @@ The user explicitly requested correction of simulated gifts that appear in the t
 - Exploration complete: simulation fallback IDs do not match persisted Minecraft gift IDs.
 - MSG-7 implementation and focused DOM checks are complete; parent commit and spot check remain pending.
 - Engram mirror: pending because no Engram memory tools are available in this session.
+- MSG-8 and MSG-9 were added after the user replaced saturation rejection with durable eventual execution and promoted Activity and queue to the primary Minecraft operations surface.
+- MSG-8 is implemented and its focused backend suite passes; the work-unit commit and parent spot check remain pending. MSG-9 remains open.
 
 ## Verification evidence
 
@@ -189,4 +233,4 @@ Verification results:
 
 ## Next step
 
-MSG-1, MSG-2, and MSG-6 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass. Full preset and server suites remain unresolved after partial failures and timeouts; live Minecraft verification for MSG-6 was skipped. MSG-3 through MSG-5 remain open. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
+MSG-1, MSG-2, MSG-6, and MSG-8 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass, but its saturation/cancellation contract is superseded by MSG-8. MSG-8's focused suite passes; its work-unit commit and parent spot check are pending. MSG-3 through MSG-5 and MSG-9 remain open. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.

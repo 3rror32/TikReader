@@ -1,6 +1,7 @@
 """Local SQLite archive. JSON payloads preserve images and gift details."""
 import json
 import sqlite3
+import time
 from pathlib import Path
 from contextlib import contextmanager, closing
 from uuid import uuid4
@@ -20,6 +21,11 @@ class HistoryStore:
                     PRIMARY KEY(session,kind,id));
                 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
                 CREATE TABLE IF NOT EXISTS metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS minecraft_effects(
+                    identity TEXT PRIMARY KEY, payload TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+                CREATE INDEX IF NOT EXISTS idx_minecraft_effects_created
+                    ON minecraft_effects(created_at, identity);
                 CREATE INDEX IF NOT EXISTS idx_events_session ON events(session);
                 CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started DESC);
             ''')
@@ -112,6 +118,61 @@ class HistoryStore:
     def set_setting(self, key, value):
         with self.connect() as db:
             db.execute('INSERT OR REPLACE INTO settings VALUES (?,?)', (key, json.dumps(value)))
+
+    def enqueue_minecraft_effect(self, effect):
+        identity = effect.get('identity') if isinstance(effect, dict) else None
+        if not isinstance(identity, str) or not identity:
+            raise ValueError('Minecraft effect identity is required')
+        with self.connect() as db:
+            return bool(db.execute('INSERT OR IGNORE INTO minecraft_effects(identity,payload) VALUES (?,?)',
+                                   (identity, json.dumps(effect, ensure_ascii=False))).rowcount)
+
+    def pending_minecraft_effects(self):
+        with self.connect() as db:
+            rows = db.execute("SELECT payload FROM minecraft_effects WHERE json_extract(payload,'$.status')='pending' ORDER BY rowid").fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    def confirm_minecraft_object(self, identity, index):
+        with self.connect() as db:
+            row = db.execute('SELECT payload FROM minecraft_effects WHERE identity=?', (identity,)).fetchone()
+            if not row:
+                return False
+            effect = json.loads(row[0])
+            if effect.get('status') != 'pending' or effect.get('next_index') != index:
+                return False
+            effect['next_index'] = index + 1
+            effect['last_confirmed_at'] = time.time()
+            if effect['next_index'] >= effect.get('total', len(effect.get('commands', ()))):
+                effect['status'] = 'complete'
+            db.execute('UPDATE minecraft_effects SET payload=? WHERE identity=?',
+                       (json.dumps(effect, ensure_ascii=False), identity))
+            return True
+
+    def minecraft_fairness(self):
+        return self.settings().get('minecraft_effect_fairness', {})
+
+    def set_minecraft_fairness(self, value):
+        self.set_setting('minecraft_effect_fairness', value)
+
+    def update_minecraft_effect(self, effect):
+        identity = effect.get('identity') if isinstance(effect, dict) else None
+        if not isinstance(identity, str) or not identity:
+            raise ValueError('Minecraft effect identity is required')
+        with self.connect() as db:
+            return bool(db.execute('UPDATE minecraft_effects SET payload=? WHERE identity=?',
+                                   (json.dumps(effect, ensure_ascii=False), identity)).rowcount)
+
+    def record_minecraft_failure(self, identity, reason):
+        with self.connect() as db:
+            row = db.execute('SELECT payload FROM minecraft_effects WHERE identity=?', (identity,)).fetchone()
+            if not row:
+                return False
+            effect = json.loads(row[0])
+            effect['failures'] = effect.get('failures', 0) + 1
+            effect['last_failure'] = str(reason)[:80]
+            db.execute('UPDATE minecraft_effects SET payload=? WHERE identity=?',
+                       (json.dumps(effect, ensure_ascii=False), identity))
+            return True
 
     def health(self):
         try:
