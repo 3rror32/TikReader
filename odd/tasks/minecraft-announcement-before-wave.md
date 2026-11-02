@@ -56,4 +56,5 @@ The durable effect worker currently emits the `tellraw` announcement only after 
 - GREEN: `.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed: 56 tests and 300 subtests.
 - Implementation: the durable effect records `announcement_sent`, sends the announcement before its first command, persists the flag, retries clean Java connection failures without replaying a completed announcement, and holds ambiguous/failed announcements for review.
 - Structural readback: `run_next_effect` calls `_announce_effect` and persists `announcement_sent` before `_effect_object` and command execution; the regression test restores a new connector from the same history store after a retry and verifies it proceeds without announcing again.
-- Next step: inspect only the allowed diff, stage the three authorized paths, and create the work-unit commit.
+- Work-unit commit: `8e482d4` (`fix(minecraft): announce gift wave before commands`).
+- Next step: complete; the Engram mirror remains pending because memory tools are unavailable.
