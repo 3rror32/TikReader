@@ -69,6 +69,11 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(state['next']['gift'],'Rose')
         self.assertEqual(state['next']['remaining'],3)
         self.assertEqual(state['interval_seconds'],1.5)
+        self.assertEqual((state['objects'],state['period_seconds']),(20,30))
+        self.assertGreaterEqual(state['wave_seconds_remaining'],0)
+        self.assertLessEqual(state['wave_seconds_remaining'],30)
+        self.assertEqual(state['remaining_objects'],3)
+        self.assertEqual(state['estimated_wait_seconds'],3)
         self.assertIn(state['pressure'],('normal','accumulating','saturated'))
 
     def test_spawn_objects_are_spaced_and_rotate_after_five_per_donor(self):

@@ -39,6 +39,8 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
       if(path==='/minecraft'&&data?.select_only){state.edition=data.edition;state.config=state.profiles[data.edition];state.presets=state.config.presets;state.authorized=false;}
       if(path==='/minecraft/presets'&&data){state.config.presets=structuredClone(data.presets);state.presets=state.config.presets;}
       if(path==='/minecraft/presets/settings'&&data){state.config.limits=structuredClone(data.limits);state.config.name_format=data.name_format;}
+      if(path==='/minecraft/presets/stop'&&data)state.effect_queue={...state.effect_queue,paused:true};
+      if(path==='/minecraft/presets/resume'&&data)state.effect_queue={...state.effect_queue,paused:false};
       if(path==='/minecraft/authorize'&&data)state.authorized=data.enabled;
       if(path==='/minecraft/disconnect')state.authorized=false;
       const snapshot=path==='/gift-catalog'?{gifts:giftCatalog}:path==='/minecraft/bedrock/prepare'?{command:'/wsserver ws://127.0.0.1:54321/secret'}:structuredClone(state);
@@ -274,7 +276,7 @@ test('preset saves share the operation boundary and uncertain saves reconcile ac
   s.fail(true);s.releasePost();await saving;await s.flush();
   assert.ok(s.field('Edición').disabled);s.fail(false);await s.tick();
   assert.equal(gift.value,'1');assert.equal(s.field('Edición').disabled,false);
-  await s.click('Probar acción: Lluvia de TNT');await s.click('Detener acciones pendientes');
+  await s.click('Probar acción: Lluvia de TNT');await s.click('Pausar cola');
   assert.ok(s.requests.some(r=>r.path==='/minecraft/presets/test'&&r.data.id==='tnt_rain'));
   assert.ok(s.requests.some(r=>r.path==='/minecraft/presets/stop'));
 });
@@ -292,10 +294,11 @@ test('action picker remains available and selected actions survive unavailable o
     assert.equal(s.nodes.filter(n=>n.dataset.quickAction&&n.isConnected).length,options.failInitial||options.oldBackend?0:1,JSON.stringify(options));
     assert.ok(!s.nodes.some(n=>n.textContent.includes('Escribe AUTORIZAR')));
     assert.ok(!s.nodes.some(n=>n.tagName==='button'&&n.textContent.startsWith('Autorizar y probar')));
-    for(const summary of ['Opciones avanzadas','Ayuda']){
+    for(const summary of ['Ritmo y cola']){
       const node=s.nodes.find(n=>n.tagName==='summary'&&n.textContent===summary);
       assert.ok(node);assert.ok(!node.parentElement.open);
     }
+    assert.equal(s.nodes.some(n=>n.tagName==='summary'&&n.textContent==='Ayuda'),false);
   }
 });
 
@@ -555,24 +558,24 @@ test('Bedrock command stays hidden until prepared and clears on reprepare and di
 });
 test('gift-wide simulator is removed while safety settings retain their drafts',async()=>{
   const s=setup();await s.flush();await s.addAction('zombie');
-  const interval=s.field('Intervalo mínimo (segundos)');interval.value='7';await interval.events.input();
-  await s.tick();assert.equal(interval.value,'7');
-  await s.click('Guardar límites');
+ const objects=s.field('Objetos por periodo');objects.value='7';await objects.events.input();
+  await s.tick();assert.equal(objects.value,'7');
+  await s.click('Guardar ritmo');
   const saved=s.requests.find(r=>r.path==='/minecraft/presets/settings').data;
-  assert.equal(saved.limits.interval,7);assert.equal(saved.limits.per_minute,20);
+  assert.deepEqual(saved.limits,{objects:7,period_seconds:30});
   assert.ok(!s.nodes.some(n=>n.textContent==='Herramientas de prueba'));
   assert.ok(!s.nodes.some(n=>n.textContent==='Probar regalo completo'));
   assert.ok(!s.requests.some(r=>r.path==='/minecraft/presets/simulate'));
  });
 
-test('safety settings keep edition drafts and reconcile uncertain saves without granting execution',async()=>{
- const s=setup();await s.flush();const interval=s.field('Intervalo mínimo (segundos)');
- interval.value='8';interval.events.input();await s.edition('bedrock');assert.equal(Number(interval.value),3);
- interval.value='9';interval.events.input();await s.edition('java');assert.equal(Number(interval.value),8);
- s.holdPost('/minecraft/presets/settings');const saving=s.click('Guardar límites');await s.flush();
+test('queue pacing settings keep edition drafts and reconcile uncertain saves without granting execution',async()=>{
+ const s=setup();await s.flush();const objects=s.field('Objetos por periodo');
+ objects.value='8';objects.events.input();await s.edition('bedrock');assert.equal(Number(objects.value),20);
+ objects.value='9';objects.events.input();await s.edition('java');assert.equal(Number(objects.value),8);
+ s.holdPost('/minecraft/presets/settings');const saving=s.click('Guardar ritmo');await s.flush();
  const count=s.requests.length;await s.click('Desconectar');await s.edition('bedrock');assert.equal(s.requests.length,count);
  s.fail(true);s.releasePost();await saving;assert.ok(s.field('Edición').disabled);
- s.fail(false);await s.tick();assert.equal(Number(interval.value),8);assert.equal(s.field('Edición').disabled,false);
+ s.fail(false);await s.tick();assert.equal(Number(objects.value),8);assert.equal(s.field('Edición').disabled,false);
  s.catalog([]);await s.click('Actualizar regalos');await s.addAction('zombie');
  const gift=s.preset('zombie','gift');gift.value='saved';await gift.events.change();
  assert.ok(gift.children.some(o=>o.value==='saved'&&o.textContent.includes('guardado')));
@@ -638,7 +641,7 @@ test('Todos filters exist before GET and default to one unified list after hydra
  assert.equal(s.actionCategory().hidden,true);
 });
 
-test('Minecraft controls group connection, actions, command guidance, help and activity',async()=>{
+test('Minecraft controls group connection, actions, command guidance, and visible queue activity',async()=>{
  const s=setup();await s.flush();
  const strip=s.nodes.find(n=>n.className==='minecraft-status-strip');
  assert.ok(strip,'edition and live connection controls share a status strip');
@@ -651,20 +654,54 @@ test('Minecraft controls group connection, actions, command guidance, help and a
  assert.equal(check['aria-label'],'Comprobar conexi\u00f3n sin ejecutar un alias');
  assert.equal(s.nodes.find(n=>n.textContent==='Desconectar').parentElement,strip);
  assert.ok(!s.nodes.find(n=>n.className==='minecraft-permission').children.some(n=>n.textContent==='Desconectar'));
- assert.ok(s.nodes.some(n=>n.textContent==='Detener acciones pendientes'));
- assert.ok(s.nodes.some(n=>n.textContent.includes('Cancela los pasos pendientes')&&n.textContent.includes('no deshace')));
+ assert.ok(s.nodes.some(n=>n.textContent==='Pausar cola'));
  assert.ok(!s.nodes.some(n=>n.textContent==='Herramientas de prueba'));
  assert.ok(!s.nodes.some(n=>n.textContent==='Probar regalo completo'));
  assert.ok(!s.nodes.some(n=>n.tagName==='label'&&n.textContent.startsWith('Regalo para simular')));
  assert.ok(s.nodes.some(n=>n.tagName==='code'&&n.textContent==='saludo = say Hola {user}'));
- const advanced=s.nodes.find(n=>n.tagName==='summary'&&n.textContent==='Opciones avanzadas')?.parentElement;
+ const advanced=s.nodes.find(n=>n.tagName==='summary'&&n.textContent==='Ritmo y cola')?.parentElement;
  const help=s.nodes.find(n=>n.tagName==='summary'&&n.textContent==='Ayuda')?.parentElement;
  const activity=s.nodes.find(n=>n.className==='minecraft-activity');
- assert.ok(advanced,'advanced options section is present');assert.ok(help,'help section is present');assert.ok(activity,'recent activity section is present');
- const order=[s.pane.children.indexOf(advanced),s.pane.children.indexOf(help),s.pane.children.indexOf(activity)];
- assert.ok(order.every(index=>index>=0),'all three sections are direct panel sections');
- assert.ok(order[0]<order[1]&&order[1]<order[2],'sections appear in advanced, help, activity order');
+ assert.ok(advanced,'pacing and queue settings are present');assert.equal(help,undefined,'the help section is removed');assert.ok(activity,'queue activity section is present');
+ assert.equal(activity.tagName,'section','queue activity stays visible instead of using a disclosure');
+ assert.ok(activity.children.some(n=>n.textContent==='Actividad y cola'));
+ assert.ok(s.pane.children.indexOf(advanced)>=0&&s.pane.children.indexOf(activity)>=0);
+ assert.ok(s.nodes.some(n=>n.textContent==='Espera la siguiente oleada de regalos'));
+ assert.equal(s.nodes.find(n=>n.className==='minecraft-queue-status').getAttribute('aria-live'),'polite');
+ assert.equal(s.nodes.find(n=>n.className==='minecraft-wave-lane').children.find(n=>n.tagName==='strong').getAttribute('aria-live'),'off');
  assert.match(fs.readFileSync(`${__dirname}/../web/static/minecraft.css`,'utf8'),/\.minecraft-action-remove[^\{]*\{[^}]*color:\s*var\(--text-muted\)/s);
+});
+
+test('queue activity displays execution details and its individual pacing countdown',async()=>{
+ const s=setup();await s.flush();
+ s.setState({effect_queue:{pending_count:8,current:{donor:'Luna',gift:'Rose',action:'Zombi',remaining:3},next:{donor:'Sol',gift:'Heart',action:'TNT',remaining:2},interval_seconds:1.5,next_object_in_seconds:1.2,wave_seconds_remaining:17,pressure:'accumulating',failure_count:2,paused:false,objects:20,period_seconds:30}});
+ await s.tick();
+ const activity=s.nodes.find(n=>n.className==='minecraft-activity');
+ const flatten=node=>[node,...node.children.flatMap(flatten)];
+ const text=flatten(activity).map(n=>n.textContent).join(' ');
+ for(const label of ['Zombi','Rose','Luna','3','TNT','Sol','2','17','1.5','acumulando','2'])assert.ok(text.includes(label),`queue activity includes ${label}`);
+ assert.match(text,/Cada efecto se ejecuta por separado/);
+ s.setState({effect_queue:{pending_count:21,remaining_objects:42,pressure:'saturated',paused:false}});await s.tick();
+ assert.match(s.nodes.find(n=>n.className==='minecraft-queue-status').textContent,/saturada · en espera, sin rechazar regalos/);
+});
+
+test('queue pacing settings save object count and period and pause or resume without clearing work',async()=>{
+ const s=setup();await s.flush();
+ const objects=s.field('Objetos por periodo');objects.value='24';objects.events.input();
+ const period=s.field('Periodo (segundos)');period.value='36';period.events.input();
+ await s.click('Guardar ritmo');
+ let settings=s.requests.find(r=>r.path==='/minecraft/presets/settings').data;
+ assert.deepEqual(settings.limits,{objects:24,period_seconds:36});
+ assert.ok(s.nodes.some(n=>n.textContent.includes('1.5 segundos por efecto')));
+ s.setState({effect_queue:{pending_count:6,paused:false}});await s.tick();
+ await s.click('Pausar cola');
+ let stop=s.requests.find(r=>r.path==='/minecraft/presets/stop');
+ assert.ok(stop,'pause calls the durable queue stop endpoint');
+ assert.equal(s.nodes.find(n=>n.textContent==='Reanudar cola')!==undefined,true);
+ s.setState({effect_queue:{pending_count:6,paused:true}});await s.tick();
+ await s.click('Reanudar cola');
+ assert.ok(s.requests.find(r=>r.path==='/minecraft/presets/resume'),'resume calls the durable queue resume endpoint');
+ assert.equal(s.requests.some(r=>r.path==='/minecraft/presets/clear'),false,'queue controls never call a destructive clear endpoint');
 });
 
 test('Mob category selection and filters survive polling and edition changes without mutations',async()=>{

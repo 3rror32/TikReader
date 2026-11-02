@@ -29,6 +29,7 @@ class MinecraftConnector:
         self._next_object_at = None
         self._last_effect_donor = None
         self._same_donor_count = 0
+        self._last_effect_confirmed_at = None
         self._fairness_loaded = False
         self._retry_at = 0
         self._retry_count = 0
@@ -290,7 +291,16 @@ class MinecraftConnector:
     def queue_snapshot(self):
         pending = self._pending_effects()
         count = len(pending)
+        remaining_objects = sum(max(0, row.get('total', len(row.get('commands', ())))-
+                                   row.get('next_index', 0)) for row in pending)
+        rate = limits(self.config.get('limits'))
         interval = self.pacing_interval()
+        objects = rate.get('objects', rate.get('per_minute', 20))
+        period = rate.get('period_seconds', 60)
+        if self._last_effect_confirmed_at is None:
+            self._load_effect_fairness()
+        elapsed = max(0, time.time() - self._last_effect_confirmed_at) if self._last_effect_confirmed_at else 0
+        wave_wait = period - (elapsed % period) if elapsed else period
         wait = max(0, self._next_object_at-time.monotonic()) if self._next_object_at is not None else 0
         pressure = 'normal' if count <= 5 else ('accumulating' if count <= 20 else 'saturated')
         ready = [row for row in pending if self._effect_executable(row)]
@@ -300,7 +310,10 @@ class MinecraftConnector:
         return {'pending_count':count, 'current':self.current_effect,
                 'next':self._effect_summary(next_effect) if next_effect else None,
                 'pending':[self._effect_summary(row) for row in pending[:20]],
-                'interval_seconds':interval, 'next_object_in_seconds':round(wait, 2),
+                'objects':objects, 'period_seconds':period, 'interval_seconds':interval,
+                'next_object_in_seconds':round(wait, 2), 'wave_seconds_remaining':round(wave_wait, 2),
+                'remaining_objects':remaining_objects,
+                'estimated_wait_seconds':round(max(0, remaining_objects-1)*interval+wait, 2),
                 'pressure':pressure, 'pressure_thresholds':{'normal_max':5,'accumulating_max':20},
                 'failure_count':sum(row.get('failures',0) for row in pending),
                 'retry_in_seconds':round(max(0,self._retry_at-time.monotonic()),2),
@@ -376,10 +389,12 @@ class MinecraftConnector:
         self._same_donor_count = int(state.get('same_donor_count', 0))
         last_at = state.get('last_confirmed_at')
         if isinstance(last_at, (int, float)):
+            self._last_effect_confirmed_at = last_at
             wait = max(0, self.pacing_interval() - (time.time() - last_at))
             self._next_object_at = time.monotonic() + wait
 
     def _save_effect_fairness(self):
+        self._last_effect_confirmed_at = time.time()
         archive = getattr(self.r, 'archive', None)
         if archive and hasattr(archive, 'set_minecraft_fairness'):
             archive.set_minecraft_fairness({'last_donor':self._last_effect_donor,

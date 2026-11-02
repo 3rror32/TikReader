@@ -186,7 +186,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Commit: `56e6306` (`feat(minecraft): persist paced gift queue`).
   - Correction commit: `6c05801` (`fix(minecraft): preserve paused queue execution`).
 
-- [ ] **MSG-9 — Make Activity and queue the Minecraft control center**
+- [x] **MSG-9 — Make Activity and queue the Minecraft control center**
   - Route: delegated direct.
   - Trigger evidence: snapshot/API state, DOM structure, responsive styling, accessible live updates, configuration controls, and UI regressions require coordinated non-trivial edits across backend, JavaScript, CSS, and tests.
   - Test-first policy: observe DOM regressions fail for removed Help, merged Rhythm controls, always-visible Activity, next-wave countdown, queue pressure, and current/next/pending rows before implementation.
@@ -197,17 +197,20 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - Queue pressure is classified as normal, accumulating, or saturated without rejecting valid donations.
     - Controls configure the object count and period while displaying the derived interval.
     - Pause and resume preserve pending work; no ordinary control silently clears the queue.
+    - Queue status is announced politely, the ticking number is not announced each second, keyboard focus stays visible, and the board stacks on narrow screens without adding motion.
   - Checks:
-    - `node tests/test_minecraft_controls.cjs` with RED/GREEN evidence.
-    - Focused Python snapshot/API regressions.
-    - Parent spot check of one reported focused command.
+    - `node tests/test_minecraft_controls.cjs`: RED before implementation (3 failures, 53 passed); GREEN after implementation (56 passed, 0 failed).
+    - `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q`: passed, 46 tests and 298 subtests.
+    - `git diff --check -- app/minecraft_connector.py app/minecraft_presets.py web/static/minecraft.js web/static/minecraft.css tests/test_minecraft_controls.cjs tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md`.
+    - No visual browser or live Minecraft check was run.
+  - Evidence: the new DOM regressions failed before the UI change because pause controls, queue execution details, and object/period controls were absent. The final view removes Help, combines rate and connection options under `Ritmo y cola`, keeps Activity expanded, and provides current/next cards, pending/failure/wait metrics, pressure state, endpoint-backed pause/resume, and the queue-timed wave lane. The backend snapshot supplies its period, object budget, derived interval, and countdown. Countdown updates are excluded from live announcements, while queue state uses a polite live status. CSS retains the existing border/glass/teal tokens and stacks the board on narrow screens.
 
 ## Delivery
 
 - Strategy: `ask-on-risk`.
-- Forecast: about 1,250 authored changed lines across all nine work units, excluding task-document changes; MSG-8 and MSG-9 add an estimated 600 authored lines.
+- Forecast: revise to about 1,500 authored changed lines across all nine work units, excluding task-document changes; MSG-8 and MSG-9 together added 836 authored lines.
 - Chain strategy: `stacked-to-main` (selected by the user).
-- Running authored changed lines: approximately 513 before MSG-8 and MSG-9 (MSG-1: 60; MSG-2: 138; MSG-6: approximately 200; MSG-7: 113; task document excluded).
+- Running authored changed lines: approximately 1,349 after MSG-9 (prior MSG-1/2/6/7 estimate: 513; MSG-8 and correction: 623; MSG-9: 213; task document excluded).
 - Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-5 search at `5e5f77a`; MSG-6 at `08c2d4a`; MSG-7 at `f4134d7` (stacked to main).
 
 ## Progress
@@ -216,7 +219,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
 - MSG-7 implementation and focused DOM checks are complete; parent commit and spot check remain pending.
 - Engram mirror: pending because no Engram memory tools are available in this session.
 - MSG-8 and MSG-9 were added after the user replaced saturation rejection with durable eventual execution and promoted Activity and queue to the primary Minecraft operations surface.
-- MSG-8 is implemented, committed, and its focused backend suite passes; the parent spot check remains pending. MSG-9 remains open.
+- MSG-8 is implemented and committed; its parent spot check passed with 46 tests and 298 subtests. MSG-9 implementation and focused checks are complete.
 
 ## Verification evidence
 
@@ -235,4 +238,4 @@ Verification results:
 
 ## Next step
 
-MSG-1, MSG-2, MSG-6, and MSG-8 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass, but its saturation/cancellation contract is superseded by MSG-8. MSG-8's focused suite passes and its work-unit commit is `56e6306`; the parent spot check is pending. MSG-3 through MSG-5 and MSG-9 remain open. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
+MSG-1, MSG-2, MSG-6, MSG-8, and MSG-9 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass, but its saturation/cancellation contract is superseded by MSG-8. MSG-8's focused suite and parent spot check passed with 46 tests and 298 subtests; its work-unit commit is `56e6306`. MSG-9's focused Node suite passes 56 tests and its Python suite passes 46 tests and 298 subtests. MSG-3 through MSG-5 remain open. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.

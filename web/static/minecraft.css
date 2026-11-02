@@ -145,3 +145,30 @@
 .minecraft-actions-heading > small { flex-basis: 100%; color: var(--text-muted); font-size: 12px; }
 .studio-pane[data-section="minecraft"] details > p:first-of-type { margin: 10px 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
 @media (min-width: 761px) and (max-width: 980px) { .studio-pane .minecraft-quick-actions { --minecraft-action-grid: minmax(110px, 1fr) minmax(140px, 1fr) 76px minmax(5.5rem, max-content) 5.75rem 2.25rem; } }
+
+.studio-pane .minecraft-activity { margin: 18px 0 0; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-glass); }
+.studio-pane .minecraft-activity > h3 { margin: 0 0 12px; font-size: 18px; }
+.minecraft-queue-board { display: grid; grid-template-columns: minmax(180px, 1.15fr) repeat(2, minmax(0, 1fr)); gap: 10px; align-items: stretch; }
+.minecraft-wave-lane { display: grid; align-content: center; gap: 6px; min-width: 0; padding: 14px; border: 1px solid color-mix(in srgb, var(--teal) 55%, var(--border)); border-radius: 9px; background: color-mix(in srgb, var(--teal) 11%, var(--bg-glass)); }
+.minecraft-wave-lane p { margin: 0; color: var(--text-main); font-size: 13px; font-weight: 700; }
+.minecraft-wave-lane strong { color: var(--teal); font-size: clamp(30px, 4vw, 46px); line-height: 1; font-variant-numeric: tabular-nums; }
+.minecraft-wave-lane small, .minecraft-queue-card p, .minecraft-queue-status { color: var(--text-muted); font-size: 12px; line-height: 1.45; }
+.minecraft-queue-card { min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg-glass); }
+.minecraft-queue-card h4, .minecraft-activity-log h4 { margin: 0 0 7px; color: var(--text-main); font-size: 13px; }
+.minecraft-queue-card p { margin: 0; overflow-wrap: anywhere; }
+.minecraft-next-card { border-style: dashed; }
+.minecraft-queue-status { grid-column: 2 / -1; align-self: center; margin: 0; }
+.minecraft-queue-metrics { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 6px; }
+.minecraft-queue-metrics p { margin: 0; padding: 8px; border-radius: 7px; background: color-mix(in srgb, var(--bg-glass) 70%, transparent); color: var(--text-muted); font-size: 11px; overflow-wrap: anywhere; }
+.studio-pane .minecraft-queue-board > button { justify-self: start; min-width: 130px; }
+.minecraft-queue-board :is(button, input, select):focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+.minecraft-activity-log { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.minecraft-activity > .minecraft-queue-board { max-height: none; overflow: visible; }
+.minecraft-activity-log > div { max-height: 210px; overflow: auto; }
+.minecraft-rate-preview { grid-column: 1 / -1; margin: 0; color: var(--teal); font-size: 13px; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) {
+  .minecraft-queue-board { grid-template-columns: minmax(0, 1fr); }
+  .minecraft-queue-status, .minecraft-queue-metrics { grid-column: 1; }
+  .minecraft-wave-lane { min-height: 150px; }
+  .studio-pane .minecraft-activity { padding: 10px; }
+}

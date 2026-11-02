@@ -27,18 +27,9 @@
  const quickActions=el('section');quickActions.className='minecraft-quick-actions';pane.append(quickActions);
  const host=field('Dirección privada','text',connectionFields),port=field('Puerto RCON','number',connectionFields),password=field('Contraseña RCON','password',connectionFields);
  host.value='127.0.0.1';port.value=25575;
- const advanced=disclosure('Opciones avanzadas'),help=disclosure('Ayuda');
- help.append(
-  el('p','Los mobs disponibles dependen de la versi\u00f3n instalada de Minecraft. El juego puede rechazar los m\u00e1s recientes; no se reintenta una invocaci\u00f3n.'),
-  el('p','Java necesita un servidor con RCON habilitado. En server.properties: enable-rcon=true, rcon.password y rcon.port. Un mundo individual sin RCON no es compatible.'),
-  el('p','Bedrock: activa trucos y permisos de administrador; habilita Enable WebSockets si aparece y desactiva Require Encrypted Websockets para esta conexi\u00f3n local. Solo se admite este equipo.'),
-  el('p','Si Bedrock no conecta, revisa los permisos de loopback de Minecraft en Windows. TikReader no cambia opciones de Windows ni del juego.'),
-  el('p','Desconecta antes de cambiar de mundo: el juego puede conservar la conexi\u00f3n al salir. TikReader no verifica continuamente qu\u00e9 mundo est\u00e1 abierto.'),
-  el('p','Las acciones se aplican a @p: el jugador m\u00e1s cercano al origen del comando, no al espectador que envi\u00f3 el regalo. Java usa el origen del servidor; Bedrock, el contexto del jugador conectado.'),
-  el('p','Las rachas finalizadas multiplican la cantidad configurada de mobs y TNT. Los dem\u00e1s efectos se aplican una vez. Detener cancela pasos pendientes, pero no deshace lo que ya cambi\u00f3 en el mundo. Sin confirmar significa que la respuesta no permite asegurar el resultado.')
- );
- advanced.append(el('p','Controla el intervalo y el límite de efectos, el formato de nombres de mobs en Java y los comandos guardados para esta conexión.'));
- const nameFormatLabel=el('label','Nombres de mobs en Java'),nameFormat=el('select');for(const [id,text] of [['modern','Java 1.21.5 o posterior'],['legacy','Java 1.13 a 1.21.4']]){const option=el('option',text);option.value=id;nameFormat.append(option);}nameFormat.value='modern';nameFormatLabel.append(nameFormat);advanced.append(nameFormatLabel,el('small','El formato se guarda con Guardar límites.'));nameFormat.addEventListener('change',()=>edited.add(nameFormat));
+ const advanced=disclosure('Ritmo y cola');
+ advanced.append(el('p','Define cuántos objetos pueden salir en un periodo. Cada objeto se ejecuta por separado, con una pausa entre acciones.'));
+ const nameFormatLabel=el('label','Nombres de mobs en Java'),nameFormat=el('select');for(const [id,text] of [['modern','Java 1.21.5 o posterior'],['legacy','Java 1.13 a 1.21.4']]){const option=el('option',text);option.value=id;nameFormat.append(option);}nameFormat.value='modern';nameFormatLabel.append(nameFormat);advanced.append(nameFormatLabel,el('small','El formato se guarda con Guardar ritmo.'));nameFormat.addEventListener('change',()=>edited.add(nameFormat));
  const commands=field('Comandos autorizados: un alias = comando por línea','textarea',advanced);commands.rows=4;
  const status=el('p','Sin conectar'),log=el('div');status.className='minecraft-connection-status';status.setAttribute('role','status');statusStrip.append(status);
  const localInstructions=el('div'),connectCommand=el('input'),commandRow=el('div'),requirements=el('small');
@@ -1143,7 +1134,6 @@
   giftCatalogSignature=signature;giftOptionData=next.map(g=>({id:String(g.id),name:String(g.name||g.id),label:g.diamonds?`${g.name||g.id} \u00b7 ${g.diamonds} diamantes`:String(g.name||g.id),image_url:g.image_url||''}));
  }
  const actionHeading=el('div');actionHeading.className='minecraft-actions-heading';
- const stopButton=button('Detener acciones pendientes',async()=>{await api('/minecraft/presets/stop',{edition:currentEdition});notice.textContent='Acciones pendientes detenidas.';});stopButton.setAttribute('aria-label','Detener acciones pendientes');
  const actionPickerLabel=el('label');actionPickerLabel.className='minecraft-action-picker';actionPickerLabel.append(el('span','Acción para agregar'));
  const actionPickerControl=el('div');actionPickerControl.className='minecraft-action-picker-control';
  actionSearch=el('input');actionSearch.type='search';actionSearch.className='minecraft-action-picker-select';actionSearch.dataset.actionSearch='true';actionSearch.setAttribute('role','combobox');actionSearch.setAttribute('aria-label','Acción para agregar');actionSearch.setAttribute('aria-haspopup','listbox');actionSearch.setAttribute('aria-autocomplete','list');actionSearch.setAttribute('aria-controls','minecraft-action-options');actionSearch.setAttribute('aria-expanded','false');actionSearch.placeholder='Buscar por nombre, tipo o efecto';
@@ -1156,47 +1146,49 @@
  actionSearch.addEventListener('focus',openActionPicker);actionSearch.addEventListener('blur',()=>{if(actionPickerOpen)closeActionPicker();});actionSearch.addEventListener('click',()=>{if(!actionPickerOpen)openActionPicker();});actionSearch.addEventListener('input',()=>{actionPicker.value='';activeActionOption=-1;activeActionId='';updateActionPicker();openActionPicker();});actionSearch.addEventListener('keydown',onActionSearchKeydown);
  document.addEventListener('pointerdown',event=>{if(!actionPickerControl.contains(event.target))closeActionPicker();});actionPicker.addEventListener('change',()=>syncControls());
  addActionButton=button('Agregar acción',async()=>{const id=actionPicker.value,selected=selectedActionsByEdition.get(currentEdition),preset=actionById.get(id);if(!backendReady||!preset||!selected||selected.includes(id))return;const defaultEnabled=!presetValues[id]?.gift_id;if(defaultEnabled)presetValues={...presetValues,[id]:{...presetValues[id],enabled:true}};selected.push(id);persistSelectedActions(currentEdition);currentActionFilter='all';currentMobCategory='all';actionPicker.value='';actionSearch.value='';closeActionPicker();renderPresets({authorization_mode:'automatic',presets:presetValues},true);if(defaultEnabled){let pending=pendingPresetEnabled.get(currentEdition);if(!pending){pending=new Map();pendingPresetEnabled.set(currentEdition,pending);}pending.set(id,true);}notice.textContent='Acción agregada.';});addActionButton.dataset.addAction='true';
- actionHeading.append(el('h3','Acciones predeterminadas'),actionPickerLabel,addActionButton,button('Actualizar regalos',loadGiftCatalog,false),stopButton,el('small','Cancela los pasos pendientes; no deshace los efectos que ya ocurrieron.'));
+ actionHeading.append(el('h3','Acciones predeterminadas'),actionPickerLabel,addActionButton,button('Actualizar regalos',loadGiftCatalog,false));
  function makeColumns(){const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Cantidad','Habilitar','Probar',''])columns.append(el('span',text));return columns;}
  const actionViewControls=el('div');actionViewControls.className='minecraft-action-view-controls';actionViewControls.append(actionFilterToolbar,actionCategoryLabel);
  actionCategoryFilter.addEventListener('change',()=>{currentMobCategory=actionCategoryFilter.value||'all';updateActionViews(selectedActionsByEdition.get(currentEdition)||[]);});
  actionList.append(makeColumns(),actionEmptyState);
- quickActions.append(actionHeading,el('p','Agrega acciones una vez y usa estos filtros para revisar la lista sin cambiar la configuración. Cantidad por regalo. Las rachas multiplican mobs y TNT; el exceso se descarta.'),compatibility,catalogNotice,actionViewControls,actionList);
- const safety=el('section');safety.className='minecraft-tools';safety.append(el('h3','Límites de seguridad'));
+ quickActions.append(actionHeading,el('p','Agrega acciones una vez y usa estos filtros para revisar la lista sin cambiar la configuración. Cantidad por regalo. Las rachas multiplican mobs y TNT; el exceso espera su turno.'),compatibility,catalogNotice,actionViewControls,actionList);
  const safetyFields=el('div');safetyFields.className='minecraft-tool-fields';
- const interval=field('Intervalo mínimo (segundos)','number',safetyFields),perMinute=field('Efectos por minuto','number',safetyFields);
- interval.min=1;interval.max=60;interval.step=1;interval.value=3;perMinute.min=5;perMinute.max=120;perMinute.step=1;perMinute.value=20;
+ const objects=field('Objetos por periodo','number',safetyFields),period=field('Periodo (segundos)','number',safetyFields),ratePreview=el('p');ratePreview.className='minecraft-rate-preview';
+ objects.min=1;objects.max=120;objects.step=1;objects.value=20;period.min=20;period.max=600;period.step=1;period.value=30;
+ function updateRatePreview(effectiveInterval=null){const count=Number(objects.value),seconds=Number(period.value),interval=effectiveInterval??(count>0&&seconds>0?seconds/count:0);objects.max=Math.min(120,seconds||120);period.min=Math.max(20,count||1);ratePreview.textContent=`${Number(interval.toFixed(2))} segundos por efecto`}
+ objects.addEventListener('input',()=>{edited.add(objects);updateRatePreview()});period.addEventListener('input',()=>{edited.add(period);updateRatePreview()});updateRatePreview();
  async function saveSafety(){
   try{
    const d=await api('/minecraft/presets/settings',{
     edition:currentEdition,
-    limits:{interval:Number(interval.value),per_minute:Number(perMinute.value)},
+    limits:{objects:Number(objects.value),period_seconds:Number(period.value)},
     name_format:nameFormat.value
    });
-   for(const input of [interval,perMinute,nameFormat])edited.delete(input);
-   applySafety(d,true);notice.textContent='Límites guardados.';
+   for(const input of [objects,period,nameFormat])edited.delete(input);
+   applySafety(d,true);notice.textContent='Ritmo guardado.';
   }catch(e){
    try{
     const d=await api('/minecraft');
     if(d.edition!==currentEdition)selectProfile(d);
-    applySafety(d,true);notice.textContent=e.message+' Se muestran los límites confirmados.';
+    applySafety(d,true);notice.textContent=e.message+' Se muestra el ritmo confirmado.';
    }catch(_){
     uncertain=true;notice.textContent='No se pudo confirmar el guardado. Reintentando…';
    }
   }
  }
- safetyFields.append(button('Guardar límites',saveSafety));
- safety.append(safetyFields,el('small','Cada mob y cada TNT cuenta como un efecto. El exceso se descarta, no se acumula.'));
- advanced.append(safety);
- extraControls.push(interval,perMinute,nameFormat);
+ safetyFields.append(ratePreview,button('Guardar ritmo',saveSafety));
+ advanced.append(safetyFields,el('small','La cola conserva el trabajo mientras esperas, pausas o reconectas. No se libera todo junto.'));
+ extraControls.push(objects,period,nameFormat);
  function applySafety(d,force=false){
-  const values=d.limits||d.config?.limits||{interval:3,per_minute:20};
-  for(const [input,value] of [[interval,values.interval],[perMinute,values.per_minute],
+  const values=d.limits||d.config?.limits||{objects:20,period_seconds:30};
+  const count=values.objects??values.per_minute??20,seconds=values.period_seconds??60;
+  for(const [input,value] of [[objects,count],[period,seconds],
                              [nameFormat,d.name_format||d.config?.name_format||'modern']]){
    if(force||!edited.has(input))input.value=value;
   }
+  updateRatePreview(!('objects' in values)?d.effect_queue?.interval_seconds:null);
  }
- function captureDraft(){return {host:host.value,port:port.value,commands:commands.value,interval:interval.value,perMinute:perMinute.value,nameFormat:nameFormat.value};}
+ function captureDraft(){return {host:host.value,port:port.value,commands:commands.value,objects:objects.value,period:period.value,nameFormat:nameFormat.value};}
  function selectProfile(d){
   currentEdition=d.edition||currentEdition;edited.clear();hydratePending=false;
   password.value='';confirmedAuthorized=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;showEdition();
@@ -1204,7 +1196,7 @@
   host.value=draft?.host||d.config.host||'127.0.0.1';port.value=draft?.port||d.config.port||25575;
   commands.value=draft?draft.commands:Object.entries(d.config.commands).map(([a,c])=>a+' = '+c).join('\n');
   presetDirty=false;renderPresets(d,true);applySafety(d,true);
-  if(draft){for(const [input,value] of [[interval,draft.interval],[perMinute,draft.perMinute],[nameFormat,draft.nameFormat]])if(value!==undefined){input.value=value;edited.add(input);}}
+  if(draft){for(const [input,value] of [[objects,draft.objects],[period,draft.period],[nameFormat,draft.nameFormat]])if(value!==undefined){input.value=value;edited.add(input);}updateRatePreview();}
  }
  function showEdition(){
   const bedrock=currentEdition==='bedrock';edition.value=currentEdition;
@@ -1220,6 +1212,28 @@
   backendReady=authorizationReady&&Array.isArray(d.preset_catalog)&&Array.isArray(d.preset_sections)&&sectionOptions.every(([id])=>d.preset_sections.some(section=>section.id===id))&&Array.isArray(d.preset_categories)&&categoryOptions.every(([id])=>d.preset_categories.some(c=>c.id===id))&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id&&s.category===p.category&&s.section===p.section&&(!p.quantity||(s.quantity_max===20&&s.quantity_min===1))));
   compatibility.textContent=backendReady?'':'Reinicia TikReader para cargar estas acciones.';compatibility.hidden=backendReady;
   savedConfig=d.config||savedConfig;applySafety(d);
+  const queue=d.effect_queue||{},remaining=Math.max(0,Number(queue.wave_seconds_remaining??queue.next_object_in_seconds??30));
+  waveCountdown.textContent=`${Math.ceil(remaining)} s`;
+  const pressure={normal:'normal',accumulating:'acumulando',saturated:'saturada · en espera, sin rechazar regalos'}[queue.pressure]||'normal';
+  queueStatus.textContent=queue.paused?'Cola pausada. El trabajo pendiente se conserva.':queue.pending_count?`Cola ${pressure}: ${queue.remaining_objects??queue.pending_count} objetos pendientes.`:`Cola ${pressure}: sin objetos pendientes.`;
+  queueControl.textContent=queue.paused?'Reanudar cola':'Pausar cola';
+  function describeEffect(effect,empty){
+   if(!effect)return empty;
+   const preset=actionById.get(effect.preset_id),action=effect.action||preset?.name||effect.preset_id||'Acción';
+   const donor=effect.donor||'Donante desconocido',gift=effect.gift||effect.gift_name||'Regalo desconocido';
+   const amount=effect.remaining??0,progress=effect.step&&effect.total?` · paso ${effect.step} de ${effect.total}`:'';
+   return `${donor} · ${gift} · ${action} · ${amount} restantes${progress}`;
+  }
+  nowCard.children[1].textContent=describeEffect(queue.current,'Sin efecto en ejecución.');
+  nextCard.children[1].textContent=describeEffect(queue.next,'Sin objetos pendientes.');
+  queueMetrics.replaceChildren(
+   el('p',`Donaciones en cola: ${queue.pending_count||0}`),
+   el('p',`Objetos pendientes: ${queue.remaining_objects??queue.pending_count??0}`),
+   el('p',`Fallos: ${queue.failure_count||0}`),
+   el('p',`Espera estimada: ${Math.ceil(Number(queue.estimated_wait_seconds||0))} s`),
+   el('p',`Ritmo: ${Number(Number(queue.interval_seconds??(Number(period.value)/Number(objects.value))).toFixed(2))} s por efecto`),
+   el('p',`Estado: ${pressure}`)
+  );
   if(uncertain&&!busy){if(quantityRecovery){delete rowDrafts()[quantityRecovery];quantityRecovery=null;}selectProfile(d);uncertain=false;presetRecovery=false;presetDirty=false;syncControls();hydrate=false;}
   if(hydrate){currentEdition=d.edition||'java';showEdition();for(const [input,value] of [[host,d.config.host||'127.0.0.1'],[port,d.config.port||25575],[commands,Object.entries(d.config.commands).map(([a,c])=>a+' = '+c).join('\n')]])if(!edited.has(input))input.value=value;}
   const bedrock=currentEdition==='bedrock';
@@ -1303,7 +1317,18 @@ const checkConnection=button('Comprobar conexión',async()=>{const d=await api('
   });
  });
  const testAlias=field('Alias para prueba','text',advanced);advanced.append(button('Ejecutar alias de prueba',async()=>{if(!testAlias.value)throw Error('Escribe un alias guardado');await change('/minecraft/run',{alias:testAlias.value});notice.textContent='Comando enviado a la cola.';}),el('p','Un alias es un nombre corto para un comando. Guárdalo en Interactividad y ejecútalo aquí. Variables: {user}, {gift}, {count}.'),(()=>{const example=el('p','Ejemplo: '),code=el('code','saludo = say Hola {user}');example.append(code);return example;})());
- const activity=disclosure('Registro reciente');activity.className='minecraft-activity';activity.append(log);pane.append(advanced,help,activity);
+ const activity=el('section');activity.className='minecraft-activity';activity.append(el('h3','Actividad y cola'));
+ const queueBoard=el('div');queueBoard.className='minecraft-queue-board';
+ const waveLane=el('section');waveLane.className='minecraft-wave-lane';waveLane.append(el('p','Espera la siguiente oleada de regalos'));
+ const waveCountdown=el('strong','30 s');waveCountdown.setAttribute('aria-live','off');waveLane.append(waveCountdown,el('small','Cada efecto se ejecuta por separado a su propio ritmo.'));
+ const queueStatus=el('p','La cola está lista.');queueStatus.className='minecraft-queue-status';queueStatus.setAttribute('role','status');queueStatus.setAttribute('aria-live','polite');
+ const nowCard=el('article');nowCard.className='minecraft-queue-card';nowCard.append(el('h4','En ejecución'),el('p','Sin efecto en ejecución.'));
+ const nextCard=el('article');nextCard.className='minecraft-queue-card minecraft-next-card';nextCard.append(el('h4','Siguiente'),el('p','Sin objetos pendientes.'));
+ const queueMetrics=el('div');queueMetrics.className='minecraft-queue-metrics';
+ const queueControl=button('Pausar cola',async()=>{const paused=queueControl.textContent==='Reanudar cola';await api(paused?'/minecraft/presets/resume':'/minecraft/presets/stop',{edition:currentEdition});notice.textContent=paused?'Cola reanudada.':'Cola pausada. El trabajo pendiente se conserva.';});
+ queueBoard.append(waveLane,queueStatus,nowCard,nextCard,queueMetrics,queueControl);
+ const activityLog=el('div');activityLog.className='minecraft-activity-log';activityLog.append(el('h4','Resultados confirmados y recepción'),log);
+ activity.append(queueBoard,activityLog);pane.append(advanced,activity);
  window.OperatorViewRegistry.register(pane.dataset.section,pane);
  showEdition();
  renderPresets({});
