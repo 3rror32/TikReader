@@ -26,6 +26,7 @@ import asyncio
 import threading
 import time
 import re
+import unicodedata
 from collections import deque, OrderedDict
 from uuid import uuid4
 from urllib.parse import urlsplit
@@ -567,10 +568,25 @@ def update_gift_catalog(raw):
         elif isinstance(value,list):
             for child in value:visit(child)
     visit(raw)
+    normalize_gift_catalog()
     while len(gift_catalog)>1000:gift_catalog.popitem(last=False)
 
 
+def gift_name_key(value):
+    return unicodedata.normalize('NFKC', str(value or '')).strip().casefold()
+
+
+def normalize_gift_catalog():
+    real_names = {gift_name_key(row.get('name')) for gift_id, row in gift_catalog.items()
+                  if not str(gift_id).casefold().startswith('observed:') and gift_name_key(row.get('name'))}
+    for gift_id, row in list(gift_catalog.items()):
+        if (str(gift_id).casefold().startswith('observed:') and
+                gift_name_key(row.get('name')) in real_names):
+            del gift_catalog[gift_id]
+
+
 def gift_catalog_payload():
+    normalize_gift_catalog()
     gifts=sorted((dict(x) for x in gift_catalog.values()),key=lambda x:(x['diamonds'],x['name'].casefold()))
     return {'gifts':gifts,'count':len(gifts),'connected':state['connected']}
 
@@ -1626,6 +1642,7 @@ if __name__ == "__main__":
                 key='observed:'+str(item.get('gift','')).casefold();count=max(1,int(item.get('count',1)))
                 gift_catalog[key]={'id':key,'name':str(item.get('gift') or 'Regalo')[:100],
                     'diamonds':max(0,int((item.get('diamonds') or 0)/count)),'image_url':item.get('image_url')}
+    normalize_gift_catalog()
     studio_state.update({key: value for key, value in archive.settings().items() if key in ("like_goal", "gift_goal")})
     try:
         interactive.rules=[interactive.validate(r) for r in archive.settings().get("interactive_rules",[])][:50]

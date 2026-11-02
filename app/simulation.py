@@ -138,19 +138,24 @@ class Simulation:
         if kind == 'gift' and not 1 <= len(gift) <= 100:
             raise ValueError('Selecciona o escribe el nombre del regalo')
         explicit_gift_id = str(data.get('gift_id', '')).strip()
-        catalog = self.r.gift_catalog.get(explicit_gift_id, {})
+        catalog = next((row for row in self.r.gift_catalog.values()
+                        if str(row.get('id', '')) == explicit_gift_id), {}) if explicit_gift_id else {}
         mapped_gift_id = ''
         if not explicit_gift_id:
             matches = [g for g in self.r.gift_catalog.values() if g['name'].casefold() == gift.casefold()]
             if len(matches) == 1:
                 catalog = matches[0]
+            elif len(matches) > 1:
+                raise ValueError('El nombre del regalo es ambiguo; selecciona un regalo por su ID.')
             elif not matches:
                 presets = self.r.minecraft.config.get('presets', {})
                 mapped_ids = {row.get('gift_id', '').strip() for row in presets.values()
-                              if row.get('enabled') and row.get('gift_name', '').casefold() == gift.casefold()
+                              if row.get('gift_id', '').strip() and row.get('gift_name', '').casefold() == gift.casefold()
                               and row.get('gift_id', '').strip()}
                 if len(mapped_ids) == 1:
                     mapped_gift_id = next(iter(mapped_ids))
+                elif len(mapped_ids) > 1:
+                    raise ValueError('El nombre del regalo corresponde a varias acciones; selecciona un regalo por su ID.')
         return dict(kind=kind, mode=mode, user=user, text=text, count=count, interval=interval,
             delay=delay, gift=catalog.get('name', gift),
             gift_id=catalog.get('id', explicit_gift_id or mapped_gift_id or 'simulation-'+gift),

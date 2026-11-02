@@ -25,7 +25,7 @@ class PresetTests(unittest.TestCase):
         self.app=Flask(__name__)
         with patch('threading.Thread.start'):
             self.mc=MinecraftConnector(self.app,self.runtime)
-        self.client=self.app.test_client();self.mc.authorized=True
+        self.client=self.app.test_client();self.mc.authorized=True;self.mc.java_ready_revision=self.mc.revision
 
     def save(self, enabled=True, gift='1', preset='tnt_rain', edition='java'):
         return self.client.post('/minecraft/presets',json={'edition':edition,'presets':{
@@ -75,6 +75,85 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(state['remaining_objects'],3)
         self.assertEqual(state['estimated_wait_seconds'],3)
         self.assertIn(state['pressure'],('normal','accumulating','saturated'))
+
+    def test_saved_preset_name_is_canonical_for_its_catalog_id(self):
+        self.runtime.gift_catalog={'5655':{'id':'5655','name':'Rose','diamonds':1}}
+        response=self.client.post('/minecraft/presets',json={'edition':'java','presets':{
+            'zombie':{'gift_id':'5655','gift_name':'Wrong label','enabled':True}}})
+        self.assertEqual(response.status_code,200,response.get_json())
+        self.assertEqual(response.get_json()['presets']['zombie']['gift_name'],'Rose')
+
+    def test_queue_snapshot_preserves_event_gift_action_and_execution_provenance(self):
+        self.save(preset='zombie')
+        self.mc.java_ready_revision=self.mc.revision
+        self.mc.gift({'id':'event-provenance','gift_id':'1','gift':'Rose','user':'Ana','count':3},'event-provenance')
+        row=self.mc.queue_snapshot()['pending'][0]
+        self.assertEqual(row['identity'],'event-provenance')
+        self.assertEqual(row['gift_id'],'1')
+        self.assertEqual(row['gift'],'Rose')
+        self.assertEqual(row['action'],'Zombi')
+        self.assertEqual(row['donor'],'Ana')
+        self.assertEqual(row['quantity'],3)
+        self.assertEqual(row['state'],'pending')
+
+    def test_unconfirmed_send_is_held_without_automatic_replay(self):
+        folder=tempfile.TemporaryDirectory(dir=Path.cwd());self.addCleanup(folder.cleanup)
+        self.runtime.archive=HistoryStore(Path(folder.name)/'effects.sqlite3')
+        self.save(preset='zombie')
+        self.mc.java_ready_revision=self.mc.revision
+        self.mc.gift({'id':'event-uncertain','gift_id':'1','gift':'Rose','user':'Ana','count':1},'event-uncertain')
+        with patch.object(self.mc,'execute',return_value='localized response without confirmation') as execute:
+            self.assertFalse(self.mc.run_next_effect())
+            self.now+=60
+            self.assertFalse(self.mc.run_next_effect())
+        self.assertEqual(execute.call_count,1)
+        held=self.mc.unconfirmed_effects()
+        self.assertEqual(len(held),1)
+        self.assertEqual(held[0]['identity'],'event-uncertain')
+        self.assertEqual(held[0]['status'],'unconfirmed')
+        self.assertEqual(HistoryStore(Path(folder.name)/'effects.sqlite3').unconfirmed_minecraft_effects()[0]['identity'],'event-uncertain')
+
+    def test_bedrock_timeout_is_durable_and_never_auto_replayed(self):
+        self.mc.edition='bedrock';self.mc.config=self.mc.profiles['bedrock']
+        self.mc.config['presets']={'zombie':{'gift_id':'1','gift_name':'Rose','enabled':True}}
+        self.mc.authorized=True;self.mc.authorized_generation=self.mc.bedrock.generation
+        self.mc.connection_check='ready'
+        folder=tempfile.TemporaryDirectory(dir=Path.cwd());self.addCleanup(folder.cleanup)
+        self.runtime.archive=HistoryStore(Path(folder.name)/'bedrock-effects.sqlite3')
+        self.mc.gift({'id':'bedrock-uncertain','gift_id':'1','gift':'Rose','user':'Ana','count':1},'bedrock-uncertain')
+        with patch.object(self.mc,'_connection_ready',return_value=True), \
+             patch.object(self.mc.bedrock,'execute',side_effect=TimeoutError('no response')) as execute:
+            self.assertFalse(self.mc.run_next_effect())
+            self.now+=60
+            self.assertFalse(self.mc.run_next_effect())
+        self.assertEqual(execute.call_count,1)
+        self.assertEqual(self.mc.unconfirmed_effects()[0]['status'],'unconfirmed')
+
+    def test_gift_identity_reaches_edition_specific_preset_command(self):
+        from minecraft_presets import commands_for, mappings
+        for edition in ('java','bedrock'):
+            with self.subTest(edition=edition):
+                self.mc.edition=edition
+                self.mc.config=self.mc.profiles[edition]
+                self.mc.config['presets']=mappings({'zombie':{'gift_id':'1','gift_name':'Rose','enabled':True}})
+                self.mc.authorized=True
+                self.mc.authorized_generation=self.mc.bedrock.generation
+                self.mc.connection_check='ready'
+                self.mc.java_ready_revision=self.mc.revision
+                self.mc.config['immediate_effects']=True
+                self.mc._next_object_at=None
+                self.mc.gift({'id':'event-'+edition,'gift_id':'1','gift':'Rose','user':'Ana','count':1},'event-'+edition)
+                command=commands_for('zombie',edition,'Ana')[0]
+                if edition=='java':
+                    with patch.object(self.mc,'_connection_ready',return_value=True), \
+                         patch.object(self.mc,'execute',return_value='Summoned new Zombie') as send:
+                        self.assertTrue(self.mc.run_next_effect())
+                    self.assertEqual(send.call_args_list[0].args[0],command)
+                else:
+                    with patch.object(self.mc,'_connection_ready',return_value=True), \
+                         patch.object(self.mc.bedrock,'execute',return_value={'outcome':'success','response':'ok'}) as send:
+                        self.assertTrue(self.mc.run_next_effect())
+                    self.assertEqual(send.call_args_list[0].args[0],command)
 
     def test_queue_wave_countdown_cycles_independently_of_object_confirmations(self):
         self.save(preset='zombie')
@@ -710,9 +789,9 @@ class PresetTests(unittest.TestCase):
         self.now+=3
         self.runtime.feed_session='B';self.gift();self.assertEqual(self.mc.jobs.qsize(),0)
         self.save(False);self.gift('disabled');self.save(True);self.gift('disabled')
-        self.assertEqual(self.mc.jobs.qsize(),0,'enabling must not replay a previously observed gift')
+        self.assertEqual(self.mc.jobs.qsize(),1,'an assigned gift remains active even when a legacy profile says disabled')
         self.mc.authorized=False;self.gift('unauthorized');self.mc.authorized=True;self.gift('unauthorized')
-        self.assertEqual(self.mc.jobs.qsize(),1)
+        self.assertEqual(self.mc.jobs.qsize(),2,'durable admission deduplicates while execution remains authorization-gated')
 
     def test_default_tnt_streak_is_compact_and_transient_queue_capacity_never_rejects(self):
         self.save();self.gift(count=1000001);self.assertTrue(self.mc.jobs.empty())

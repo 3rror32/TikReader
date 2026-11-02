@@ -7,7 +7,7 @@
  function field(label,type='text',parent=pane){const l=el('label',label),n=el(type==='textarea'?'textarea':'input');if(type!=='textarea')n.type=type;n.addEventListener('input',()=>edited.add(n));l.append(n);parent.append(l);return n}
  function disclosure(title){const node=el('details');node.append(el('summary',title));return node;}
  let busy=false,uncertain=false,operationSerial=0,actionPicker,actionSearch,actionOptionList,actionSearchStatus,addActionButton,actionPickerOpen=false,activeActionOption=-1,activeActionId='';const actionButtons=[],extraControls=[];
- function syncControls(){for(const input of extraControls)input.disabled=busy||uncertain||!backendReady;for(const b of actionButtons)b.disabled=busy||uncertain||(b.needsBackend&&!backendReady);edition.disabled=busy||uncertain||!backendReady;for(const row of presetRows.values()){row.gift.disabled=busy||uncertain||!backendReady;row.giftButton.disabled=busy||uncertain||!backendReady;if(row.quantity)row.quantity.disabled=busy||uncertain||!backendReady;if(row.enabled.tagName==='input'&&row.enabled.type==='checkbox')row.enabled.disabled=busy||uncertain||!backendReady||!row.gift.value;}if(actionPicker)actionPicker.disabled=busy||uncertain||!backendReady||!selectedActionsByEdition.has(currentEdition);if(actionSearch)actionSearch.disabled=busy||uncertain||!backendReady||!selectedActionsByEdition.has(currentEdition);if(addActionButton)addActionButton.disabled=busy||uncertain||!backendReady||!selectedActionsByEdition.has(currentEdition)||!actionPicker?.value||selectedActionsByEdition.get(currentEdition)?.includes(actionPicker.value);}
+ function syncControls(){for(const input of extraControls)input.disabled=busy||uncertain||!backendReady;for(const b of actionButtons)b.disabled=busy||uncertain||(b.needsBackend&&!backendReady);edition.disabled=busy||uncertain||!backendReady;for(const row of presetRows.values()){row.gift.disabled=busy||uncertain||!backendReady;row.giftButton.disabled=busy||uncertain||!backendReady;if(row.quantity)row.quantity.disabled=busy||uncertain||!backendReady;}if(actionPicker)actionPicker.disabled=busy||uncertain||!backendReady||!selectedActionsByEdition.has(currentEdition);if(actionSearch)actionSearch.disabled=busy||uncertain||!backendReady||!selectedActionsByEdition.has(currentEdition);if(addActionButton)addActionButton.disabled=busy||uncertain||!backendReady||!selectedActionsByEdition.has(currentEdition)||!actionPicker?.value||selectedActionsByEdition.get(currentEdition)?.includes(actionPicker.value);}
  async function operate(fn){
   if(busy||uncertain)return;
   busy=true;operationSerial++;epoch++;clearTimeout(timer);syncControls();
@@ -37,7 +37,7 @@
  requirements.className='minecraft-bedrock-requirement';requirements.append(el('span','*'),document.createTextNode(' Mundo local de Windows · Trucos activados · Require Encrypted Websockets desactivado.'));
  connectCommand.className='minecraft-connect-command';connectCommand.dataset.bedrockCommand='true';connectCommand.type='text';connectCommand.setAttribute('aria-label','Comando para conectar Minecraft');connectCommand.readOnly=true;connectCommand.hidden=true;
  commandRow.append(connectCommand);
- localInstructions.append(el('p','Prepara la conexión. TikReader comprobará si tu mundo responde.'),el('p','Abre el chat de tu mundo, pega el comando y presiona Enter.'),requirements);
+ localInstructions.append(requirements);
  permissionArea.append(localInstructions);
  let currentEdition='java';const drafts=new Map();
  const quantityDrafts=new Map();let quantityRecovery=null;
@@ -898,26 +898,11 @@
  }
  function updatePresetState(row,preset,active){
   if(!row.gift.value){
-   if(row.enabled.tagName!=='span'){
-    const prompt=el('span','Selecciona un regalo');prompt.className='minecraft-action-state-empty';prompt.dataset.presetEnabled=row.id;
-    row.enabledLabel.replaceChildren(prompt);row.enabled=prompt;
-   }else row.enabled.textContent='Selecciona un regalo';
+   row.enabled.textContent='Selecciona un regalo';row.enabled.className='minecraft-action-state-empty';
    return;
   }
-  if(row.enabled.tagName!=='input'||row.enabled.type!=='checkbox'){
-   const toggle=el('input');toggle.type='checkbox';toggle.className='minecraft-action-state';toggle.dataset.presetEnabled=row.id;
-   toggle.addEventListener('change',()=>togglePreset(row.id));
-   row.enabledLabel.replaceChildren(toggle);row.enabled=toggle;
-  }
-  active=!!active;row.enabled.checked=active;
-  row.enabled.setAttribute('aria-label',`${preset.name}: ${active?'Activa. Pausar acción':'Pausada. Activar acción'}`);
-  row.enabled.setAttribute('title',`${preset.name}: ${active?'Pausar acción':'Activar acción'}`);
- }
- async function togglePreset(id){
-  const row=presetRows.get(id),preset=actionById.get(id);
-  if(!row||!preset||!row.gift.value||busy||uncertain||!backendReady)return;
-  const active=!!row.enabled.checked;let pending=pendingPresetEnabled.get(currentEdition);if(!pending){pending=new Map();pendingPresetEnabled.set(currentEdition,pending);}pending.set(id,active);updatePresetState(row,preset,active);
-  return savePreset(id);
+  row.enabled.textContent='Activa';row.enabled.className='minecraft-action-state-active';
+  row.enabled.setAttribute('aria-label',`${preset.name}: activa porque tiene un regalo asignado`);
  }
  function fillGiftOptions(row,value){
   const signature=`${giftCatalogSignature}|${value.gift_id}|${value.gift_name}`;
@@ -935,7 +920,7 @@
   row.giftButton.title=selected?.name||'Selecciona un regalo';
   row.giftButton.setAttribute('aria-expanded',String(!row.giftPicker.hidden));
   for(const option of row.giftListbox.children)option.setAttribute('aria-selected',String(option.dataset.giftId===row.gift.value));
-  updatePresetState(row,actionById.get(row.id),value.enabled);
+  updatePresetState(row,actionById.get(row.id),!!value.gift_id);
   if(row.quantity&&document.activeElement!==row.quantity)row.quantity.value=rowDrafts()[row.id]??value.quantity??row.defaultQuantity;
  }
  function renderGiftOptionList(row){
@@ -1082,10 +1067,10 @@
  async function removePreset(id){
   const edition=currentEdition,selected=selectedActionsByEdition.get(edition)||[],row=presetRows.get(id),saved=presetValues[id];
   if(!row||!selected.includes(id)||uncertain)return;
-  if(saved?.enabled){
+  if(saved?.gift_id){
    if(!backendReady){notice.textContent='No se puede quitar una acción activa hasta conectar con TikReader.';return;}
    try{
-    const updated=structuredClone(presetValues);updated[id]={...saved,enabled:false};
+    const updated=structuredClone(presetValues);updated[id]={...saved,gift_id:'',gift_name:'',enabled:false};
     const d=await api('/minecraft/presets',{edition,presets:updated});
     if(currentEdition!==edition)return;
     presetValues=structuredClone(d.presets||d.config?.presets||updated);
@@ -1105,7 +1090,7 @@
   return operate(async()=>{
    const row=presetRows.get(id),giftId=row.gift.value;
    const name=giftCatalog.find(g=>String(g.id)===giftId)?.name||presetValues[id]?.gift_name||'';
-   const enabled=row.enabled.tagName==='input'&&row.enabled.type==='checkbox'?!!row.enabled.checked:!!presetValues[id]?.enabled;
+   const enabled=!!giftId;
    presetValues={...presetValues,[id]:{gift_id:giftId,gift_name:name,enabled,...(row.quantity?{quantity:Number(row.quantity.value)}:{})}};presetDirty=true;
    try{
     const d=await api('/minecraft/presets',{edition:currentEdition,presets:presetValues});
@@ -1147,25 +1132,30 @@
  document.addEventListener('pointerdown',event=>{if(!actionPickerControl.contains(event.target))closeActionPicker();});actionPicker.addEventListener('change',()=>syncControls());
  addActionButton=button('Agregar acción',async()=>{const id=actionPicker.value,selected=selectedActionsByEdition.get(currentEdition),preset=actionById.get(id);if(!backendReady||!preset||!selected||selected.includes(id))return;const defaultEnabled=!presetValues[id]?.gift_id;if(defaultEnabled)presetValues={...presetValues,[id]:{...presetValues[id],enabled:true}};selected.push(id);persistSelectedActions(currentEdition);currentActionFilter='all';currentMobCategory='all';actionPicker.value='';actionSearch.value='';closeActionPicker();renderPresets({authorization_mode:'automatic',presets:presetValues},true);if(defaultEnabled){let pending=pendingPresetEnabled.get(currentEdition);if(!pending){pending=new Map();pendingPresetEnabled.set(currentEdition,pending);}pending.set(id,true);}notice.textContent='Acción agregada.';});addActionButton.dataset.addAction='true';
  actionHeading.append(el('h3','Acciones predeterminadas'),actionPickerLabel,addActionButton,button('Actualizar regalos',loadGiftCatalog,false));
- function makeColumns(){const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Cantidad','Habilitar','Probar',''])columns.append(el('span',text));return columns;}
+ function makeColumns(){const columns=el('div');columns.className='minecraft-action-columns';columns.setAttribute('aria-hidden','true');for(const text of ['Acción','Regalo','Cantidad','Estado','Probar',''])columns.append(el('span',text));return columns;}
  const actionViewControls=el('div');actionViewControls.className='minecraft-action-view-controls';actionViewControls.append(actionFilterToolbar,actionCategoryLabel);
  actionCategoryFilter.addEventListener('change',()=>{currentMobCategory=actionCategoryFilter.value||'all';updateActionViews(selectedActionsByEdition.get(currentEdition)||[]);});
  actionList.append(makeColumns(),actionEmptyState);
  quickActions.append(actionHeading,el('p','Agrega acciones una vez y usa estos filtros para revisar la lista sin cambiar la configuración. Cantidad por regalo. Las rachas multiplican mobs y TNT; el exceso espera su turno.'),compatibility,catalogNotice,actionViewControls,actionList);
  const safetyFields=el('div');safetyFields.className='minecraft-tool-fields';
  const objects=field('Objetos por periodo','number',safetyFields),period=field('Periodo (segundos)','number',safetyFields),ratePreview=el('p');ratePreview.className='minecraft-rate-preview';
+  const immediateLabel=el('label');immediateLabel.className='minecraft-immediate-option';
+  const immediateEffects=el('input');immediateEffects.type='checkbox';immediateEffects.dataset.immediateEffects='true';
+  immediateLabel.append(immediateEffects,document.createTextNode('Ejecutar efectos sin espera'));
+  immediateEffects.addEventListener('change',()=>{edited.add(immediateEffects);updateRatePreview();});
  objects.min=1;objects.max=120;objects.step=1;objects.value=20;period.min=20;period.max=600;period.step=1;period.value=30;
- function updateRatePreview(effectiveInterval=null){const count=Number(objects.value),seconds=Number(period.value),interval=effectiveInterval??(count>0&&seconds>0?seconds/count:0);objects.max=Math.min(120,seconds||120);period.min=Math.max(20,count||1);ratePreview.textContent=`${Number(interval.toFixed(2))} segundos por efecto`}
+  function updateRatePreview(effectiveInterval=null){const count=Number(objects.value),seconds=Number(period.value),interval=effectiveInterval??(count>0&&seconds>0?seconds/count:0);objects.max=Math.min(120,seconds||120);period.min=Math.max(20,count||1);ratePreview.textContent=immediateEffects.checked?'Sin espera entre efectos':`${Number(interval.toFixed(2))} segundos por efecto`}
  objects.addEventListener('input',()=>{edited.add(objects);updateRatePreview()});period.addEventListener('input',()=>{edited.add(period);updateRatePreview()});updateRatePreview();
  async function saveSafety(){
   try{
    const d=await api('/minecraft/presets/settings',{
     edition:currentEdition,
     limits:{objects:Number(objects.value),period_seconds:Number(period.value)},
-    name_format:nameFormat.value
+     name_format:nameFormat.value,
+     immediate_effects:immediateEffects.checked
    });
-   for(const input of [objects,period,nameFormat])edited.delete(input);
-   applySafety(d,true);notice.textContent='Ritmo guardado.';
+    for(const input of [objects,period,nameFormat,immediateEffects])edited.delete(input);
+    applySafety(d,true);notice.textContent='Ritmo y espera guardados.';
   }catch(e){
    try{
     const d=await api('/minecraft');
@@ -1176,19 +1166,20 @@
    }
   }
  }
- safetyFields.append(ratePreview,button('Guardar ritmo',saveSafety));
+  safetyFields.append(immediateLabel,ratePreview,button('Guardar ritmo',saveSafety));
  advanced.append(safetyFields,el('small','La cola conserva el trabajo mientras esperas, pausas o reconectas. No se libera todo junto.'));
- extraControls.push(objects,period,nameFormat);
+  extraControls.push(objects,period,nameFormat,immediateEffects);
  function applySafety(d,force=false){
   const values=d.limits||d.config?.limits||{objects:20,period_seconds:30};
   const count=values.objects??values.per_minute??20,seconds=values.period_seconds??60;
-  for(const [input,value] of [[objects,count],[period,seconds],
-                             [nameFormat,d.name_format||d.config?.name_format||'modern']]){
+   for(const [input,value] of [[objects,count],[period,seconds],
+                              [nameFormat,d.name_format||d.config?.name_format||'modern']]){
    if(force||!edited.has(input))input.value=value;
   }
+   if(force||!edited.has(immediateEffects))immediateEffects.checked=d.config?.immediate_effects===true;
   updateRatePreview(!('objects' in values)?d.effect_queue?.interval_seconds:null);
  }
- function captureDraft(){return {host:host.value,port:port.value,commands:commands.value,objects:objects.value,period:period.value,nameFormat:nameFormat.value};}
+  function captureDraft(){return {host:host.value,port:port.value,commands:commands.value,objects:objects.value,period:period.value,nameFormat:nameFormat.value,immediateEffects:immediateEffects.checked};}
  function selectProfile(d){
   currentEdition=d.edition||currentEdition;edited.clear();hydratePending=false;
   password.value='';confirmedAuthorized=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;showEdition();
@@ -1196,13 +1187,13 @@
   host.value=draft?.host||d.config.host||'127.0.0.1';port.value=draft?.port||d.config.port||25575;
   commands.value=draft?draft.commands:Object.entries(d.config.commands).map(([a,c])=>a+' = '+c).join('\n');
   presetDirty=false;renderPresets(d,true);applySafety(d,true);
-  if(draft){for(const [input,value] of [[objects,draft.objects],[period,draft.period],[nameFormat,draft.nameFormat]])if(value!==undefined){input.value=value;edited.add(input);}updateRatePreview();}
+   if(draft){for(const [input,value] of [[objects,draft.objects],[period,draft.period],[nameFormat,draft.nameFormat]])if(value!==undefined){input.value=value;edited.add(input);}if(draft.immediateEffects!==undefined){immediateEffects.checked=draft.immediateEffects;edited.add(immediateEffects);}updateRatePreview();}
  }
  function showEdition(){
   const bedrock=currentEdition==='bedrock';edition.value=currentEdition;
   heading.textContent='Minecraft';connection.hidden=bedrock;
   for(const input of [host,port,password])input.parentElement.hidden=bedrock;
-  localInstructions.hidden=!bedrock;prepareButton.hidden=!bedrock;nameFormatLabel.hidden=bedrock;
+  localInstructions.hidden=!bedrock;prepareButton.hidden=!bedrock;nameFormatLabel.hidden=bedrock;checkConnection.hidden=bedrock;
  }
  const labels={success:'Éxito confirmado',rejected:'Comando rechazado',connection_error:'Error de conexión',unconfirmed:'Sin confirmar',cancelled:'Cancelado'};
  let timer,inFlight=false,refreshPending=false,hydratePending=true,stopped=false,epoch=0;
@@ -1212,40 +1203,51 @@
   backendReady=authorizationReady&&Array.isArray(d.preset_catalog)&&Array.isArray(d.preset_sections)&&sectionOptions.every(([id])=>d.preset_sections.some(section=>section.id===id))&&Array.isArray(d.preset_categories)&&categoryOptions.every(([id])=>d.preset_categories.some(c=>c.id===id))&&defaultActions.every(p=>d.preset_catalog.some(s=>s.id===p.id&&s.category===p.category&&s.section===p.section&&(!p.quantity||(s.quantity_max===20&&s.quantity_min===1))));
   compatibility.textContent=backendReady?'':'Reinicia TikReader para cargar estas acciones.';compatibility.hidden=backendReady;
   savedConfig=d.config||savedConfig;applySafety(d);
-  const queue=d.effect_queue||{},remaining=Math.max(0,Number(queue.wave_seconds_remaining??queue.next_object_in_seconds??30));
-  waveCountdown.textContent=`${Math.ceil(remaining)} s`;
+   const queue=d.effect_queue||{},remaining=Math.max(0,Number(queue.wave_seconds_remaining??queue.next_object_in_seconds??30));
+   waveCountdown.textContent=queue.connection_ready?`${Math.ceil(remaining)} s`:'—';
+   waveLane.children[0].textContent='Espera la siguiente oleada de regalos';
+   waveLane.children[2].textContent=queue.connection_ready?(queue.immediate_effects?'Ejecución secuencial sin espera.':'Cada efecto se ejecuta por separado a su propio ritmo.'):'Los efectos pendientes se conservan hasta que Minecraft esté conectado y autorizado.';
   const pressure={normal:'normal',accumulating:'acumulando',saturated:'saturada · en espera, sin rechazar regalos'}[queue.pressure]||'normal';
-  queueStatus.textContent=queue.paused?'Cola pausada. El trabajo pendiente se conserva.':queue.pending_count?`Cola ${pressure}: ${queue.remaining_objects??queue.pending_count} objetos pendientes.`:`Cola ${pressure}: sin objetos pendientes.`;
+   queueStatus.textContent=!queue.connection_ready?(queue.stored_pending_count?`Minecraft no está conectado y listo. Se conservan ${queue.stored_pending_count} donaciones pendientes.`:'Minecraft no está conectado y listo; no hay donaciones pendientes.'):
+    queue.paused?'Cola pausada. El trabajo pendiente se conserva.':queue.pending_count?`Cola ${pressure}: ${queue.remaining_objects??queue.pending_count} objetos pendientes.`:`Cola ${pressure}: sin objetos pendientes.`;
   queueControl.textContent=queue.paused?'Reanudar cola':'Pausar cola';
   function describeEffect(effect,empty){
    if(!effect)return empty;
    const preset=actionById.get(effect.preset_id),action=effect.action||preset?.name||effect.preset_id||'Acción';
    const donor=effect.donor||'Donante desconocido',gift=effect.gift||effect.gift_name||'Regalo desconocido';
    const amount=effect.remaining??0,progress=effect.step&&effect.total?` · paso ${effect.step} de ${effect.total}`:'';
-   return `${donor} · ${gift} · ${action} · ${amount} restantes${progress}`;
+   return `${gift} → ${action} · ${donor} · ${amount} restantes${progress}`;
   }
-  nowCard.children[1].textContent=describeEffect(queue.current,'Sin efecto en ejecución.');
-  nextCard.children[1].textContent=describeEffect(queue.next,'Sin objetos pendientes.');
+   nowCard.children[1].textContent=queue.connection_ready?describeEffect(queue.current,'Sin efecto en ejecución.'):'Minecraft no está conectado y listo.';
+   nextCard.children[1].textContent=queue.connection_ready?describeEffect(queue.next,'Sin objetos pendientes.'):'Los efectos pendientes se conservan.';
+  pendingList.replaceChildren(el('h4','Donaciones pendientes'),
+   ...(queue.connection_ready?(queue.pending||[]).map(effect=>el('p',describeEffect(effect,''))):[]));
+  if(queue.connection_ready&&!(queue.pending||[]).length)pendingList.append(el('p','Sin donaciones pendientes.'));
   queueMetrics.replaceChildren(
-   el('p',`Donaciones en cola: ${queue.pending_count||0}`),
-   el('p',`Objetos pendientes: ${queue.remaining_objects??queue.pending_count??0}`),
+    el('p',`Donaciones ejecutables: ${queue.pending_count||0}`),
+    el('p',`Donaciones conservadas: ${queue.stored_pending_count??queue.pending_count??0}`),
+    el('p',`Sin confirmar · requieren revisión manual: ${queue.unconfirmed_count||0}`),
    el('p',`Fallos: ${queue.failure_count||0}`),
-   el('p',`Espera estimada: ${Math.ceil(Number(queue.estimated_wait_seconds||0))} s`),
-   el('p',`Ritmo: ${Number(Number(queue.interval_seconds??(Number(period.value)/Number(objects.value))).toFixed(2))} s por efecto`),
-   el('p',`Estado: ${pressure}`)
+    el('p',`Espera estimada: ${queue.connection_ready?`${Math.ceil(Number(queue.estimated_wait_seconds||0))} s`:'—'}`),
+    el('p',`Ritmo: ${queue.immediate_effects?'Sin espera':`${Number(Number(queue.interval_seconds??(Number(period.value)/Number(objects.value))).toFixed(2))} s por efecto`}`),
+   el('p',`Estado: ${pressure}`),
+   ...(queue.unconfirmed||[]).map(effect=>el('p',`Sin confirmar · ${effect.gift||'Regalo'} → ${effect.action||effect.preset_id||'Acción'} · ${effect.donor||'Donante'} · decide antes de repetir`))
   );
   if(uncertain&&!busy){if(quantityRecovery){delete rowDrafts()[quantityRecovery];quantityRecovery=null;}selectProfile(d);uncertain=false;presetRecovery=false;presetDirty=false;syncControls();hydrate=false;}
   if(hydrate){currentEdition=d.edition||'java';showEdition();for(const [input,value] of [[host,d.config.host||'127.0.0.1'],[port,d.config.port||25575],[commands,Object.entries(d.config.commands).map(([a,c])=>a+' = '+c).join('\n')]])if(!edited.has(input))input.value=value;}
   const bedrock=currentEdition==='bedrock';
   if(!presetRecovery)renderPresets(d);
-  confirmedAuthorized=authorizationReady&&d.authorized===true;
-  status.textContent=(confirmedAuthorized?'Conectado':bedrock&&d.connection_check==='checking'?'Comprobando conexión…':bedrock&&d.bedrock?.connected?'Conexión sin comprobar':bedrock&&d.bedrock?.prepared?'Esperando tu mundo':'Sin conectar')+(d.queued?` · ${d.queued} en cola`:'');
+  confirmedAuthorized=authorizationReady&&d.authorized===true&&queue.connection_ready===true;
+  disconnectButton.hidden=bedrock?d.bedrock?.prepared!==true&&d.bedrock?.connected!==true:!confirmedAuthorized;
+  checkConnection.hidden=bedrock;
+   status.textContent=(confirmedAuthorized?'Conectado':bedrock&&d.connection_check==='checking'?'Comprobando conexión…':bedrock&&d.bedrock?.connected?'Conexión sin comprobar':bedrock&&d.bedrock?.prepared?'Esperando tu mundo':'Sin conectar')+(d.queued?` · ${confirmedAuthorized?d.queued+' en cola':d.queued+' pendientes conservados'}`:'');
   connectionNotice.hidden=!(bedrock&&d.connection_check==='failed');
-  connectionNotice.textContent=connectionNotice.hidden?'':'No se pudo comprobar Bedrock. Desconecta, prepara otra conexión y pega el nuevo comando.';
+  connectionNotice.textContent=connectionNotice.hidden?'':'No se pudo comprobar Bedrock. Desvincula el mundo, vincula uno nuevo y pega el nuevo comando.';
   syncControls();
   log.replaceChildren(...d.log.slice(0,10).map(x=>{
    const label=labels[x.outcome];
-   const detail=label?`${label} · ${x.alias}: ${x.response||x.text}`:x.text;
+   const provenance=x.gift?`${x.gift} → ${x.alias||'Acción'}`:'';
+   const detail=provenance?`${label||'Actividad'} · ${provenance}${x.donor?' · '+x.donor:''}`:label?`${label} · ${x.alias}: ${x.response||x.text}`:x.text;
    return el('p',new Date(x.at*1000).toLocaleTimeString((window.I18n?.locale || 'es-419'))+' · '+detail);
   }));
  }
@@ -1270,8 +1272,8 @@
  function sync(){epoch++;clearTimeout(timer);refreshPending=false;if(active())void refresh();}
  async function change(path,data){epoch++;await api(path,data);epoch++;void refresh();}
  function parse(){const out={};for(const line of commands.value.split('\n')){if(!line.trim())continue;const i=line.indexOf('=');if(i<1)throw Error('Usa alias = comando, uno por línea');out[line.slice(0,i).trim()]=line.slice(i+1).trim()}return out}
- const prepareButton=button('Preparar conexión',async()=>{if(currentEdition!=='bedrock')return;confirmedAuthorized=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;const d=await api('/minecraft/bedrock/prepare',{});connectCommand.value=d.command;connectCommand.hidden=false;commandRow.hidden=false;notice.textContent='Comando listo para pegar en el chat de tu mundo.';},false);prepareButton.setAttribute('aria-label','Preparar conexión de Bedrock');
- const copyButton=button('',async()=>{if(!connectCommand.value){notice.textContent='Prepara la conexión primero.';return;}try{await navigator.clipboard.writeText(connectCommand.value);notice.textContent='Comando copiado.';}catch(_){connectCommand.focus();connectCommand.select();notice.textContent='Selecciona el comando y usa copiar para llevarlo al chat.';}} ,false);
+ const prepareButton=button('Vincular mi mundo',async()=>{if(currentEdition!=='bedrock')return;confirmedAuthorized=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;const d=await api('/minecraft/bedrock/prepare',{});disconnectButton.hidden=false;connectCommand.value=d.command;connectCommand.hidden=false;commandRow.hidden=false;notice.textContent='Enlace listo para pegar en el chat de tu mundo.';},false);prepareButton.setAttribute('aria-label','Vincular mi mundo de Bedrock');
+ const copyButton=button('',async()=>{if(!connectCommand.value){notice.textContent='Vincula tu mundo primero.';return;}try{await navigator.clipboard.writeText(connectCommand.value);notice.textContent='Comando copiado.';}catch(_){connectCommand.focus();connectCommand.select();notice.textContent='Selecciona el comando y usa copiar para llevarlo al chat.';}} ,false);
  copyButton.setAttribute('aria-label','Copiar comando de conexión');
  copyButton.title='Copiar el comando de conexión';
  const copyIcon=document.createElementNS('http://www.w3.org/2000/svg','svg');copyIcon.setAttribute('viewBox','0 0 24 24');copyIcon.setAttribute('width','18');copyIcon.setAttribute('height','18');copyIcon.setAttribute('fill','none');copyIcon.setAttribute('stroke','currentColor');copyIcon.setAttribute('stroke-width','1.8');copyIcon.setAttribute('stroke-linecap','round');copyIcon.setAttribute('stroke-linejoin','round');copyIcon.setAttribute('aria-hidden','true');copyIcon.setAttribute('focusable','false');
@@ -1296,7 +1298,7 @@
     catch(_){drafts.set(currentEdition,captureDraft());uncertain=true;notice.textContent='No se pudo confirmar la conexión. Reintentando…';}
    }
  }));
-const disconnectButton=button('Desconectar',async()=>{confirmedAuthorized=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;await change('/minecraft/disconnect',{});notice.textContent='Minecraft desconectado.';},false);
+const disconnectButton=button('Desvincular mundo',async()=>{confirmedAuthorized=false;connectCommand.value='';connectCommand.hidden=true;commandRow.hidden=true;await change('/minecraft/disconnect',{});notice.textContent='Mundo desvinculado.';},false);
 const checkConnection=button('Comprobar conexión',async()=>{const d=await api('/minecraft/check',{});notice.textContent=d.detail;});checkConnection.setAttribute('aria-label','Comprobar conexión sin ejecutar un alias');statusStrip.append(checkConnection,disconnectButton);
  advanced.append(button('Guardar conexión y comandos',async()=>{await saveConnection(true);notice.textContent='Comandos guardados. Vuelve a conectar Minecraft.';}));
  edition.addEventListener('change',()=>{
@@ -1324,9 +1326,10 @@ const checkConnection=button('Comprobar conexión',async()=>{const d=await api('
  const queueStatus=el('p','La cola está lista.');queueStatus.className='minecraft-queue-status';queueStatus.setAttribute('role','status');queueStatus.setAttribute('aria-live','polite');
  const nowCard=el('article');nowCard.className='minecraft-queue-card';nowCard.append(el('h4','En ejecución'),el('p','Sin efecto en ejecución.'));
  const nextCard=el('article');nextCard.className='minecraft-queue-card minecraft-next-card';nextCard.append(el('h4','Siguiente'),el('p','Sin objetos pendientes.'));
+ const pendingList=el('div');pendingList.className='minecraft-queue-pending';
  const queueMetrics=el('div');queueMetrics.className='minecraft-queue-metrics';
  const queueControl=button('Pausar cola',async()=>{const paused=queueControl.textContent==='Reanudar cola';await api(paused?'/minecraft/presets/resume':'/minecraft/presets/stop',{edition:currentEdition});notice.textContent=paused?'Cola reanudada.':'Cola pausada. El trabajo pendiente se conserva.';});
- queueBoard.append(waveLane,queueStatus,nowCard,nextCard,queueMetrics,queueControl);
+ queueBoard.append(waveLane,queueStatus,nowCard,nextCard,pendingList,queueMetrics,queueControl);
  const activityLog=el('div');activityLog.className='minecraft-activity-log';activityLog.append(el('h4','Resultados confirmados y recepción'),log);
  activity.append(queueBoard,activityLog);pane.append(advanced,activity);
  window.OperatorViewRegistry.register(pane.dataset.section,pane);

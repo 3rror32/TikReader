@@ -5,7 +5,7 @@ const vm=require('node:vm');
 const minecraftSource=process.env.MINECRAFT_TEST_SOURCE||`${__dirname}/../web/static/minecraft.js`;
 
 function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantities=false,initialPresets={},initialBedrockPresets={},initialEdition='java',storage=new Map(),storageReadError=false,storageWriteError=false,clipboardError=false}={}){
-  const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=failInitial,hold=holdInitial,release,stalePresetResponse=false,clipboardErrorState=clipboardError;const clipboard=[];
+  const nodes=[],timers=new Map(),listeners={},observers=[];let serial=0,pane,fail=failInitial,hold=holdInitial,release,holdNextMinecraftRead=false,releaseNextMinecraftRead,stalePresetResponse=false,clipboardErrorState=clipboardError;const clipboard=[];
   const requests=[];let heldPost,releasePost;
   const java={host:'localhost',port:25575,commands:{probe:'list'}},bedrock={commands:{bed:'say hello'}};
   const publicCatalog=JSON.parse(fs.readFileSync(minecraftSource,'utf8').match(/const defaultActions=(\[.*?\]);/s)[1]);
@@ -43,6 +43,7 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
       if(path==='/minecraft/presets/resume'&&data)state.effect_queue={...state.effect_queue,paused:false};
       if(path==='/minecraft/authorize'&&data)state.authorized=data.enabled;
       if(path==='/minecraft/disconnect')state.authorized=false;
+      if(holdNextMinecraftRead&&path==='/minecraft'&&options.method!=='POST'){holdNextMinecraftRead=false;await new Promise(resolve=>releaseNextMinecraftRead=resolve);}
       const snapshot=path==='/gift-catalog'?{gifts:giftCatalog}:path==='/minecraft/bedrock/prepare'?{command:'/wsserver ws://127.0.0.1:54321/secret'}:structuredClone(state);
       if(options.method==='POST'&&heldPost===path){heldPost=null;await new Promise(resolve=>releasePost=resolve);}
       if(hold&&options.method==='GET'&&path==='/minecraft')await new Promise(resolve=>release=resolve);if(fail)throw Error('offline');
@@ -52,7 +53,7 @@ function setup({holdInitial=false,failInitial=false,oldBackend=false,oldQuantiti
   const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
   const field=label=>nodes.find(n=>n.tagName==='label'&&n.textContent===label).children[0];
   return {nodes,requests,timers,field,flush,get pane(){return pane;},setState:value=>state={...state,...value},
-    fail:value=>fail=value,hold:()=>hold=true,release:()=>{hold=false;release();},
+    fail:value=>fail=value,hold:()=>hold=true,release:()=>{hold=false;release();},holdNextRead:()=>holdNextMinecraftRead=true,releaseNextRead:()=>releaseNextMinecraftRead(),
     holdPost:path=>heldPost=path,releasePost:()=>{heldPost=null;releasePost();},
     staleNextPresetResponse(){stalePresetResponse=true;},
     get serverEdition(){return state.edition;},get profilesSnapshot(){return JSON.stringify(state.profiles);},get activeElement(){return document.activeElement;},get clipboard(){return clipboard;},setClipboardError(value){clipboardErrorState=value;},get storage(){return storage;},
@@ -136,7 +137,7 @@ test('slow initial hydration preserves edits and stale pre-action reads are disc
   const host=s.field('Dirección privada');host.value='192.168.1.99';host.events.input();
   s.release();await s.flush();assert.equal(host.value,'192.168.1.99');
   s.hold();await s.tick();
-  s.setState({authorized:false});await s.click('Desconectar');
+  s.setState({authorized:false});await s.click('Desvincular mundo');
   s.release();await s.flush();
   assert.ok(s.nodes.some(n=>n.textContent==='Sin conectar'));
   assert.equal(s.timers.size,1);
@@ -159,7 +160,7 @@ test('edition selector persists selection, keeps separate drafts and hides RCON 
   assert.equal(s.field('Dirección privada').value,'127.0.0.2');
   await s.edition('bedrock');
   assert.equal(s.field('Comandos autorizados: un alias = comando por línea').value,'bedDraft = say hi');
-  await s.click('Preparar conexión de Bedrock');
+  await s.click('Vincular mi mundo de Bedrock');
   assert.equal(s.nodes.find(n=>n.dataset.bedrockCommand).value,'/wsserver ws://127.0.0.1:54321/secret');
   await s.edition('java');
   assert.ok(!s.nodes.some(n=>n.textContent.includes(':54321/secret')));
@@ -171,7 +172,7 @@ test('pending edition selection guards every action handler, including Save',asy
   const count=s.requests.length;
   await s.click('Guardar y conectar');
   for(const text of ['Guardar conexión y comandos','Ejecutar alias de prueba',
-                    'Preparar conexión de Bedrock','Desconectar','Comprobar conexión sin ejecutar un alias']){
+                    'Vincular mi mundo de Bedrock','Desvincular mundo','Comprobar conexión sin ejecutar un alias']){
     await s.click(text);
   }
   assert.equal(s.requests.length,count,'handlers cannot bypass the shared boundary');
@@ -182,9 +183,9 @@ test('pending edition selection guards every action handler, including Save',asy
 test('pending mode-specific actions guard edition changes in both directions',async()=>{
   for(const [mode,label,path] of [
     ['java','Guardar conexión y comandos','/minecraft'],
-    ['java','Ejecutar alias de prueba','/minecraft/run'],['java','Desconectar','/minecraft/disconnect'],
+    ['java','Ejecutar alias de prueba','/minecraft/run'],['java','Desvincular mundo','/minecraft/disconnect'],
     ['java','Comprobar conexión sin ejecutar un alias','/minecraft/check'],
-    ['bedrock','Preparar conexión de Bedrock','/minecraft/bedrock/prepare']]){
+    ['bedrock','Vincular mi mundo de Bedrock','/minecraft/bedrock/prepare']]){
     const s=setup();await s.flush();if(mode==='bedrock')await s.edition('bedrock');
     s.field('Alias para prueba').value='probe';s.holdPost(path);const acting=s.click(label);await s.flush();
     const count=s.requests.length;await s.edition(mode==='java'?'bedrock':'java');
@@ -207,25 +208,25 @@ test('uncertain selection keeps controls guarded until polling confirms the actu
   assert.ok(s.nodes.filter(n=>n.tagName==='button'&&!n.dataset.addAction).every(n=>!n.disabled));
 });
 
-test('quick-action rows use stable gifts, persist enabled state and preserve edition mappings',async()=>{
+test('quick-action rows use stable gifts and derive activation from assigned IDs',async()=>{
   const s=setup({initialPresets:{tnt_rain:{gift_id:'1',gift_name:'Rose',enabled:false}}});await s.flush();
   assert.equal(s.nodes.filter(n=>n.dataset.quickAction&&n.isConnected).length,1);
   const gift=s.preset('tnt_rain','gift'),enabled=s.preset('tnt_rain','enabled');
-  assert.ok(gift['aria-label'].includes('Lluvia de TNT'));assert.equal(enabled.tagName,'input');assert.equal(enabled.type,'checkbox');assert.equal(enabled.checked,false);assert.equal(enabled.textContent,'');assert.equal(enabled.children.length,0);assert.equal(enabled.getAttribute('aria-pressed'),null);
-  assert.equal(s.nodes.find(n=>n.className==='minecraft-action-columns').children[3].textContent,'Habilitar');
+  assert.ok(gift['aria-label'].includes('Lluvia de TNT'));assert.equal(enabled.tagName,'span');assert.equal(enabled.textContent,'Activa');assert.equal(enabled['aria-label'],'Lluvia de TNT: activa porque tiene un regalo asignado');
+  assert.equal(s.nodes.find(n=>n.className==='minecraft-action-columns').children[3].textContent,'Estado');
+  assert.ok(!s.nodes.some(n=>n.dataset.presetEnabled&&n.type==='checkbox'),'preset activation has no independent checkbox');
   gift.value='1';await gift.events.change();await s.flush();
-  enabled.checked=true;await enabled.events.change();await s.flush();
   const saved=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
   assert.equal(saved.presets.tnt_rain.gift_id,'1');assert.equal(saved.presets.tnt_rain.enabled,true);
   assert.ok(!JSON.stringify(saved).includes('summon'));
   s.catalog([]);await s.click('Actualizar regalos');
   assert.ok(gift.children.some(o=>o.value==='1'&&o.textContent.includes('guardado')));
   await s.edition('bedrock');assert.equal(s.nodes.filter(n=>n.dataset.quickAction==='tnt_rain'&&n.isConnected).length,0);
-  await s.edition('java');assert.equal(enabled.checked,true);assert.equal(gift.value,'1');
-  await s.tick();assert.equal(enabled.checked,true);
+  await s.edition('java');assert.equal(enabled.textContent,'Activa');assert.equal(gift.value,'1');
+  await s.tick();assert.equal(enabled.textContent,'Activa');
 });
 
-test('action state explains missing gifts and toggles saved activation without losing preset data',async()=>{
+test('action state explains missing gifts and derives activation without losing preset data',async()=>{
   const s=setup();await s.flush();await s.addAction('tnt_rain');
   const gift=s.preset('tnt_rain','gift'),quantity=s.nodes.find(n=>n.dataset.presetQuantity==='tnt_rain');
   const prompt=s.preset('tnt_rain','enabled');
@@ -234,35 +235,29 @@ test('action state explains missing gifts and toggles saved activation without l
   quantity.value='4';quantity.events.input();await quantity.events.change();await s.flush();
   gift.value='1';await gift.events.change();await s.flush();
   const toggle=s.preset('tnt_rain','enabled');
-  assert.equal(toggle.tagName,'input');assert.equal(toggle.type,'checkbox');assert.equal(toggle.checked,true,'a newly added action is active after it receives a gift');assert.equal(toggle.textContent,'');assert.equal(toggle.children.length,0);
-  assert.equal(toggle['aria-label'],'Lluvia de TNT: Activa. Pausar acción');assert.equal(toggle.title,'Lluvia de TNT: Pausar acción');
-  toggle.checked=true;await toggle.events.change();await s.flush();
+  assert.equal(toggle.tagName,'span');assert.equal(toggle.textContent,'Activa','a newly added action is active after it receives a gift');
   let saved=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data.presets.tnt_rain;
-  assert.equal(toggle.checked,true);assert.equal(toggle.textContent,'');assert.equal(toggle.children.length,0);assert.match(toggle['aria-label'],/Activa/);
   assert.deepEqual({gift_id:saved.gift_id,enabled:saved.enabled,quantity:saved.quantity},{gift_id:'1',enabled:true,quantity:4});
-  toggle.checked=false;await toggle.events.change();await s.flush();
-  saved=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data.presets.tnt_rain;
-  assert.equal(toggle.checked,false);assert.equal(toggle.textContent,'');assert.equal(toggle.children.length,0);assert.match(toggle['aria-label'],/Pausada/);
-  assert.deepEqual({gift_id:saved.gift_id,enabled:saved.enabled,quantity:saved.quantity},{gift_id:'1',enabled:false,quantity:4});
+  assert.ok(!s.nodes.some(n=>n.dataset.presetEnabled&&n.type==='checkbox'));
 });
 
 test('added actions keep their enabled choice through a stale save response and refresh',async()=>{
   const s=setup();await s.flush();await s.addAction('zombie');
   const gift=s.preset('zombie','gift');gift.value='1';await gift.events.change();await s.flush();
   const enabled=s.preset('zombie','enabled');s.staleNextPresetResponse();s.hold();
-  enabled.checked=true;const saving=enabled.events.change();await s.flush();
-  assert.equal(enabled.checked,true,'the save response must not undo the selected enabled state');
+  gift.value='2';const saving=gift.events.change();await s.flush();
+  assert.equal(enabled.textContent,'Activa','the save response must not undo assignment-derived activation');
   s.release();await saving;await s.flush();
-  assert.equal(enabled.checked,true,'the subsequent refresh must keep the selected enabled state');
+  assert.equal(enabled.textContent,'Activa','the subsequent refresh keeps assignment-derived activation');
 });
 
-test('quick-action controls use a standalone named checkbox and icon-only test/remove buttons',async()=>{
+test('quick-action controls use assignment status and icon-only test/remove buttons',async()=>{
   const s=setup();await s.flush();await s.addAction('tnt_rain');
   const gift=s.preset('tnt_rain','gift');gift.value='1';await gift.events.change();await s.flush();
   const checkbox=s.preset('tnt_rain','enabled');
   const testButton=s.nodes.find(n=>n.tagName==='button'&&n.className==='minecraft-action-test');
   const removeButton=s.nodes.find(n=>n.tagName==='button'&&n.className==='minecraft-action-remove');
-  assert.equal(checkbox.tagName,'input');assert.equal(checkbox.type,'checkbox');assert.equal(checkbox.parentElement.className,'minecraft-action-enabled');assert.equal(checkbox.checked,true);assert.equal(checkbox['aria-label'],'Lluvia de TNT: Activa. Pausar acción');assert.equal(checkbox.title,'Lluvia de TNT: Pausar acción');
+  assert.equal(checkbox.tagName,'span');assert.equal(checkbox.parentElement.className,'minecraft-action-enabled');assert.equal(checkbox.textContent,'Activa');assert.equal(checkbox['aria-label'],'Lluvia de TNT: activa porque tiene un regalo asignado');
   assert.ok(testButton);assert.equal(testButton.textContent,'');assert.equal(testButton.children.length,1);assert.equal(testButton.children[0].tagName,'svg');assert.match(testButton.children[0].children[0].attributes.d,/^M8 5v14l11-7z$/);assert.equal(testButton['aria-label'],'Probar acción: Lluvia de TNT');assert.equal(testButton.title,'Probar acción: Lluvia de TNT');
   assert.ok(removeButton);assert.equal(removeButton.textContent,'');assert.equal(removeButton.children.length,1);assert.equal(removeButton.children[0].tagName,'svg');assert.match(removeButton.children[0].children[0].attributes.d,/M4 7h16/);assert.equal(removeButton['aria-label'],'Quitar acción: Lluvia de TNT');assert.equal(removeButton.title,'Quitar acción: Lluvia de TNT');
   assert.ok(!s.requests.some(r=>r.path==='/minecraft/presets/simulate'));
@@ -304,7 +299,12 @@ test('action picker remains available and selected actions survive unavailable o
 
 test('Java saves and connects without an authorization checkbox',async()=>{
   const s=setup();await s.flush();
+  s.setState({effect_queue:{connection_ready:true}});await s.tick();
   assert.ok(!s.nodes.some(n=>n.tagName==='label'&&n.textContent==='Autorizar Minecraft'));
+  const check=s.nodes.find(n=>n.tagName==='button'&&n.textContent==='Comprobar conexión');
+  assert.ok(check&&!check.hidden,'Java keeps the manual connection check available');
+  const unlink=s.nodes.find(n=>n.tagName==='button'&&n.textContent==='Desvincular mundo');
+  assert.ok(unlink&&!unlink.hidden,'Java exposes unlink for the authorized connection in the snapshot');
   await s.click('Guardar y conectar');
   const posts=s.requests.filter(r=>r.method==='POST');
   assert.equal(posts.at(-2).path,'/minecraft');
@@ -318,34 +318,51 @@ test('Java saves and connects without an authorization checkbox',async()=>{
 test('Bedrock verifies automatically and reports pending, failed and ready states',async()=>{
   const s=setup({initialEdition:'bedrock'});await s.flush();
   assert.ok(!s.nodes.some(n=>n.tagName==='label'&&n.textContent==='Autorizar Minecraft'));
-  await s.click('Preparar conexión de Bedrock');
-  assert.ok(s.nodes.some(n=>n.textContent.includes('comprobará si tu mundo responde')));
+  const check=s.nodes.find(n=>n.tagName==='button'&&n.textContent==='Comprobar conexión');
+  const unlink=s.nodes.find(n=>n.tagName==='button'&&n.textContent==='Desvincular mundo');
+  assert.ok(check?.hidden,'Bedrock hides the manual connection check');
+  assert.ok(unlink?.hidden,'initial Bedrock state has nothing to unlink');
+  s.holdNextRead();await s.click('Vincular mi mundo de Bedrock');
+  assert.equal(unlink.hidden,false,'unlink becomes available as soon as the link is prepared');
+  assert.ok(s.nodes.some(n=>n.textContent==='Enlace listo para pegar en el chat de tu mundo.'));
+  s.setState({bedrock:{prepared:true,connected:false}});s.releaseNextRead();await s.flush();
+  assert.equal(unlink.hidden,false,'the prepared snapshot keeps unlink available after refresh');
+  assert.ok(!s.nodes.some(n=>n.textContent.includes('Prepara la conexión. TikReader comprobará si tu mundo responde.')));
+  assert.ok(!s.nodes.some(n=>n.textContent.includes('Abre el chat de tu mundo, pega el comando y presiona Enter.')));
+  assert.ok(s.nodes.some(n=>n.textContent.includes('Mundo local de Windows')));
   s.setState({authorized:false,bedrock:{prepared:true,connected:true},connection_check:'checking'});await s.tick();
   assert.ok(s.nodes.some(n=>n.textContent==='Comprobando conexión…'));
   s.setState({connection_check:'failed'});await s.tick();
-  assert.ok(s.nodes.some(n=>n.textContent.includes('No se pudo comprobar Bedrock. Desconecta')));
-  s.setState({authorized:true,connection_check:'ready'});await s.tick();
+  assert.ok(s.nodes.some(n=>n.textContent.includes('No se pudo comprobar Bedrock. Desvincula el mundo, vincula uno nuevo')));
+  s.setState({authorized:true,connection_check:'ready',effect_queue:{connection_ready:true}});await s.tick();
   assert.ok(s.nodes.some(n=>n.textContent==='Conectado'));
   assert.ok(!s.requests.some(r=>r.path==='/minecraft/authorize'));
-  await s.click('Desconectar');
+  await s.click('Desvincular mundo');
+  assert.ok(s.nodes.some(n=>n.textContent==='Mundo desvinculado.'));
 });
 
 test('Bedrock preparation stays available when preset metadata is unavailable',async()=>{
   const s=setup({initialEdition:'bedrock',oldBackend:true});await s.flush();
-  const prepare=s.nodes.find(n=>n.tagName==='button'&&n['aria-label']==='Preparar conexión de Bedrock');
+  const prepare=s.nodes.find(n=>n.tagName==='button'&&n['aria-label']==='Vincular mi mundo de Bedrock');
   assert.ok(prepare);
+  assert.equal(prepare.textContent,'Vincular mi mundo');
   assert.equal(prepare.disabled,false);
-  await s.click('Preparar conexión de Bedrock');
+  await s.click('Vincular mi mundo de Bedrock');
   assert.ok(s.requests.some(r=>r.path==='/minecraft/bedrock/prepare'&&r.method==='POST'));
 });
 
-test('Bedrock connection command has readable copy and chat instructions',async()=>{
-  const s=setup();await s.flush();await s.edition('bedrock');await s.click('Preparar conexión de Bedrock');
+test('Bedrock connection command has readable copy and keeps technical requirements',async()=>{
+  const s=setup();await s.flush();await s.edition('bedrock');
+  await s.click('Copiar comando de conexión');
+  assert.ok(s.nodes.some(n=>n.textContent==='Vincula tu mundo primero.'));
+  await s.click('Vincular mi mundo de Bedrock');
   const copy=s.nodes.find(n=>n.tagName==='button'&&n['aria-label']==='Copiar comando de conexión');
   assert.ok(copy);
   assert.equal(copy.textContent,'');
   assert.equal(copy.title,'Copiar el comando de conexión');
-  assert.ok(s.nodes.some(n=>n.textContent==='Abre el chat de tu mundo, pega el comando y presiona Enter.'));
+  assert.ok(!s.nodes.some(n=>n.textContent==='Prepara la conexión. TikReader comprobará si tu mundo responde.'));
+  assert.ok(!s.nodes.some(n=>n.textContent==='Abre el chat de tu mundo, pega el comando y presiona Enter.'));
+  assert.ok(s.nodes.some(n=>n.textContent.includes('Mundo local de Windows')));
   const command=s.nodes.find(n=>n.dataset.bedrockCommand);
   assert.equal(command.tagName,'input');assert.equal(command.type,'text');
   assert.equal(command.value,'/wsserver ws://127.0.0.1:54321/secret');assert.equal(command.readOnly,true);
@@ -354,7 +371,7 @@ test('Bedrock connection command has readable copy and chat instructions',async(
 });
 
 test('clipboard denial selects the exact command and gives a usable fallback',async()=>{
-  const s=setup({initialEdition:'bedrock',clipboardError:true});await s.flush();await s.click('Preparar conexión de Bedrock');
+  const s=setup({initialEdition:'bedrock',clipboardError:true});await s.flush();await s.click('Vincular mi mundo de Bedrock');
   const command=s.nodes.find(n=>n.dataset.bedrockCommand);await s.click('Copiar comando de conexión');
   assert.equal(command.selected,true);assert.ok(s.nodes.some(n=>n.textContent==='Selecciona el comando y usa copiar para llevarlo al chat.'));
 });
@@ -489,7 +506,7 @@ test('adding a mob action returns to Todos and shows its section context',async(
 test('configured disabled mappings migrate into the picker and empty explicit selection stays empty',async()=>{
   const s=setup({initialPresets:{cow:{gift_id:'1',gift_name:'Rose',enabled:false},pig:{gift_id:'',gift_name:'',enabled:false}}});await s.flush();
   assert.deepEqual(s.nodes.filter(n=>n.dataset.quickAction&&n.isConnected).map(n=>n.dataset.quickAction),['cow']);
-  assert.equal(s.preset('cow','enabled').tagName,'input');assert.equal(s.preset('cow','enabled').type,'checkbox');assert.equal(s.preset('cow','enabled').checked,false);assert.equal(s.preset('cow','enabled').children.length,0);
+  assert.equal(s.preset('cow','enabled').tagName,'span');assert.equal(s.preset('cow','enabled').textContent,'Activa');
 });
 
 test('explicit empty selection does not restore retained mappings and storage failures stay usable',async()=>{
@@ -522,15 +539,16 @@ test('Todos empty state clears when the first action row is added',async()=>{
   assert.equal(empty.hidden,true);
 });
 
-test('removing an enabled action disables its saved mapping first and keeps it on failure',async()=>{
+test('removing an assigned action clears its saved gift first and keeps it on failure',async()=>{
   const s=setup({initialPresets:{zombie:{gift_id:'1',gift_name:'Rose',enabled:true}}});await s.flush();
   const remove=s.nodes.find(n=>n.tagName==='button'&&n.dataset.removeAction==='zombie');assert.ok(remove);
   s.fail(true);await remove.onclick();await s.flush();
-  assert.ok(s.preset('zombie','enabled'));assert.equal(s.preset('zombie','enabled').tagName,'input');assert.equal(s.preset('zombie','enabled').checked,true);assert.equal(s.preset('zombie','enabled').children.length,0);
+  assert.ok(s.preset('zombie','enabled'));assert.equal(s.preset('zombie','enabled').tagName,'span');assert.equal(s.preset('zombie','enabled').textContent,'Activa');
   const attempted=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
-  assert.equal(attempted.presets.zombie.enabled,false);assert.equal(attempted.presets.zombie.gift_id,'1');
+  assert.equal(attempted.presets.zombie.enabled,false);assert.equal(attempted.presets.zombie.gift_id,'');
   s.fail(false);await s.tick();await s.click('Quitar acción: Zombi');await s.flush();
-  assert.equal(s.requests.filter(r=>r.path==='/minecraft/presets').length,1);
+  const clears=s.requests.filter(r=>r.path==='/minecraft/presets');assert.ok(clears.length>=1);
+  assert.equal(clears.at(-1).data.presets.zombie.gift_id,'');
   assert.equal(s.nodes.filter(n=>n.dataset.quickAction==='zombie'&&n.isConnected).length,0);
   await s.tick();assert.equal(s.nodes.filter(n=>n.dataset.quickAction==='zombie'&&n.isConnected).length,0);
 });
@@ -550,10 +568,10 @@ test('unchanged catalog polls do not allocate or replace gift options, while man
 test('Bedrock command stays hidden until prepared and clears on reprepare and disconnect',async()=>{
   const s=setup({initialEdition:'bedrock'});await s.flush();
   const command=s.nodes.find(n=>n.dataset.bedrockCommand),row=command.parentElement;assert.ok(command.hidden);assert.ok(row.hidden);
-  await s.click('Preparar conexión de Bedrock');assert.equal(command.hidden,false);
+  await s.click('Vincular mi mundo de Bedrock');assert.equal(command.hidden,false);
   assert.equal(row.hidden,false);
-  await s.click('Preparar conexión de Bedrock');assert.equal(command.hidden,false);assert.equal(command.value,'/wsserver ws://127.0.0.1:54321/secret');
-  await s.click('Preparar conexión de Bedrock');await s.click('Desconectar');
+  await s.click('Vincular mi mundo de Bedrock');assert.equal(command.hidden,false);assert.equal(command.value,'/wsserver ws://127.0.0.1:54321/secret');
+  await s.click('Vincular mi mundo de Bedrock');await s.click('Desvincular mundo');
   assert.equal(command.hidden,true);assert.equal(command.value,'');
 });
 test('gift-wide simulator is removed while safety settings retain their drafts',async()=>{
@@ -573,7 +591,7 @@ test('queue pacing settings keep edition drafts and reconcile uncertain saves wi
  objects.value='8';objects.events.input();await s.edition('bedrock');assert.equal(Number(objects.value),20);
  objects.value='9';objects.events.input();await s.edition('java');assert.equal(Number(objects.value),8);
  s.holdPost('/minecraft/presets/settings');const saving=s.click('Guardar ritmo');await s.flush();
- const count=s.requests.length;await s.click('Desconectar');await s.edition('bedrock');assert.equal(s.requests.length,count);
+ const count=s.requests.length;await s.click('Desvincular mundo');await s.edition('bedrock');assert.equal(s.requests.length,count);
  s.fail(true);s.releasePost();await saving;assert.ok(s.field('Edición').disabled);
  s.fail(false);await s.tick();assert.equal(Number(objects.value),8);assert.equal(s.field('Edición').disabled,false);
  s.catalog([]);await s.click('Actualizar regalos');await s.addAction('zombie');
@@ -652,8 +670,8 @@ test('Minecraft controls group connection, actions, command guidance, and visibl
  assert.equal(check.parentElement,strip);
  assert.equal(check.textContent,'Comprobar conexi\u00f3n');
  assert.equal(check['aria-label'],'Comprobar conexi\u00f3n sin ejecutar un alias');
- assert.equal(s.nodes.find(n=>n.textContent==='Desconectar').parentElement,strip);
- assert.ok(!s.nodes.find(n=>n.className==='minecraft-permission').children.some(n=>n.textContent==='Desconectar'));
+ assert.equal(s.nodes.find(n=>n.textContent==='Desvincular mundo').parentElement,strip);
+ assert.ok(!s.nodes.find(n=>n.className==='minecraft-permission').children.some(n=>n.textContent==='Desvincular mundo'));
  assert.ok(s.nodes.some(n=>n.textContent==='Pausar cola'));
  assert.ok(!s.nodes.some(n=>n.textContent==='Herramientas de prueba'));
  assert.ok(!s.nodes.some(n=>n.textContent==='Probar regalo completo'));
@@ -674,14 +692,16 @@ test('Minecraft controls group connection, actions, command guidance, and visibl
 
 test('queue activity displays execution details and its individual pacing countdown',async()=>{
  const s=setup();await s.flush();
- s.setState({effect_queue:{pending_count:8,current:{donor:'Luna',gift:'Rose',action:'Zombi',remaining:3},next:{donor:'Sol',gift:'Heart',action:'TNT',remaining:2},interval_seconds:1.5,next_object_in_seconds:1.2,wave_seconds_remaining:17,pressure:'accumulating',failure_count:2,paused:false,objects:20,period_seconds:30}});
+ s.setState({effect_queue:{connection_ready:true,pending_count:8,current:{donor:'Luna',gift:'Rose',action:'Zombi',remaining:3},next:{donor:'Sol',gift:'Heart',action:'TNT',remaining:2},pending:[{donor:'Sol',gift:'Heart',action:'TNT',remaining:2}],unconfirmed_count:1,unconfirmed:[{gift:'Rose',action:'Zombi',donor:'Luna',preset_id:'zombie'}],interval_seconds:1.5,next_object_in_seconds:1.2,wave_seconds_remaining:17,pressure:'accumulating',failure_count:2,paused:false,objects:20,period_seconds:30}});
  await s.tick();
  const activity=s.nodes.find(n=>n.className==='minecraft-activity');
  const flatten=node=>[node,...node.children.flatMap(flatten)];
  const text=flatten(activity).map(n=>n.textContent).join(' ');
  for(const label of ['Zombi','Rose','Luna','3','TNT','Sol','2','17','1.5','acumulando','2'])assert.ok(text.includes(label),`queue activity includes ${label}`);
+ assert.ok(text.includes('Heart → TNT'),'pending rows show gift-to-action provenance');
+ assert.match(text,/requieren revisión manual: 1/);assert.match(text,/Rose → Zombi · Luna · decide antes de repetir/);
  assert.match(text,/Cada efecto se ejecuta por separado/);
- s.setState({effect_queue:{pending_count:21,remaining_objects:42,pressure:'saturated',paused:false}});await s.tick();
+ s.setState({effect_queue:{connection_ready:true,pending_count:21,remaining_objects:42,pressure:'saturated',paused:false}});await s.tick();
  assert.match(s.nodes.find(n=>n.className==='minecraft-queue-status').textContent,/saturada · en espera, sin rechazar regalos/);
 });
 
@@ -720,7 +740,8 @@ test('filtered rows retain action drafts and mappings during saves, polling, and
  const s=setup({initialPresets:{cow:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:3},zombie:{gift_id:'1',gift_name:'Rose',enabled:true,quantity:2}}});await s.flush();
  const cow=s.nodes.find(n=>n.dataset.presetQuantity==='cow');cow.value='7';cow.events.input();
  s.actionFilter('abilities').onclick();await s.tick();assert.equal(cow.value,'7');assert.equal(s.actionRow('cow').hidden,true);
- const zombie=s.preset('zombie','enabled');zombie.checked=false;await zombie.events.change();await s.flush();
+ const zombie=s.preset('zombie','enabled');assert.equal(zombie.textContent,'Activa');
+ const zombieGift=s.preset('zombie','gift');await zombieGift.events.change();await s.flush();
  let body=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
  assert.equal(body.presets.cow.quantity,3);assert.equal(body.presets.cow.gift_id,'1');assert.equal(cow.value,'7');
  s.actionFilter('all').onclick();s.holdPost('/minecraft/presets');const saving=cow.events.change();await s.flush();
@@ -728,7 +749,7 @@ const count=s.requests.length;s.actionFilter('items').onclick();await s.click('P
  s.fail(true);s.releasePost();await saving;await s.flush();s.fail(false);await s.tick();
  assert.equal(Number(cow.value),7);assert.equal(s.actionFilter('items').getAttribute('aria-pressed'),'true');
  body=s.requests.filter(r=>r.path==='/minecraft/presets').at(-1).data;
- assert.equal(body.presets.cow.quantity,7);assert.equal(body.presets.zombie.enabled,false);assert.equal(body.presets.zombie.quantity,2);
+ assert.equal(body.presets.cow.quantity,7);assert.equal(body.presets.zombie.enabled,true);assert.equal(body.presets.zombie.quantity,2);
 });
 
 test('each edition hydrates with Todos and later filter choice survives polling and edition changes',async()=>{

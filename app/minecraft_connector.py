@@ -15,12 +15,16 @@ from minecraft_presets import PresetJob, catalog, categories, sections, commands
 
 logger = logging.getLogger(__name__)
 
+
+class AmbiguousMinecraftExecution(OSError):
+    """The command may have reached Minecraft, so it must not be replayed automatically."""
+
 class MinecraftConnector:
     def __init__(self, app, runtime):
         self.r = runtime
-        self.config = {'host': '127.0.0.1', 'port': 25575, 'commands': {}}
+        self.config = {'host': '127.0.0.1', 'port': 25575, 'commands': {}, 'immediate_effects': False}
         self.edition = 'java'
-        self.profiles = {'java': self.config, 'bedrock': {'commands': {}}}
+        self.profiles = {'java': self.config, 'bedrock': {'commands': {}, 'immediate_effects': False}}
         self.password = ''
         self.authorized = False
         self.authorized_generation = None
@@ -39,6 +43,7 @@ class MinecraftConnector:
         self.current_effect = None
         self.log = []
         self.revision = 0
+        self.java_ready_revision = None
         self.lock = threading.RLock()
         self.control_lock = threading.RLock()
         self.preset_lock = threading.RLock()
@@ -65,10 +70,13 @@ class MinecraftConnector:
                         raise ValueError('Edición inválida')
                     profiles = {key: self.validate({**saved['profiles'].get(key, {}), 'edition': key})
                                 for key in ('java', 'bedrock')}
+                    for profile in profiles.values():
+                        profile['presets'] = self._canonical_presets(profile.get('presets'))
                     self.profiles, self.edition = profiles, edition
                     self.config = profiles[edition]
                 else:
                     self.config = self.validate(saved)
+                    self.config['presets'] = self._canonical_presets(self.config.get('presets'))
                     self.profiles['java'] = self.config
                     self.edition = 'java'
             except (TypeError, ValueError):
@@ -112,6 +120,7 @@ class MinecraftConnector:
                       'No se pudo comprobar Bedrock. Desconecta, prepara otra conexión y pega el nuevo comando.')
 
     def snapshot(self):
+        self.config['presets'] = self._canonical_presets(self.config.get('presets'))
         return dict(config=self.config, edition=self.edition, profiles=self.profiles,
                     authorized=self.authorized_now(), queued=self.pending_effect_count(), log=self.log,
                     effect_queue=self.queue_snapshot(),
@@ -156,7 +165,21 @@ class MinecraftConnector:
         if 'presets' in data:config['presets'] = mappings(data['presets'])
         if 'limits' in data:config['limits'] = limits(data['limits'])
         if 'name_format' in data:config['name_format'] = name_format(data['name_format'])
+        if 'immediate_effects' in data:
+            immediate_effects = data['immediate_effects']
+            if type(immediate_effects) is not bool:
+                raise ValueError('La ejecución sin espera debe ser verdadera o falsa')
+            config['immediate_effects'] = immediate_effects
         return config
+
+    def _canonical_presets(self, presets, previous=None):
+        rows = mappings(presets, previous)
+        catalog = getattr(self.r, 'gift_catalog', {})
+        for row in rows.values():
+            gift = catalog.get(row['gift_id']) if row['gift_id'] else None
+            if isinstance(gift, dict) and str(gift.get('id', row['gift_id'])) == row['gift_id']:
+                row['gift_name'] = str(gift.get('name') or row['gift_name'])[:100]
+        return rows
 
     def _persist(self):
         if self.r.archive:
@@ -175,7 +198,7 @@ class MinecraftConnector:
                 stable_id = identity[1]
                 self.admit_presets(selected, record.get('user'), automatic=True,
                                    gift_count=record.get('count', 1), identity=stable_id,
-                                   gift_name=record.get('gift', ''))
+                                   gift_name=record.get('gift', ''), gift_id=record.get('gift_id', ''))
 
     def matching_presets(self, gift_id):
         return tuple(key for key, row in mappings(self.config.get('presets')).items()
@@ -186,7 +209,7 @@ class MinecraftConnector:
         return self.admit_presets((preset_id,), 'Prueba', automatic,
                                   identity='manual:'+uuid.uuid4().hex)
 
-    def admit_presets(self, selected, donor, automatic=False, gift_count=1, identity=None, gift_name=''):
+    def admit_presets(self, selected, donor, automatic=False, gift_count=1, identity=None, gift_name='', gift_id=''):
         with self.preset_lock:
             now = time.monotonic()
             # The general simulator may drain pending queue items and call task_done.
@@ -239,7 +262,9 @@ class MinecraftConnector:
                             tuple(announcement_for(key, self.edition, donor,
                                                    quantity=rows[key].get('quantity'),
                                                    gift_count=gift_count) for key in selected))
+            action_names = {row['id']:row['name'] for row in catalog()}
             effect = {'identity':str(identity), 'donor':job.donor, 'gift_name':str(gift_name)[:100],
+                      'gift_id':str(gift_id)[:100], 'action_name':action_names.get(job.preset_id, job.preset_id),
                       'preset_id':job.preset_id, 'selected_ids':list(job.selected_ids),
                       'commands':list(job.commands), 'command_labels':list(job.command_labels),
                       'command_groups':groups, 'total':total_commands,
@@ -291,21 +316,33 @@ class MinecraftConnector:
         total = effect.get('total', len(effect.get('commands', ())))
         remaining = max(0, total-effect.get('next_index', 0))
         return {'identity':effect['identity'], 'donor':effect['donor'],
-                'gift':effect.get('gift_name', ''), 'preset_id':effect['preset_id'],
-                'remaining':remaining, 'failures':effect.get('failures', 0)}
+                'gift':effect.get('gift_name', ''), 'gift_id':effect.get('gift_id', ''),
+                'action':effect.get('action_name', effect['preset_id']),
+                'preset_id':effect['preset_id'], 'quantity':effect.get('gift_count', total),
+                'state':effect.get('status', 'pending'), 'remaining':remaining,
+                'failures':effect.get('failures', 0)}
+
+    def unconfirmed_effects(self):
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'unconfirmed_minecraft_effects'):
+            return archive.unconfirmed_minecraft_effects()
+        return [effect for effect in self._memory_effects.values() if effect.get('status') == 'unconfirmed']
 
     def queue_snapshot(self):
         pending = self._pending_effects()
-        count = len(pending)
+        unconfirmed = self.unconfirmed_effects()
+        connection_ready = self._connection_ready()
+        executable = pending if connection_ready else []
+        count = len(executable)
         remaining_objects = sum(max(0, row.get('total', len(row.get('commands', ())))-
-                                   row.get('next_index', 0)) for row in pending)
+                                   row.get('next_index', 0)) for row in executable)
         rate = limits(self.config.get('limits'))
         interval = self.pacing_interval()
         objects = rate.get('objects', rate.get('per_minute', 20))
         period = rate.get('period_seconds', 60)
         self._load_effect_fairness()
         now = time.time()
-        if pending:
+        if executable:
             if self._wave_started_at is None:
                 self._set_effect_wave_anchor(now)
             elapsed = max(0, now - self._wave_started_at)
@@ -316,21 +353,33 @@ class MinecraftConnector:
             wave_wait = period
         wait = max(0, self._next_object_at-time.monotonic()) if self._next_object_at is not None else 0
         pressure = 'normal' if count <= 5 else ('accumulating' if count <= 20 else 'saturated')
-        ready = [row for row in pending if self._effect_executable(row)]
-        next_effect = ready[0] if ready else (pending[0] if pending else None)
+        ready = [row for row in executable if self._effect_executable(row)]
+        next_effect = ready[0] if ready else None
         if ready and self._same_donor_count >= 5:
             next_effect = next((row for row in ready if row['donor'] != self._last_effect_donor), next_effect)
-        return {'pending_count':count, 'current':self.current_effect,
+        return {'pending_count':count, 'stored_pending_count':len(pending),
+                'held_pending_count':len(pending)-count, 'connection_ready':connection_ready,
+                'current':self.current_effect if connection_ready else None,
                 'next':self._effect_summary(next_effect) if next_effect else None,
-                'pending':[self._effect_summary(row) for row in pending[:20]],
+                'pending':[self._effect_summary(row) for row in executable[:20]],
                 'objects':objects, 'period_seconds':period, 'interval_seconds':interval,
-                'next_object_in_seconds':round(wait, 2), 'wave_seconds_remaining':round(wave_wait, 2),
+                'next_object_in_seconds':round(wait, 2) if connection_ready else None,
+                'wave_seconds_remaining':round(wave_wait, 2) if connection_ready else None,
                 'remaining_objects':remaining_objects,
-                'estimated_wait_seconds':round(max(0, remaining_objects-1)*interval+wait, 2),
+                'estimated_wait_seconds':round(max(0, remaining_objects-1)*interval+wait, 2) if connection_ready else None,
                 'pressure':pressure, 'pressure_thresholds':{'normal_max':5,'accumulating_max':20},
                 'failure_count':sum(row.get('failures',0) for row in pending),
                 'retry_in_seconds':round(max(0,self._retry_at-time.monotonic()),2),
-                'paused':self.effects_paused()}
+                'unconfirmed':[self._effect_summary(row) for row in unconfirmed[:20]],
+                'unconfirmed_count':len(unconfirmed),
+                'paused':self.effects_paused(), 'immediate_effects':bool(self.config.get('immediate_effects', False))}
+
+    def _connection_ready(self):
+        if not self.authorized_now():
+            return False
+        if self.edition == 'java':
+            return self.java_ready_revision == self.revision
+        return self.bedrock.snapshot()['connected'] and self.connection_check == 'ready'
 
     def effects_paused(self):
         if self._effects_paused is None:
@@ -356,7 +405,7 @@ class MinecraftConnector:
         return effect.get('next_index', 0) < effect.get('total', len(effect.get('commands', ())))
 
     def pacing_interval(self):
-        return pacing_interval(self.config.get('limits'))
+        return 0 if self.config.get('immediate_effects', False) else pacing_interval(self.config.get('limits'))
 
     def _confirm_effect_object(self, effect, index):
         archive = getattr(self.r, 'archive', None)
@@ -384,6 +433,19 @@ class MinecraftConnector:
             if current:
                 current['failures'] = current.get('failures', 0) + 1
                 current['last_failure'] = str(reason)[:80]
+
+    def _hold_effect_unconfirmed(self, effect, reason):
+        held = dict(effect, status='unconfirmed', failures=effect.get('failures', 0) + 1,
+                    unconfirmed_reason=str(reason)[:80],
+                    unconfirmed_at=time.time())
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'update_minecraft_effect'):
+            archive.update_minecraft_effect(held)
+        else:
+            self._memory_effects[effect['identity']] = held
+        self.note(f'Entrega sin confirmar · {effect.get("action_name", effect["preset_id"])} · {effect["donor"]}: requiere revisión manual',
+                  alias=effect.get('action_name', effect['preset_id']), outcome='unconfirmed',
+                  identity=effect['identity'], donor=effect['donor'], gift=effect.get('gift_name',''))
 
     def _finish_effect_reservation(self, identity):
         with self.preset_lock:
@@ -429,7 +491,7 @@ class MinecraftConnector:
     def run_next_effect(self):
         """Execute one confirmed object without removing work during pauses or outages."""
         self._load_effect_fairness()
-        if self.effects_paused() or not (self.authorized_now() and not self.r.production.settings.get('emergency') and
+        if self.effects_paused() or not (self._connection_ready() and not self.r.production.settings.get('emergency') and
                 self.r.production.settings.get('scene', 'talk') == 'talk'):
             return False
         if time.monotonic() < self._retry_at:
@@ -440,7 +502,7 @@ class MinecraftConnector:
             return False
         if self._next_object_at is not None:
             while time.monotonic() < self._next_object_at:
-                if self.effects_paused() or not self.authorized_now() or self.r.production.settings.get('emergency') or self.r.production.settings.get('scene', 'talk') != 'talk':
+                if self.effects_paused() or not self._connection_ready() or self.r.production.settings.get('emergency') or self.r.production.settings.get('scene', 'talk') != 'talk':
                     return False
                 time.sleep(min(.1, self._next_object_at-time.monotonic()))
         chosen = ready[0]
@@ -449,7 +511,7 @@ class MinecraftConnector:
         index = chosen.get('next_index', 0)
         if index >= chosen.get('total', len(chosen.get('commands', ()))):
             return False
-        if self.effects_paused() or not self.authorized_now() or not self._effect_executable(chosen):
+        if self.effects_paused() or not self._connection_ready() or not self._effect_executable(chosen):
             return False
         command, alias = self._effect_object(chosen, index)
         self.current_effect = {**self._effect_summary(chosen), 'step':index+1,
@@ -468,26 +530,40 @@ class MinecraftConnector:
                 response, outcome = result['response'], result['outcome']
         except Exception as exc:
             self.current_effect = None
-            outcome = 'connection_error' if isinstance(exc, OSError) else 'unconfirmed'
+            outcome = ('connection_error' if chosen['edition'] == 'java' and isinstance(exc, OSError)
+                       and not isinstance(exc, AmbiguousMinecraftExecution) else 'unconfirmed')
             response = ''
             self.note(f'Objeto pendiente · {alias} · {chosen["donor"]}: {type(exc).__name__}',
                       alias=alias, outcome=outcome, identity=chosen['identity'], step=index+1,
                       total=chosen.get('total', len(chosen.get('commands', ()))), donor=chosen['donor'])
             self._record_effect_failure(chosen['identity'], type(exc).__name__)
+            if outcome == 'unconfirmed':
+                self._hold_effect_unconfirmed(chosen, type(exc).__name__)
+                return False
             self._retry_count += 1
             self._retry_at = time.monotonic() + min(30, 2 ** min(self._retry_count-1, 5))
             return False
         self.current_effect = None
         total = chosen.get('total', len(chosen.get('commands', ())))
-        self.note(f'{"Éxito confirmado" if outcome == "success" else "Sin confirmar"} · {alias} · {chosen["donor"]} · objeto {index+1}/{total}: {response or "sin respuesta"}',
-                  alias=alias, outcome=outcome, response=response, identity=chosen['identity'],
-                  step=index+1, total=total, donor=chosen['donor'], gift=chosen.get('gift_name',''))
+        action_name = chosen.get('action_name', alias)
+        self.note(f'{"Éxito confirmado" if outcome == "success" else "Sin confirmar"} · {action_name} · {chosen["donor"]} · objeto {index+1}/{total}: {response or "sin respuesta"}',
+                  alias=action_name, action=action_name, outcome=outcome, response=response,
+                  identity=chosen['identity'], gift_id=chosen.get('gift_id',''), gift=chosen.get('gift_name',''),
+                  quantity=chosen.get('gift_count',1), state=outcome,
+                  step=index+1, total=total, donor=chosen['donor'])
         self.execution_log.append({'identity':chosen['identity'],'donor':chosen['donor'],
                                    'command':command,'outcome':outcome,'step':index+1})
-        if outcome != 'success' or not self._confirm_effect_object(chosen, index):
+        if outcome == 'unconfirmed':
+            self._record_effect_failure(chosen['identity'], outcome)
+            self._hold_effect_unconfirmed(chosen, outcome)
+            return False
+        if outcome != 'success':
             self._record_effect_failure(chosen['identity'], outcome)
             self._retry_count += 1
             self._retry_at = time.monotonic() + min(30, 2 ** min(self._retry_count-1, 5))
+            return False
+        if not self._confirm_effect_object(chosen, index):
+            self._hold_effect_unconfirmed(chosen, 'confirmation_not_persisted')
             return False
         self._retry_count = 0
         self._retry_at = 0
@@ -668,20 +744,28 @@ class MinecraftConnector:
 
     def execute(self, command):
         config, password = dict(self.config), self.password
-        with socket.create_connection((config['host'], config['port']), timeout=3) as sock:
-            sock.settimeout(3)
-            sock.sendall(self.packet(10, 3, password))
-            auth_id, kind, _ = self.receive(sock)
-            if kind == 0:
+        command_attempted = False
+        try:
+            with socket.create_connection((config['host'], config['port']), timeout=3) as sock:
+                sock.settimeout(3)
+                sock.sendall(self.packet(10, 3, password))
                 auth_id, kind, _ = self.receive(sock)
-            if auth_id == -1:
-                raise PermissionError('Contraseña RCON rechazada')
-            if auth_id != 10 or kind != 2:raise OSError('Autenticación RCON inesperada')
-            sock.sendall(self.packet(11, 2, command))
-            response_id, kind, response = self.receive(sock)
-            if response_id != 11 or kind != 0:
-                raise OSError('Respuesta RCON inesperada')
-            return response[:500]
+                if kind == 0:
+                    auth_id, kind, _ = self.receive(sock)
+                if auth_id == -1:
+                    raise PermissionError('Contraseña RCON rechazada')
+                if auth_id != 10 or kind != 2:raise OSError('Autenticación RCON inesperada')
+                command_attempted = True
+                sock.sendall(self.packet(11, 2, command))
+                response_id, kind, response = self.receive(sock)
+                if response_id != 11 or kind != 0:
+                    raise OSError('Respuesta RCON inesperada')
+                return response[:500]
+        except Exception as exc:
+            self.java_ready_revision = None
+            if command_attempted:
+                raise AmbiguousMinecraftExecution('Minecraft no confirmó si ejecutó el comando') from exc
+            raise
 
     def enqueue(self, alias, context=None):
         if not self.authorized_now() or alias not in self.config['commands'] or self.r.production.settings['emergency'] or self.r.production.settings.get('scene','talk') != 'talk':
@@ -785,8 +869,8 @@ class MinecraftConnector:
                     if edition not in ('java', 'bedrock'):raise ValueError('Edición inválida')
                     config = self.profiles[edition] if data.get('select_only') is True else self.validate(data)
                     if 'presets' in data:
-                        config['presets'] = mappings(data['presets'], self.profiles[edition].get('presets'))
-                    for key in ('presets', 'limits', 'name_format'):
+                        config['presets'] = self._canonical_presets(data['presets'], self.profiles[edition].get('presets'))
+                    for key in ('presets', 'limits', 'name_format', 'immediate_effects'):
                         if key not in config and key in self.profiles[edition]:
                             config[key] = self.profiles[edition][key]
                 except (TypeError, ValueError) as exc:
@@ -797,6 +881,7 @@ class MinecraftConnector:
                         with self.preset_lock:
                             self.authorized = False
                             self.authorized_generation = None
+                            self.java_ready_revision = None
                             self.revision += 1
                             self.preset_generation += 1
                             self.profiles[self.edition] = self.config
@@ -818,7 +903,7 @@ class MinecraftConnector:
                     raise ValueError('Configuración de acciones inválida')
                 with self.preset_lock:
                     if data['edition'] != self.edition:return jsonify(error='La edición cambió. Actualiza antes de guardar.'),409
-                    self.config['presets'] = mappings(data['presets'], self.config.get('presets'))
+                    self.config['presets'] = self._canonical_presets(data['presets'], self.config.get('presets'))
                     self.profiles[self.edition] = self.config
                     self.preset_generation += 1
                 self._persist()
@@ -858,12 +943,21 @@ class MinecraftConnector:
             if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
             data = request.get_json(silent=True)
             try:
-                if not isinstance(data, dict) or set(data) != {'edition', 'limits', 'name_format'}:
+                if not isinstance(data, dict) or set(data) not in (
+                        {'edition', 'limits', 'name_format'},
+                        {'edition', 'limits', 'name_format', 'immediate_effects'}):
                     raise ValueError('Configuración inválida')
                 clean, style = limits(data['limits']), name_format(data['name_format'])
+                immediate = data.get('immediate_effects', self.config.get('immediate_effects', False))
+                if type(immediate) is not bool:raise ValueError('La ejecución sin espera debe ser verdadera o falsa')
                 with self.preset_lock:
                     if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
-                    self.config.update(limits=clean, name_format=style)
+                    self.config.update(limits=clean, name_format=style, immediate_effects=immediate)
+                    if immediate:
+                        self._next_object_at = time.monotonic()
+                    elif self._last_effect_confirmed_at is not None:
+                        wait = max(0, pacing_interval(clean) - (time.time() - self._last_effect_confirmed_at))
+                        self._next_object_at = time.monotonic() + wait
                     self.preset_generation += 1
                 self._persist()
                 return jsonify(self.snapshot())
@@ -928,6 +1022,7 @@ class MinecraftConnector:
                         if edition != self.edition or revision != self.revision:
                             return jsonify(error='La conexión cambió. Actualiza su estado.'),409
                         self.password = ''
+                        self.java_ready_revision = None
                     self.bedrock.close()
                 finally:
                     self.control_lock.release()
@@ -941,6 +1036,7 @@ class MinecraftConnector:
                     if edition != self.edition or revision != self.revision:
                         return jsonify(error='La conexión cambió. Autoriza de nuevo.'),409
                     self.authorized = False
+                    self.java_ready_revision = None
                 return jsonify(error=f'No se pudo autorizar Minecraft: {type(exc).__name__}'), 400
             with self.preset_lock:
                 if edition != self.edition or revision != self.revision:return jsonify(error='La conexión cambió. Autoriza de nuevo.'),409
@@ -948,6 +1044,7 @@ class MinecraftConnector:
                     return jsonify(error='Bedrock no confirmó la consulta de jugadores. Revisa la conexión y los permisos.'),400
                 self.authorized = True
                 self.authorized_generation = generation if edition == 'bedrock' else None
+                self.java_ready_revision = revision if edition == 'java' else None
             self.note('Minecraft autorizado: '+edition)
             return jsonify(ok=True, authorized=self.authorized_now())
 
@@ -969,17 +1066,25 @@ class MinecraftConnector:
                 self.bedrock.close()
                 self._bedrock_changed()
                 self.password = ''
+                self.java_ready_revision = None
             return jsonify(ok=True)
 
         @app.post('/minecraft/check')
         def check_connection():
             if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
-            if self.edition == 'java' and not self.password:return jsonify(error='Guarda la contraseña RCON primero'),409
+            edition, revision = self.edition, self.revision
+            if edition == 'java' and not self.password:
+                self.java_ready_revision = None
+                return jsonify(error='Guarda la contraseña RCON primero'),409
             try:
-                if self.edition == 'bedrock':
+                if edition == 'bedrock':
                     result = self.bedrock.execute('list')
                     if result['outcome'] != 'success':return jsonify(error='Bedrock no confirmó la consulta de jugadores.'),502
                 else:self.execute('list')
+                with self.preset_lock:
+                    if edition != self.edition or revision != self.revision:
+                        return jsonify(error='La conexión cambió. Comprueba su estado otra vez.'),409
+                    if edition == 'java':self.java_ready_revision = revision
                 return jsonify(ok=True,detail='Minecraft respondió a la consulta de jugadores.')
             except (OSError,PermissionError) as exc:
                 return jsonify(error=f'Minecraft no confirmó la conexión: {type(exc).__name__}'),502
