@@ -961,23 +961,31 @@
    if(value.gift_id&&!giftOptionData.some(item=>item.id===value.gift_id))options.push({id:value.gift_id,name:value.gift_name||value.gift_id,label:`${value.gift_name||value.gift_id} · guardado`});
    row.gift.replaceChildren(...options.map(item=>{const option=el('option',item.label);option.value=item.id;return option;}));
    row.giftOptions=options;
-   row.giftPicker.replaceChildren(...options.map(item=>{
+   row.signature=signature;
+  }
+  if(row.gift.value!==value.gift_id)row.gift.value=value.gift_id;
+  renderGiftOptionList(row);
+  const selected=row.giftOptions.find(item=>item.id===row.gift.value);
+  row.giftButton.replaceChildren(giftImage(selected||{name:'Selecciona un regalo'}),el('span',selected?.label||'Selecciona un regalo'));
+  row.giftButton.title=selected?.name||'Selecciona un regalo';
+  row.giftButton.setAttribute('aria-expanded',String(!row.giftPicker.hidden));
+  for(const option of row.giftListbox.children)option.setAttribute('aria-selected',String(option.dataset.giftId===row.gift.value));
+  updatePresetState(row,actionById.get(row.id),value.enabled);
+  if(row.quantity&&document.activeElement!==row.quantity)row.quantity.value=rowDrafts()[row.id]??value.quantity??row.defaultQuantity;
+ }
+ function renderGiftOptionList(row){
+  const query=String(row.giftSearch.value||'').trim().toLocaleLowerCase();
+  const options=row.giftOptions.filter(item=>!query||!!item.id&&String(item.name||'').toLocaleLowerCase().includes(query));
+  row.giftListbox.replaceChildren(...options.map(item=>{
     const option=el('div');option.className='minecraft-gift-option';option.setAttribute('role','option');option.tabIndex=-1;option.dataset.giftId=item.id;option.setAttribute('aria-selected','false');option.title=item.name;
     const image=giftImage(item);option.append(image,el('span',item.label));
     option.addEventListener('click',()=>chooseGift(row,item.id));
     option.addEventListener('keydown',event=>giftOptionKeydown(event,row,option));
     return option;
-   }));
-   row.signature=signature;
-  }
-  if(row.gift.value!==value.gift_id)row.gift.value=value.gift_id;
-  const selected=row.giftOptions.find(item=>item.id===row.gift.value);
-  row.giftButton.replaceChildren(giftImage(selected||{name:'Selecciona un regalo'}),el('span',selected?.label||'Selecciona un regalo'));
-  row.giftButton.title=selected?.name||'Selecciona un regalo';
-  row.giftButton.setAttribute('aria-expanded',String(!row.giftPicker.hidden));
-  for(const option of row.giftPicker.children)option.setAttribute('aria-selected',String(option.dataset.giftId===row.gift.value));
-  updatePresetState(row,actionById.get(row.id),value.enabled);
-  if(row.quantity&&document.activeElement!==row.quantity)row.quantity.value=rowDrafts()[row.id]??value.quantity??row.defaultQuantity;
+  }));
+  const empty=!!query&&!options.length;
+  row.giftResults.hidden=!empty;
+  row.giftResults.textContent=empty?'No hay regalos que coincidan. Prueba con otro nombre.':'';
  }
  function giftImage(item){
   const image=document.createElement('img');image.className='minecraft-gift-image';image.alt='';image.setAttribute('aria-hidden','true');image.referrerPolicy='no-referrer';
@@ -989,13 +997,13 @@
  function openGiftPicker(row,edge='selected'){
   if(row.giftButton.disabled)return;
   row.giftPicker.hidden=false;row.giftButton.setAttribute('aria-expanded','true');
-  const options=[...row.giftPicker.children],selected=options.find(option=>option.dataset.giftId===row.gift.value);
-  const target=edge==='first'?options[0]:edge==='last'?options.at(-1):selected||options[0];target?.focus();
+  const options=[...row.giftListbox.children];
+  if(edge==='first')options[0]?.focus();else if(edge==='last')options.at(-1)?.focus();else row.giftSearch.focus();
  }
  function giftOptionKeydown(event,row,option){
-  const options=[...row.giftPicker.children],index=options.indexOf(option);let next;
+  const options=[...row.giftListbox.children],index=options.indexOf(option);let next;
   if(event.key==='ArrowDown')next=(index+1)%options.length;
-  else if(event.key==='ArrowUp')next=(index+options.length-1)%options.length;
+  else if(event.key==='ArrowUp'){if(index===0){event.preventDefault();row.giftSearch.focus();return;}next=index-1;}
   else if(event.key==='Home')next=0;
   else if(event.key==='End')next=options.length-1;
   else if(event.key==='Escape'){event.preventDefault();closeGiftPicker(row,true);return;}
@@ -1021,7 +1029,17 @@
   const giftControl=el('div');giftControl.className='minecraft-gift-picker';
   const giftButton=el('button','Selecciona un regalo');giftButton.type='button';giftButton.className='minecraft-gift-trigger';giftButton.setAttribute('aria-label','Regalo para '+preset.name);giftButton.setAttribute('aria-haspopup','listbox');giftButton.setAttribute('aria-expanded','false');giftButton.onclick=()=>row.giftPicker.hidden?openGiftPicker(row):closeGiftPicker(row);
  giftButton.addEventListener('keydown',event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();openGiftPicker(row,event.key==='ArrowUp'?'last':'selected');}});
-  const giftPicker=el('div');giftPicker.className='minecraft-gift-options';giftPicker.setAttribute('role','listbox');giftPicker.setAttribute('aria-label','Regalos para '+preset.name);giftPicker.hidden=true;
+  const giftPicker=el('div');giftPicker.className='minecraft-gift-options';giftPicker.hidden=true;
+  const giftSearch=el('input');giftSearch.type='search';giftSearch.className='minecraft-gift-search';giftSearch.dataset.giftSearch=preset.id;giftSearch.placeholder='Buscar regalo';giftSearch.setAttribute('aria-label','Buscar regalos para '+preset.name);giftSearch.setAttribute('autocomplete','off');
+  const giftListbox=el('div');giftListbox.className='minecraft-gift-listbox';giftListbox.setAttribute('role','listbox');giftListbox.setAttribute('aria-label','Regalos para '+preset.name);
+  const giftResults=el('div');giftResults.className='minecraft-gift-results';giftResults.dataset.giftResults=preset.id;giftResults.setAttribute('role','status');giftResults.setAttribute('aria-live','polite');giftResults.hidden=true;
+  giftPicker.append(giftSearch,giftListbox,giftResults);
+  giftSearch.addEventListener('input',()=>renderGiftOptionList(row));
+  giftSearch.addEventListener('keydown',event=>{
+   if(event.key==='Escape'){event.preventDefault();closeGiftPicker(row,true);}
+   else if(event.key==='ArrowDown'&&row.giftListbox.children.length){event.preventDefault();row.giftListbox.children[0].focus();}
+   else if(event.key==='ArrowUp'&&row.giftListbox.children.length){event.preventDefault();row.giftListbox.children.at(-1).focus();}
+  });
   giftControl.append(giftButton,giftPicker,gift);
   const enabled=el('span','Selecciona un regalo');enabled.className='minecraft-action-state-empty';enabled.dataset.presetEnabled=preset.id;
   const enabledLabel=el('div');enabledLabel.className='minecraft-action-enabled';enabledLabel.append(enabled);
@@ -1029,7 +1047,7 @@
   if(preset.quantity){quantity=el('input');quantity.type='number';quantity.min=1;quantity.max=20;quantity.step=1;quantity.value=preset.quantity;quantity.dataset.presetQuantity=preset.id;quantity.setAttribute('aria-label','Cantidad de '+preset.name);quantityLabel.append(el('span','Cantidad'),quantity);quantity.addEventListener('input',()=>{rowDrafts()[preset.id]=quantity.value;});quantity.addEventListener('change',()=>savePreset(preset.id));}
   const test=button('',async()=>{await api('/minecraft/presets/test',{edition:currentEdition,id:preset.id});notice.textContent='Prueba en cola. Revisa el registro.';});test.append(actionIcon('test'));test.setAttribute('aria-label','Probar acción: '+preset.name);test.setAttribute('title','Probar acción: '+preset.name);test.className='minecraft-action-test';
   const remove=button('',async()=>removePreset(preset.id));remove.append(actionIcon('remove'));remove.dataset.removeAction=preset.id;remove.setAttribute('aria-label','Quitar acción: '+preset.name);remove.setAttribute('title','Quitar acción: '+preset.name);remove.className='minecraft-action-remove';
-  node.append(title,giftControl,quantityLabel,enabledLabel,test,remove);const row={node,gift,giftButton,giftPicker,enabled,enabledLabel,quantity,id:preset.id,defaultQuantity:preset.quantity,signature:''};presetRows.set(preset.id,row);
+  node.append(title,giftControl,quantityLabel,enabledLabel,test,remove);const row={node,gift,giftButton,giftPicker,giftSearch,giftListbox,giftResults,enabled,enabledLabel,quantity,id:preset.id,defaultQuantity:preset.quantity,signature:''};presetRows.set(preset.id,row);
   gift.addEventListener('change',()=>savePreset(preset.id));
   return row;
  }

@@ -470,6 +470,28 @@ test('safety settings keep edition drafts and reconcile uncertain saves without 
  assert.ok(!s.nodes.some(n=>n.tagName==='label'&&n.textContent.startsWith('Regalo para simular')));
 });
 
+test('Minecraft gift picker searches by name and keeps filtered keyboard selection accessible',async()=>{
+  const s=setup();s.catalog([{id:'5655',name:'Rose'},{id:'7',name:'Rose Bouquet'},{id:'8',name:'Finger Heart'}]);await s.flush();await s.click('Actualizar regalos');await s.addAction('zombie');
+  const row=s.preset('zombie','gift').parentElement,trigger=row.children.find(n=>n.className==='minecraft-gift-trigger');
+  const menu=row.children.find(n=>n.className==='minecraft-gift-options');assert.ok(menu);
+  const search=s.nodes.find(n=>n.dataset.giftSearch==='zombie');assert.ok(search,'gift search input is rendered');
+  assert.equal(search.parentElement,menu,'search input lives inside the gift selection menu');assert.equal(search.getAttribute('aria-label'),'Buscar regalos para Zombi');
+  const list=menu.children.find(n=>n.role==='listbox'),results=menu.children.find(n=>n.dataset.giftResults==='zombie');assert.ok(list);assert.ok(results);
+  trigger.onclick();assert.equal(s.activeElement,search,'opening the picker focuses its search field');
+  search.value='rOsE';search.events.input();
+  assert.deepEqual(list.children.map(option=>option.title),['Rose','Rose Bouquet']);
+  list.children[0].events.click();await s.flush();
+  const saved=s.requests.filter(request=>request.path==='/minecraft/presets').at(-1).data.presets.zombie;
+  assert.equal(saved.gift_id,'5655');assert.equal(saved.gift_name,'Rose');
+  trigger.onclick();search.value='';search.events.input();assert.equal(list.children.length,4,'clearing restores the catalog and empty-selection option');
+  search.value='no matching gift';search.events.input();
+  assert.equal(list.children.length,0,'no-match state contains no selectable option');assert.equal(results.getAttribute('role'),'status');assert.equal(results.getAttribute('aria-live'),'polite');assert.match(results.textContent,/No hay regalos/i);
+  search.value='';search.events.input();
+  const down={key:'ArrowDown',preventDefault(){this.prevented=true;}};search.events.keydown(down);assert.equal(down.prevented,true);assert.equal(s.activeElement,list.children[0]);
+  const up={key:'ArrowUp',preventDefault(){this.prevented=true;}};list.children[0].events.keydown(up);assert.equal(up.prevented,true);assert.equal(s.activeElement,search);
+  const escape={key:'Escape',preventDefault(){this.prevented=true;}};search.events.keydown(escape);assert.equal(escape.prevented,true);assert.equal(menu.hidden,true);assert.equal(s.activeElement,trigger);
+});
+
 test('spawn quantities are visible, autosave per edition and preserve typing during polling',async()=>{
  const s=setup();await s.flush();await s.addAction('zombie');
  assert.equal(s.nodes.filter(n=>n.dataset.quickAction&&n.isConnected).length,1);

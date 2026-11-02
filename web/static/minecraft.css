@@ -44,8 +44,13 @@
 .minecraft-gift-trigger span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .minecraft-gift-image, .minecraft-gift-fallback { display: inline-grid; flex: 0 0 32px; place-items: center; width: 32px; height: 32px; box-sizing: border-box; border: 1px solid var(--control-field-line, var(--border)); border-radius: 7px; object-fit: contain; background: var(--control-field-bg, var(--bg-glass)); }
 .minecraft-gift-fallback { color: var(--teal); font-size: 14px; }
-.minecraft-gift-options { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; right: 0; max-height: min(260px, calc(100dvh - 24px)); overflow: auto; padding: 4px; border: 1px solid var(--control-field-line, var(--border)); border-radius: var(--control-field-radius, 9px); background: var(--control-field-bg, var(--bg-glass)); box-shadow: 0 8px 24px #0008; font: var(--ui-type-body, 14px)/1.5 var(--font-body, "Segoe UI", sans-serif); }
+.minecraft-gift-options { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; right: 0; max-height: min(300px, calc(100dvh - 24px)); overflow: auto; padding: 6px; border: 1px solid var(--control-field-line, var(--border)); border-radius: var(--control-field-radius, 9px); background: var(--control-field-bg, var(--bg-glass)); box-shadow: 0 8px 24px #0008; font: var(--ui-type-body, 14px)/1.5 var(--font-body, "Segoe UI", sans-serif); }
 .minecraft-gift-options[hidden] { display: none; }
+.studio-pane .minecraft-gift-search { display: block; width: 100%; min-height: 36px; box-sizing: border-box; margin: 0 0 4px; padding: 6px 9px; border: 1px solid var(--control-field-line, var(--border)); border-radius: 7px; background: var(--control-field-bg, var(--bg-glass)); color: var(--control-field-ink, var(--text-main)); font: inherit; }
+.minecraft-gift-search:focus-visible { outline: 2px solid var(--control-field-accent, var(--teal)); outline-offset: 1px; }
+.minecraft-gift-listbox { max-height: min(240px, calc(100dvh - 90px)); overflow-y: auto; }
+.minecraft-gift-results { padding: 8px; color: var(--text-muted); font-size: 12px; }
+.minecraft-gift-results[hidden] { display: none; }
 .minecraft-gift-option { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 8px; border-radius: 6px; color: var(--control-field-ink, var(--text-main)); cursor: pointer; font-size: var(--ui-type-body, 14px); }
 .minecraft-gift-option:hover, .minecraft-gift-option[aria-selected="true"] { background: color-mix(in srgb, var(--control-field-accent, var(--teal)) 12%, var(--control-field-bg, var(--bg-glass))); color: var(--control-field-ink, var(--text-main)); }
 .minecraft-gift-option:focus-visible { outline: 2px solid var(--control-field-accent, var(--teal)); outline-offset: -2px; }

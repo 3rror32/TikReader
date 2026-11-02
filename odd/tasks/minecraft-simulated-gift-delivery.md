@@ -104,6 +104,8 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Route: delegated direct.
   - Trigger evidence: the behavior spans JavaScript state, rendered controls, persistence, CSS layout, and DOM regression tests.
   - Test-first policy: add DOM regressions for search, removal, and absence of the enable checkbox before implementation.
+  - Search behavior for this work unit: render a compact, Spanish-labeled text filter inside each Minecraft gift picker; filter gift options by case-insensitive name as the query changes; preserve the selected-gift trigger and existing save flow; announce no matches accessibly; keep filtered arrow-key navigation and Escape-to-close behavior usable.
+  - Test-first scope for this work unit: add DOM regressions proving the picker contains the filter, matching is case-insensitive, choosing a filtered gift saves its catalog ID and name, clearing restores the catalog, empty results are announced without a selectable placeholder, and keyboard navigation/Escape continue to work; observe RED before implementation.
   - Acceptance criteria:
     - Minecraft offers a text gift search comparable to the simulator.
     - No per-preset enable checkbox is rendered or persisted.
@@ -113,6 +115,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - `node --test tests/test_minecraft_controls.cjs`.
     - Relevant Python preset and Bedrock tests.
     - Live Bedrock verification after the persisted mapping is updated.
+  - Evidence (search increment): the added DOM regression was RED before implementation because the picker had no search input (44 passed, 1 failed); after implementation `node --test tests/test_minecraft_controls.cjs` passed (45 tests). `git diff --check` passed. Python and live Bedrock checks remain pending for MSG-5.
 
 - [x] **MSG-6 — Queue valid Minecraft gifts with execution spacing**
   - Route: delegated direct.
