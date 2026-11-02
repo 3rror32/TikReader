@@ -90,6 +90,18 @@ def _health_with_splash(splash=None):
     splash.pump()
     return outcome['healthy']
 
+def _configure_webengine_compositing():
+    """Disable Windows GPU compositing unless the user opts back in."""
+    if os.name != 'nt' or os.environ.get('TIKREADER_GPU_COMPOSITING') == '1':
+        return
+    flag = '--disable-gpu-compositing'
+    chromium_flags = os.environ.get('QTWEBENGINE_CHROMIUM_FLAGS', '')
+    if flag in chromium_flags.split():
+        return
+    os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = (
+        f'{chromium_flags.rstrip()} {flag}'.strip()
+    )
+
 def launch(open_browser=None):
     missing=dependencies()
     if open_browser is None and (importlib.util.find_spec('PySide6') is None or
@@ -102,6 +114,7 @@ def launch(open_browser=None):
     if open_browser is None:
         # Importing Qt WebEngine can briefly monopolize the Python thread. Do
         # that before displaying the splash so its busy indicator never stalls.
+        _configure_webengine_compositing()
         from desktop_window import run as native_run
     splash = _create_startup_splash() if native_run is not None else None
     try:

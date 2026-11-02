@@ -266,6 +266,99 @@ def test_source_spec_bundles_ui_runtime_but_excludes_live_app_modules():
     assert "collect(" in normalized
 
 
+def test_windows_launcher_disables_only_gpu_compositing_and_preserves_flags():
+    namespace = runpy.run_path(str(ROOT / "app" / "launcher.py"))
+    configure = namespace["_configure_webengine_compositing"]
+
+    with patch("os.name", "nt"), patch.dict(
+        os.environ, {"QTWEBENGINE_CHROMIUM_FLAGS": "--use-angle=swiftshader"}, clear=True
+    ):
+        configure()
+        assert os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] == (
+            "--use-angle=swiftshader --disable-gpu-compositing"
+        )
+        configure()
+        assert os.environ["QTWEBENGINE_CHROMIUM_FLAGS"].count(
+            "--disable-gpu-compositing"
+        ) == 1
+
+
+def test_windows_launcher_compositor_opt_out_and_existing_flag_are_respected():
+    namespace = runpy.run_path(str(ROOT / "app" / "launcher.py"))
+    configure = namespace["_configure_webengine_compositing"]
+
+    with patch("os.name", "nt"), patch.dict(
+        os.environ,
+        {
+            "TIKREADER_GPU_COMPOSITING": "1",
+            "QTWEBENGINE_CHROMIUM_FLAGS": "--enable-features=UseSkiaRenderer",
+        },
+        clear=True,
+    ):
+        configure()
+        assert os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] == (
+            "--enable-features=UseSkiaRenderer"
+        )
+
+
+def test_windows_launcher_does_not_duplicate_preexisting_compositor_flag():
+    namespace = runpy.run_path(str(ROOT / "app" / "launcher.py"))
+    configure = namespace["_configure_webengine_compositing"]
+    existing = "--disable-gpu-compositing --enable-features=UseSkiaRenderer"
+
+    with patch("os.name", "nt"), patch.dict(
+        os.environ,
+        {"QTWEBENGINE_CHROMIUM_FLAGS": existing},
+        clear=True,
+    ):
+        configure()
+        assert os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] == existing
+
+
+def test_non_windows_launcher_leaves_chromium_flags_unchanged():
+    namespace = runpy.run_path(str(ROOT / "app" / "launcher.py"))
+    configure = namespace["_configure_webengine_compositing"]
+    existing = "--enable-features=UseSkiaRenderer"
+
+    with patch("os.name", "posix"), patch.dict(
+        os.environ,
+        {"QTWEBENGINE_CHROMIUM_FLAGS": existing},
+        clear=True,
+    ):
+        configure()
+        assert os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] == existing
+
+
+def test_launcher_configures_compositor_before_desktop_window_import():
+    launcher = ast.parse((ROOT / "app" / "launcher.py").read_text(encoding="utf-8"))
+    launch = next(
+        node for node in launcher.body
+        if isinstance(node, ast.FunctionDef) and node.name == "launch"
+    )
+    native_branch = next(
+        node for node in launch.body
+        if isinstance(node, ast.If)
+        and any(
+            isinstance(child, ast.ImportFrom) and child.module == "desktop_window"
+            for child in ast.walk(node)
+        )
+    )
+    configure_index = next(
+        index for index, node in enumerate(native_branch.body)
+        if isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Name)
+        and node.value.func.id == "_configure_webengine_compositing"
+    )
+    import_index = next(
+        index for index, node in enumerate(native_branch.body)
+        if isinstance(node, ast.ImportFrom)
+        and node.module == "desktop_window"
+    )
+
+    assert configure_index < import_index
+
+
 def test_source_spec_does_not_bundle_backend_qt_runtime():
     spec_path = ROOT / "packaging" / "TikReaderSource.spec"
     tree = ast.parse(spec_path.read_text(encoding="utf-8"), filename=str(spec_path))
