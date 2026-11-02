@@ -76,6 +76,45 @@ class PresetTests(unittest.TestCase):
         self.assertEqual(state['estimated_wait_seconds'],3)
         self.assertIn(state['pressure'],('normal','accumulating','saturated'))
 
+    def test_queue_wave_countdown_cycles_independently_of_object_confirmations(self):
+        self.save(preset='zombie')
+        folder=tempfile.TemporaryDirectory(dir=Path.cwd())
+        self.addCleanup(folder.cleanup)
+        self.runtime.archive=HistoryStore(Path(folder.name)/'history.sqlite3')
+        wall=[1000.0]
+        with patch('minecraft_connector.time.time',side_effect=lambda:wall[0]), \
+                patch.object(self.mc,'execute',return_value='Summoned new Zombie'), \
+                patch('minecraft_connector.time.sleep',side_effect=lambda delay:setattr(self,'now',self.now+delay)):
+            self.gift('wave-countdown',count=3)
+            self.assertEqual(self.mc.queue_snapshot()['wave_seconds_remaining'],30)
+            self.assertTrue(self.mc.run_next_effect())
+            wall[0]+=8
+            self.now+=2
+            self.assertTrue(self.mc.run_next_effect())
+            self.assertEqual(self.mc.queue_snapshot()['wave_seconds_remaining'],22)
+            self.mc._wave_started_at=None
+            self.mc._last_effect_confirmed_at=None
+            self.mc._fairness_loaded=False
+            self.assertEqual(self.mc.queue_snapshot()['wave_seconds_remaining'],22)
+            self.assertEqual(self.mc.pacing_interval(),1.5)
+            wall[0]=1029.6
+            self.assertEqual(self.mc.queue_snapshot()['wave_seconds_remaining'],0)
+            wall[0]=1030.1
+            self.assertEqual(self.mc.queue_snapshot()['wave_seconds_remaining'],30)
+            self.now+=2
+            self.assertTrue(self.mc.run_next_effect())
+            self.assertEqual(self.mc.pending_effect_count(),0)
+            self.assertIsNone(self.mc._wave_started_at)
+            wall[0]+=50
+            self.gift('wave-next')
+            self.assertEqual(self.mc.queue_snapshot()['wave_seconds_remaining'],30)
+            self.client.post('/minecraft/presets/settings',json={'edition':'java',
+                'limits':{'objects':20,'period_seconds':40},'name_format':'modern'})
+            configured=self.mc.queue_snapshot()
+            self.assertEqual(configured['period_seconds'],40)
+            self.assertEqual(configured['wave_seconds_remaining'],40)
+            self.assertEqual(self.mc.pacing_interval(),2)
+
     def test_spawn_objects_are_spaced_and_rotate_after_five_per_donor(self):
         self.save(preset='zombie')
         self.gift('ana',count=6)

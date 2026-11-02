@@ -30,6 +30,7 @@ class MinecraftConnector:
         self._last_effect_donor = None
         self._same_donor_count = 0
         self._last_effect_confirmed_at = None
+        self._wave_started_at = None
         self._fairness_loaded = False
         self._retry_at = 0
         self._retry_count = 0
@@ -263,13 +264,18 @@ class MinecraftConnector:
             return True
 
     def _enqueue_effect(self, effect):
+        was_idle = not self._pending_effects()
         archive = getattr(self.r, 'archive', None)
         if archive and hasattr(archive, 'enqueue_minecraft_effect'):
-            return archive.enqueue_minecraft_effect(effect)
-        if effect['identity'] in self._memory_effects:
-            return False
-        self._memory_effects[effect['identity']] = effect
-        return True
+            queued = archive.enqueue_minecraft_effect(effect)
+        elif effect['identity'] in self._memory_effects:
+            queued = False
+        else:
+            self._memory_effects[effect['identity']] = effect
+            queued = True
+        if queued and was_idle:
+            self._set_effect_wave_anchor(time.time())
+        return queued
 
     def _pending_effects(self):
         archive = getattr(self.r, 'archive', None)
@@ -297,10 +303,17 @@ class MinecraftConnector:
         interval = self.pacing_interval()
         objects = rate.get('objects', rate.get('per_minute', 20))
         period = rate.get('period_seconds', 60)
-        if self._last_effect_confirmed_at is None:
-            self._load_effect_fairness()
-        elapsed = max(0, time.time() - self._last_effect_confirmed_at) if self._last_effect_confirmed_at else 0
-        wave_wait = period - (elapsed % period) if elapsed else period
+        self._load_effect_fairness()
+        now = time.time()
+        if pending:
+            if self._wave_started_at is None:
+                self._set_effect_wave_anchor(now)
+            elapsed = max(0, now - self._wave_started_at)
+            wave_wait = round(period - (elapsed % period))
+        else:
+            if self._wave_started_at is not None:
+                self._set_effect_wave_anchor(None)
+            wave_wait = period
         wait = max(0, self._next_object_at-time.monotonic()) if self._next_object_at is not None else 0
         pressure = 'normal' if count <= 5 else ('accumulating' if count <= 20 else 'saturated')
         ready = [row for row in pending if self._effect_executable(row)]
@@ -387,18 +400,31 @@ class MinecraftConnector:
         state = archive.minecraft_fairness() if archive and hasattr(archive, 'minecraft_fairness') else {}
         self._last_effect_donor = state.get('last_donor')
         self._same_donor_count = int(state.get('same_donor_count', 0))
+        wave_started_at = state.get('wave_started_at')
+        if isinstance(wave_started_at, (int, float)) and not isinstance(wave_started_at, bool):
+            self._wave_started_at = wave_started_at
         last_at = state.get('last_confirmed_at')
         if isinstance(last_at, (int, float)):
             self._last_effect_confirmed_at = last_at
             wait = max(0, self.pacing_interval() - (time.time() - last_at))
             self._next_object_at = time.monotonic() + wait
 
+    def _set_effect_wave_anchor(self, started_at):
+        self._wave_started_at = started_at
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'set_minecraft_fairness'):
+            state = archive.minecraft_fairness() if hasattr(archive, 'minecraft_fairness') else {}
+            state = dict(state) if isinstance(state, dict) else {}
+            state['wave_started_at'] = started_at
+            archive.set_minecraft_fairness(state)
+
     def _save_effect_fairness(self):
         self._last_effect_confirmed_at = time.time()
         archive = getattr(self.r, 'archive', None)
         if archive and hasattr(archive, 'set_minecraft_fairness'):
             archive.set_minecraft_fairness({'last_donor':self._last_effect_donor,
-                'same_donor_count':self._same_donor_count,'last_confirmed_at':time.time()})
+                'same_donor_count':self._same_donor_count,'last_confirmed_at':self._last_effect_confirmed_at,
+                'wave_started_at':self._wave_started_at})
 
     def run_next_effect(self):
         """Execute one confirmed object without removing work during pauses or outages."""
@@ -471,6 +497,8 @@ class MinecraftConnector:
             self._same_donor_count += 1
         else:
             self._last_effect_donor, self._same_donor_count = chosen['donor'], 1
+        if not self._pending_effects():
+            self._set_effect_wave_anchor(None)
         self._save_effect_fairness()
         self._next_object_at = time.monotonic()+self.pacing_interval()
         return True
