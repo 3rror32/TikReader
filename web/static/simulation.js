@@ -150,10 +150,15 @@ window.SimulationUI = (() => {
   $('simulation-kind').onchange=()=>{const gift=$('simulation-kind').value==='gift';$('simulation-gift-fields').hidden=!gift;$('simulation-comment-label').hidden=gift;$('simulation-send').textContent=gift?'Enviar regalos':'Enviar comentario';};
   $('simulation-mode').onchange=()=>{$('simulation-rachainfo').textContent=$('simulation-mode').value==='streak'?'La racha pasa por 1, 2, 3… hasta N y termina sin contar dos veces el último regalo.':'Cada envío tiene su propio identificador y cantidad 1. Se respetan los tiempos de espera entre activaciones.';};
   document.querySelectorAll('[data-simulation-open]').forEach(button=>button.onclick=()=>window.Shell?.show(button.dataset.simulationOpen));
-  const giftInputs=[$('simulation-gift'),$('simulation-float-gift')],picker=el('div');
-  picker.id='simulation-gift-picker';picker.className='simulation-gift-picker';picker.setAttribute('role','listbox');picker.setAttribute('aria-label','Catálogo de regalos');picker.hidden=true;document.body.append(picker);
+  const giftInputs=[$('simulation-gift'),$('simulation-float-gift')],picker=el('div'),giftSearch=el('input'),giftSearchStatus=el('p'),giftOptions=el('div');
+  picker.id='simulation-gift-picker';picker.className='simulation-gift-picker';picker.setAttribute('role','group');picker.setAttribute('aria-label','Catálogo de regalos');picker.hidden=true;
+  giftSearch.type='search';giftSearch.className='simulation-gift-search';giftSearch.setAttribute('role','combobox');giftSearch.setAttribute('aria-label','Buscar regalo');giftSearch.setAttribute('aria-autocomplete','list');giftSearch.setAttribute('aria-haspopup','listbox');giftSearch.setAttribute('aria-controls','simulation-gift-options');giftSearch.setAttribute('aria-expanded','false');giftSearch.placeholder='Buscar regalo';giftSearch.autocomplete='off';
+  giftSearchStatus.className='simulation-gift-search-status';giftSearchStatus.setAttribute('role','status');giftSearchStatus.setAttribute('aria-live','polite');giftSearchStatus.hidden=true;
+  giftOptions.id='simulation-gift-options';giftOptions.className='simulation-gift-options';giftOptions.setAttribute('role','listbox');giftOptions.setAttribute('aria-label','Regalos disponibles');
+  picker.append(giftSearch,giftSearchStatus,giftOptions);document.body.append(picker);
   let giftCatalog=[],pickerInput=null,pickerIndex=-1;
-  function closeGiftPicker(){picker.hidden=true;pickerInput?.setAttribute('aria-expanded','false');pickerInput?.removeAttribute('aria-activedescendant');pickerInput=null;pickerIndex=-1;}
+  let suppressGiftFocus=false;
+  function closeGiftPicker(restoreFocus=false){const input=pickerInput;picker.hidden=true;input?.setAttribute('aria-expanded','false');giftSearch.setAttribute('aria-expanded','false');giftSearch.removeAttribute('aria-activedescendant');pickerInput=null;pickerIndex=-1;if(restoreFocus&&input){suppressGiftFocus=true;input.focus();}}
   function giftArtwork(gift){
     const art=el('span');art.className='simulation-gift-option-art';
     const fallback=()=>{const label=el('span',gift.name);label.className='simulation-gift-option-fallback';art.replaceChildren(label);};
@@ -174,7 +179,7 @@ window.SimulationUI = (() => {
   function chooseGift(index){
     const gift=giftCatalog[index];if(!gift||!pickerInput)return;
     const input=pickerInput;input.value=gift.name;input.dataset.giftId=String(gift.id);
-    showGiftSelection(input,gift);closeGiftPicker();
+    showGiftSelection(input,gift);closeGiftPicker(true);
   }
   function positionGiftPicker(input){
     const rect=input.getBoundingClientRect(),below=innerHeight-rect.bottom-8,above=rect.top-8;
@@ -184,41 +189,45 @@ window.SimulationUI = (() => {
     picker.style.maxHeight=`${space}px`;picker.style.top=placeAbove?'auto':`${rect.bottom+6}px`;
     picker.style.bottom=placeAbove?`${Math.max(8,innerHeight-rect.top+6)}px`:'auto';
   }
-  function renderGiftPicker(input,filter=false){
-    const query=filter?input.value.trim().toLocaleLowerCase():'';
+  function renderGiftPicker(input,reset=false){
+    if(reset)giftSearch.value='';
+    const query=giftSearch.value.trim().toLocaleLowerCase();
     const matches=giftCatalog.map((gift,index)=>({gift,index})).filter(({gift})=>!query||gift.name.toLocaleLowerCase().includes(query));
-    picker.replaceChildren();pickerInput=input;pickerIndex=-1;
+    giftOptions.replaceChildren();pickerInput=input;pickerIndex=-1;giftSearch.removeAttribute('aria-activedescendant');
     for(const {gift,index} of matches){
       const option=el('div');option.className='simulation-gift-option';option.id=`simulation-gift-option-${index}`;
       option.setAttribute('role','option');option.setAttribute('aria-selected','false');
       option.append(giftArtwork(gift),giftDetails(gift));
       option.addEventListener('mousedown',event=>event.preventDefault());
-      option.addEventListener('click',()=>chooseGift(index));picker.append(option);
+      option.addEventListener('click',()=>chooseGift(index));giftOptions.append(option);
     }
-    picker.hidden=matches.length===0;input.setAttribute('aria-expanded',String(!picker.hidden));
-    if(!picker.hidden)positionGiftPicker(input);
+    giftSearchStatus.textContent=matches.length?'':`No se encontraron regalos para “${giftSearch.value.trim()}”.`;
+    giftSearchStatus.hidden=matches.length>0;picker.hidden=false;input.setAttribute('aria-expanded','true');giftSearch.setAttribute('aria-expanded','true');
+    positionGiftPicker(input);
   }
-  function onGiftKeydown(input,event){
+  function onGiftKeydown(event){
     if(event.key==='Tab'){closeGiftPicker();return;}
-    if(event.key==='Escape'&&!picker.hidden&&pickerInput===input){event.preventDefault();event.stopPropagation();closeGiftPicker();return;}
-    if(picker.hidden||pickerInput!==input)return;
-    const options=picker.querySelectorAll('[role="option"]');
+    if(event.key==='Escape'&&!picker.hidden){event.preventDefault();event.stopPropagation();closeGiftPicker(true);return;}
+    if(picker.hidden)return;
+    const options=giftOptions.querySelectorAll('[role="option"]');
     if(event.key==='ArrowDown'||event.key==='ArrowUp'){
+      if(!options.length)return;
       event.preventDefault();
       pickerIndex=pickerIndex<0?(event.key==='ArrowUp'?options.length-1:0):(pickerIndex+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;
       options.forEach((option,index)=>option.setAttribute('aria-selected',String(index===pickerIndex)));
-      input.setAttribute('aria-activedescendant',options[pickerIndex]?.id||'');
+      giftSearch.setAttribute('aria-activedescendant',options[pickerIndex]?.id||'');
       options[pickerIndex]?.scrollIntoView?.({block:'nearest'});
     }else if(event.key==='Enter'&&pickerIndex>=0){
       event.preventDefault();chooseGift(Number(options[pickerIndex].id.split('-').at(-1)));
     }
   }
   for(const input of giftInputs){
-    input.addEventListener('focus',()=>renderGiftPicker(input));
-    input.addEventListener('click',()=>{if(picker.hidden)renderGiftPicker(input);});
-    input.addEventListener('input',()=>{delete input.dataset.giftId;showGiftSelection(input,null);renderGiftPicker(input,true);});
-    input.addEventListener('keydown',event=>onGiftKeydown(input,event));
+    input.addEventListener('focus',()=>{if(suppressGiftFocus){suppressGiftFocus=false;return;}if(picker.hidden||pickerInput!==input){renderGiftPicker(input,true);giftSearch.focus();}});
+    input.addEventListener('click',()=>{if(picker.hidden||pickerInput!==input){renderGiftPicker(input,true);giftSearch.focus();}});
+    input.addEventListener('input',()=>{delete input.dataset.giftId;showGiftSelection(input,null);if(pickerInput===input)renderGiftPicker(input);});
   }
+  giftSearch.addEventListener('input',()=>{if(pickerInput)renderGiftPicker(pickerInput);});
+  giftSearch.addEventListener('keydown',onGiftKeydown);
   document.addEventListener('pointerdown',event=>{if(!picker.contains(event.target)&&!giftInputs.includes(event.target))closeGiftPicker();});
   document.addEventListener('scroll',()=>{if(pickerInput&&!picker.hidden)positionGiftPicker(pickerInput);},true);
   addEventListener('resize',()=>{if(pickerInput&&!picker.hidden)positionGiftPicker(pickerInput);});

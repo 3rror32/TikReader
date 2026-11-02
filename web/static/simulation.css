@@ -74,3 +74,11 @@ body.simulation-active #simulation-fab,body.simulation-active #simulation-float{
 #simulation-float-stop:disabled{color:#a57e7c}
 @media(max-width:680px){#simulation-float footer{padding-right:14px;padding-left:14px}.simulation-float-tabs{gap:6px;padding:6px 8px 7px}.simulation-float-tabs button{min-height:42px}}
 @media(prefers-reduced-motion:reduce){#simulation-fab,.simulation-fab-unread{transition:none}}
+
+#simulation-gift-picker{padding:8px}
+.simulation-gift-search{position:sticky;top:0;z-index:1;box-sizing:border-box;width:100%;min-height:36px;padding:7px 9px;border:1px solid var(--control-field-line,#465a70);border-radius:7px;background:var(--control-field-bg,#182738);color:var(--control-field-ink,#edf3fa);font:inherit}
+.simulation-gift-search::placeholder{color:var(--control-field-muted,#a4b6c8)}
+#simulation-gift-picker :focus-visible{outline:2px solid var(--control-field-accent,#68e0b5);outline-offset:2px}
+.simulation-gift-search-status{margin:6px 2px;padding:7px;color:var(--control-field-muted,#a4b6c8);font-size:var(--ui-type-caption,12px)}
+.simulation-gift-options{max-height:220px;overflow:auto}
+@media(max-width:480px){#simulation-gift-picker{padding:6px}.simulation-gift-options{max-height:min(190px,34dvh)}}

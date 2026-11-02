@@ -141,17 +141,34 @@ The user explicitly requested correction of simulated gifts that appear in the t
 
 - Commit: `08c2d4a` (`fix(minecraft): queue simulated gift presets reliably`).
 
+- [ ] **MSG-7 — Add an in-popover search field to simulator gift pickers**
+  - Route: delegated direct.
+  - Trigger evidence: picker behavior, responsive styling, and DOM regressions require coordinated non-trivial edits to `web/static/simulation.js`, `web/static/simulation.css`, and `tests/test_simulation_ui.cjs`.
+  - Test-first policy: add focused DOM regressions and observe them fail before implementing the picker changes.
+  - Acceptance criteria:
+    - Both full simulator and floating chat gift popovers contain a distinct, accessible search field while the `Regalo` input continues to show the selected gift.
+    - Opening the picker clears its query and displays the full catalog; case-insensitive query changes filter options, and clearing restores the catalog.
+    - Selecting an option preserves its gift ID and updates the selected gift artwork and diamond preview.
+    - No matches are announced accessibly, and arrows, Enter, Escape, and Tab remain usable without breaking close behavior.
+    - Existing simulator submit payload and gift ID behavior stay unchanged.
+  - Checks:
+    - `node --test tests/test_simulation_ui.cjs`.
+    - Parent spot check of that exact command.
+  - Evidence: the test-first run was RED (4 failed, 4 passed) because both picker surfaces lacked the search field and keyboard/no-result behaviors. After implementation, the exact focused command passed (8 tests, 0 failures); coverage includes both surfaces, case-insensitive filtering, query reset/clear, selected ID and preview, no-match status, arrows/Enter, Escape, Tab, and unchanged submit payload. Parent commit and spot check remain pending.
+  - Engram mirror: pending because no Engram memory tools are available in this session.
+
 ## Delivery
 
 - Strategy: `ask-on-risk`.
-- Forecast: about 520 authored changed lines across all six work units, excluding this task document.
+- Forecast: about 635 authored changed lines across all seven work units, excluding task-document changes.
 - Chain strategy: `stacked-to-main` (selected by the user).
-- Running authored changed lines: approximately 400 (MSG-1: 60; MSG-2: 138; MSG-6: approximately 200; task document excluded).
+- Running authored changed lines: approximately 513 (MSG-1: 60; MSG-2: 138; MSG-6: approximately 200; MSG-7: 113; task document excluded).
 - Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-6 at `08c2d4a` (stacked to main).
 
 ## Progress
 
 - Exploration complete: simulation fallback IDs do not match persisted Minecraft gift IDs.
+- MSG-7 implementation and focused DOM checks are complete; parent commit and spot check remain pending.
 - Engram mirror: pending because no Engram memory tools are available in this session.
 
 ## Verification evidence

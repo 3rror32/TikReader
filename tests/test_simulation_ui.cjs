@@ -144,22 +144,34 @@ test('gift picker shows catalog art and diamond values and submits the chosen du
   input.value = 'Rose';
   input.dispatch('focus');
   const picker = descendants(body).find(node => node.id === 'simulation-gift-picker');
-  const options = picker.children;
-  assert.equal(options.length, 3, 'focusing with default Rose should show the full catalog');
+  const search = descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo');
+  assert.ok(search, 'the popover should have a distinct accessible search field');
+  assert.equal(search.getAttribute('role'), 'combobox');
+  assert.equal(search.getAttribute('aria-controls'), 'simulation-gift-options');
+  assert.equal(input.value, 'Rose', 'Regalo should continue to show the selected name');
+  assert.equal(picker.querySelectorAll('[role="option"]').length, 3, 'opening should show the full catalog');
+  const options = picker.querySelectorAll('[role="option"]');
   assert.ok(descendants(options[2]).some(node => node.tagName === 'IMG' && node.src.endsWith('rose-five.png')));
   assert.ok(descendants(options[2]).some(node => node.textContent === '5 diamantes'));
-  input.dispatch('input');
-  assert.equal(picker.children.length, 2, 'typing Rose should filter the catalog');
-  input.dispatch('keydown', {key: 'ArrowDown'});
-  input.dispatch('keydown', {key: 'ArrowDown'});
-  input.dispatch('keydown', {key: 'Enter'});
+  search.value = 'rOsE';
+  search.dispatch('input');
+  assert.equal(picker.querySelectorAll('[role="option"]').length, 2, 'search should filter case-insensitively');
+  search.value = '';
+  search.dispatch('input');
+  assert.equal(picker.querySelectorAll('[role="option"]').length, 3, 'clearing search should restore the catalog');
+  search.value = 'Rose';
+  search.dispatch('input');
+  search.dispatch('keydown', {key: 'ArrowDown'});
+  search.dispatch('keydown', {key: 'ArrowDown'});
+  search.dispatch('keydown', {key: 'Enter'});
   assert.equal(input.value, 'Rose');
   assert.equal(input.dataset.giftId, 'rose-five');
   const selection = elements.get('simulation-gift-selection');
   assert.equal(selection.hidden, false, 'selected gift artwork and value should remain visible');
   assert.ok(descendants(selection).some(node => node.textContent === '5 diamantes'));
   input.dispatch('click');
-  assert.equal(picker.children.length, 3, 'clicking the selected field should reopen the full catalog');
+  assert.equal(picker.querySelectorAll('[role="option"]').length, 3, 'clicking the selected field should reopen the full catalog');
+  assert.equal(search.value, '', 'reopening should clear the previous search query');
   elements.get('simulation-form').onsubmit({preventDefault() {}});
   await new Promise(resolve => setImmediate(resolve));
   const request = requests.find(item => item.url === '/simulation/events');
@@ -172,8 +184,17 @@ test('floating simulator gift field uses the same complete visual catalog', asyn
   await new Promise(resolve => setImmediate(resolve));
   elements.get('simulation-float-gift').dispatch('focus');
   const picker = descendants(body).find(node => node.id === 'simulation-gift-picker');
-  assert.equal(picker.children.length, 3);
-  assert.ok(descendants(picker.children[1]).some(node => node.textContent === '1 diamantes'));
+  const search = descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo');
+  assert.ok(search, 'the floating chat popover should reuse the accessible search control');
+  assert.equal(picker.querySelectorAll('[role="option"]').length, 3);
+  assert.ok(descendants(picker.querySelectorAll('[role="option"]')[1]).some(node => node.textContent === '1 diamantes'));
+  search.value = 'no existe';
+  search.dispatch('input');
+  const status = descendants(picker).find(node => node.getAttribute('role') === 'status');
+  assert.ok(status, 'empty results should have an accessible status');
+  assert.match(status.textContent, /No se encontraron regalos/i);
+  search.dispatch('keydown', {key: 'Escape'});
+  assert.equal(picker.hidden, true, 'Escape from search should close the picker');
 });
 
 test('gift picker opens the full catalog for the default value and Escape stays in the picker', async () => {
@@ -185,13 +206,26 @@ test('gift picker opens the full catalog for the default value and Escape stays 
   assert.equal(elements.get('simulation-gift-selection').hidden, false, 'the default selection should show its art and value');
   input.dispatch('focus');
   const picker = descendants(body).find(node => node.id === 'simulation-gift-picker');
-  assert.equal(picker.children.length, 3, 'the default name should not filter the initial catalog');
+  assert.equal(picker.querySelectorAll('[role="option"]').length, 3, 'the default name should not filter the initial catalog');
   const keyEvent = {key: 'Escape', preventDefault: () => keyEvent.prevented = true,
     stopPropagation: () => keyEvent.stopped = true, prevented: false, stopped: false};
-  input.dispatch('keydown', keyEvent);
+  descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo').dispatch('keydown', keyEvent);
   assert.equal(keyEvent.prevented, true);
   assert.equal(keyEvent.stopped, true);
   assert.equal(picker.hidden, true);
+});
+
+test('Tab from the gift search closes the picker and lets focus continue', async () => {
+  const {elements, body} = loadSimulationUI();
+  await new Promise(resolve => setImmediate(resolve));
+  const input = elements.get('simulation-gift');
+  input.dispatch('focus');
+  const picker = descendants(body).find(node => node.id === 'simulation-gift-picker');
+  const search = descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo');
+  const event = {key: 'Tab', preventDefault() { this.prevented = true; }};
+  search.dispatch('keydown', event);
+  assert.equal(picker.hidden, true);
+  assert.equal(event.prevented, undefined, 'Tab should not be trapped by the picker');
 });
 
 test('ArrowUp starts at the final catalog item', async () => {
@@ -200,8 +234,9 @@ test('ArrowUp starts at the final catalog item', async () => {
   const input = elements.get('simulation-gift');
   input.dispatch('focus');
   const picker = descendants(body).find(node => node.id === 'simulation-gift-picker');
-  input.dispatch('keydown', {key: 'ArrowUp'});
-  input.dispatch('keydown', {key: 'Enter'});
+  const search = descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo');
+  search.dispatch('keydown', {key: 'ArrowUp'});
+  search.dispatch('keydown', {key: 'Enter'});
   assert.equal(input.dataset.giftId, 'rose-five');
   assert.equal(picker.hidden, true);
 });
