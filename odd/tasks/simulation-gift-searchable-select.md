@@ -54,7 +54,7 @@ A single select-style control makes the relationship between the selected gift a
 - Independent verification found the main-form hint still said users could type a gift name without a catalog, which no longer matches the button combobox. Applied a bounded Spanish copy correction directing users to open the selector and search the catalog; no test or unrelated UI files were changed.
 - Concurrent working-tree verification: the complete `node tests/test_simulation_ui.cjs` currently includes an unrelated rapid-send test and fails there; all gift-specific tests pass. The concurrent rapid-send source and test changes were deliberately excluded from this work unit.
 - Staged-candidate verification: exported the Git index to an isolated directory and ran `node tests/test_simulation_ui.cjs`; 9 tests passed and 0 failed. `git diff --cached --check` also passed.
-- Commit identity: pending. The scoped candidate is staged without the concurrent rapid-send changes or other pre-existing user work.
+- Commit identity: `94fd1db` (`fix(simulation): unify gift picker control`). The scoped commit excludes the concurrent rapid-send changes and other pre-existing user work.
 
 ## Next step
-Create the scoped Conventional Commit, then record its identity here without staging unrelated working-tree changes.
+Implementation and verification are complete. Delivery remains under ordinary repository policy; push or pull request creation requires a separate user decision.
