@@ -32,6 +32,7 @@ class MinecraftConnector:
         self._fairness_loaded = False
         self._retry_at = 0
         self._retry_count = 0
+        self._effects_paused = None
         self.execution_log = []
         self.current_effect = None
         self.log = []
@@ -292,16 +293,41 @@ class MinecraftConnector:
         interval = self.pacing_interval()
         wait = max(0, self._next_object_at-time.monotonic()) if self._next_object_at is not None else 0
         pressure = 'normal' if count <= 5 else ('accumulating' if count <= 20 else 'saturated')
-        next_effect = pending[0] if pending else None
-        if pending and self._same_donor_count >= 5:
-            next_effect = next((row for row in pending if row['donor'] != self._last_effect_donor), next_effect)
+        ready = [row for row in pending if self._effect_executable(row)]
+        next_effect = ready[0] if ready else (pending[0] if pending else None)
+        if ready and self._same_donor_count >= 5:
+            next_effect = next((row for row in ready if row['donor'] != self._last_effect_donor), next_effect)
         return {'pending_count':count, 'current':self.current_effect,
                 'next':self._effect_summary(next_effect) if next_effect else None,
                 'pending':[self._effect_summary(row) for row in pending[:20]],
                 'interval_seconds':interval, 'next_object_in_seconds':round(wait, 2),
                 'pressure':pressure, 'pressure_thresholds':{'normal_max':5,'accumulating_max':20},
                 'failure_count':sum(row.get('failures',0) for row in pending),
-                'retry_in_seconds':round(max(0,self._retry_at-time.monotonic()),2)}
+                'retry_in_seconds':round(max(0,self._retry_at-time.monotonic()),2),
+                'paused':self.effects_paused()}
+
+    def effects_paused(self):
+        if self._effects_paused is None:
+            archive = getattr(self.r, 'archive', None)
+            state = archive.settings() if archive and hasattr(archive, 'settings') else {}
+            self._effects_paused = bool(state.get('minecraft_effects_paused', False))
+        return self._effects_paused
+
+    def set_effects_paused(self, paused):
+        self._effects_paused = bool(paused)
+        archive = getattr(self.r, 'archive', None)
+        if archive and hasattr(archive, 'set_setting'):
+            archive.set_setting('minecraft_effects_paused', self._effects_paused)
+
+    def _effect_executable(self, effect):
+        if effect.get('edition') != self.edition:
+            return False
+        if effect.get('automatic'):
+            rows = mappings(self.config.get('presets'))
+            if any(not rows[key]['enabled'] or not rows[key]['gift_id']
+                   for key in effect.get('selected_ids', (effect['preset_id'],))):
+                return False
+        return effect.get('next_index', 0) < effect.get('total', len(effect.get('commands', ())))
 
     def pacing_interval(self):
         return pacing_interval(self.config.get('limits'))
@@ -362,32 +388,28 @@ class MinecraftConnector:
     def run_next_effect(self):
         """Execute one confirmed object without removing work during pauses or outages."""
         self._load_effect_fairness()
-        if not (self.authorized_now() and not self.r.production.settings.get('emergency') and
+        if self.effects_paused() or not (self.authorized_now() and not self.r.production.settings.get('emergency') and
                 self.r.production.settings.get('scene', 'talk') == 'talk'):
             return False
         if time.monotonic() < self._retry_at:
             return False
         pending = self._pending_effects()
-        if not pending:
+        ready = [row for row in pending if self._effect_executable(row)]
+        if not ready:
             return False
         if self._next_object_at is not None:
             while time.monotonic() < self._next_object_at:
-                if not self.authorized_now() or self.r.production.settings.get('emergency') or self.r.production.settings.get('scene', 'talk') != 'talk':
+                if self.effects_paused() or not self.authorized_now() or self.r.production.settings.get('emergency') or self.r.production.settings.get('scene', 'talk') != 'talk':
                     return False
                 time.sleep(min(.1, self._next_object_at-time.monotonic()))
-        chosen = pending[0]
+        chosen = ready[0]
         if self._same_donor_count >= 5:
-            chosen = next((row for row in pending if row['donor'] != self._last_effect_donor), chosen)
+            chosen = next((row for row in ready if row['donor'] != self._last_effect_donor), chosen)
         index = chosen.get('next_index', 0)
         if index >= chosen.get('total', len(chosen.get('commands', ()))):
             return False
-        if chosen.get('edition') != self.edition:
+        if self.effects_paused() or not self.authorized_now() or not self._effect_executable(chosen):
             return False
-        if chosen.get('automatic'):
-            rows = mappings(self.config.get('presets'))
-            if any(not rows[key]['enabled'] or not rows[key]['gift_id']
-                   for key in chosen.get('selected_ids', (chosen['preset_id'],))):
-                return False
         command, alias = self._effect_object(chosen, index)
         self.current_effect = {**self._effect_summary(chosen), 'step':index+1,
                                'total':chosen.get('total',len(chosen.get('commands', ())))}
@@ -812,9 +834,20 @@ class MinecraftConnector:
             with self.preset_lock:
                 if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
                 self.preset_generation += 1
+                self.set_effects_paused(True)
                 now = time.monotonic()
                 if self.last_preset_at is not None and self.last_preset_at > now:
                     self.last_preset_at = now - pacing_interval(self.config.get('limits'))
+            return jsonify(ok=True)
+
+        @app.post('/minecraft/presets/resume')
+        def minecraft_presets_resume():
+            if not self.r.production.local():return jsonify(error='Solo disponible desde este equipo'),403
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict) or set(data) != {'edition'}:return jsonify(error='Edición inválida'),400
+            with self.preset_lock:
+                if data['edition'] != self.edition:return jsonify(error='La edición cambió'),409
+                self.set_effects_paused(False)
             return jsonify(ok=True)
 
         @app.post('/minecraft/bedrock/prepare')

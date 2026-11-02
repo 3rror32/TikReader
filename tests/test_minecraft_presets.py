@@ -99,6 +99,33 @@ class PresetTests(unittest.TestCase):
             self.assertTrue(self.mc.run_next_effect())
         self.assertEqual(self.mc.pending_effect_count(),0)
 
+    def test_stop_pauses_durable_queue_until_explicit_resume(self):
+        self.save(preset='zombie');self.gift('paused-event')
+        self.assertEqual(self.client.post('/minecraft/presets/stop',json={'edition':'java'}).status_code,200)
+        with patch.object(self.mc,'execute',return_value='Summoned new Zombie') as execute:
+            self.assertFalse(self.mc.run_next_effect())
+        execute.assert_not_called()
+        self.assertEqual(self.mc.pending_effect_count(),1)
+        self.assertTrue(self.client.get('/minecraft').get_json()['effect_queue']['paused'])
+        self.assertEqual(self.client.post('/minecraft/presets/resume',json={'edition':'java'}).status_code,200)
+        with patch.object(self.mc,'execute',return_value='Summoned new Zombie') as execute:
+            self.assertTrue(self.mc.run_next_effect())
+        self.assertEqual(execute.call_count,2)  # One object command and its delivery announcement.
+        self.assertEqual(self.mc.pending_effect_count(),0)
+
+    def test_scheduler_skips_unready_edition_rows_without_blocking_ready_effects(self):
+        self.mc._enqueue_effect({'identity':'bedrock-first','donor':'Ana','gift_name':'Rose',
+            'preset_id':'zombie','selected_ids':['zombie'],'commands':['bedrock-command'],
+            'command_labels':['zombie'],'command_groups':[],'total':1,'announcements':[],
+            'edition':'bedrock','automatic':False,'session':'A','next_index':0,
+            'status':'pending','received_at':time.time(),'gift_count':1})
+        self.save(preset='zombie');self.gift('java-ready')
+        with patch.object(self.mc,'execute',return_value='Summoned new Zombie') as execute:
+            self.assertTrue(self.mc.run_next_effect())
+        self.assertIn('execute at @p run summon minecraft:zombie',execute.call_args_list[0].args[0])
+        self.assertEqual(self.mc.execution_log[-1]['identity'],'java-ready')
+        self.assertEqual([row['identity'] for row in self.mc._pending_effects()],['bedrock-first'])
+
     def test_simulation_is_local_strict_atomic_and_names_donor(self):
         self.save(preset='zombie')
         body={'edition':'java','gift_id':'1','user':'Ana'}
