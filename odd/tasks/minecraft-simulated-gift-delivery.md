@@ -204,6 +204,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - `git diff --check -- app/minecraft_connector.py app/minecraft_presets.py web/static/minecraft.js web/static/minecraft.css tests/test_minecraft_controls.cjs tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md`.
     - No visual browser or live Minecraft check was run.
   - Evidence: the new DOM regressions failed before the UI change because pause controls, queue execution details, and object/period controls were absent. The final view removes Help, combines rate and connection options under `Ritmo y cola`, keeps Activity expanded, and provides current/next cards, pending/failure/wait metrics, pressure state, endpoint-backed pause/resume, and the queue-timed wave lane. The backend snapshot supplies its period, object budget, derived interval, and countdown. Countdown updates are excluded from live announcements, while queue state uses a polite live status. CSS retains the existing border/glass/teal tokens and stacks the board on narrow screens.
+  - Commit: `92ac82a` (`feat(minecraft): surface gift queue activity`); 213 authored changed lines excluding the task document.
 
 ## Delivery
 
@@ -211,7 +212,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
 - Forecast: revise to about 1,500 authored changed lines across all nine work units, excluding task-document changes; MSG-8 and MSG-9 together added 836 authored lines.
 - Chain strategy: `stacked-to-main` (selected by the user).
 - Running authored changed lines: approximately 1,349 after MSG-9 (prior MSG-1/2/6/7 estimate: 513; MSG-8 and correction: 623; MSG-9: 213; task document excluded).
-- Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-5 search at `5e5f77a`; MSG-6 at `08c2d4a`; MSG-7 at `f4134d7` (stacked to main).
+- Slice boundaries: MSG-1 at `4fa5a9e`; MSG-2 at `2996342f4350c1911acbec31a0fa3c5bac00f095`; MSG-5 search at `5e5f77a`; MSG-6 at `08c2d4a`; MSG-7 at `f4134d7`; MSG-8 at `56e6306`; MSG-9 at `92ac82a` (stacked to main).
 
 ## Progress
 
