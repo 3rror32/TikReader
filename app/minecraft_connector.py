@@ -271,6 +271,7 @@ class MinecraftConnector:
                                for key in job.command_labels],
                       'command_groups':groups, 'total':total_commands,
                       'announcements':list(job.announcements), 'edition':job.edition,
+                      'announcement_sent':False,
                       'automatic':bool(automatic), 'session':job.session,
                       'next_index':0, 'status':'pending', 'received_at':time.time(),
                       'gift_count':gift_count}
@@ -553,6 +554,32 @@ class MinecraftConnector:
             return False
         if self.effects_paused() or not self._connection_ready() or not self._effect_executable(chosen):
             return False
+        if chosen.get('announcements') and not chosen.get('announcement_sent', False):
+            try:
+                if not self._announce_effect(chosen):
+                    self._hold_effect_unconfirmed(chosen, 'announcement_not_confirmed')
+                    return False
+            except Exception as exc:
+                if chosen['edition'] == 'java' and isinstance(exc, OSError) and not isinstance(exc, AmbiguousMinecraftExecution):
+                    self._record_effect_failure(chosen['identity'], type(exc).__name__)
+                    self._retry_count += 1
+                    self._retry_at = time.monotonic() + min(30, 2 ** min(self._retry_count-1, 5))
+                    self.note(f'Anuncio pendiente · {chosen["donor"]}: {type(exc).__name__}',
+                              outcome='connection_error', identity=chosen['identity'], donor=chosen['donor'],
+                              announcement=True)
+                    return False
+                self._hold_effect_unconfirmed(chosen, type(exc).__name__)
+                return False
+            chosen['announcement_sent'] = True
+            archive = getattr(self.r, 'archive', None)
+            if archive and hasattr(archive, 'update_minecraft_effect'):
+                try:
+                    if not archive.update_minecraft_effect(chosen):
+                        self._hold_effect_unconfirmed(chosen, 'announcement_not_persisted')
+                        return False
+                except Exception:
+                    self._hold_effect_unconfirmed(chosen, 'announcement_not_persisted')
+                    return False
         command, alias = self._effect_object(chosen, index)
         step = self._effect_summary(chosen)
         action_name = step['action']
@@ -609,8 +636,6 @@ class MinecraftConnector:
             return False
         self._retry_count = 0
         self._retry_at = 0
-        if index + 1 >= chosen.get('total', len(chosen.get('commands', ()))):
-            self._announce_effect(chosen)
         if self._last_effect_donor == chosen['donor']:
             self._same_donor_count += 1
         else:
@@ -628,7 +653,7 @@ class MinecraftConnector:
                 if effect['edition'] == 'java':
                     with self.lock:
                         if not self.authorized_now():
-                            return
+                            return False
                         response = self.execute(command)
                     self.note(f'Anuncio de entrega enviado · {alias} · {effect["donor"]}',
                               alias=alias, outcome='unconfirmed', response=response,
@@ -638,10 +663,14 @@ class MinecraftConnector:
                     self.note(f'Anuncio de entrega · {alias} · {effect["donor"]}: {result["response"] or "sin respuesta"}',
                               alias=alias, outcome=result['outcome'], response=result['response'],
                               donor=effect['donor'], identity=effect['identity'], announcement=True)
+                    if result['outcome'] != 'success':
+                        return False
             except Exception as exc:
                 self.note(f'Anuncio de entrega sin confirmar · {alias} · {type(exc).__name__}',
                           alias=alias, outcome='connection_error' if isinstance(exc, OSError) else 'unconfirmed',
                           response='', donor=effect['donor'], identity=effect['identity'], announcement=True)
+                raise
+        return True
 
     @staticmethod
     def _effect_object(effect, index):

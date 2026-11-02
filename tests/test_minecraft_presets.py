@@ -106,12 +106,49 @@ class PresetTests(unittest.TestCase):
             self.assertFalse(self.mc.run_next_effect())
             self.now+=60
             self.assertFalse(self.mc.run_next_effect())
-        self.assertEqual(execute.call_count,1)
+        self.assertEqual(execute.call_count,2)
+        self.assertTrue(execute.call_args_list[0].args[0].startswith('tellraw @p '))
         held=self.mc.unconfirmed_effects()
         self.assertEqual(len(held),1)
         self.assertEqual(held[0]['identity'],'event-uncertain')
         self.assertEqual(held[0]['status'],'unconfirmed')
         self.assertEqual(HistoryStore(Path(folder.name)/'effects.sqlite3').unconfirmed_minecraft_effects()[0]['identity'],'event-uncertain')
+
+    def test_durable_gift_announcement_precedes_wave_and_is_not_repeated_on_retry(self):
+        from minecraft_presets import announcement_for, commands_for
+        folder=tempfile.TemporaryDirectory(dir=Path.cwd());self.addCleanup(folder.cleanup)
+        self.runtime.archive=HistoryStore(Path(folder.name)/'effects.sqlite3')
+        self.save(preset='zombie')
+        self.mc.config['immediate_effects']=True
+        self.mc._next_object_at=None
+        self.mc.gift({'id':'event-announcement-first','gift_id':'1','gift':'Rose',
+                       'user':'Ana','count':2},'event-announcement-first')
+        announcement=announcement_for('zombie','java','Ana',gift_count=2)
+        sent=[];mob_attempts=0
+        def execute(command):
+            nonlocal mob_attempts
+            sent.append(command)
+            if command==announcement:return '1 player(s) received message'
+            mob_attempts+=1
+            if mob_attempts==1:raise OSError('connection unavailable before send')
+            return 'Summoned new Zombie'
+        with patch.object(self.mc,'execute',side_effect=execute):
+            self.assertFalse(self.mc.run_next_effect())
+            self.assertEqual(sent[0],announcement)
+            persisted=self.runtime.archive.pending_minecraft_effects()[0]
+            self.assertTrue(persisted['announcement_sent'])
+            restart_app=Flask(__name__+'-announcement-restart')
+            with patch('threading.Thread.start'):
+                restarted=MinecraftConnector(restart_app,self.runtime)
+            restarted.restore()
+            restarted.authorized=True;restarted.java_ready_revision=restarted.revision
+            restarted.config['immediate_effects']=True;restarted._next_object_at=None
+            self.now+=1
+            with patch.object(restarted,'execute',side_effect=execute):
+                self.assertTrue(restarted.run_next_effect())
+                self.assertTrue(restarted.run_next_effect())
+        self.assertEqual(sent,[announcement,*list(commands_for('zombie','java','Ana'))*3])
+        self.assertEqual(sent.count(announcement),1)
 
     def test_bedrock_timeout_is_durable_and_never_auto_replayed(self):
         self.mc.edition='bedrock';self.mc.config=self.mc.profiles['bedrock']
@@ -148,12 +185,14 @@ class PresetTests(unittest.TestCase):
                     with patch.object(self.mc,'_connection_ready',return_value=True), \
                          patch.object(self.mc,'execute',return_value='Summoned new Zombie') as send:
                         self.assertTrue(self.mc.run_next_effect())
-                    self.assertEqual(send.call_args_list[0].args[0],command)
+                    self.assertTrue(send.call_args_list[0].args[0].startswith('tellraw @p '))
+                    self.assertEqual(send.call_args_list[1].args[0],command)
                 else:
                     with patch.object(self.mc,'_connection_ready',return_value=True), \
                          patch.object(self.mc.bedrock,'execute',return_value={'outcome':'success','response':'ok'}) as send:
                         self.assertTrue(self.mc.run_next_effect())
-                    self.assertEqual(send.call_args_list[0].args[0],command)
+                    self.assertTrue(send.call_args_list[0].args[0].startswith('tellraw @p '))
+                    self.assertEqual(send.call_args_list[1].args[0],command)
 
     def test_queue_wave_countdown_cycles_independently_of_object_confirmations(self):
         self.save(preset='zombie')
@@ -245,7 +284,8 @@ class PresetTests(unittest.TestCase):
         self.save(preset='zombie');self.gift('java-ready')
         with patch.object(self.mc,'execute',return_value='Summoned new Zombie') as execute:
             self.assertTrue(self.mc.run_next_effect())
-        self.assertIn('execute at @p run summon minecraft:zombie',execute.call_args_list[0].args[0])
+        self.assertTrue(execute.call_args_list[0].args[0].startswith('tellraw @p '))
+        self.assertIn('execute at @p run summon minecraft:zombie',execute.call_args_list[1].args[0])
         self.assertEqual(self.mc.execution_log[-1]['identity'],'java-ready')
         self.assertEqual([row['identity'] for row in self.mc._pending_effects()],['bedrock-first'])
 
@@ -458,7 +498,7 @@ class PresetTests(unittest.TestCase):
                 self.assertEqual(state['next']['preset_id'],preset_id)
                 self.assertEqual(state['next']['action'],action_names[preset_id])
                 self.assertTrue(self.mc.run_next_effect())
-        self.assertEqual(sent[:len(job.commands)],list(job.commands))
+        self.assertEqual(sent,list(job.announcements)+list(job.commands))
         self.assertEqual(job.command_labels[-1],'diamonds')
 
     def test_compact_large_effect_derives_current_provenance_from_command_groups(self):
