@@ -116,6 +116,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - Relevant Python preset and Bedrock tests.
     - Live Bedrock verification after the persisted mapping is updated.
   - Evidence (search increment): the added DOM regression was RED before implementation because the picker had no search input (44 passed, 1 failed); after implementation `node --test tests/test_minecraft_controls.cjs` passed (45 tests). `git diff --check` passed. Python and live Bedrock checks remain pending for MSG-5.
+  - Commit: `5e5f77a` (`feat(minecraft): search gifts in preset picker`).
 
 - [x] **MSG-6 — Queue valid Minecraft gifts with execution spacing**
   - Route: delegated direct.
