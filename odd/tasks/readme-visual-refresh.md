@@ -14,8 +14,7 @@ New users should understand the product's strongest current capabilities from th
 
 ## Scope
 
-- Capture attractive desktop screenshots from the current local `main` build using safe demo state only.
-- Feature the live operator workspace, simulation controls, and Minecraft activity/queue experience.
+- Leave screenshot replacement to the user while preserving the existing README image references.
 - Rewrite the README feature summary and screenshot captions around current behavior.
 - Preserve installation, integration-status, privacy, and validation caveats.
 
@@ -32,33 +31,34 @@ The user explicitly requested updating the README on `main` with new functionali
 
 ## Tasks
 
-- [ ] **RVR-1 — Capture privacy-safe product visuals**
-  - Route: direct inline because Windows UI capture must remain bound to the orchestrator's Computer Use session.
-  - Trigger evidence: generated screenshots are passive visual assets; no source-code writer is needed.
+- [x] **RVR-1 — Defer screenshot replacement to the user**
+  - Route: direct inline scope reconciliation.
+  - Trigger evidence: the user explicitly chose to provide the replacement images and requested text-only work from the orchestrator.
   - Acceptance criteria:
-    - Three current desktop screenshots show the operator workspace, simulation, and Minecraft activity/queue.
-    - Images contain no personal or secret data and use realistic but non-live demo state.
-    - Composition is legible, balanced, and visually consistent.
-  - Checks: inspect every final image at full resolution and README scale.
+    - Existing image files and paths remain unchanged.
+    - README text does not depend on unavailable replacement images.
+  - Evidence: no screenshot asset was created, replaced, or removed; the user will update images separately.
 
-- [ ] **RVR-2 — Rewrite the README feature presentation**
+- [x] **RVR-2 — Rewrite the README feature presentation**
   - Route: direct inline because this is one bounded prose file with already-established product evidence.
   - Trigger evidence: the README is the only non-generated content file.
   - Acceptance criteria:
     - The opening explains TikReader as an operator workspace, not only a chat reader.
     - Current simulation, durable Minecraft queue, recovery, overlays, and local voice capabilities are represented accurately.
-    - The new screenshots replace stale hero/support visuals with descriptive alt text.
+    - Existing screenshot paths remain stable and the hero alt text is ready for the user's replacement image.
     - Installation and integration caveats remain intact.
   - Checks: Markdown link/image-path validation and structural readback.
+  - Evidence: the hero and capability summary now describe the unified operator workspace, simulation, durable Minecraft pacing and recovery, local voice, overlays, gift mapping, and operational safeguards. Installation and integration caveats remain present, and image paths are unchanged.
 
-- [ ] **RVR-3 — Verify the repository presentation**
+- [x] **RVR-3 — Verify the repository presentation**
   - Route: direct inline structural and visual verification.
   - Trigger evidence: passive documentation and image assets require structural readback, not an artificial semantic test suite.
   - Acceptance criteria:
     - Every referenced local image exists and renders.
     - `git diff --check` passes for the README and task document.
-    - The final diff contains only the authorized README, screenshot assets, and task tracking changes.
-  - Checks: file existence, image dimensions, Markdown references, and final diff review.
+    - The final diff contains only the authorized README and task tracking changes.
+  - Checks: image-reference existence, Markdown structure, and final diff review.
+  - Evidence: all three local README image references resolve to existing files; the heading structure reads back correctly; `git diff --check` passes; and the final uncommitted scope contains only `README.md` and this task document.
 
 ## Delivery
 
@@ -70,11 +70,15 @@ The user explicitly requested updating the README on `main` with new functionali
 
 - Existing README and screenshot inventory reviewed.
 - CodeGraph is unavailable in this worktree because it has no local index; bounded filesystem inspection is used instead.
+- RVR-1 was reconciled with the user's text-only continuation; image replacement is intentionally left to the user.
+- RVR-2 and RVR-3 are complete; the README text is current and structurally verified.
 
 ## Verification evidence
 
-Pending.
+- `git diff --check -- README.md odd/tasks/readme-visual-refresh.md`: passed.
+- README image references: 3 checked, 3 existing.
+- Final changed-file scope before commit: `README.md` and `odd/tasks/readme-visual-refresh.md` only.
 
 ## Next step
 
-Prepare a clean local demo state and capture the three product views.
+The user can replace the three existing screenshot files when the new images are ready; no README path changes are required.
