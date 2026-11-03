@@ -86,6 +86,40 @@ class LiveLifecycleTests(unittest.TestCase):
         self.assertEqual(data['count'],1);self.assertEqual(data['gifts'][0]['name'],'Rosa')
         self.assertEqual(data['gifts'][0]['image_url'],'https://example.com/rose.png')
 
+    def test_real_catalog_merge_removes_matching_observed_gift_only(self):
+        original = dict(server.gift_catalog)
+        try:
+            server.gift_catalog.clear()
+            server.gift_catalog.update({
+                'observed:rose': {'id': 'observed:rose', 'name': 'Ｒｏｓｅ', 'diamonds': 1},
+                'observed:other': {'id': 'observed:other', 'name': 'Other', 'diamonds': 2},
+            })
+            server.update_gift_catalog({'gifts': [
+                {'id': 5655, 'name': 'Rose', 'diamond_count': 1, 'type': 0},
+                {'id': 5656, 'name': 'rose', 'diamond_count': 2, 'type': 0},
+            ]})
+            self.assertNotIn('observed:rose', server.gift_catalog)
+            self.assertIn('observed:other', server.gift_catalog)
+            self.assertIn('5655', server.gift_catalog)
+            self.assertIn('5656', server.gift_catalog)
+        finally:
+            server.gift_catalog.clear()
+            server.gift_catalog.update(original)
+
+    def test_gift_catalog_payload_normalizes_restored_cache_names(self):
+        original = dict(server.gift_catalog)
+        try:
+            server.gift_catalog.clear()
+            server.gift_catalog.update({
+                '5655': {'id': '5655', 'name': 'Rose', 'diamonds': 1},
+                'observed:rose': {'id': 'observed:rose', 'name': 'Ｒｏｓｅ', 'diamonds': 1},
+            })
+            payload = server.gift_catalog_payload()
+            self.assertEqual([gift['id'] for gift in payload['gifts']], ['5655'])
+        finally:
+            server.gift_catalog.clear()
+            server.gift_catalog.update(original)
+
     def test_widget_customization_validates_persists_and_resets(self):
         import tempfile
         from pathlib import Path

@@ -132,6 +132,11 @@ class HistoryStore:
             rows = db.execute("SELECT payload FROM minecraft_effects WHERE json_extract(payload,'$.status')='pending' ORDER BY rowid").fetchall()
         return [json.loads(row[0]) for row in rows]
 
+    def unconfirmed_minecraft_effects(self):
+        with self.connect() as db:
+            rows = db.execute("SELECT payload FROM minecraft_effects WHERE json_extract(payload,'$.status')='unconfirmed' ORDER BY rowid").fetchall()
+        return [json.loads(row[0]) for row in rows]
+
     def confirm_minecraft_object(self, identity, index):
         with self.connect() as db:
             row = db.execute('SELECT payload FROM minecraft_effects WHERE identity=?', (identity,)).fetchone()

@@ -27,6 +27,7 @@ Simulation must exercise the same saved automation that a real gift would use; o
 - Persist every valid Minecraft donation until its mapped effects are confirmed, including across pause, disconnect, and application restart.
 - Pace spawned objects at 20 per 30 seconds, one object at a time, while retaining overflow in a fair donor-aware queue.
 - Replace the passive help/recent-log layout with an always-visible Activity and queue board that exposes the current effect, next wave, countdown, backlog pressure, and failures.
+- Show executable queue activity only when Minecraft is connected and ready, and allow effects to run without pacing delays.
 
 ## Constraints
 
@@ -81,7 +82,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Commit: `2996342f4350c1911acbec31a0fa3c5bac00f095` (`feat(minecraft): announce successful preset gifts`).
   - RDD assessment: unavailable/unknown; `gentle-ai` is not available on the parent PATH.
 
-- [ ] **MSG-3 — Canonicalize real and observed gift catalog entries**
+- [x] **MSG-3 — Canonicalize real and observed gift catalog entries**
   - Route: delegated direct.
   - Trigger evidence: startup restoration, live catalog merging, persistence, and regression coverage require coordinated non-trivial changes in server catalog logic and tests.
   - Test-first policy: add focused fallback/merge regressions and observe failure before implementation.
@@ -89,11 +90,15 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - A real gift removes a same-name synthetic `observed:*` entry.
     - Two distinct real IDs with the same name remain available.
     - Restored caches are normalized before either UI receives the catalog.
+    - Gift ID is canonical: stale display labels cannot redirect a saved or migrated preset to a different gift.
+    - Legacy and offline/observed mappings remain safe; duplicate real names remain distinct and are never guessed during simulation.
   - Checks:
     - Focused server catalog tests.
     - Relevant simulation tests.
+  - Evidence: the focused catalog merge regressions pass (2 tests). Normalization removes same-name `observed:*` entries during live merges, payload reads, and startup restoration while retaining different real IDs. Preset saves and restored profiles now use the catalog name for a known gift ID and retain offline labels for IDs absent from the catalog. The ID/name mismatch regression was RED (`Wrong label` persisted), then GREEN.
+  - Work-unit commit: `29104fe` (`fix(minecraft): preserve gift identity and queue outcomes`); 613 authored changed lines excluding the task document.
 
-- [ ] **MSG-4 — Derive preset activity from gift assignment**
+- [x] **MSG-4 — Derive preset activity from gift assignment**
   - Route: delegated direct.
   - Trigger evidence: profile migration, backend admission, queued-job validity, simulator fallback, donor formatting, and regression coverage cross multiple non-trivial files.
   - Test-first policy: observe focused migration/admission/name regressions fail before implementation, then pass after the change.
@@ -102,10 +107,14 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - Legacy `enabled: false` does not disable an assigned gift, and legacy profiles load without data loss.
     - Simulator name fallback uses assigned mappings and keeps ambiguity safety.
     - `gordo` becomes `Gordo`, while existing internal uppercase characters remain unchanged.
+    - Live and simulated event IDs resolve to the exact preset, then to the exact edition-specific action/command.
   - Checks:
     - Focused preset, connector, and simulation tests.
+    - Deterministic Java and Bedrock contract coverage without a live Minecraft instance.
+  - Evidence: a saved mapping with a non-empty ID is active regardless of legacy `enabled:false`; empty IDs are inactive. Simulated duplicate catalog names and duplicate saved mapping names now return explicit ambiguity errors, while explicit IDs retain the exact catalog entry. Focused Java and Bedrock queue tests verify the selected gift ID reaches the configured zombie action and edition-specific command. The simulation ambiguity regression was RED (no error), then GREEN.
+  - Work-unit commit: `29104fe` (`fix(minecraft): preserve gift identity and queue outcomes`); 613 authored changed lines excluding the task document.
 
-- [ ] **MSG-5 — Search and simplify Minecraft gift mappings**
+- [x] **MSG-5 — Search and simplify Minecraft gift mappings**
   - Route: delegated direct.
   - Trigger evidence: the behavior spans JavaScript state, rendered controls, persistence, CSS layout, and DOM regression tests.
   - Test-first policy: add DOM regressions for search, removal, and absence of the enable checkbox before implementation.
@@ -116,12 +125,53 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - No per-preset enable checkbox is rendered or persisted.
     - Assigning a gift activates the preset; removing the row clears the saved assignment.
     - Rose ID `5655` can be mapped to three zombies and verified live in Bedrock with donor `Gordo`.
+    - Selection and persistence preserve the catalog's canonical ID/name pair, including when same-name entries have different IDs.
   - Checks:
     - `node --test tests/test_minecraft_controls.cjs`.
     - Relevant Python preset and Bedrock tests.
     - Live Bedrock verification after the persisted mapping is updated.
   - Evidence (search increment): the added DOM regression was RED before implementation because the picker had no search input (44 passed, 1 failed); after implementation `node --test tests/test_minecraft_controls.cjs` passed (45 tests). `git diff --check` passed. Python and live Bedrock checks remain pending for MSG-5.
   - Commit: `5e5f77a` (`feat(minecraft): search gifts in preset picker`).
+  - Continuation evidence: preset assignment now determines active state, the standalone enable checkbox is removed, and removal clears the saved gift ID/name. The focused DOM suite passes (56 tests), including assignment migration, removal, filtered gift selection, and no checkbox. No live Bedrock session was used.
+
+- [x] **MSG-10 — Align queue activity with connection and add immediate mode**
+  - Route: delegated direct.
+  - Trigger evidence: queue readiness, persisted pacing settings, UI controls, and regression coverage span multiple non-trivial files.
+  - Test-first policy: add deterministic regressions for provenance, required Activity labels, and uncertain delivery; observe RED before implementation unless current partial code already makes the regression pass, and record that exception.
+  - Acceptance criteria:
+    - Disconnected or unready Minecraft state does not present persisted pending effects as currently executable queue activity.
+    - A Spanish checkbox or equivalent control enables immediate sequential execution with no configured pacing delay.
+    - FIFO order and connection, authorization, pause, confirmation, and retry checks remain in force.
+    - Durable queue/snapshot retains and exposes event identity, gift ID/name, preset/action, donor, quantity, and execution state where available.
+    - Activity visibly renders `gift → action` for current, next, and pending/recent rows, including `Espera la siguiente oleada de regalos` and action names such as `Zombi`, without raw commands or sensitive connection data.
+    - A confirmed failure is retryable; a send whose effect may already have executed is held for operator decision or marked unconfirmed and never automatically replayed.
+    - FIFO/fair scheduling, pause, authorization, connection, edition, and restart safety are preserved; no exactly-once claim is made beyond transport guarantees.
+  - Checks:
+    - Focused Python RED/GREEN selections for newly added identity, provenance, and ambiguous-send regressions.
+    - `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py tests/test_simulation.py -q`.
+    - Smallest `tests/test_server.py` selection covering catalog behavior; omit the known hanging duplicate-comment lifecycle test.
+    - `node --test tests/test_minecraft_controls.cjs` and, if simulation UI changes, `node --test tests/test_simulation_ui.cjs`.
+    - Focused Bedrock tests that do not require a live external server; report loopback permission blocks without weakening tests.
+    - `git diff --check` on each changed allowed source/test file before each commit.
+  - Evidence: durable queue summaries and snapshots retain event identity, gift ID/name, action, donor, gift quantity, remaining work, and status. The Activity board shows `regalo → acción` for current, next, every pending row, recent activity, and unconfirmed rows; the wave label stays `Espera la siguiente oleada de regalos`. Commands and connection secrets are not rendered. RCON feedback remains `unconfirmed` when response text does not prove success; Java socket errors after attempting command send and Bedrock timeouts/outcomes remain held as `unconfirmed`, excluded from automatic pending replay and shown for manual decision. Confirmed rejections remain retryable. FIFO, donor rotation, pause, readiness, authorization, edition filtering, and stored rows are retained. Existing immediate mode stays sequential with zero pacing interval.
+  - Evidence: new focused Python regressions were RED then GREEN: mismatched preset label, missing queue provenance, automatic replay after an unconfirmed send, and duplicate-name guessing. Java/Bedrock command identity tests and durable Bedrock timeout hold pass. Verification: `pytest tests/test_minecraft_presets.py tests/test_simulation.py -q` passed (75 tests, 303 subtests); focused server catalog tests passed (2); `node --test tests/test_minecraft_controls.cjs` passed (56); `node --test tests/test_simulation_ui.cjs` passed (11). Focused Bedrock loopback tests were unavailable in the sandbox with `WinError 10013` on `127.0.0.1`; they were not weakened. No live Minecraft validation was performed.
+  - Work-unit commit: `29104fe` (`fix(minecraft): preserve gift identity and queue outcomes`); 613 authored changed lines excluding the task document.
+  - Evidence: queue snapshots now distinguish stored pending work from executable activity; readiness suppresses active/next effect and wait estimates while disconnected. The per-profile immediate option is sent by the UI and sets the pacing interval to zero while retaining sequential queue processing.
+  - Follow-up evidence: Java authorization alone did not prove current RCON availability. Java queue readiness is now tied to a successful authorize/check at the current configuration revision; an RCON failure revokes that confirmation, and the automatic queue worker holds effects until readiness is confirmed again. The Activity connection label also uses queue readiness. Durable pending rows remain stored and the UI reports them as conserved while disconnected. `node --check web/static/minecraft.js` and `git diff --check` passed. Python AST validation could not run because the installed `python` and `py` launchers were inaccessible. Tests were not run or added, as requested.
+  - Commit: pending; existing uncommitted changes overlap implementation files.
+  - Independent verification correction: when one gift activates multiple presets, the durable effect now persists a `steps` entry per command with its own `preset_id` and canonical action label; queue/current/unconfirmed summaries and execution notes select the active step. The deterministic multi-action regression was RED (`diamonds` reported `zombie`), then GREEN (1 passed); it checks each durable snapshot step and confirms the original queued commands execute in order. `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (53 tests, 300 subtests); `git diff --check` passed.
+  - Correction commit: `b49565b` (`fix(minecraft): preserve per-step action provenance`); Engram mirror remains pending.
+
+- [x] **MSG-11 — Resolve compact and legacy per-step queue provenance**
+  - Route: delegated direct continuation; isolated one-file correction and focused tests.
+  - Trigger evidence: compact effects omit expanded step labels, and legacy durable rows predate the per-step metadata field.
+  - Acceptance criteria:
+    - Summaries derive the current preset ID and canonical action label from compact command groups when expanded `steps` are absent.
+    - Legacy rows without `steps` use their compatible grouped/label metadata and retain the correct action at each index.
+    - Compact command lists remain unexpanded; order, generation, pacing, and retry behavior stay unchanged.
+  - Checks: `tests/test_minecraft_presets.py::PresetTests::test_compact_large_effect_derives_current_provenance_from_command_groups -q` and `tests/test_minecraft_presets.py::PresetTests::test_legacy_effect_without_steps_derives_provenance_from_command_groups -q`, both RED then GREEN; `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (55 tests, 300 subtests); `git diff --check` passed.
+  - Evidence: both regressions were RED with `preset_id` reported as `zombie` although `_effect_object` identified the next command as `diamonds`. `_effect_summary` now resolves metadata from expanded `steps`, compact repeated `command_groups`, or compatible legacy labels without expanding compact commands. Both exact nodes passed after the fix, including the >10,000-command admission case.
+  - Work-unit commit: `07da1a6` (`fix(minecraft): derive compact queue step provenance`); Engram mirror remains pending.
 
 - [x] **MSG-6 — Queue valid Minecraft gifts with execution spacing**
   - Route: delegated direct.
@@ -209,6 +259,21 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Countdown correction checks: `node tests/test_minecraft_controls.cjs` passed (56 tests); `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (47 tests, 298 subtests); `git diff --check -- app/minecraft_connector.py tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md` passed.
   - Correction commit: `8f77b23` (`fix(minecraft): stabilize queue wave countdown`); 87 authored changed lines excluding the task document.
 
+- [ ] **MSG-11 — Integrate the verified feature branch into local `main`**
+  - Route: direct inline for Git integration, with delegated verification.
+  - Trigger evidence: the simulated merge is conflict-free and requires no source edit; command-running verification is delegated to keep test output bounded.
+  - Test-first exception: this is a Git integration task with no new behavior or source edit, so no meaningful RED phase applies.
+  - Acceptance criteria:
+    - Local `main` contains both its compositor-stability commits and every committed Minecraft gift-delivery change.
+    - The pre-existing uncommitted simulation, game-hotkey, sidebar, and related test changes remain byte-for-byte untouched in the original worktree.
+    - The merge is performed in an isolated worktree and records an explicit integration commit.
+    - Focused Python and Node regression suites pass on the integrated tree.
+  - Checks:
+    - `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py tests/test_simulation.py -q`.
+    - `node --test tests/test_minecraft_controls.cjs`.
+    - `git diff --check HEAD^1...HEAD` and ancestry checks for both merge parents.
+  - Evidence: pending integration and verification.
+
 ## Delivery
 
 - Strategy: `ask-on-risk`.
@@ -224,6 +289,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
 - Engram mirror: pending because no Engram memory tools are available in this session.
 - MSG-8 and MSG-9 were added after the user replaced saturation rejection with durable eventual execution and promoted Activity and queue to the primary Minecraft operations surface.
 - MSG-8 is implemented and committed; its parent spot check passed with 46 tests and 298 subtests. MSG-9 and its countdown correction are implemented; parent spot checks, independent verification, and browser visual inspection pass.
+- Authorized continuation: MSG-3, MSG-4, MSG-5, and MSG-10 implementation and available verification are complete in work-unit commit `29104fe` (613 authored changed lines excluding the task document). Existing out-of-scope dirty simulation/game-hotkey changes remain untouched. Engram mirror remains pending.
 
 ## Verification evidence
 
@@ -242,4 +308,4 @@ Verification results:
 
 ## Next step
 
-MSG-1, MSG-2, MSG-6, MSG-8, and MSG-9 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass, but its saturation/cancellation contract is superseded by MSG-8. MSG-8's focused suite and parent spot check passed with 46 tests and 298 subtests; its work-unit commit is `56e6306`. MSG-9's focused Node suite passes 56 tests; its Python suite after the countdown correction passes 47 tests and 298 subtests. Independent verification closed the pause/readiness and wave-anchor findings, and the local browser check passed at desktop and narrow widths without triggering Minecraft. MSG-3 through MSG-5 remain open. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
+MSG-1, MSG-2, MSG-6, MSG-8, and MSG-9 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass, but its saturation/cancellation contract is superseded by MSG-8. MSG-8's focused suite and parent spot check passed with 46 tests and 298 subtests; its work-unit commit is `56e6306`. MSG-9's focused Node suite passes 56 tests; its Python suite after the countdown correction passes 47 tests and 298 subtests. Independent verification closed the pause/readiness and wave-anchor findings, and the local browser check passed at desktop and narrow widths without triggering Minecraft. MSG-3 through MSG-5 and MSG-10 are implemented and verified within the available environment in work-unit commit `29104fe` (613 authored changed lines excluding the task document); focused Bedrock loopback checks remain unavailable because of sandbox `WinError 10013`, and no live Minecraft validation was performed. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.

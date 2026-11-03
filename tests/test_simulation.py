@@ -173,8 +173,8 @@ class SimulationTests(unittest.TestCase):
         }
         try:
             with patch.object(self.sim.r, 'gift_catalog', {}):
-                spec = self.sim.validate({'kind': 'gift', 'gift': 'GG'})
-            self.assertEqual(spec['gift_id'], 'simulation-GG')
+                with self.assertRaisesRegex(ValueError, 'varias acciones'):
+                    self.sim.validate({'kind': 'gift', 'gift': 'GG'})
         finally:
             minecraft.config.pop('presets', None)
             if saved_presets is not None:
@@ -191,16 +191,21 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(spec['diamonds'], 5)
         self.assertEqual(spec['image'], second['image_url'])
 
+    def test_duplicate_catalog_names_require_an_explicit_gift_id(self):
+        first = {'id': 'rose-standard', 'name': 'Rose', 'diamonds': 1}
+        second = {'id': 'rose-special', 'name': 'Rose', 'diamonds': 5}
+        with patch.object(self.sim.r, 'gift_catalog', {first['id']: first, second['id']: second}):
+            with self.assertRaisesRegex(ValueError, 'ambigu'):
+                self.sim.validate({'kind': 'gift', 'gift': 'Rose'})
+
     def test_simulation_does_not_guess_between_duplicate_catalog_names(self):
         first = {'id': 'gift-first', 'name': 'Mystery', 'diamonds': 1,
                  'image_url': 'https://example.test/first.png'}
         second = {'id': 'gift-second', 'name': 'Mystery', 'diamonds': 5,
                   'image_url': 'https://example.test/second.png'}
         with patch.object(self.sim.r, 'gift_catalog', {first['id']: first, second['id']: second}):
-            spec = self.sim.validate({'kind': 'gift', 'gift': 'Mystery'})
-        self.assertEqual(spec['gift_id'], 'simulation-Mystery')
-        self.assertEqual(spec['diamonds'], 1)
-        self.assertIsNone(spec['image'])
+            with self.assertRaisesRegex(ValueError, 'ambigu'):
+                self.sim.validate({'kind': 'gift', 'gift': 'Mystery'})
 
     def test_simulated_gift_record_has_explicit_origin_flag(self):
         self.activate()

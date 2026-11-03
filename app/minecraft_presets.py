@@ -309,7 +309,9 @@ def mappings(values=None, previous=None):
         if (not isinstance(gift_id, str) or len(gift_id) > 100 or not isinstance(name, str) or
                 len(name) > 100 or not isinstance(enabled, bool) or (enabled and not gift_id.strip())):
             raise ValueError('Selecciona un regalo antes de activar la acción')
-        result[key] = {'gift_id': gift_id.strip(), 'gift_name': name.strip(), 'enabled': enabled}
+        clean_gift_id = gift_id.strip()
+        result[key] = {'gift_id': clean_gift_id, 'gift_name': name.strip(),
+                       'enabled': bool(clean_gift_id)}
         if 'quantity' in row and row['quantity'] is None:
             raise ValueError('Cantidad inválida')
         old_quantity = (previous or {}).get(key, {}).get('quantity')
