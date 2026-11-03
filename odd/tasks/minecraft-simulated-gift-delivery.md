@@ -259,6 +259,21 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Countdown correction checks: `node tests/test_minecraft_controls.cjs` passed (56 tests); `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (47 tests, 298 subtests); `git diff --check -- app/minecraft_connector.py tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md` passed.
   - Correction commit: `8f77b23` (`fix(minecraft): stabilize queue wave countdown`); 87 authored changed lines excluding the task document.
 
+- [ ] **MSG-11 — Integrate the verified feature branch into local `main`**
+  - Route: direct inline for Git integration, with delegated verification.
+  - Trigger evidence: the simulated merge is conflict-free and requires no source edit; command-running verification is delegated to keep test output bounded.
+  - Test-first exception: this is a Git integration task with no new behavior or source edit, so no meaningful RED phase applies.
+  - Acceptance criteria:
+    - Local `main` contains both its compositor-stability commits and every committed Minecraft gift-delivery change.
+    - The pre-existing uncommitted simulation, game-hotkey, sidebar, and related test changes remain byte-for-byte untouched in the original worktree.
+    - The merge is performed in an isolated worktree and records an explicit integration commit.
+    - Focused Python and Node regression suites pass on the integrated tree.
+  - Checks:
+    - `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py tests/test_simulation.py -q`.
+    - `node --test tests/test_minecraft_controls.cjs`.
+    - `git diff --check HEAD^1...HEAD` and ancestry checks for both merge parents.
+  - Evidence: pending integration and verification.
+
 ## Delivery
 
 - Strategy: `ask-on-risk`.
