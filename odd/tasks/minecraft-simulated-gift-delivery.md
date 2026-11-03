@@ -259,7 +259,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
   - Countdown correction checks: `node tests/test_minecraft_controls.cjs` passed (56 tests); `\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py -q` passed (47 tests, 298 subtests); `git diff --check -- app/minecraft_connector.py tests/test_minecraft_presets.py odd/tasks/minecraft-simulated-gift-delivery.md` passed.
   - Correction commit: `8f77b23` (`fix(minecraft): stabilize queue wave countdown`); 87 authored changed lines excluding the task document.
 
-- [ ] **MSG-11 — Integrate the verified feature branch into local `main`**
+- [x] **MSG-11 — Integrate the verified feature branch into local `main`**
   - Route: direct inline for Git integration, with delegated verification.
   - Trigger evidence: the simulated merge is conflict-free and requires no source edit; command-running verification is delegated to keep test output bounded.
   - Test-first exception: this is a Git integration task with no new behavior or source edit, so no meaningful RED phase applies.
@@ -272,7 +272,8 @@ The user explicitly requested correction of simulated gifts that appear in the t
     - `.\.venv\Scripts\python.exe -m pytest tests/test_minecraft_presets.py tests/test_simulation.py -q`.
     - `node --test tests/test_minecraft_controls.cjs`.
     - `git diff --check HEAD^1...HEAD` and ancestry checks for both merge parents.
-  - Evidence: pending integration and verification.
+  - Evidence: merge commit `88d25d8` contains both prior `main` (`47adcc4`) and the completed feature branch (`7831570`) as parents. `tests/test_minecraft_presets.py` passed with 58 tests and 300 subtests; `tests/test_simulation.py` passed with 21 tests and 3 subtests plus two existing `websockets` deprecation warnings; `tests/test_minecraft_controls.cjs` passed all 56 tests. `git diff --check HEAD^1...HEAD` passed, both required commits are ancestors of the merge, and the isolated `main` worktree was clean after verification.
+  - Integration commit: `88d25d8` (`merge(minecraft): integrate simulated gift delivery`).
 
 ## Delivery
 
@@ -290,6 +291,7 @@ The user explicitly requested correction of simulated gifts that appear in the t
 - MSG-8 and MSG-9 were added after the user replaced saturation rejection with durable eventual execution and promoted Activity and queue to the primary Minecraft operations surface.
 - MSG-8 is implemented and committed; its parent spot check passed with 46 tests and 298 subtests. MSG-9 and its countdown correction are implemented; parent spot checks, independent verification, and browser visual inspection pass.
 - Authorized continuation: MSG-3, MSG-4, MSG-5, and MSG-10 implementation and available verification are complete in work-unit commit `29104fe` (613 authored changed lines excluding the task document). Existing out-of-scope dirty simulation/game-hotkey changes remain untouched. Engram mirror remains pending.
+- MSG-11 is complete: local `main` integrates the feature through merge commit `88d25d8`; focused Python and Node checks pass, and the original dirty worktree remains intentionally separate.
 
 ## Verification evidence
 
@@ -308,4 +310,4 @@ Verification results:
 
 ## Next step
 
-MSG-1, MSG-2, MSG-6, MSG-8, and MSG-9 are implemented; MSG-1 and MSG-2 were independently verified and live-tested in Minecraft Bedrock. MSG-6's focused FIFO/count, TNT, pluralization, cancellation, stop-rebase, and simulator tests pass, but its saturation/cancellation contract is superseded by MSG-8. MSG-8's focused suite and parent spot check passed with 46 tests and 298 subtests; its work-unit commit is `56e6306`. MSG-9's focused Node suite passes 56 tests; its Python suite after the countdown correction passes 47 tests and 298 subtests. Independent verification closed the pause/readiness and wave-anchor findings, and the local browser check passed at desktop and narrow widths without triggering Minecraft. MSG-3 through MSG-5 and MSG-10 are implemented and verified within the available environment in work-unit commit `29104fe` (613 authored changed lines excluding the task document); focused Bedrock loopback checks remain unavailable because of sandbox `WinError 10013`, and no live Minecraft validation was performed. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
+Local `main` now contains the completed feature through merge commit `88d25d8`. Focused integration checks pass: 58 Minecraft preset tests with 300 subtests, 21 simulation tests with 3 subtests, and 56 Node UI tests. The original worktree's unrelated uncommitted simulation, game-hotkey, sidebar, and test changes remain separate and untouched. Publishing `main` is intentionally pending because no push was requested. RDD assessment remains unavailable because `gentle-ai` is not on PATH; the Engram mirror remains pending because no Engram memory tools are available in this session.
