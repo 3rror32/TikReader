@@ -37,14 +37,15 @@ The simulation UI already exposes useful controls and status, but the floating p
   - Acceptance: keyboard users can traverse and activate tabs without leaving the tablist; closing restores focus to the launcher.
   - Checks: `node --test tests/test_simulation_ui.cjs`; `node --check web/static/simulation.js`.
   - Evidence: the initial tab-navigation assertion failed before implementation because the tabs had no roving tab stop or panel relationship; the implementation then passed all 12 UI tests and the script syntax check. Independent verification found the assertion checked source strings rather than executing tab behavior. Replaced it with behavioral coverage for arrow wrapping, Home/End, selected state, roving tabindex, panel visibility, mouse activation, open focus, close, and Escape focus restoration. The expanded test suite passes (12/12); no product runtime defect was exposed.
-  - Commits: `7feda1f` (`fix(simulation): complete keyboard tab navigation`); behavioral-test correction pending parent readback.
+  - Commits: `7feda1f` (`fix(simulation): complete keyboard tab navigation`) and `a56d601` (`test(simulation): exercise tab keyboard behavior`).
 
-- [ ] **SUX-2 — Make the real-effect simulation state unmistakable**
+- [x] **SUX-2 — Make the real-effect simulation state unmistakable**
   - Add a deterministic RED test for the armed/active messaging where practical.
   - Present a persistent, concise active-state cue near event submission and keep action labels/status consistent.
   - Acceptance: users can tell before submitting that saved rules and normal overlays will run, without repeated modal confirmations.
   - Checks: `node --test tests/test_simulation_ui.cjs`; visual readback.
-  - Commit: pending.
+  - Evidence: the new test was RED because neither form had a cue beside its submit control. Added persistent state-aware cues to the full-page and floating forms; active state names saved rules, usual overlays, and real actions, while inactive and paused states remain distinct. UI tests pass (13/13) and JavaScript syntax check passes. Browser readback at 1440×900 confirmed inactive and active cues in both surfaces; simulation was returned to inactive afterward.
+  - Commit: pending parent commit.
 
 - [ ] **SUX-3 — Make gift-catalog failures recoverable**
   - Add a deterministic RED test for failed catalog loading and retry.
@@ -66,7 +67,9 @@ The simulation UI already exposes useful controls and status, but the floating p
 - 2026-11-04: Feature branch created and implementation authorized for items 1–4 only.
 - 2026-11-04: SUX-1 implemented and verified; `node --test tests/test_simulation_ui.cjs` passed (12/12), and `node --check web/static/simulation.js` passed. The pre-implementation test run was RED (11 passed, 1 failed on missing tab semantics).
 - 2026-11-04: Corrected SUX-1 test quality after independent verification; behavioral assertions now exercise keyboard and focus outcomes. `node --test tests/test_simulation_ui.cjs` passed (12/12), and `node --check web/static/simulation.js` passed. No product code change was needed for this correction.
-- Verification, commit identities, RDD assessment, and running changed-line count: pending.
+- 2026-11-04: Independent targeted re-verification passed for `a56d601`; the prior source-string coverage finding is resolved. Native RDD assessment was unavailable because the `gentle-ai` executable is not present in this environment, so no review receipt was claimed.
+- 2026-11-04: SUX-2 implementation and functional checks passed; browser validation confirmed both simulation surfaces and the local simulation state was restored to inactive.
+- Running authored changed-line count and later-task review outcomes: pending.
 
 ## Next step
 

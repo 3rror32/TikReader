@@ -270,6 +270,32 @@ test('floating panel tabs navigate, activate panels, and restore focus', () => {
   assert.equal(document.activeElement, launcher, 'Escape restores focus to the launcher');
 });
 
+test('real-effect scope stays visible beside both simulation send controls', () => {
+  const template = fs.readFileSync(path.join(__dirname, '../web/templates/simulation.html'), 'utf8');
+  const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');
+  assert.match(template, /<p id="simulation-effects-cue" class="simulation-effects-cue"[^>]*>[^<]+<\/p>[\s\S]*?<button id="simulation-send"/,
+    'the full-page cue appears beside its send control');
+  assert.match(script, /<p id="simulation-float-effects-cue" class="simulation-effects-cue"[^>]*>[^<]+<\/p>[\s\S]*?<button id="simulation-float-send"/,
+    'the floating-panel cue appears beside its send control');
+
+  const {ui, elements} = loadSimulationUI();
+  ui.apply({active:false,generation:1,instance:'ui-test'});
+  assert.equal(elements.get('simulation-effects-cue').textContent,
+    'Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.');
+  assert.equal(elements.get('simulation-float-effects-cue').textContent,
+    'Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.');
+  ui.apply({active:true,generation:1,instance:'ui-test'});
+  assert.equal(elements.get('simulation-effects-cue').textContent,
+    'Simulación activa: al enviar, tus reglas guardadas y los overlays habituales ejecutan acciones reales.');
+  assert.equal(elements.get('simulation-float-effects-cue').textContent,
+    'Simulación activa: al enviar, tus reglas guardadas y los overlays habituales ejecutan acciones reales.');
+  ui.apply({active:true,muted:true,generation:1,instance:'ui-test'});
+  assert.equal(elements.get('simulation-effects-cue').textContent,
+    'Simulación activa: las acciones están pausadas.');
+  assert.equal(elements.get('simulation-float-effects-cue').textContent,
+    'Simulación activa: las acciones están pausadas.');
+});
+
 test('gift picker shows catalog art and diamond values and submits the chosen duplicate name ID', async () => {
   const {elements, requests, body} = loadSimulationUI();
   await new Promise(resolve => setImmediate(resolve));

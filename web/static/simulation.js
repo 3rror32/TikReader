@@ -35,6 +35,7 @@ window.SimulationUI = (() => {
             <label><span>Regalo</span><div class="simulation-gift-control"><button id="simulation-float-gift" class="simulation-gift-trigger" type="button" role="combobox" aria-haspopup="listbox" aria-controls="simulation-gift-picker" aria-expanded="false" data-gift-name="Rose">Rose</button></div></label>
             <label><span>Cantidad</span><input id="simulation-float-count" type="number" min="1" max="9999" step="1" value="1"></label>
           </div>
+          <p id="simulation-float-effects-cue" class="simulation-effects-cue">Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.</p>
           <div class="simulation-float-send-row"><label><span>Espera</span><span class="simulation-float-number"><input id="simulation-float-delay" type="number" min="0" max="60" step="1" value="0"><em>s</em></span></label><button id="simulation-float-send" type="submit" aria-label="Enviar comentario"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 3 10.8 13.2"/><path d="m21 3-6.5 18-3.7-7.5L3 9.8 21 3Z"/></svg><span>Enviar</span></button></div>
         </fieldset>
       </form>
@@ -45,6 +46,7 @@ window.SimulationUI = (() => {
 
   async function api(path,data){const response=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,cache:'no-store',signal:AbortSignal.timeout(10000)});const result=await response.json();if(!response.ok)throw Error(result.error||'No se pudo consultar la simulación');return result;}
   function mainStatus(text){const output=$('simulation-status');if(output)output.textContent=text;}
+  function effectsCueText(){if(!state.active)return'Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.';if(state.muted)return'Simulación activa: las acciones están pausadas.';return'Simulación activa: al enviar, tus reglas guardadas y los overlays habituales ejecutan acciones reales.';}
   function recordsFor(update){const games=update.games||{log:[]};return [...(update.traces||[]).map(x=>({at:x.at,text:`${x.rule} · ${x.action||'Regla'} · ${x.outcome}`})),...(games.log||[]).map(x=>({at:x.at,text:`${x.mapping||'Hotkeys'} · ${x.text} · ${x.outcome}`})),...(update.events||[]).flatMap(x=>(x.hotkeys||[]).map(h=>({at:x.at,text:`${h.name} · ${h.result==='Coincide'?'Regla coincide; consulta la ejecución de la tecla':h.result}`})))].sort((a,b)=>b.at-a.at).slice(0,80);}
   function renderDockEvents(update){
     const events=update.events||[],next=JSON.stringify(events.map(x=>x.id));
@@ -79,6 +81,7 @@ window.SimulationUI = (() => {
     const batchRunning=!!state.batch?.running;
     dockButton.classList.toggle('is-active',state.active);dock.classList.toggle('is-active',state.active);
     $('simulation-float-state').textContent=state.active?(state.muted?'Simulación activa · acciones pausadas':'Simulación activa · observando respuestas'):(state.connected?'Desconecta el LIVE para hacer pruebas':'Lista para una prueba sin conectar el LIVE');
+    $('simulation-float-effects-cue').textContent=effectsCueText();
     $('simulation-float-activate').textContent=state.active?'Desactivar':'Activar';
     $('simulation-float-activate').classList.toggle('is-on',state.active);
     $('simulation-float-fields').disabled=!state.active;
@@ -94,6 +97,7 @@ window.SimulationUI = (() => {
     try{sessionStorage.setItem('tikreader.simulationActive',String(state.active));}catch(_){ }
     const connect=$('btn-connect');if(connect){connect.disabled=state.active||!!state.connected;connect.title=state.active?'Desactiva el modo simulación para conectar un LIVE.':'';}
     $('simulation-toggle').textContent=state.active?'Desactivar simulación':'Activar simulación';
+    $('simulation-effects-cue').textContent=effectsCueText();
     $('simulation-fields').disabled=!state.active;
     $('simulation-stop').disabled=!state.active;
     $('simulation-resume').hidden=!state.active||!state.muted;
@@ -121,7 +125,7 @@ window.SimulationUI = (() => {
       catch(error){mainStatus(error.message);}
     });
   }
-  async function toggleSimulation(){sendEpoch++;apply(await api('/simulation',{action:state.active?'deactivate':'activate'}));if(state.active){await window.TikReaderAudio?.claimForSimulation();mainStatus('Simulación activa. Se utilizan tus reglas guardadas y los overlays habituales.');}else mainStatus('Simulación desactivada. El LIVE sigue desconectado.');}
+  async function toggleSimulation(){sendEpoch++;apply(await api('/simulation',{action:state.active?'deactivate':'activate'}));if(state.active){await window.TikReaderAudio?.claimForSimulation();mainStatus(effectsCueText());}else mainStatus('Simulación desactivada. El LIVE sigue desconectado.');}
   async function stopSimulation(){sendEpoch++;apply(await api('/simulation',{action:'stop'}));mainStatus('Envíos detenidos y emisión pausada. Reanuda cuando quieras continuar.');}
 
   function openDock(){dock.hidden=false;dockButton.hidden=true;dockButton.setAttribute('aria-expanded','true');dockButton.classList.remove('has-unread');restoreDockPosition();renderDock();requestAnimationFrame(()=>dock.querySelector('[role="tab"][aria-selected="true"]').focus());}
