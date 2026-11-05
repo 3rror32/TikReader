@@ -19,22 +19,56 @@ class Element {
     this.clientHeight = 100;
     this.value = '';
     this.textContent = '';
+    this.parentNode = null;
   }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   getAttribute(name) { return this.attributes[name] ?? null; }
-  append(...nodes) { this.children.push(...nodes); }
-  prepend(...nodes) { this.children.unshift(...nodes); }
-  replaceChildren(...nodes) { this.children = [...nodes]; }
+  append(...nodes) { for (const node of nodes) node.parentNode = this; this.children.push(...nodes); }
+  prepend(...nodes) { for (const node of nodes) node.parentNode = this; this.children.unshift(...nodes); }
+  replaceChildren(...nodes) { for (const node of nodes) node.parentNode = this; this.children = [...nodes]; }
   addEventListener(name, listener) { (this.listeners[name] ||= []).push(listener); }
-  dispatch(name, event = {}) { for (const listener of this.listeners[name] || []) listener({target: this, preventDefault() {}, stopPropagation() {}, ...event}); }
+  dispatch(name, event = {}) {
+    const dispatched = {target: this, preventDefault() { this.defaultPrevented = true; },
+      stopPropagation() { this.propagationStopped = true; }, ...event};
+    if (name === 'click' && this.tagName === 'BUTTON') this.focus();
+    if (name === 'click' && typeof this.onclick === 'function') this.onclick(dispatched);
+    for (let current = this; current; current = current.parentNode) {
+      for (const listener of current.listeners[name] || []) listener(dispatched);
+      if (dispatched.propagationStopped) break;
+    }
+    return dispatched;
+  }
   removeAttribute(name) { delete this.attributes[name]; }
   contains(node) { return this === node || this.children.some(child => child.contains(node)); }
-  querySelector() { return new Element(); }
-  querySelectorAll(selector) { return selector.includes('option') ? descendants(this).filter(node => node.getAttribute('role') === 'option') : []; }
+  querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+  querySelectorAll(selector) {
+    const selectors = selector.match(/\[[^\]]+\]/g) || [];
+    return descendants(this).filter(node => {
+      if (selector.includes('option') && node.getAttribute('role') !== 'option') return false;
+      return selectors.every(attribute => {
+        const [, name, value] = attribute.match(/^\[([^=\]]+)(?:="([^"]*)")?\]$/) || [];
+        return name && node.getAttribute(name) !== null && (value === undefined || node.getAttribute(name) === value);
+      });
+    });
+  }
   getBoundingClientRect() { return {left: 20, top: 100, bottom: 134, width: 180}; }
-  focus() {}
+  focus() { this.focused = true; if (this.ownerDocument) this.ownerDocument.activeElement = this; }
   select() {}
-  set innerHTML(value) { this._innerHTML = value; }
+  set innerHTML(value) {
+    this._innerHTML = value;
+    if (this.id !== 'simulation-float' || !this.ownerDocument) return;
+    this.children = [];
+    for (const match of value.matchAll(/<(button|div)\b([^>]*role="(?:tab|tabpanel)"[^>]*)>/g)) {
+      const node = this.ownerDocument.createElement(match[1]);
+      const attributes = [...match[2].matchAll(/([\w-]+)="([^"]*)"/g)];
+      for (const [, name, content] of attributes) node.setAttribute(name, content);
+      node.id = node.getAttribute('id');
+      node.dataset.simulationFloatTab = node.getAttribute('data-simulation-float-tab') || undefined;
+      node.hidden = /\shidden(?:\s|$)/.test(match[2]);
+      if (node.id) this.ownerDocument.elements.set(node.id, node);
+      this.append(node);
+    }
+  }
   get innerHTML() { return this._innerHTML || ''; }
 }
 
@@ -45,10 +79,11 @@ function loadSimulationUI() {
   const document = {
     hidden: true,
     body,
-    createElement: tag => new Element(tag),
+    elements,
+    createElement: tag => { const element = new Element(tag); element.ownerDocument = document; return element; },
     getElementById(id) {
       if (!elements.has(id)) {
-        const element = new Element();
+        const element = document.createElement();
         element.id = id;
         if (id === 'simulation-gift' || id === 'simulation-float-gift') {
           element.tagName = 'BUTTON';
@@ -64,7 +99,9 @@ function loadSimulationUI() {
     querySelector: () => new Element(),
     querySelectorAll: () => [],
     addEventListener(name, listener) { (documentListeners[name] ||= []).push(listener); },
+    dispatch(name, event = {}) { for (const listener of documentListeners[name] || []) listener(event); },
   };
+  body.ownerDocument = document;
   const window = {addEventListener() {}};
   const requests = [];
   const sandbox = {
@@ -84,7 +121,7 @@ function loadSimulationUI() {
     setInterval() {},
     addEventListener() {},
     matchMedia: () => ({matches: false}),
-    requestAnimationFrame() {},
+    requestAnimationFrame: callback => callback(),
     sessionStorage: {getItem: () => null, setItem() {}},
     localStorage: {getItem: () => null, setItem() {}},
     innerWidth: 1200,
@@ -189,19 +226,48 @@ test('floating send control keeps concise visible copy and event-specific access
     'the send button uses the same control height');
 });
 
-test('floating panel tabs support roving keyboard navigation and predictable focus', () => {
-  const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');
-  assert.match(script, /role="tab"[^>]*tabindex="0"[^>]*aria-controls="simulation-float-chat-view"/,
-    'the selected tab starts in the tab order and identifies its panel');
-  assert.match(script, /role="tabpanel"[^>]*aria-labelledby="simulation-float-tab-chat"/,
-    'each panel is labelled by its tab');
-  for (const key of ['ArrowLeft', 'ArrowRight', 'Home', 'End']) {
-    assert.ok(script.includes(`event.key==='${key}'`), `the tablist handles ${key} navigation`);
-  }
-  assert.match(script, /button\.setAttribute\('tabindex',String\(selected\?0:-1\)\)/,
-    'only the selected tab remains in the sequential tab order');
-  assert.match(script, /requestAnimationFrame\(\(\)=>dock\.querySelector\('\[role="tab"\]\[aria-selected="true"\]'\)\.focus\(\)\)/,
-    'opening moves focus to the selected tab');
+test('floating panel tabs navigate, activate panels, and restore focus', () => {
+  const {ui, elements, body, document} = loadSimulationUI();
+  const dock = body.children.find(node => node.id === 'simulation-float');
+  const tabs = dock.querySelectorAll('[data-simulation-float-tab]');
+  const chat = tabs.find(tab => tab.dataset.simulationFloatTab === 'chat');
+  const activity = tabs.find(tab => tab.dataset.simulationFloatTab === 'activity');
+  const chatPanel = elements.get('simulation-float-chat-view');
+  const activityPanel = elements.get('simulation-float-activity-view');
+  const assertSelected = (selected, otherTab, shownPanel, hiddenPanel) => {
+    assert.equal(selected.getAttribute('aria-selected'), 'true');
+    assert.equal(selected.getAttribute('tabindex'), '0');
+    assert.equal(otherTab.getAttribute('aria-selected'), 'false');
+    assert.equal(otherTab.getAttribute('tabindex'), '-1');
+    assert.equal(shownPanel.hidden, false);
+    assert.equal(hiddenPanel.hidden, true);
+  };
+
+  ui.open();
+  const launcher = body.children.find(node => node.id === 'simulation-fab');
+  assert.equal(document.activeElement, chat, 'opening focuses the selected Chat tab');
+  assertSelected(chat, activity, chatPanel, activityPanel);
+
+  activity.dispatch('click');
+  assertSelected(activity, chat, activityPanel, chatPanel);
+  assert.equal(document.activeElement, activity, 'mouse activation focuses the activated tab');
+
+  activity.dispatch('keydown', {key: 'ArrowRight'});
+  assertSelected(chat, activity, chatPanel, activityPanel);
+  assert.equal(document.activeElement, chat, 'ArrowRight wraps to the next tab and focuses it');
+  chat.dispatch('keydown', {key: 'ArrowLeft'});
+  assertSelected(activity, chat, activityPanel, chatPanel);
+  assert.equal(document.activeElement, activity, 'ArrowLeft wraps to the previous tab and focuses it');
+  chat.dispatch('keydown', {key: 'Home'});
+  assertSelected(chat, activity, chatPanel, activityPanel);
+  chat.dispatch('keydown', {key: 'End'});
+  assertSelected(activity, chat, activityPanel, chatPanel);
+
+  elements.get('simulation-float-close').onclick();
+  assert.equal(document.activeElement, launcher, 'the close button restores focus to the launcher');
+  ui.open();
+  document.dispatch('keydown', {key: 'Escape', defaultPrevented: false});
+  assert.equal(document.activeElement, launcher, 'Escape restores focus to the launcher');
 });
 
 test('gift picker shows catalog art and diamond values and submits the chosen duplicate name ID', async () => {

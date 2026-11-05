@@ -36,8 +36,8 @@ The simulation UI already exposes useful controls and status, but the floating p
   - Implement ArrowLeft/ArrowRight, Home/End, roving `tabindex`, selected-panel state, and predictable open/close focus.
   - Acceptance: keyboard users can traverse and activate tabs without leaving the tablist; closing restores focus to the launcher.
   - Checks: `node --test tests/test_simulation_ui.cjs`; `node --check web/static/simulation.js`.
-  - Evidence: the new tab-navigation assertion failed before implementation because the tabs had no roving tab stop or panel relationship; after implementation, all 12 UI tests passed and the script syntax check passed.
-  - Commit: `fix(simulation): complete keyboard tab navigation` — hash pending parent readback.
+  - Evidence: the initial tab-navigation assertion failed before implementation because the tabs had no roving tab stop or panel relationship; the implementation then passed all 12 UI tests and the script syntax check. Independent verification found the assertion checked source strings rather than executing tab behavior. Replaced it with behavioral coverage for arrow wrapping, Home/End, selected state, roving tabindex, panel visibility, mouse activation, open focus, close, and Escape focus restoration. The expanded test suite passes (12/12); no product runtime defect was exposed.
+  - Commits: `7feda1f` (`fix(simulation): complete keyboard tab navigation`); behavioral-test correction pending parent readback.
 
 - [ ] **SUX-2 — Make the real-effect simulation state unmistakable**
   - Add a deterministic RED test for the armed/active messaging where practical.
@@ -65,6 +65,7 @@ The simulation UI already exposes useful controls and status, but the floating p
 - 2026-11-04: Read-only frontend and security audits completed. No P0/P1 security vulnerability was confirmed.
 - 2026-11-04: Feature branch created and implementation authorized for items 1–4 only.
 - 2026-11-04: SUX-1 implemented and verified; `node --test tests/test_simulation_ui.cjs` passed (12/12), and `node --check web/static/simulation.js` passed. The pre-implementation test run was RED (11 passed, 1 failed on missing tab semantics).
+- 2026-11-04: Corrected SUX-1 test quality after independent verification; behavioral assertions now exercise keyboard and focus outcomes. `node --test tests/test_simulation_ui.cjs` passed (12/12), and `node --check web/static/simulation.js` passed. No product code change was needed for this correction.
 - Verification, commit identities, RDD assessment, and running changed-line count: pending.
 
 ## Next step
