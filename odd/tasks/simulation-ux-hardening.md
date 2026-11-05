@@ -69,8 +69,8 @@ The simulation UI already exposes useful controls and status, but the floating p
   - Correct only verified overlap, clipping, focus visibility, or virtual-keyboard/layout defects within the allowed surface.
   - Acceptance: the main simulation page and floating panel remain usable at the inspected sizes, with any unavailable visual checks recorded honestly.
   - Checks: browser screenshots/readback; `node --test tests/test_simulation_ui.cjs` after any correction.
-  - Evidence: browser measurements showed the fixed mobile command dock covered the simulation launcher at 390×844 and 720×450. Added a ≤760px CSS offset for the launcher and open panel using the safe-area inset and active banner height. Final browser validation confirmed the launcher and panel clear the dock by 8–18 px, the panel remains scrollable and usable at 390×844 and 720×450, the full simulation page remains usable at the zoom-equivalent viewport, and desktop 1440×900 positioning is unchanged. The structural regression assertion and both required checks pass.
-  - Commit: pending parent commit.
+  - Evidence: browser measurements showed the fixed mobile command dock covered the simulation launcher at 390×844 and 720×450. Added a ≤760px CSS offset for the launcher and open panel using the safe-area inset and active banner height. Independent verification found the active-state selector had higher specificity than the generic mobile launcher rule; added an equal-specificity active-state override and extended the regression assertion. Active-state browser revalidation confirmed an 8 px gap at 390×844 and an 18 px gap at 720×450; desktop 1440×900 remains unchanged. UI tests pass (16/16), and JavaScript syntax check passes. Simulation and viewport were restored afterward.
+  - Commits: `3214fac` (`fix(simulation): clear mobile command dock`); active-state cascade correction pending parent readback.
 
 ## Progress and evidence
 
@@ -87,6 +87,7 @@ The simulation UI already exposes useful controls and status, but the floating p
 - 2026-11-04: SUX-3A resolved delayed retry focus restoration; deferred-response tests pass for moved focus and closed picker/panel surfaces. UI suite passed (15/15), and JavaScript syntax check passed. SUX-3 is closed.
 - 2026-11-04: Independent verification passed for SUX-3A commit `84ab64a`; the asynchronous focus-stealing finding is resolved.
 - 2026-11-04: SUX-4 mobile dock clearance CSS and structural assertion implemented; UI suite passed (16/16), and JavaScript syntax check passed. Browser readback passed at desktop 1440×900, mobile 390×844, and zoom-equivalent 720×450; viewport override was reset afterward.
+- 2026-11-04: Independent verification found the active-state cascade overrode the mobile launcher clearance. Added an equal-specificity active mobile rule and regression coverage; active-state browser revalidation passed at 390×844 and 720×450. UI suite passed (16/16), JavaScript syntax check passed, simulation was deactivated, and the viewport override was reset.
 - Running authored changed-line count and later-task review outcomes: pending.
 
 ## Next step

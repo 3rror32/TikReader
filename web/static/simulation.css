@@ -90,5 +90,6 @@ body.simulation-active #simulation-fab,body.simulation-active #simulation-float{
 /* Keep the simulation controls above the fixed mobile command dock. */
 @media(max-width:760px){
   #simulation-fab{right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  body.simulation-active #simulation-fab{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
   #simulation-float{inset:auto 8px calc(84px + env(safe-area-inset-bottom,0px)) 8px!important;max-height:calc(100dvh - var(--simulation-banner-height,0px) - 100px - env(safe-area-inset-bottom,0px))}
 }
