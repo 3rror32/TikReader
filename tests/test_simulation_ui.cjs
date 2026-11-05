@@ -92,8 +92,21 @@ function loadSimulationUI() {
     console,
   };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8'), sandbox);
-  return {ui: window.SimulationUI, elements, requests, body};
+  return {ui: window.SimulationUI, elements, requests, body, document};
 }
+
+test('rapid sends retain form snapshots and stay enabled during batches', async () => {
+  const {ui,elements,requests,document}=loadSimulationUI();
+  await new Promise(resolve=>setImmediate(resolve));
+  ui.apply({active:true,generation:1,instance:'ui-test',batch:{running:true}});
+  assert.equal(elements.get('simulation-fields').disabled,false);
+  assert.equal(elements.get('simulation-float-fields').disabled,false);
+  const input=document.getElementById('simulation-text');
+  input.value='First';elements.get('simulation-form').onsubmit({preventDefault(){}});
+  input.value='Second';elements.get('simulation-form').onsubmit({preventDefault(){}});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(requests.filter(item=>item.url==='/simulation/events').map(item=>JSON.parse(item.options.body).text),['First','Second']);
+});
 
 function renderGift(event) {
   const {ui, elements} = loadSimulationUI();
@@ -155,6 +168,40 @@ test('main and floating gift controls are button comboboxes instead of editable 
     'main gift control should not be an editable text field');
   assert.doesNotMatch(script, /<input\s+id="simulation-float-gift"/,
     'floating gift control should not be an editable text field');
+});
+
+test('floating send control keeps concise visible copy and event-specific accessible names', () => {
+  const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');
+  const styles = fs.readFileSync(path.join(__dirname, '../web/static/simulation.css'), 'utf8');
+  assert.match(script, /<div class="simulation-float-send-row"><label><span>Espera<\/span><span class="simulation-float-number"><input id="simulation-float-delay"[\s\S]*?<\/label><button id="simulation-float-send" type="submit" aria-label="Enviar comentario">/,
+    'delay heading and input stay grouped beside the send button');
+  assert.match(script, /<button id="simulation-float-send"[\s\S]*?<svg[^>]*aria-hidden="true"[^>]*>[\s\S]*?<span>Enviar<\/span><\/button>/,
+    'the send icon is hidden from assistive technology and visible copy stays fixed');
+  assert.match(script, /simulation-float-send'\)\.setAttribute\('aria-label',gift\?'Enviar regalo':'Enviar comentario'\)/,
+    'the accessible action name follows the selected event');
+  assert.match(styles, /\.simulation-float-send-row\{display:grid;grid-template-columns:76px minmax\(0,1fr\);align-items:end;/,
+    'the row places the button at the delay field row bottom');
+  assert.match(styles, /#simulation-float-form \.simulation-float-send-row>label\{margin:0\}/,
+    'the row-specific selector clears the form label bottom margin');
+  assert.match(styles, /#simulation-float :is\(input,select\)\{height:34px;/,
+    'the delay input keeps its shared control height');
+  assert.match(styles, /#simulation-float-send\{display:inline-flex;flex:1;height:34px;/,
+    'the send button uses the same control height');
+});
+
+test('floating panel tabs support roving keyboard navigation and predictable focus', () => {
+  const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');
+  assert.match(script, /role="tab"[^>]*tabindex="0"[^>]*aria-controls="simulation-float-chat-view"/,
+    'the selected tab starts in the tab order and identifies its panel');
+  assert.match(script, /role="tabpanel"[^>]*aria-labelledby="simulation-float-tab-chat"/,
+    'each panel is labelled by its tab');
+  for (const key of ['ArrowLeft', 'ArrowRight', 'Home', 'End']) {
+    assert.ok(script.includes(`event.key==='${key}'`), `the tablist handles ${key} navigation`);
+  }
+  assert.match(script, /button\.setAttribute\('tabindex',String\(selected\?0:-1\)\)/,
+    'only the selected tab remains in the sequential tab order');
+  assert.match(script, /requestAnimationFrame\(\(\)=>dock\.querySelector\('\[role="tab"\]\[aria-selected="true"\]'\)\.focus\(\)\)/,
+    'opening moves focus to the selected tab');
 });
 
 test('gift picker shows catalog art and diamond values and submits the chosen duplicate name ID', async () => {
