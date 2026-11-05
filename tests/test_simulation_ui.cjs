@@ -314,7 +314,7 @@ test('gift catalog failure explains the problem and retry restores selection wit
     assert.ok(script.includes(`id="${id}"`), `the floating gift form includes ${id}`);
   }
 
-  const {ui, elements, requests, body} = loadSimulationUI({giftCatalogResponses: [
+  const {ui, elements, requests, body, document} = loadSimulationUI({giftCatalogResponses: [
     new Error('network unavailable'),
     {gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1, image_url: 'https://example.test/rose.png'}]},
   ]});
@@ -342,6 +342,18 @@ test('gift catalog failure explains the problem and retry restores selection wit
   assert.equal(pickerRetry.hidden, true);
   assert.equal(picker.querySelectorAll('[role="option"]').length, 1,
     'the retry restores the catalog options without reloading the page');
+  assert.equal(document.activeElement, descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo'),
+    'successful picker retry moves focus to the search field');
+
+  const inlineRetry = loadSimulationUI({giftCatalogResponses: [
+    new Error('network unavailable'),
+    {gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]},
+  ]});
+  await new Promise(resolve => setImmediate(resolve));
+  inlineRetry.elements.get('simulation-float-gift-catalog-retry').dispatch('click');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(inlineRetry.document.activeElement, inlineRetry.elements.get('simulation-float-gift'),
+    'successful inline retry returns focus to its matching gift trigger');
 });
 
 test('gift picker shows catalog art and diamond values and submits the chosen duplicate name ID', async () => {
