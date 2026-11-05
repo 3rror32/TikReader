@@ -23,11 +23,20 @@ The simulation UI already exposes useful controls and status, but the floating p
 
 ## Delivery
 
-- Strategy: `ask-on-risk`.
+- Strategy: `ask-on-risk` → `feature-branch-chain`, selected by the user after the implementation range exceeded the delivery threshold.
 - Forecast: approximately 180–260 authored changed lines, generated files excluded.
 - Route: delegated direct; four non-trivial frontend/test tasks and overlapping staged work trigger the writer and preparation rules.
 - Branch: `codex/simulation-ux-hardening`.
-- Reviewed boundary: branch point (pending determination).
+- Native RDD: unavailable because the `gentle-ai` executable is absent; independent verification was used and no native receipt is claimed.
+- PR operations: none created or published.
+
+### Feature-branch chain slices
+
+1. **Accessibility and effect scope** — base `9554b06` through `f8c2e7f`; commits `7feda1f`, `a56d601`, `f8c2e7f`; approximately 288 changed lines.
+2. **Catalog recovery and focus ownership** — `f8c2e7f` through `84ab64a`; commits `edb075c`, `0edad03`, `0a9f3f4`, `84ab64a`; approximately 198 changed lines.
+3. **Responsive dock clearance** — `84ab64a` through `3ee74e1`; commits `3214fac`, `3ee74e1`; approximately 28 changed lines.
+
+The unavailable `work-unit-commits` and `chained-pr` registry entries were handled with the repository fallback instructions.
 
 ## Tasks
 
@@ -70,7 +79,7 @@ The simulation UI already exposes useful controls and status, but the floating p
   - Acceptance: the main simulation page and floating panel remain usable at the inspected sizes, with any unavailable visual checks recorded honestly.
   - Checks: browser screenshots/readback; `node --test tests/test_simulation_ui.cjs` after any correction.
   - Evidence: browser measurements showed the fixed mobile command dock covered the simulation launcher at 390×844 and 720×450. Added a ≤760px CSS offset for the launcher and open panel using the safe-area inset and active banner height. Independent verification found the active-state selector had higher specificity than the generic mobile launcher rule; added an equal-specificity active-state override and extended the regression assertion. Active-state browser revalidation confirmed an 8 px gap at 390×844 and an 18 px gap at 720×450; desktop 1440×900 remains unchanged. UI tests pass (16/16), and JavaScript syntax check passes. Simulation and viewport were restored afterward.
-  - Commits: `3214fac` (`fix(simulation): clear mobile command dock`); active-state cascade correction pending parent readback.
+  - Commits: `3214fac` (`fix(simulation): clear mobile command dock`) and `3ee74e1` (`fix(simulation): preserve active mobile clearance`).
 
 ## Progress and evidence
 
@@ -88,8 +97,10 @@ The simulation UI already exposes useful controls and status, but the floating p
 - 2026-11-04: Independent verification passed for SUX-3A commit `84ab64a`; the asynchronous focus-stealing finding is resolved.
 - 2026-11-04: SUX-4 mobile dock clearance CSS and structural assertion implemented; UI suite passed (16/16), and JavaScript syntax check passed. Browser readback passed at desktop 1440×900, mobile 390×844, and zoom-equivalent 720×450; viewport override was reset afterward.
 - 2026-11-04: Independent verification found the active-state cascade overrode the mobile launcher clearance. Added an equal-specificity active mobile rule and regression coverage; active-state browser revalidation passed at 390×844 and 720×450. UI suite passed (16/16), JavaScript syntax check passed, simulation was deactivated, and the viewport override was reset.
-- Running authored changed-line count and later-task review outcomes: pending.
+- 2026-11-04: Targeted independent re-verification passed for SUX-4 correction commit `3ee74e1`; the active-state cascade finding is resolved.
+- Running authored implementation count through `3ee74e1`: 496 additions plus deletions, generated files and this final metadata-only closeout excluded. The increase over forecast includes pre-existing overlapping simulation changes that the user explicitly authorized incorporating.
+- 2026-11-04: User selected `feature-branch-chain`; three review slices were recorded. No PR, push, or other remote operation was performed.
 
 ## Next step
 
-Commit and independently verify SUX-4, record final changed-line count, and close the feature. Item 5 remains out of scope.
+Feature implementation is complete. Ordinary repository policy owns any later push or PR creation. Item 5 remains out of scope; Engram mirror remains pending because the provider is unavailable.
