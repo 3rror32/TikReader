@@ -12,17 +12,20 @@ The supplied video (`2026-11-02 12-59-43.mp4`) shows one-frame black compositor 
 - Preserve existing `QTWEBENGINE_CHROMIUM_FLAGS`; append the flag only when absent.
 - Support opt-out with `TIKREADER_GPU_COMPOSITING=1`.
 - Do not disable other GPU features or change web CSS/JavaScript.
+- Preserve all staged and unstaged source work while correcting the canonical checkout and launch entry points.
+- Remove only launch shortcuts that target the stale installed copy; preserve the uninstaller shortcut.
 - Engram mirror is pending because the memory provider is unavailable.
 
 ## Tasks and checks
 - [x] NATIVE-COMP-1: Add focused launcher tests and observe RED before implementation. Three initial cases failed before the helper existed.
 - [x] NATIVE-COMP-2: Configure the Windows Chromium compositing flag and opt-out before desktop window import; observe GREEN. Follow-up coverage verifies opt-out with unrelated flags, pre-existing flag deduplication, and non-Windows no-op.
+- [ ] NATIVE-COMP-3: Make the original source checkout the canonical `main` launcher, preserve its staged work exactly, remove the stale installed launch shortcuts, and verify that the running renderer receives `--disable-gpu-compositing`.
 
 ## Route and progress
 - Route: delegated direct, one bounded writer. Trigger: implementation plus focused test changes span two non-trivial files.
 - Authorized scope: `app/launcher.py`, `tests/test_source_launcher.py`, and this task document.
 - Forecast: approximately 80 authored changed lines.
 - Checks: `.venv\Scripts\python.exe -m pytest tests/test_source_launcher.py -q`; `PYTHONPATH=app .venv\Scripts\python.exe -m unittest tests.test_native_desktop`; `git diff --check`; bounded native startup smoke with GPU enabled.
-- Progress: task record created before source/test changes; behavior implemented. Focused pytest passed 31 cases and the desktop suite passed 29 after setting `PYTHONPATH=app`. The native smoke confirmed `--disable-gpu-compositing` before importing `desktop_window`, loaded Studio successfully, reached `ready=complete`, and rendered a stable final screenshot. `git diff --check` passed. The native smoke did not reproduce the intermittent artifact, so elimination on the affected machine remains to be confirmed in normal use. The original `unittest tests.test_source_launcher` command discovered zero tests because that module uses pytest functions. Work-unit commit: `b4f9543 fix(desktop): avoid Windows GPU compositor glitches`.
+- Progress: task record created before source/test changes; behavior implemented. Focused pytest passed 31 cases and the desktop suite passed 29 after setting `PYTHONPATH=app`. The native smoke confirmed `--disable-gpu-compositing` before importing `desktop_window`, loaded Studio successfully, reached `ready=complete`, and rendered a stable final screenshot. `git diff --check` passed. The original checkout was later found still launching commit `7831570`, six commits behind `main`, so the mitigation was absent after subsequent restarts. NATIVE-COMP-3 records the durable launcher correction; its environment changes and verification are pending. The original `unittest tests.test_source_launcher` command discovered zero tests because that module uses pytest functions. Work-unit commit: `b4f9543 fix(desktop): avoid Windows GPU compositor glitches`.
 - Delivery: local `main` advanced from `589e78c` to `b4f9543` after a verified fast-forward ancestry check. Remote `origin/main` was not updated. Native RDD review and Engram mirroring are unavailable in this environment.
-- Next step: monitor the affected Windows app for recurrence; if black tiles remain, compare with `TIKREADER_GPU_COMPOSITING=1` and capture WebEngine compositor logs.
+- Next step: preserve the original checkout's staged diff, rebind that checkout to `main`, remove only the stale installed launch shortcuts, restart from `Iniciar TikReader.cmd`, and verify the renderer command line.
