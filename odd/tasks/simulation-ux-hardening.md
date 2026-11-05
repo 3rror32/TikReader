@@ -47,13 +47,13 @@ The simulation UI already exposes useful controls and status, but the floating p
   - Evidence: the new test was RED because neither form had a cue beside its submit control. Added persistent state-aware cues to the full-page and floating forms; active state names saved rules, usual overlays, and real actions, while inactive and paused states remain distinct. UI tests pass (13/13) and JavaScript syntax check passes. Browser readback at 1440×900 confirmed inactive and active cues in both surfaces; simulation was returned to inactive afterward.
   - Commit: `f8c2e7f` (`feat(simulation): clarify real effect scope`).
 
-- [x] **SUX-3 — Make gift-catalog failures recoverable**
+- [ ] **SUX-3 — Make gift-catalog failures recoverable**
   - Add a deterministic RED test for failed catalog loading and retry.
   - Show an actionable error state and allow retry without reloading the page.
   - Acceptance: a failed request cannot be mistaken for an empty catalog, and a successful retry restores normal selection.
   - Checks: `node --test tests/test_simulation_ui.cjs`; `node --check web/static/simulation.js`.
-  - Evidence: the behavioral test was RED because the forms had no catalog error or retry controls. Added live error messages and retry buttons to both forms and the open picker; a successful retry resolves both default gift identities and repopulates options in the same UI instance. Independent verification found that hiding a focused retry control lost focus. Added successful-retry focus restoration to the picker search or matching gift trigger and behavioral coverage for both paths. UI tests pass (14/14), and the JavaScript syntax check passes. No browser-specific validation was needed for this interaction.
-  - Commits: `edb075c` (`fix(simulation): make gift catalog retryable`); focus-restoration correction pending parent readback.
+  - Evidence: the behavioral test was RED because the forms had no catalog error or retry controls. Added live error messages and retry buttons to both forms and the open picker; successful retry repopulates the same UI instance. Independent verification found focus loss when the retry control disappeared, so commit `0edad03` restored focus and added immediate-success coverage. Targeted re-verification then found a delayed-response race: completion can steal focus after the user has moved elsewhere. The single correction budget is exhausted; this task needs a user decision before another candidate is opened or the limitation is accepted. UI tests pass (14/14), and the JavaScript syntax check passes.
+  - Commits: `edb075c` (`fix(simulation): make gift catalog retryable`) and `0edad03` (`fix(simulation): restore focus after catalog retry`).
 
 - [ ] **SUX-4 — Validate and correct responsive presentation**
   - Inspect the running interface at desktop, narrow mobile, and 200% zoom-equivalent viewports.
@@ -73,8 +73,9 @@ The simulation UI already exposes useful controls and status, but the floating p
 - 2026-11-04: Independent verification passed for SUX-2 commit `f8c2e7f`; no correctness finding was identified.
 - 2026-11-04: SUX-3 catalog failure/retry behavior implemented and verified; UI suite passed (14/14), and JavaScript syntax check passed.
 - 2026-11-04: SUX-3 focus correction passed; picker retry focuses search, inline retry focuses its gift trigger, and both required commands passed.
+- 2026-11-04: Targeted re-verification of `0edad03` found a delayed-response focus-stealing race. The existing candidate's correction budget is exhausted; SUX-3 remains open pending user direction.
 - Running authored changed-line count and later-task review outcomes: pending.
 
 ## Next step
 
-Delegate one bounded writer to reconcile the pre-existing staged simulation work, implement tasks sequentially, run the named checks, update this document after each task, and avoid item 5.
+Needs user decision: open a new bounded work unit to guard asynchronous retry focus restoration, or accept the documented limitation and continue to SUX-4. Item 5 remains out of scope.
