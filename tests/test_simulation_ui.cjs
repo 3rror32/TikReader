@@ -305,6 +305,12 @@ test('real-effect scope stays visible beside both simulation send controls', () 
     'Simulación activa: las acciones están pausadas.');
 });
 
+test('simulation launch controls clear the mobile dock and safe-area inset', () => {
+  const styles = fs.readFileSync(path.join(__dirname, '../web/static/simulation.css'), 'utf8');
+  assert.match(styles, /@media\(max-width:760px\)\s*\{\s*#simulation-fab\{[^}]*bottom:calc\(84px \+ env\(safe-area-inset-bottom,0px\)\)[^}]*\}\s*#simulation-float\{[^}]*inset:auto 8px calc\(84px \+ env\(safe-area-inset-bottom,0px\)\) 8px!important;[^}]*max-height:calc\(100dvh - var\(--simulation-banner-height,0px\) - 100px - env\(safe-area-inset-bottom,0px\)\)/,
+    'the launcher and open panel sit above the mobile dock with safe-area and active-banner clearance');
+});
+
 test('gift catalog failure explains the problem and retry restores selection without reload', async () => {
   const template = fs.readFileSync(path.join(__dirname, '../web/templates/simulation.html'), 'utf8');
   const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');

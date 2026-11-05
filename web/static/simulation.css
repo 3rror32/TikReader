@@ -86,3 +86,9 @@ body.simulation-active #simulation-fab,body.simulation-active #simulation-float{
 .simulation-gift-options{max-height:220px;overflow:auto}
 @media(max-width:480px){#simulation-gift-picker{padding:6px}.simulation-gift-options{max-height:min(190px,34dvh)}}
 .simulation-gift-trigger{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:4px 8px;text-align:left}.simulation-gift-trigger::after{content:"▾";margin-left:auto;color:var(--control-field-muted,#a4b6c8)}.simulation-gift-trigger .simulation-gift-option-art{width:32px;height:32px;flex-basis:32px}.simulation-gift-trigger .simulation-gift-option-detail small{color:var(--control-field-muted,#a4b6c8)}
+
+/* Keep the simulation controls above the fixed mobile command dock. */
+@media(max-width:760px){
+  #simulation-fab{right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  #simulation-float{inset:auto 8px calc(84px + env(safe-area-inset-bottom,0px)) 8px!important;max-height:calc(100dvh - var(--simulation-banner-height,0px) - 100px - env(safe-area-inset-bottom,0px))}
+}

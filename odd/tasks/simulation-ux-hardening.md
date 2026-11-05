@@ -62,14 +62,15 @@ The simulation UI already exposes useful controls and status, but the floating p
   - Checks: `node --test tests/test_simulation_ui.cjs`; `node --check web/static/simulation.js`.
   - Route: delegated direct; this is a new bounded work unit authorized after the prior candidate exhausted its correction budget.
   - Evidence: deferred-response tests were RED when retry completion always focused its old destination. Focus now returns only if no focus event occurred since retry began and the originating picker or gift form remains open. Tests confirm a newer focused control stays focused, Escape leaves a closed picker closed without focus returning inside, and closing the floating panel leaves focus on its launcher. Immediate picker and inline retry focus remains covered. UI suite passes (15/15); JavaScript syntax check passes.
-  - Commit: pending parent commit.
+  - Commit: `84ab64a` (`fix(simulation): guard delayed retry focus`).
 
-- [ ] **SUX-4 — Validate and correct responsive presentation**
+- [x] **SUX-4 — Validate and correct responsive presentation**
   - Inspect the running interface at desktop, narrow mobile, and 200% zoom-equivalent viewports.
   - Correct only verified overlap, clipping, focus visibility, or virtual-keyboard/layout defects within the allowed surface.
   - Acceptance: the main simulation page and floating panel remain usable at the inspected sizes, with any unavailable visual checks recorded honestly.
   - Checks: browser screenshots/readback; `node --test tests/test_simulation_ui.cjs` after any correction.
-  - Commit: pending.
+  - Evidence: browser measurements showed the fixed mobile command dock covered the simulation launcher at 390×844 and 720×450. Added a ≤760px CSS offset for the launcher and open panel using the safe-area inset and active banner height. Final browser validation confirmed the launcher and panel clear the dock by 8–18 px, the panel remains scrollable and usable at 390×844 and 720×450, the full simulation page remains usable at the zoom-equivalent viewport, and desktop 1440×900 positioning is unchanged. The structural regression assertion and both required checks pass.
+  - Commit: pending parent commit.
 
 ## Progress and evidence
 
@@ -84,8 +85,10 @@ The simulation UI already exposes useful controls and status, but the floating p
 - 2026-11-04: SUX-3 focus correction passed; picker retry focuses search, inline retry focuses its gift trigger, and both required commands passed.
 - 2026-11-04: Targeted re-verification of `0edad03` found a delayed-response focus-stealing race. The existing candidate's correction budget was exhausted; user authorized SUX-3A as a new bounded work unit.
 - 2026-11-04: SUX-3A resolved delayed retry focus restoration; deferred-response tests pass for moved focus and closed picker/panel surfaces. UI suite passed (15/15), and JavaScript syntax check passed. SUX-3 is closed.
+- 2026-11-04: Independent verification passed for SUX-3A commit `84ab64a`; the asynchronous focus-stealing finding is resolved.
+- 2026-11-04: SUX-4 mobile dock clearance CSS and structural assertion implemented; UI suite passed (16/16), and JavaScript syntax check passed. Browser readback passed at desktop 1440×900, mobile 390×844, and zoom-equivalent 720×450; viewport override was reset afterward.
 - Running authored changed-line count and later-task review outcomes: pending.
 
 ## Next step
 
-Continue to SUX-4. Item 5 remains out of scope.
+Commit and independently verify SUX-4, record final changed-line count, and close the feature. Item 5 remains out of scope.
