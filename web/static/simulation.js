@@ -35,6 +35,7 @@ window.SimulationUI = (() => {
             <label><span>Regalo</span><div class="simulation-gift-control"><button id="simulation-float-gift" class="simulation-gift-trigger" type="button" role="combobox" aria-haspopup="listbox" aria-controls="simulation-gift-picker" aria-expanded="false" data-gift-name="Rose">Rose</button></div></label>
             <label><span>Cantidad</span><input id="simulation-float-count" type="number" min="1" max="9999" step="1" value="1"></label>
           </div>
+          <div id="simulation-float-gift-catalog-error" class="simulation-gift-error" hidden><p id="simulation-float-gift-catalog-error-message" role="status">No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.</p><button id="simulation-float-gift-catalog-retry" type="button">Intentar de nuevo</button></div>
           <p id="simulation-float-effects-cue" class="simulation-effects-cue">Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.</p>
           <div class="simulation-float-send-row"><label><span>Espera</span><span class="simulation-float-number"><input id="simulation-float-delay" type="number" min="0" max="60" step="1" value="0"><em>s</em></span></label><button id="simulation-float-send" type="submit" aria-label="Enviar comentario"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 3 10.8 13.2"/><path d="m21 3-6.5 18-3.7-7.5L3 9.8 21 3Z"/></svg><span>Enviar</span></button></div>
         </fieldset>
@@ -164,13 +165,21 @@ window.SimulationUI = (() => {
   $('simulation-kind').onchange=()=>{const gift=$('simulation-kind').value==='gift';$('simulation-gift-fields').hidden=!gift;$('simulation-comment-label').hidden=gift;$('simulation-send').textContent=gift?'Enviar regalos':'Enviar comentario';};
   $('simulation-mode').onchange=()=>{$('simulation-rachainfo').textContent=$('simulation-mode').value==='streak'?'La racha pasa por 1, 2, 3… hasta N y termina sin contar dos veces el último regalo.':'Cada envío tiene su propio identificador y cantidad 1. Se respetan los tiempos de espera entre activaciones.';};
   document.querySelectorAll('[data-simulation-open]').forEach(button=>button.onclick=()=>window.Shell?.show(button.dataset.simulationOpen));
-  const giftInputs=[$('simulation-gift'),$('simulation-float-gift')],picker=el('div'),giftSearch=el('input'),giftSearchStatus=el('p'),giftOptions=el('div');
+  const giftInputs=[$('simulation-gift'),$('simulation-float-gift')],picker=el('div'),giftSearch=el('input'),giftSearchStatus=el('p'),giftOptions=el('div'),giftPickerRetry=el('button','Intentar de nuevo');
+  const giftCatalogErrors=[$('simulation-gift-catalog-error'),$('simulation-float-gift-catalog-error')];
+  const giftCatalogErrorMessages=[$('simulation-gift-catalog-error-message'),$('simulation-float-gift-catalog-error-message')];
+  const giftCatalogRetries=[$('simulation-gift-catalog-retry'),$('simulation-float-gift-catalog-retry')];
+  let giftCatalog=[],pickerInput=null,pickerIndex=-1,giftCatalogError=false,giftCatalogLoading=false;
   picker.id='simulation-gift-picker';picker.className='simulation-gift-picker';picker.setAttribute('role','group');picker.setAttribute('aria-label','Catálogo de regalos');picker.hidden=true;
   giftSearch.type='search';giftSearch.className='simulation-gift-search';giftSearch.setAttribute('role','combobox');giftSearch.setAttribute('aria-label','Buscar regalo');giftSearch.setAttribute('aria-autocomplete','list');giftSearch.setAttribute('aria-haspopup','listbox');giftSearch.setAttribute('aria-controls','simulation-gift-options');giftSearch.setAttribute('aria-expanded','false');giftSearch.placeholder='Buscar regalo';giftSearch.autocomplete='off';
   giftSearchStatus.className='simulation-gift-search-status';giftSearchStatus.setAttribute('role','status');giftSearchStatus.setAttribute('aria-live','polite');giftSearchStatus.hidden=true;
+  giftPickerRetry.id='simulation-gift-picker-retry';giftPickerRetry.type='button';giftPickerRetry.className='simulation-gift-retry';giftPickerRetry.hidden=true;
   giftOptions.id='simulation-gift-options';giftOptions.className='simulation-gift-options';giftOptions.setAttribute('role','listbox');giftOptions.setAttribute('aria-label','Regalos disponibles');
-  picker.append(giftSearch,giftSearchStatus,giftOptions);document.body.append(picker);
-  let giftCatalog=[],pickerInput=null,pickerIndex=-1;
+  picker.append(giftSearch,giftSearchStatus,giftPickerRetry,giftOptions);document.body.append(picker);
+  function updateGiftCatalogFeedback(){
+    giftCatalogErrors.forEach((error,index)=>{error.hidden=!giftCatalogError;giftCatalogErrorMessages[index].textContent=giftCatalogLoading?'Cargando catálogo de regalos…':'No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.';giftCatalogRetries[index].hidden=!giftCatalogError;giftCatalogRetries[index].disabled=giftCatalogLoading;giftCatalogRetries[index].textContent=giftCatalogLoading?'Cargando…':'Intentar de nuevo';});
+    giftPickerRetry.hidden=!giftCatalogError;giftPickerRetry.disabled=giftCatalogLoading;giftPickerRetry.textContent=giftCatalogLoading?'Cargando…':'Intentar de nuevo';
+  }
   function closeGiftPicker(restoreFocus=false){const input=pickerInput;picker.hidden=true;input?.setAttribute('aria-expanded','false');giftSearch.setAttribute('aria-expanded','false');giftSearch.removeAttribute('aria-activedescendant');pickerInput=null;pickerIndex=-1;if(restoreFocus&&input)input.focus();}
   function giftArtwork(gift){
     const art=el('span');art.className='simulation-gift-option-art';
@@ -213,9 +222,23 @@ window.SimulationUI = (() => {
       option.addEventListener('mousedown',event=>event.preventDefault());
       option.addEventListener('click',()=>chooseGift(index));giftOptions.append(option);
     }
-    giftSearchStatus.textContent=matches.length?'':`No se encontraron regalos para “${giftSearch.value.trim()}”.`;
-    giftSearchStatus.hidden=matches.length>0;picker.hidden=false;input.setAttribute('aria-expanded','true');giftSearch.setAttribute('aria-expanded','true');
+    giftSearchStatus.textContent=giftCatalogLoading?'Cargando catálogo…':giftCatalogError?'No se pudo cargar el catálogo de regalos.':matches.length?'':giftCatalog.length===0?'El catálogo no contiene regalos disponibles.':`No se encontraron regalos para “${giftSearch.value.trim()}”.`;
+    giftSearchStatus.hidden=!giftCatalogLoading&&!giftCatalogError&&matches.length>0;giftPickerRetry.hidden=!giftCatalogError;picker.hidden=false;input.setAttribute('aria-expanded','true');giftSearch.setAttribute('aria-expanded','true');
     positionGiftPicker(input);
+  }
+  async function loadGiftCatalog(){
+    if(giftCatalogLoading)return;
+    giftCatalogLoading=true;updateGiftCatalogFeedback();
+    try{
+      const data=await api('/gift-catalog');
+      if(!Array.isArray(data.gifts))throw Error('Catálogo inválido');
+      giftCatalog=data.gifts;giftCatalogError=false;
+      for(const input of giftInputs){
+        const query=(input.dataset.giftName||'').trim().toLocaleLowerCase(),match=giftCatalog.find(gift=>gift.name.toLocaleLowerCase()===query);
+        if(match){input.dataset.giftId=String(match.id);showGiftSelection(input,match);}
+      }
+    }catch(_){giftCatalog=[];giftCatalogError=true;}
+    finally{giftCatalogLoading=false;updateGiftCatalogFeedback();if(pickerInput&&!picker.hidden)renderGiftPicker(pickerInput);}
   }
   function onGiftKeydown(event){
     if(event.key==='Tab'){closeGiftPicker();return;}
@@ -236,19 +259,14 @@ window.SimulationUI = (() => {
   for(const input of giftInputs){
     input.addEventListener('click',()=>{if(picker.hidden||pickerInput!==input){renderGiftPicker(input,true);giftSearch.focus();}});
   }
+  giftCatalogRetries.forEach(button=>button.onclick=()=>loadGiftCatalog());
+  giftPickerRetry.onclick=()=>loadGiftCatalog();
   giftSearch.addEventListener('input',()=>{if(pickerInput)renderGiftPicker(pickerInput);});
   giftSearch.addEventListener('keydown',onGiftKeydown);
   document.addEventListener('pointerdown',event=>{if(!picker.contains(event.target)&&!giftInputs.includes(event.target))closeGiftPicker();});
   document.addEventListener('scroll',()=>{if(pickerInput&&!picker.hidden)positionGiftPicker(pickerInput);},true);
   addEventListener('resize',()=>{if(pickerInput&&!picker.hidden)positionGiftPicker(pickerInput);});
-  api('/gift-catalog').then(data=>{
-    giftCatalog=Array.isArray(data.gifts)?data.gifts:[];
-    for(const input of giftInputs){
-      const query=(input.dataset.giftName||'').trim().toLocaleLowerCase();
-      const match=giftCatalog.find(gift=>gift.name.toLocaleLowerCase()===query);
-      if(match){input.dataset.giftId=String(match.id);showGiftSelection(input,match);}
-    }
-  }).catch(()=>{});
+  loadGiftCatalog();
   try{if(sessionStorage.getItem('tikreader.simulationActive')==='true'){banner.hidden=false;document.body.classList.add('simulation-active');}}catch(_){ }
   setInterval(refresh,1000);setInterval(()=>{if(state.batch&&!document.hidden)progress();},250);refresh();
   window.addEventListener('tikreader:navigation-change',refresh);

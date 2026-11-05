@@ -72,7 +72,7 @@ class Element {
   get innerHTML() { return this._innerHTML || ''; }
 }
 
-function loadSimulationUI() {
+function loadSimulationUI(options = {}) {
   const elements = new Map();
   const body = new Element('body');
   const documentListeners = {};
@@ -104,6 +104,13 @@ function loadSimulationUI() {
   body.ownerDocument = document;
   const window = {addEventListener() {}};
   const requests = [];
+  const defaultCatalog = {gifts: [
+    {id: 'heart-ten', name: 'Heart', diamonds: 10, image_url: 'https://example.test/heart.png'},
+    {id: 'rose-one', name: 'Rose', diamonds: 1, image_url: 'https://example.test/rose.png'},
+    {id: 'rose-five', name: 'Rose', diamonds: 5, image_url: 'https://example.test/rose-five.png'},
+  ]};
+  const catalogResponses = options.giftCatalogResponses || [defaultCatalog];
+  let catalogRequest = 0;
   const sandbox = {
     window,
     document,
@@ -112,11 +119,12 @@ function loadSimulationUI() {
     AbortSignal,
     fetch: async (url, options = {}) => {
       requests.push({url, options});
-      return {ok: true, json: async () => url === '/gift-catalog' ? {gifts: [
-        {id: 'heart-ten', name: 'Heart', diamonds: 10, image_url: 'https://example.test/heart.png'},
-        {id: 'rose-one', name: 'Rose', diamonds: 1, image_url: 'https://example.test/rose.png'},
-        {id: 'rose-five', name: 'Rose', diamonds: 5, image_url: 'https://example.test/rose-five.png'},
-      ]} : {active: true, generation: 1, instance: 'ui-test'}};
+      if (url === '/gift-catalog') {
+        const response = catalogResponses[Math.min(catalogRequest++, catalogResponses.length - 1)];
+        if (response instanceof Error) throw response;
+        return {ok: response?.ok !== false, json: async () => response?.body ?? response};
+      }
+      return {ok: true, json: async () => ({active: true, generation: 1, instance: 'ui-test'})};
     },
     setInterval() {},
     addEventListener() {},
@@ -294,6 +302,46 @@ test('real-effect scope stays visible beside both simulation send controls', () 
     'Simulación activa: las acciones están pausadas.');
   assert.equal(elements.get('simulation-float-effects-cue').textContent,
     'Simulación activa: las acciones están pausadas.');
+});
+
+test('gift catalog failure explains the problem and retry restores selection without reload', async () => {
+  const template = fs.readFileSync(path.join(__dirname, '../web/templates/simulation.html'), 'utf8');
+  const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');
+  for (const id of ['simulation-gift-catalog-error', 'simulation-gift-catalog-retry']) {
+    assert.ok(template.includes(`id="${id}"`), `the full-page gift form includes ${id}`);
+  }
+  for (const id of ['simulation-float-gift-catalog-error', 'simulation-float-gift-catalog-retry']) {
+    assert.ok(script.includes(`id="${id}"`), `the floating gift form includes ${id}`);
+  }
+
+  const {ui, elements, requests, body} = loadSimulationUI({giftCatalogResponses: [
+    new Error('network unavailable'),
+    {gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1, image_url: 'https://example.test/rose.png'}]},
+  ]});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(elements.get('simulation-gift-catalog-error').hidden, false);
+  assert.equal(elements.get('simulation-float-gift-catalog-error').hidden, false);
+  assert.equal(elements.get('simulation-gift-catalog-error-message').textContent,
+    'No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.');
+
+  elements.get('simulation-gift').dispatch('click');
+  const picker = descendants(body).find(node => node.id === 'simulation-gift-picker');
+  const pickerStatus = descendants(picker).find(node => node.getAttribute('role') === 'status');
+  const pickerRetry = descendants(picker).find(node => node.id === 'simulation-gift-picker-retry');
+  assert.equal(pickerStatus.textContent, 'No se pudo cargar el catálogo de regalos.');
+  assert.equal(pickerRetry.hidden, false, 'the open picker offers a retry instead of an empty result');
+
+  pickerRetry.dispatch('click');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.filter(request => request.url === '/gift-catalog').length, 2,
+    'retry makes a second catalog request in the same UI instance');
+  assert.equal(elements.get('simulation-gift-catalog-error').hidden, true);
+  assert.equal(elements.get('simulation-float-gift-catalog-error').hidden, true);
+  assert.equal(elements.get('simulation-gift').dataset.giftId, 'rose-one');
+  assert.equal(elements.get('simulation-float-gift').dataset.giftId, 'rose-one');
+  assert.equal(pickerRetry.hidden, true);
+  assert.equal(picker.querySelectorAll('[role="option"]').length, 1,
+    'the retry restores the catalog options without reloading the page');
 });
 
 test('gift picker shows catalog art and diamond values and submits the chosen duplicate name ID', async () => {
