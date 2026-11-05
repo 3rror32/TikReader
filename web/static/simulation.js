@@ -177,8 +177,8 @@ window.SimulationUI = (() => {
   giftOptions.id='simulation-gift-options';giftOptions.className='simulation-gift-options';giftOptions.setAttribute('role','listbox');giftOptions.setAttribute('aria-label','Regalos disponibles');
   picker.append(giftSearch,giftSearchStatus,giftPickerRetry,giftOptions);document.body.append(picker);
   function updateGiftCatalogFeedback(){
-    giftCatalogErrors.forEach((error,index)=>{error.hidden=!giftCatalogError;giftCatalogErrorMessages[index].textContent=giftCatalogLoading?'Cargando catálogo de regalos…':'No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.';giftCatalogRetries[index].hidden=!giftCatalogError;giftCatalogRetries[index].disabled=giftCatalogLoading;giftCatalogRetries[index].textContent=giftCatalogLoading?'Cargando…':'Intentar de nuevo';});
-    giftPickerRetry.hidden=!giftCatalogError;giftPickerRetry.disabled=giftCatalogLoading;giftPickerRetry.textContent=giftCatalogLoading?'Cargando…':'Intentar de nuevo';
+    giftCatalogErrors.forEach((error,index)=>{error.hidden=!giftCatalogError;giftCatalogErrorMessages[index].textContent=giftCatalogLoading?'Cargando catálogo de regalos…':'No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.';giftCatalogRetries[index].hidden=!giftCatalogError;giftCatalogRetries[index].textContent=giftCatalogLoading?'Cargando…':'Intentar de nuevo';});
+    giftPickerRetry.hidden=!giftCatalogError;giftPickerRetry.textContent=giftCatalogLoading?'Cargando…':'Intentar de nuevo';
   }
   function closeGiftPicker(restoreFocus=false){const input=pickerInput;picker.hidden=true;input?.setAttribute('aria-expanded','false');giftSearch.setAttribute('aria-expanded','false');giftSearch.removeAttribute('aria-activedescendant');pickerInput=null;pickerIndex=-1;if(restoreFocus&&input)input.focus();}
   function giftArtwork(gift){
@@ -226,8 +226,9 @@ window.SimulationUI = (() => {
     giftSearchStatus.hidden=!giftCatalogLoading&&!giftCatalogError&&matches.length>0;giftPickerRetry.hidden=!giftCatalogError;picker.hidden=false;input.setAttribute('aria-expanded','true');giftSearch.setAttribute('aria-expanded','true');
     positionGiftPicker(input);
   }
-  async function loadGiftCatalog(successFocus=null,retryFocus=null){
+  async function loadGiftCatalog(successFocus=null,retryFocus=null,surfaceOpen=()=>false){
     if(giftCatalogLoading)return;
+    const focusRevisionAtStart=focusRevision;
     giftCatalogLoading=true;updateGiftCatalogFeedback();let loaded=false;
     try{
       const data=await api('/gift-catalog');
@@ -239,7 +240,11 @@ window.SimulationUI = (() => {
         if(match){input.dataset.giftId=String(match.id);showGiftSelection(input,match);}
       }
     }catch(_){giftCatalog=[];giftCatalogError=true;}
-    finally{giftCatalogLoading=false;updateGiftCatalogFeedback();if(pickerInput&&!picker.hidden)renderGiftPicker(pickerInput);(loaded?successFocus:retryFocus)?.focus();}
+    finally{
+      const keepFocus=loaded&&focusRevision===focusRevisionAtStart&&surfaceOpen();
+      giftCatalogLoading=false;updateGiftCatalogFeedback();if(pickerInput&&!picker.hidden)renderGiftPicker(pickerInput);
+      if(keepFocus)successFocus.focus();
+    }
   }
   function onGiftKeydown(event){
     if(event.key==='Tab'){closeGiftPicker();return;}
@@ -260,8 +265,9 @@ window.SimulationUI = (() => {
   for(const input of giftInputs){
     input.addEventListener('click',()=>{if(picker.hidden||pickerInput!==input){renderGiftPicker(input,true);giftSearch.focus();}});
   }
-  giftCatalogRetries.forEach((button,index)=>button.onclick=()=>loadGiftCatalog(giftInputs[index],button));
-  giftPickerRetry.onclick=()=>loadGiftCatalog(giftSearch,giftPickerRetry);
+  let focusRevision=0;document.addEventListener('focusin',()=>focusRevision++);
+  giftCatalogRetries.forEach((button,index)=>button.onclick=()=>loadGiftCatalog(giftInputs[index],button,()=>index===1?(!dock.hidden&&!$('simulation-float-gift-fields').hidden):(!simulationPane?.hidden&&!$('simulation-gift-fields').hidden)));
+  giftPickerRetry.onclick=()=>loadGiftCatalog(giftSearch,giftPickerRetry,()=>!picker.hidden);
   giftSearch.addEventListener('input',()=>{if(pickerInput)renderGiftPicker(pickerInput);});
   giftSearch.addEventListener('keydown',onGiftKeydown);
   document.addEventListener('pointerdown',event=>{if(!picker.contains(event.target)&&!giftInputs.includes(event.target))closeGiftPicker();});

@@ -52,7 +52,7 @@ class Element {
     });
   }
   getBoundingClientRect() { return {left: 20, top: 100, bottom: 134, width: 180}; }
-  focus() { this.focused = true; if (this.ownerDocument) this.ownerDocument.activeElement = this; }
+  focus() { this.focused = true; if (this.ownerDocument) { this.ownerDocument.activeElement = this; this.ownerDocument.dispatch('focusin', {target: this}); } }
   select() {}
   set innerHTML(value) {
     this._innerHTML = value;
@@ -85,6 +85,7 @@ function loadSimulationUI(options = {}) {
       if (!elements.has(id)) {
         const element = document.createElement();
         element.id = id;
+        if (id.endsWith('-catalog-retry')) { element.tagName = 'BUTTON'; element.type = 'button'; }
         if (id === 'simulation-gift' || id === 'simulation-float-gift') {
           element.tagName = 'BUTTON';
           element.dataset.giftName = 'Rose';
@@ -342,7 +343,7 @@ test('gift catalog failure explains the problem and retry restores selection wit
   assert.equal(pickerRetry.hidden, true);
   assert.equal(picker.querySelectorAll('[role="option"]').length, 1,
     'the retry restores the catalog options without reloading the page');
-  assert.equal(document.activeElement, descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo'),
+  assert.equal(document.activeElement.getAttribute('aria-label'), 'Buscar regalo',
     'successful picker retry moves focus to the search field');
 
   const inlineRetry = loadSimulationUI({giftCatalogResponses: [
@@ -350,10 +351,57 @@ test('gift catalog failure explains the problem and retry restores selection wit
     {gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]},
   ]});
   await new Promise(resolve => setImmediate(resolve));
+  inlineRetry.ui.open();
+  inlineRetry.elements.get('simulation-float-kind').value = 'gift';
+  inlineRetry.elements.get('simulation-float-kind').onchange();
   inlineRetry.elements.get('simulation-float-gift-catalog-retry').dispatch('click');
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(inlineRetry.document.activeElement, inlineRetry.elements.get('simulation-float-gift'),
+  assert.equal(inlineRetry.document.activeElement.id, 'simulation-float-gift',
     'successful inline retry returns focus to its matching gift trigger');
+});
+
+test('delayed catalog retries never steal focus from newer controls or closed surfaces', async () => {
+  let completeMovedFocus;
+  const movedFocus = loadSimulationUI({giftCatalogResponses: [new Error('offline'),
+    new Promise(resolve => { completeMovedFocus = resolve; })]});
+  await new Promise(resolve => setImmediate(resolve));
+  movedFocus.elements.get('simulation-gift').dispatch('click');
+  const movedPicker = descendants(movedFocus.body).find(node => node.id === 'simulation-gift-picker');
+  descendants(movedPicker).find(node => node.id === 'simulation-gift-picker-retry').dispatch('click');
+  movedFocus.elements.get('simulation-kind').focus();
+  completeMovedFocus({gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(movedFocus.document.activeElement.id, 'simulation-kind',
+    'retry completion leaves focus on a newer control');
+
+  let completeClosedPicker;
+  const closedPicker = loadSimulationUI({giftCatalogResponses: [new Error('offline'),
+    new Promise(resolve => { completeClosedPicker = resolve; })]});
+  await new Promise(resolve => setImmediate(resolve));
+  closedPicker.elements.get('simulation-gift').dispatch('click');
+  const picker = descendants(closedPicker.body).find(node => node.id === 'simulation-gift-picker');
+  descendants(picker).find(node => node.id === 'simulation-gift-picker-retry').dispatch('click');
+  descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo')
+    .dispatch('keydown', {key: 'Escape'});
+  completeClosedPicker({gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(picker.hidden, true);
+  assert.equal(closedPicker.document.activeElement.id, 'simulation-gift',
+    'retry completion does not move focus back into a closed picker');
+
+  let completeClosedDock;
+  const closedDock = loadSimulationUI({giftCatalogResponses: [new Error('offline'),
+    new Promise(resolve => { completeClosedDock = resolve; })]});
+  await new Promise(resolve => setImmediate(resolve));
+  closedDock.ui.open();
+  closedDock.elements.get('simulation-float-kind').value = 'gift';
+  closedDock.elements.get('simulation-float-kind').onchange();
+  closedDock.elements.get('simulation-float-gift-catalog-retry').dispatch('click');
+  closedDock.elements.get('simulation-float-close').onclick();
+  completeClosedDock({gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(closedDock.document.activeElement.id, 'simulation-fab',
+    'retry completion does not move focus into a closed floating panel');
 });
 
 test('gift picker shows catalog art and diamond values and submits the chosen duplicate name ID', async () => {
