@@ -42,6 +42,13 @@ class GiftIngestionTests(unittest.TestCase):
         self.assertEqual(len(server.gift_history), 1)
         self.assertFalse(next(iter(server.gift_history.values()))['ongoing'])
 
+    def test_hotkeys_receive_only_new_gift_units(self):
+        self.send(2, 1, group=5)
+        self.send(4, 2, group=5)
+        self.send(4, 2, group=5)
+        self.send(4, 3, end=True, group=5)
+        self.assertEqual([call.kwargs['quantity'] for call in server.game_hotkeys.gift.call_args_list], [2, 2])
+
     def test_new_streak_after_final_counts_again(self):
         self.send(2, 1, end=True)
         self.send(1, 2)

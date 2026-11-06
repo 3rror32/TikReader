@@ -225,7 +225,7 @@ class SimulationTests(unittest.TestCase):
         live_record = server.handle_gift_event(event, update_catalog=False)['record']
         self.assertIs(live_record['simulated'], False)
 
-    def test_separate_events_have_distinct_identity_and_respect_cooldown(self):
+    def test_separate_events_have_distinct_identity_without_cooldown_loss(self):
         self.activate()
         server.game_hotkeys.mappings = [server.game_hotkeys.validate(dict(id='sim-key',
             name='Salto', gift='Rose', window='Juego', keys=['SPACE'], enabled=True, cooldown=30))]
@@ -236,8 +236,8 @@ class SimulationTests(unittest.TestCase):
             server.game_hotkeys.jobs.join()
         self.assertEqual(server.state['gift_count'], 3)
         self.assertEqual(len(server.gift_history), 3)
-        server.game_hotkeys.injector.assert_called_once()
-        self.assertEqual(self.sim.events[-1]['hotkeys'][0]['result'], 'Intervalo activo')
+        self.assertEqual(server.game_hotkeys.injector.call_count, 3)
+        self.assertEqual(self.sim.events[-1]['hotkeys'][0]['result'], 'Coincide')
 
     def test_simulated_gift_sends_enter_after_global_activation_and_stops_after_disable(self):
         self.activate()
@@ -300,7 +300,7 @@ class SimulationTests(unittest.TestCase):
         self.activate()
         response = self.client.post('/simulation/events', json={'kind':'comment', 'text':'No enviar', 'delay':.2})
         self.assertEqual(response.status_code, 202)
-        self.assertEqual(self.client.post('/simulation/events', json={'text':'Segundo'}).status_code, 409)
+        self.assertEqual(self.client.post('/simulation/events', json={'text':'Segundo'}).status_code, 202)
         self.client.post('/simulation', json={'action':'stop'})
         time.sleep(.25)
         self.assertEqual(server.state['comment_count'], 0)
@@ -308,6 +308,28 @@ class SimulationTests(unittest.TestCase):
         self.assertTrue(payload['active'])
         self.assertFalse(payload['batch']['running'])
         self.assertTrue(payload['muted'])
+
+    def test_concurrent_submissions_are_delivered_in_order(self):
+        self.activate()
+        for text, delay in [('First', .1), ('Second', 0), ('Third', 0)]:
+            response = self.client.post('/simulation/events', json={'text': text, 'delay': delay})
+            self.assertEqual(response.status_code, 202)
+        deadline = time.monotonic() + 2
+        while len(self.sim.events) < 3 and time.monotonic() < deadline:
+            time.sleep(.01)
+        self.assertEqual([event['text'] for event in self.sim.events], ['First', 'Second', 'Third'])
+
+    def test_stack_jump_dispatches_every_new_unit_once(self):
+        self.activate()
+        server.game_hotkeys.mappings = [server.game_hotkeys.validate(dict(id='stack-key',
+            gift='Rose', window='Juego', keys=['SPACE'], enabled=True, cooldown=30))]
+        spec = self.sim.validate({'kind': 'gift', 'gift': 'Rose', 'count': 4})
+        with patch.object(server.game_hotkeys, 'target', return_value=(123, 'Juego')):
+            self.sim.deliver(spec, 2, 'stack-jump')
+            self.sim.deliver(spec, 4, 'stack-jump')
+            self.sim.deliver(spec, 4, 'stack-jump', final=True)
+            server.game_hotkeys.jobs.join()
+        self.assertEqual(server.game_hotkeys.injector.call_count, 4)
 
     def test_inputs_are_bounded_and_remote_control_is_rejected(self):
         self.assertEqual(self.client.post('/simulation/events', json={'text':'hola'}).status_code, 409)

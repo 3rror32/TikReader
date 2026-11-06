@@ -945,7 +945,7 @@ def handle_gift_event(event, update_catalog=True):
                                 (count-previous)*diamonds if diamonds is not None else None)
             interactive.event("gift",record,f"{key}:{count}",quantity=count-previous)
             points.event("gift",record,f"{key}:{count}",count-previous)
-            hotkey_results = game_hotkeys.gift(record,f"{key}:{count}")
+            hotkey_results = game_hotkeys.gift(record,f"{key}:{count}",quantity=count-previous)
             animation_studio.gift(record,f"{key}:{count}")
             overlay_animations.event('gift',record,f"{key}:{count}")
         minecraft.gift(record, key)
