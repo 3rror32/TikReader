@@ -15,12 +15,12 @@ test('primary and advanced menu disclosures share one visual contract', () => {
   assert.doesNotMatch(sidebar,/setAttribute\('name',\s*'advanced-navigation'\)/);
 });
 
-test('nested submenu containers reuse the outer guide and destination columns', () => {
+test('nested submenu containers preserve hierarchy and destination alignment', () => {
   assert.doesNotMatch(styles,/\.app-sidebar :is\(\.nav-group>details,\.nav-advanced-section\)\[open\]::before/, 'open disclosures must not add a second guide');
-  assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*margin:0[^}]*padding:0[^}]*border:0/.test(styles), 'nested submenu containers must not repeat the outer indentation or guide');
+  assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-submenu,\.sidebar-disclosure-content\)\{[^}]*margin:0[^}]*padding-block:0[^}]*padding-inline-start:10px[^}]*border:0/.test(styles), 'each nested submenu level must add contained indentation without repeating the guide');
   assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-group>details,\.nav-advanced-section\)>summary\{[^}]*min-height:40px[^}]*padding-inline:10px[^}]*gap:10px/.test(styles), 'nested group summaries must match destination target and text columns');
   assert.ok(/:is\(\.nav-submenu,\.sidebar-disclosure-content\) :is\(\.nav-group>details,\.nav-advanced-section\)>summary \.sidebar-icon\{[^}]*width:18px[^}]*flex:0 0 18px/.test(styles), 'nested group summaries must match destination icon columns');
-  assert.ok(/:is\(html,html\[data-skin\]\) body:not\(\.sidebar-collapsed\) #app-sidebar details \[data-section-nav\]\{[^}]*justify-content:flex-start!important/.test(styles), 'expanded disclosure destinations must beat global button alignment while excluding collapsed mode');
+  assert.ok(/:is\(html,html\[data-skin\]\) body:not\(\.sidebar-collapsed\) #app-sidebar \[data-section-nav\]\{[^}]*justify-content:flex-start!important/.test(styles), 'all expanded destinations must beat global button alignment while excluding collapsed mode');
   assert.ok(/body\.sidebar-collapsed \.app-sidebar \[data-section-nav\]\{justify-content:center/.test(styles), 'collapsed navigation must keep destination icons centered');
 });
 

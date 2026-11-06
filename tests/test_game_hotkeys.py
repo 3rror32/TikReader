@@ -33,7 +33,22 @@ class GameHotkeyTests(unittest.TestCase):
         with patch('game_hotkeys.foreground',return_value=(1,'Metal Slug X')):self.assertTrue(self.g.execute(job))
         self.assertEqual(called,[(['CTRL','F1'],60,0)])
         job['created']-=10
-        with patch('game_hotkeys.foreground',return_value=(1,'Metal Slug X')):self.assertFalse(self.g.execute(job))
+        with patch('game_hotkeys.foreground',return_value=(1,'Metal Slug X')):self.assertTrue(self.g.execute(job))
+    def test_gift_units_are_fifo_despite_priority_and_report_capacity(self):
+        import queue
+        self.g.authorized=True
+        self.g.paused=False
+        self.g.mappings=[self.mapping(id='low',amount=1,priority=1,budget=10),
+                         self.mapping(id='high',amount=1,priority=99,budget=10)]
+        with patch.object(self.g,'jobs',queue.PriorityQueue(maxsize=5)):
+            self.g.gift({'gift':'Rose','count':2},'stack:2',quantity=2)
+            result=self.g.gift({'gift':'Rose','count':3},'stack:3',quantity=1)
+            jobs=[]
+            while not self.g.jobs.empty():
+                jobs.append(self.g.jobs.get_nowait()[2]['mapping']['id'])
+            self.assertEqual(jobs,['low','high','low','high','low'])
+            self.assertEqual(result[-1]['result'],'Cola llena')
+            self.assertEqual(self.g.usage['high'],2)
     def test_cooldown_budget_and_session_reset(self):
         self.g.authorized=True;self.g.mappings=[self.mapping(cooldown=1,budget=1)]
         self.g.gift({'gift':'Rose','count':2},'1');self.g.gift({'gift':'Rose','count':2},'2');self.assertEqual(self.g.jobs.qsize(),1)
@@ -43,6 +58,14 @@ class GameHotkeyTests(unittest.TestCase):
         self.assertEqual(self.client.post('/game-hotkeys/test',json={'confirmation':'PROBAR HOTKEY'}).status_code,404)
         self.assertEqual(self.client.get('/game-hotkeys',environ_overrides={'REMOTE_ADDR':'192.0.2.1'}).status_code,403)
         self.assertEqual(self.client.post('/game-hotkeys',json={'mappings':[]},headers={'Origin':'https://evil.example'}).status_code,403)
+    def test_pause_invalidates_pending_jobs_even_after_resume(self):
+        self.g.authorized=True;self.g.paused=False
+        mapping=self.mapping();self.g.mappings=[mapping]
+        job=dict(mapping=mapping,session=server.feed_session,revision=self.g.revision)
+        self.assertTrue(self.g.job_allowed(job))
+        self.client.post('/game-hotkeys/pause',json={'paused':True})
+        self.client.post('/game-hotkeys/pause',json={'paused':False})
+        self.assertFalse(self.g.job_allowed(job))
     def test_save_and_restart_are_disabled(self):
         m=self.mapping();store=None
         with tempfile.TemporaryDirectory() as folder:

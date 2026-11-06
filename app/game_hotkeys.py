@@ -100,31 +100,38 @@ class GameHotkeys:
         if self.r.archive and self.r.feed_session:
             try:self.r.archive.save(self.r.feed_session,'hotkey',row)
             except Exception:pass
-    def matches(self,m,record,streak):
+    def matches(self,m,record,streak,per_unit=False):
         amount=max(1,int(record.get('count',1)));threshold=m['amount'];condition=m['condition']
         ok=amount>=threshold if condition=='minimum' else amount==threshold if condition=='exact' else amount%threshold==0
         if not ok:return False,'Cantidad no coincide'
         token=(m['id'],streak)
-        if m['once_per_streak'] and token in self.fired:return False,'Ya ejecutada en esta racha'
+        if not per_unit and m['once_per_streak'] and token in self.fired:return False,'Ya ejecutada en esta racha'
         return True,''
-    def gift(self,record,event_id,dry=False):
+    def gift(self,record,event_id,dry=False,quantity=None):
         with self.lock:
             if self.session!=self.r.feed_session:self.session=self.r.feed_session;self.last.clear();self.usage.clear();self.fired.clear()
             streak=str(event_id).rsplit(':',1)[0];results=[];now=time.monotonic()
-            for m in self.mappings:
-                if m['profile']!=self.active_profile or normalize(m['gift'])!=normalize(record.get('gift')):continue
-                ok,reason=self.matches(m,record,streak)
-                if ok and now-self.last.get(m['id'],-1e9)<m['cooldown']:ok=False;reason='Intervalo activo'
-                if ok and self.usage.get(m['id'],0)>=m['budget']:ok=False;reason='Límite de sesión'
-                if not self.authorized and not dry:ok=False;reason='Sin autorización'
-                if self.paused and not dry:ok=False;reason='Pausadas'
-                if not dry and (self.r.production.settings['emergency'] or self.r.production.settings.get('scene','talk')!='talk'):ok=False;reason='Emisión pausada: reanuda en escena Charla'
-                if not m['enabled']:ok=False;reason='Acción desactivada: activa todos los juegos o esta acción'
-                results.append(dict(id=m['id'],name=m['name'],result='Coincide' if ok else reason,sequence=[s['keys'] for s in m['sequence']]))
-                if ok and not dry:
-                    job=dict(revision=self.revision,mapping=copy.deepcopy(m),session=self.session,created=time.monotonic(),event=str(event_id),user=record.get('user',''))
-                    try:self.jobs.put_nowait((-m['priority'],next(self.order),job));self.last[m['id']]=now;self.usage[m['id']]=self.usage.get(m['id'],0)+1;self.fired.add((m['id'],streak));self.note('Hotkey en cola',record.get('user',''),m['name'],'En cola')
-                    except queue.Full:self.note('Cola llena',record.get('user',''),m['name'],'Omitida')
+            # Live ingestion supplies only newly observed units; closure/replay never enters here.
+            total=max(1,int(record.get('count',1)))
+            positions=range(max(1,total-max(0,int(quantity))+1),total+1) if quantity is not None else [total]
+            for position in positions:
+                unit_record=dict(record,count=position)
+                for m in self.mappings:
+                    if m['profile']!=self.active_profile or normalize(m['gift'])!=normalize(record.get('gift')):continue
+                    ok,reason=self.matches(m,unit_record,streak,per_unit=quantity is not None)
+                    if ok and quantity is None and now-self.last.get(m['id'],-1e9)<m['cooldown']:ok=False;reason='Intervalo activo'
+                    if ok and self.usage.get(m['id'],0)>=m['budget']:ok=False;reason='Límite de sesión'
+                    if not self.authorized and not dry:ok=False;reason='Sin autorización'
+                    if self.paused and not dry:ok=False;reason='Pausadas'
+                    if not dry and (self.r.production.settings['emergency'] or self.r.production.settings.get('scene','talk')!='talk'):ok=False;reason='Emisión pausada: reanuda en escena Charla'
+                    if not m['enabled']:ok=False;reason='Acción desactivada: activa todos los juegos o esta acción'
+                    results.append(dict(id=m['id'],name=m['name'],result='Coincide' if ok else reason,sequence=[s['keys'] for s in m['sequence']]))
+                    if ok and not dry:
+                        job=dict(revision=self.revision,mapping=copy.deepcopy(m),session=self.session,created=time.monotonic(),event=str(event_id),user=record.get('user',''))
+                        try:self.jobs.put_nowait((0,next(self.order),job));self.last[m['id']]=now;self.usage[m['id']]=self.usage.get(m['id'],0)+1;self.fired.add((m['id'],streak));self.note('Hotkey en cola',record.get('user',''),m['name'],'En cola')
+                        except queue.Full:
+                            results[-1]['result']='Cola llena'
+                            self.note('Cola llena',record.get('user',''),m['name'],'Omitida')
             if not results:
                 results.append(dict(id='',name='Juegos',result='No hay una acción para este regalo en el perfil activo. Selecciona el mismo regalo en Juegos; Prueba local no responde a regalos.',sequence=[]))
             return results
@@ -147,7 +154,6 @@ class GameHotkeys:
         m=job['mapping']
         with self.lock:
             if not self.job_allowed(job):self.note('Cancelada por estado seguro o regla modificada',job.get('user',''),m['name'],'Cancelada');return False
-            if time.monotonic()-job['created']>5:self.note('Caducada',job.get('user',''),m['name'],'Caducada');return False
         hwnd,title=self.target(m)
         if not hwnd:self.note(f"No se pudo enviar: se esperaba {m['window']}; ventana al frente: {title or 'ninguna'}. Usa la espera del simulador para volver al juego.",job.get('user',''),m['name'],'Bloqueada');return False
         try:
@@ -223,7 +229,10 @@ class GameHotkeys:
         def gh_pause():
             d=request.get_json(silent=True)
             if not isinstance(d,dict) or type(d.get('paused')) is not bool:return jsonify(error='Estado inválido'),400
-            with self.lock:self.paused=d['paused'];self.note('Hotkeys pausadas' if self.paused else 'Hotkeys reanudadas')
+            with self.lock:
+                self.paused=d['paused']
+                if self.paused:self.revision+=1
+                self.note('Hotkeys pausadas' if self.paused else 'Hotkeys reanudadas')
             return jsonify(self.payload())
         @app.post('/game-hotkeys/simulate')
         def gh_simulate():

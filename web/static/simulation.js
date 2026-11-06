@@ -21,8 +21,8 @@ window.SimulationUI = (() => {
       <div class="simulation-float-window-actions"><button id="simulation-float-full" type="button" title="Abrir el simulador completo" aria-label="Abrir el simulador completo"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14 5h5v5M19 5l-8 8M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg></button><button id="simulation-float-close" type="button" title="Cerrar panel" aria-label="Cerrar panel"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
     </header>
     <div class="simulation-float-state"><span id="simulation-float-state">Comprobando simulación…</span><button id="simulation-float-activate" type="button">Activar</button></div>
-    <div class="simulation-float-tabs" role="tablist" aria-label="Vista del simulador"><button type="button" role="tab" aria-selected="true" data-simulation-float-tab="chat"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5.5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M7.5 10h9M7.5 13h6"/></svg><span class="simulation-float-tab-label">Chat</span></button><button type="button" role="tab" aria-selected="false" data-simulation-float-tab="activity"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6"/></svg><span class="simulation-float-tab-label">Actividad</span><span id="simulation-float-activity-count">0</span></button></div>
-    <div id="simulation-float-chat-view" class="simulation-float-view" role="tabpanel">
+    <div class="simulation-float-tabs" role="tablist" aria-label="Vista del simulador"><button id="simulation-float-tab-chat" type="button" role="tab" tabindex="0" aria-selected="true" aria-controls="simulation-float-chat-view" data-simulation-float-tab="chat"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5.5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M7.5 10h9M7.5 13h6"/></svg><span class="simulation-float-tab-label">Chat</span></button><button id="simulation-float-tab-activity" type="button" role="tab" tabindex="-1" aria-selected="false" aria-controls="simulation-float-activity-view" data-simulation-float-tab="activity"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6"/></svg><span class="simulation-float-tab-label">Actividad</span><span id="simulation-float-activity-count">0</span></button></div>
+    <div id="simulation-float-chat-view" class="simulation-float-view" role="tabpanel" aria-labelledby="simulation-float-tab-chat" tabindex="0">
       <div id="simulation-float-feed" class="simulation-float-feed" role="log" aria-live="polite"><p>Activa la simulación para enviar un mensaje.</p></div>
       <form id="simulation-float-form">
         <fieldset id="simulation-float-fields" disabled>
@@ -35,16 +35,19 @@ window.SimulationUI = (() => {
             <label><span>Regalo</span><div class="simulation-gift-control"><button id="simulation-float-gift" class="simulation-gift-trigger" type="button" role="combobox" aria-haspopup="listbox" aria-controls="simulation-gift-picker" aria-expanded="false" data-gift-name="Rose">Rose</button></div></label>
             <label><span>Cantidad</span><input id="simulation-float-count" type="number" min="1" max="9999" step="1" value="1"></label>
           </div>
-          <div class="simulation-float-send-row"><label><span>Espera</span><span class="simulation-float-number"><input id="simulation-float-delay" type="number" min="0" max="60" step="1" value="0"><em>s</em></span></label><button id="simulation-float-send" type="submit">Enviar ahora</button></div>
+          <div id="simulation-float-gift-catalog-error" class="simulation-gift-error" hidden><p id="simulation-float-gift-catalog-error-message" role="status">No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.</p><button id="simulation-float-gift-catalog-retry" type="button">Intentar de nuevo</button></div>
+          <p id="simulation-float-effects-cue" class="simulation-effects-cue">Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.</p>
+          <div class="simulation-float-send-row"><label><span>Espera</span><span class="simulation-float-number"><input id="simulation-float-delay" type="number" min="0" max="60" step="1" value="0"><em>s</em></span></label><button id="simulation-float-send" type="submit" aria-label="Enviar comentario"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 3 10.8 13.2"/><path d="m21 3-6.5 18-3.7-7.5L3 9.8 21 3Z"/></svg><span>Enviar</span></button></div>
         </fieldset>
       </form>
     </div>
-    <div id="simulation-float-activity-view" class="simulation-float-view" role="tabpanel" hidden><div id="simulation-float-log" class="simulation-float-log"><p>Las reglas y acciones aparecerán aquí.</p></div></div>
-    <footer><span id="simulation-float-progress">Sin envíos pendientes</span><button id="simulation-float-stop" type="button" aria-label="Detener envíos" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span>Detener</span></button></footer>`;
+    <div id="simulation-float-activity-view" class="simulation-float-view" role="tabpanel" aria-labelledby="simulation-float-tab-activity" tabindex="0" hidden><div id="simulation-float-log" class="simulation-float-log"><p>Las reglas y acciones aparecerán aquí.</p></div></div>
+    <footer><span id="simulation-float-progress">Sin envíos pendientes</span><button id="simulation-float-stop" type="button" aria-label="Cancelar envío" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg><span>Cancelar envío</span></button></footer>`;
   document.body.append(dock,dockButton);
 
   async function api(path,data){const response=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,cache:'no-store',signal:AbortSignal.timeout(10000)});const result=await response.json();if(!response.ok)throw Error(result.error||'No se pudo consultar la simulación');return result;}
   function mainStatus(text){const output=$('simulation-status');if(output)output.textContent=text;}
+  function effectsCueText(){if(!state.active)return'Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.';if(state.muted)return'Simulación activa: las acciones están pausadas.';return'Simulación activa: al enviar, tus reglas guardadas y los overlays habituales ejecutan acciones reales.';}
   function recordsFor(update){const games=update.games||{log:[]};return [...(update.traces||[]).map(x=>({at:x.at,text:`${x.rule} · ${x.action||'Regla'} · ${x.outcome}`})),...(games.log||[]).map(x=>({at:x.at,text:`${x.mapping||'Hotkeys'} · ${x.text} · ${x.outcome}`})),...(update.events||[]).flatMap(x=>(x.hotkeys||[]).map(h=>({at:x.at,text:`${h.name} · ${h.result==='Coincide'?'Regla coincide; consulta la ejecución de la tecla':h.result}`})))].sort((a,b)=>b.at-a.at).slice(0,80);}
   function renderDockEvents(update){
     const events=update.events||[],next=JSON.stringify(events.map(x=>x.id));
@@ -79,9 +82,10 @@ window.SimulationUI = (() => {
     const batchRunning=!!state.batch?.running;
     dockButton.classList.toggle('is-active',state.active);dock.classList.toggle('is-active',state.active);
     $('simulation-float-state').textContent=state.active?(state.muted?'Simulación activa · acciones pausadas':'Simulación activa · observando respuestas'):(state.connected?'Desconecta el LIVE para hacer pruebas':'Lista para una prueba sin conectar el LIVE');
+    $('simulation-float-effects-cue').textContent=effectsCueText();
     $('simulation-float-activate').textContent=state.active?'Desactivar':'Activar';
     $('simulation-float-activate').classList.toggle('is-on',state.active);
-    $('simulation-float-fields').disabled=!state.active||batchRunning||busy;
+    $('simulation-float-fields').disabled=!state.active;
     $('simulation-float-stop').disabled=!state.active||(!batchRunning&&!state.muted);
     renderDockEvents(state);
   }
@@ -94,7 +98,8 @@ window.SimulationUI = (() => {
     try{sessionStorage.setItem('tikreader.simulationActive',String(state.active));}catch(_){ }
     const connect=$('btn-connect');if(connect){connect.disabled=state.active||!!state.connected;connect.title=state.active?'Desactiva el modo simulación para conectar un LIVE.':'';}
     $('simulation-toggle').textContent=state.active?'Desactivar simulación':'Activar simulación';
-    $('simulation-fields').disabled=!state.active||!!state.batch?.running||busy;
+    $('simulation-effects-cue').textContent=effectsCueText();
+    $('simulation-fields').disabled=!state.active;
     $('simulation-stop').disabled=!state.active;
     $('simulation-resume').hidden=!state.active||!state.muted;
     renderDock();
@@ -112,12 +117,21 @@ window.SimulationUI = (() => {
   }
   async function refresh(){if(document.hidden||(!state.active&&!state.batch&&simulationPane?.hidden&&dock.hidden))return;if(polling)return;polling=true;try{apply(await api('/simulation'));progress();if($('simulation-status').textContent==='Consultando el estado…')mainStatus(state.active?'Simulación activa. Puedes enviar eventos.':'Desconecta el LIVE y activa la simulación para empezar.');}catch(error){mainStatus(error.message+'. Si el modo estaba activo, la franja se mantiene hasta confirmar su desactivación.');$('simulation-float-state').textContent=error.message;}finally{polling=false;}}
   async function action(fn){if(busy)return;busy=true;renderDock();try{await fn();}catch(error){mainStatus(error.message);$('simulation-float-state').textContent=error.message;}finally{busy=false;await refresh();}}
-  async function toggleSimulation(){apply(await api('/simulation',{action:state.active?'deactivate':'activate'}));if(state.active){await window.TikReaderAudio?.claimForSimulation();mainStatus('Simulación activa. Se utilizan tus reglas guardadas y los overlays habituales.');}else mainStatus('Simulación desactivada. El LIVE sigue desconectado.');}
-  async function stopSimulation(){apply(await api('/simulation',{action:'stop'}));mainStatus('Envíos detenidos y emisión pausada. Reanuda cuando quieras continuar.');}
+  let sends=Promise.resolve(),sendEpoch=0;
+  function submitEvent(data,done){
+    const epoch=sendEpoch;
+    sends=sends.then(async()=>{
+      if(epoch!==sendEpoch)return;
+      try{apply(await api('/simulation/events',data));await done();}
+      catch(error){mainStatus(error.message);}
+    });
+  }
+  async function toggleSimulation(){sendEpoch++;apply(await api('/simulation',{action:state.active?'deactivate':'activate'}));if(state.active){await window.TikReaderAudio?.claimForSimulation();mainStatus(effectsCueText());}else mainStatus('Simulación desactivada. El LIVE sigue desconectado.');}
+  async function stopSimulation(){sendEpoch++;apply(await api('/simulation',{action:'stop'}));mainStatus('Envíos detenidos y emisión pausada. Reanuda cuando quieras continuar.');}
 
-  function openDock(){dock.hidden=false;dockButton.hidden=true;dockButton.setAttribute('aria-expanded','true');dockButton.classList.remove('has-unread');restoreDockPosition();renderDock();requestAnimationFrame(()=>$('simulation-float-text').focus());}
+  function openDock(){dock.hidden=false;dockButton.hidden=true;dockButton.setAttribute('aria-expanded','true');dockButton.classList.remove('has-unread');restoreDockPosition();renderDock();requestAnimationFrame(()=>dock.querySelector('[role="tab"][aria-selected="true"]').focus());}
   function closeDock(){dock.hidden=true;dockButton.hidden=false;dockButton.setAttribute('aria-expanded','false');dockButton.focus();}
-  function setDockTab(tab){for(const button of dock.querySelectorAll('[data-simulation-float-tab]'))button.setAttribute('aria-selected',String(button.dataset.simulationFloatTab===tab));$('simulation-float-chat-view').hidden=tab!=='chat';$('simulation-float-activity-view').hidden=tab!=='activity';}
+  function setDockTab(tab,focus=false){for(const button of dock.querySelectorAll('[data-simulation-float-tab]')){const selected=button.dataset.simulationFloatTab===tab;button.setAttribute('aria-selected',String(selected));button.setAttribute('tabindex',String(selected?0:-1));}$('simulation-float-chat-view').hidden=tab!=='chat';$('simulation-float-activity-view').hidden=tab!=='activity';if(focus)dock.querySelector(`[data-simulation-float-tab="${tab}"]`).focus();}
   function restoreDockPosition(){
     if(matchMedia('(max-width: 680px)').matches){dock.style.removeProperty('left');dock.style.removeProperty('top');dock.style.removeProperty('right');dock.style.removeProperty('bottom');return;}
     try{const saved=JSON.parse(localStorage.getItem('tikreader.simulationDockPosition')||'null');if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.top)){dock.style.left=`${Math.max(8,Math.min(innerWidth-dock.offsetWidth-8,saved.left))}px`;dock.style.top=`${Math.max(8,Math.min(innerHeight-dock.offsetHeight-8,saved.top))}px`;dock.style.right='auto';dock.style.bottom='auto';}}catch(_){ }
@@ -135,8 +149,9 @@ window.SimulationUI = (() => {
   $('simulation-float-activate').onclick=()=>action(toggleSimulation);
   $('simulation-float-stop').onclick=()=>action(stopSimulation);
   dock.querySelectorAll('[data-simulation-float-tab]').forEach(button=>button.onclick=()=>setDockTab(button.dataset.simulationFloatTab));
-  $('simulation-float-kind').onchange=()=>{const gift=$('simulation-float-kind').value==='gift';$('simulation-float-gift-fields').hidden=!gift;$('simulation-float-comment-label').hidden=gift;$('simulation-float-send').textContent=gift?'Enviar regalo':'Enviar ahora';};
-  $('simulation-float-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-float-kind').value,gift=$('simulation-float-gift');const data={kind,user:$('simulation-float-user').value,text:$('simulation-float-text').value,gift:gift.dataset.giftName||'',gift_id:gift.dataset.giftId||'',mode:'separate',count:Number($('simulation-float-count').value),interval:.5,delay:Number($('simulation-float-delay').value),diamonds:1};apply(await api('/simulation/events',data));mainStatus('Evento enviado desde el panel flotante. Observa la pantalla y la pestaña Actividad.');if(kind==='comment')$('simulation-float-text').select();});};
+  dock.addEventListener('keydown',event=>{if(event.target.getAttribute('role')!=='tab')return;const tabs=[...dock.querySelectorAll('[data-simulation-float-tab]')],index=tabs.indexOf(event.target);let next=index;if(event.key==='ArrowRight')next=(index+1)%tabs.length;else if(event.key==='ArrowLeft')next=(index-1+tabs.length)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;event.preventDefault();setDockTab(tabs[next].dataset.simulationFloatTab,true);});
+  $('simulation-float-kind').onchange=()=>{const gift=$('simulation-float-kind').value==='gift';$('simulation-float-gift-fields').hidden=!gift;$('simulation-float-comment-label').hidden=gift;$('simulation-float-send').setAttribute('aria-label',gift?'Enviar regalo':'Enviar comentario');};
+  $('simulation-float-form').onsubmit=event=>{event.preventDefault();const kind=$('simulation-float-kind').value,gift=$('simulation-float-gift');const data={kind,user:$('simulation-float-user').value,text:$('simulation-float-text').value,gift:gift.dataset.giftName||'',gift_id:gift.dataset.giftId||'',mode:'separate',count:Number($('simulation-float-count').value),interval:.5,delay:Number($('simulation-float-delay').value),diamonds:1};submitEvent(data,async()=>{mainStatus('Evento enviado desde el panel flotante. Observa la pantalla y la pestaña Actividad.');if(kind==='comment')$('simulation-float-text').select();});};
   installDockDrag();
   addEventListener('resize',()=>{if(!dock.hidden)restoreDockPosition();});
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dock.hidden&&!event.defaultPrevented)closeDock();});
@@ -146,17 +161,25 @@ window.SimulationUI = (() => {
   $('simulation-resume').onclick=()=>action(async()=>{await window.ProductionUI?.resumeSimulation();mainStatus('Emisión reanudada en la escena Charla. Puedes continuar las pruebas.');});
   $('simulation-audio').onclick=()=>action(async()=>{const owned=await window.TikReaderAudio?.claimForSimulation();mainStatus(owned?'Audio disponible en esta pestaña. La voz y los avisos respetan tus ajustes del LIVE.':'No se pudo obtener el control de audio.');});
   for(const [id,enabled] of [['simulation-games-on',true],['simulation-games-off',false]])$(id).onclick=()=>action(async()=>{await window.GameHotkeysUI.setAll(enabled);mainStatus(enabled?'Juegos activados. Envía el regalo configurado y vuelve al juego durante la espera.':'Todos los juegos desactivados y pulsaciones pendientes canceladas.');});
-  $('simulation-form').onsubmit=event=>{event.preventDefault();action(async()=>{const kind=$('simulation-kind').value,gift=$('simulation-gift');const data={kind,user:$('simulation-user').value,text:$('simulation-text').value,gift:gift.dataset.giftName||'',gift_id:gift.dataset.giftId||'',mode:$('simulation-mode').value,count:Number($('simulation-count').value),interval:Number($('simulation-interval').value),delay:Number($('simulation-delay').value),diamonds:Number($('simulation-diamonds').value)};apply(await api('/simulation/events',data));mainStatus('Envío programado. Puedes cambiar al juego o a una ventana de overlay.');});};
+  $('simulation-form').onsubmit=event=>{event.preventDefault();const kind=$('simulation-kind').value,gift=$('simulation-gift');const data={kind,user:$('simulation-user').value,text:$('simulation-text').value,gift:gift.dataset.giftName||'',gift_id:gift.dataset.giftId||'',mode:$('simulation-mode').value,count:Number($('simulation-count').value),interval:Number($('simulation-interval').value),delay:Number($('simulation-delay').value),diamonds:Number($('simulation-diamonds').value)};submitEvent(data,async()=>{mainStatus('Envío programado. Puedes cambiar al juego o a una ventana de overlay.');});};
   $('simulation-kind').onchange=()=>{const gift=$('simulation-kind').value==='gift';$('simulation-gift-fields').hidden=!gift;$('simulation-comment-label').hidden=gift;$('simulation-send').textContent=gift?'Enviar regalos':'Enviar comentario';};
   $('simulation-mode').onchange=()=>{$('simulation-rachainfo').textContent=$('simulation-mode').value==='streak'?'La racha pasa por 1, 2, 3… hasta N y termina sin contar dos veces el último regalo.':'Cada envío tiene su propio identificador y cantidad 1. Se respetan los tiempos de espera entre activaciones.';};
   document.querySelectorAll('[data-simulation-open]').forEach(button=>button.onclick=()=>window.Shell?.show(button.dataset.simulationOpen));
-  const giftInputs=[$('simulation-gift'),$('simulation-float-gift')],picker=el('div'),giftSearch=el('input'),giftSearchStatus=el('p'),giftOptions=el('div');
+  const giftInputs=[$('simulation-gift'),$('simulation-float-gift')],picker=el('div'),giftSearch=el('input'),giftSearchStatus=el('p'),giftOptions=el('div'),giftPickerRetry=el('button','Intentar de nuevo');
+  const giftCatalogErrors=[$('simulation-gift-catalog-error'),$('simulation-float-gift-catalog-error')];
+  const giftCatalogErrorMessages=[$('simulation-gift-catalog-error-message'),$('simulation-float-gift-catalog-error-message')];
+  const giftCatalogRetries=[$('simulation-gift-catalog-retry'),$('simulation-float-gift-catalog-retry')];
+  let giftCatalog=[],pickerInput=null,pickerIndex=-1,giftCatalogError=false,giftCatalogLoading=false;
   picker.id='simulation-gift-picker';picker.className='simulation-gift-picker';picker.setAttribute('role','group');picker.setAttribute('aria-label','Catálogo de regalos');picker.hidden=true;
   giftSearch.type='search';giftSearch.className='simulation-gift-search';giftSearch.setAttribute('role','combobox');giftSearch.setAttribute('aria-label','Buscar regalo');giftSearch.setAttribute('aria-autocomplete','list');giftSearch.setAttribute('aria-haspopup','listbox');giftSearch.setAttribute('aria-controls','simulation-gift-options');giftSearch.setAttribute('aria-expanded','false');giftSearch.placeholder='Buscar regalo';giftSearch.autocomplete='off';
   giftSearchStatus.className='simulation-gift-search-status';giftSearchStatus.setAttribute('role','status');giftSearchStatus.setAttribute('aria-live','polite');giftSearchStatus.hidden=true;
+  giftPickerRetry.id='simulation-gift-picker-retry';giftPickerRetry.type='button';giftPickerRetry.className='simulation-gift-retry';giftPickerRetry.hidden=true;
   giftOptions.id='simulation-gift-options';giftOptions.className='simulation-gift-options';giftOptions.setAttribute('role','listbox');giftOptions.setAttribute('aria-label','Regalos disponibles');
-  picker.append(giftSearch,giftSearchStatus,giftOptions);document.body.append(picker);
-  let giftCatalog=[],pickerInput=null,pickerIndex=-1;
+  picker.append(giftSearch,giftSearchStatus,giftPickerRetry,giftOptions);document.body.append(picker);
+  function updateGiftCatalogFeedback(){
+    giftCatalogErrors.forEach((error,index)=>{error.hidden=!giftCatalogError;giftCatalogErrorMessages[index].textContent=giftCatalogLoading?'Cargando catálogo de regalos…':'No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.';giftCatalogRetries[index].hidden=!giftCatalogError;giftCatalogRetries[index].textContent=giftCatalogLoading?'Cargando…':'Intentar de nuevo';});
+    giftPickerRetry.hidden=!giftCatalogError;giftPickerRetry.textContent=giftCatalogLoading?'Cargando…':'Intentar de nuevo';
+  }
   function closeGiftPicker(restoreFocus=false){const input=pickerInput;picker.hidden=true;input?.setAttribute('aria-expanded','false');giftSearch.setAttribute('aria-expanded','false');giftSearch.removeAttribute('aria-activedescendant');pickerInput=null;pickerIndex=-1;if(restoreFocus&&input)input.focus();}
   function giftArtwork(gift){
     const art=el('span');art.className='simulation-gift-option-art';
@@ -199,9 +222,29 @@ window.SimulationUI = (() => {
       option.addEventListener('mousedown',event=>event.preventDefault());
       option.addEventListener('click',()=>chooseGift(index));giftOptions.append(option);
     }
-    giftSearchStatus.textContent=matches.length?'':`No se encontraron regalos para “${giftSearch.value.trim()}”.`;
-    giftSearchStatus.hidden=matches.length>0;picker.hidden=false;input.setAttribute('aria-expanded','true');giftSearch.setAttribute('aria-expanded','true');
+    giftSearchStatus.textContent=giftCatalogLoading?'Cargando catálogo…':giftCatalogError?'No se pudo cargar el catálogo de regalos.':matches.length?'':giftCatalog.length===0?'El catálogo no contiene regalos disponibles.':`No se encontraron regalos para “${giftSearch.value.trim()}”.`;
+    giftSearchStatus.hidden=!giftCatalogLoading&&!giftCatalogError&&matches.length>0;giftPickerRetry.hidden=!giftCatalogError;picker.hidden=false;input.setAttribute('aria-expanded','true');giftSearch.setAttribute('aria-expanded','true');
     positionGiftPicker(input);
+  }
+  async function loadGiftCatalog(successFocus=null,retryFocus=null,surfaceOpen=()=>false){
+    if(giftCatalogLoading)return;
+    const focusRevisionAtStart=focusRevision;
+    giftCatalogLoading=true;updateGiftCatalogFeedback();let loaded=false;
+    try{
+      const data=await api('/gift-catalog');
+      if(!Array.isArray(data.gifts))throw Error('Catálogo inválido');
+      giftCatalog=data.gifts;giftCatalogError=false;
+      loaded=true;
+      for(const input of giftInputs){
+        const query=(input.dataset.giftName||'').trim().toLocaleLowerCase(),match=giftCatalog.find(gift=>gift.name.toLocaleLowerCase()===query);
+        if(match){input.dataset.giftId=String(match.id);showGiftSelection(input,match);}
+      }
+    }catch(_){giftCatalog=[];giftCatalogError=true;}
+    finally{
+      const keepFocus=loaded&&focusRevision===focusRevisionAtStart&&surfaceOpen();
+      giftCatalogLoading=false;updateGiftCatalogFeedback();if(pickerInput&&!picker.hidden)renderGiftPicker(pickerInput);
+      if(keepFocus)successFocus.focus();
+    }
   }
   function onGiftKeydown(event){
     if(event.key==='Tab'){closeGiftPicker();return;}
@@ -222,19 +265,15 @@ window.SimulationUI = (() => {
   for(const input of giftInputs){
     input.addEventListener('click',()=>{if(picker.hidden||pickerInput!==input){renderGiftPicker(input,true);giftSearch.focus();}});
   }
+  let focusRevision=0;document.addEventListener('focusin',()=>focusRevision++);
+  giftCatalogRetries.forEach((button,index)=>button.onclick=()=>loadGiftCatalog(giftInputs[index],button,()=>index===1?(!dock.hidden&&!$('simulation-float-gift-fields').hidden):(!simulationPane?.hidden&&!$('simulation-gift-fields').hidden)));
+  giftPickerRetry.onclick=()=>loadGiftCatalog(giftSearch,giftPickerRetry,()=>!picker.hidden);
   giftSearch.addEventListener('input',()=>{if(pickerInput)renderGiftPicker(pickerInput);});
   giftSearch.addEventListener('keydown',onGiftKeydown);
   document.addEventListener('pointerdown',event=>{if(!picker.contains(event.target)&&!giftInputs.includes(event.target))closeGiftPicker();});
   document.addEventListener('scroll',()=>{if(pickerInput&&!picker.hidden)positionGiftPicker(pickerInput);},true);
   addEventListener('resize',()=>{if(pickerInput&&!picker.hidden)positionGiftPicker(pickerInput);});
-  api('/gift-catalog').then(data=>{
-    giftCatalog=Array.isArray(data.gifts)?data.gifts:[];
-    for(const input of giftInputs){
-      const query=(input.dataset.giftName||'').trim().toLocaleLowerCase();
-      const match=giftCatalog.find(gift=>gift.name.toLocaleLowerCase()===query);
-      if(match){input.dataset.giftId=String(match.id);showGiftSelection(input,match);}
-    }
-  }).catch(()=>{});
+  loadGiftCatalog();
   try{if(sessionStorage.getItem('tikreader.simulationActive')==='true'){banner.hidden=false;document.body.classList.add('simulation-active');}}catch(_){ }
   setInterval(refresh,1000);setInterval(()=>{if(state.batch&&!document.hidden)progress();},250);refresh();
   window.addEventListener('tikreader:navigation-change',refresh);

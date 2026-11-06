@@ -112,9 +112,10 @@ html body .app-sidebar :is(.nav-group>details,.nav-advanced-section)>summary{dis
 html body .app-sidebar :is(.nav-group>details,.nav-advanced-section)>summary:hover{background:transparent;color:var(--nav-ink);border-bottom-color:var(--nav-line)}
 html body .app-sidebar :is(.nav-group>details,.nav-advanced-section):has([aria-current="page"])>summary{background:transparent;color:var(--nav-accent);border-bottom-color:color-mix(in srgb,var(--nav-accent) 72%,transparent);box-shadow:none}
 .app-sidebar :is(.nav-submenu,.sidebar-disclosure-content){margin-block:2px 7px;margin-inline-start:22px;padding-block:3px 4px;padding-inline-start:10px;border-inline-start:1px solid var(--nav-line);overflow:clip;transform-origin:top}
-.app-sidebar :is(.nav-submenu,.sidebar-disclosure-content) :is(.nav-submenu,.sidebar-disclosure-content){margin:0;padding:0;border:0}
+.app-sidebar :is(.nav-submenu,.sidebar-disclosure-content) :is(.nav-submenu,.sidebar-disclosure-content){margin:0;padding-block:0;padding-inline-start:10px;border:0}
 .app-sidebar .sidebar-disclosure-content>.nav-group{margin:0;padding:0;border:0}
-:is(html,html[data-skin]) body:not(.sidebar-collapsed) #app-sidebar details [data-section-nav]{justify-content:flex-start!important;min-height:40px;padding:9px 10px;font-size:12.5px;font-weight:400;gap:10px}
+:is(html,html[data-skin]) body:not(.sidebar-collapsed) #app-sidebar [data-section-nav]{justify-content:flex-start!important}
+:is(html,html[data-skin]) body:not(.sidebar-collapsed) #app-sidebar details [data-section-nav]{min-height:40px;padding:9px 10px;font-size:12.5px;font-weight:400;gap:10px}
 .app-sidebar details [data-section-nav] .sidebar-icon{display:block;width:18px;height:18px;flex:0 0 18px}
 .app-sidebar :is(.nav-submenu,.sidebar-disclosure-content) :is(.nav-group>details,.nav-advanced-section)>summary{min-height:40px;padding-inline:10px;gap:10px}
 .app-sidebar :is(.nav-submenu,.sidebar-disclosure-content) :is(.nav-group>details,.nav-advanced-section)>summary .sidebar-icon{width:18px;height:18px;flex:0 0 18px}

@@ -19,37 +19,73 @@ class Element {
     this.clientHeight = 100;
     this.value = '';
     this.textContent = '';
+    this.parentNode = null;
   }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   getAttribute(name) { return this.attributes[name] ?? null; }
-  append(...nodes) { this.children.push(...nodes); }
-  prepend(...nodes) { this.children.unshift(...nodes); }
-  replaceChildren(...nodes) { this.children = [...nodes]; }
+  append(...nodes) { for (const node of nodes) node.parentNode = this; this.children.push(...nodes); }
+  prepend(...nodes) { for (const node of nodes) node.parentNode = this; this.children.unshift(...nodes); }
+  replaceChildren(...nodes) { for (const node of nodes) node.parentNode = this; this.children = [...nodes]; }
   addEventListener(name, listener) { (this.listeners[name] ||= []).push(listener); }
-  dispatch(name, event = {}) { for (const listener of this.listeners[name] || []) listener({target: this, preventDefault() {}, stopPropagation() {}, ...event}); }
+  dispatch(name, event = {}) {
+    const dispatched = {target: this, preventDefault() { this.defaultPrevented = true; },
+      stopPropagation() { this.propagationStopped = true; }, ...event};
+    if (name === 'click' && this.tagName === 'BUTTON') this.focus();
+    if (name === 'click' && typeof this.onclick === 'function') this.onclick(dispatched);
+    for (let current = this; current; current = current.parentNode) {
+      for (const listener of current.listeners[name] || []) listener(dispatched);
+      if (dispatched.propagationStopped) break;
+    }
+    return dispatched;
+  }
   removeAttribute(name) { delete this.attributes[name]; }
   contains(node) { return this === node || this.children.some(child => child.contains(node)); }
-  querySelector() { return new Element(); }
-  querySelectorAll(selector) { return selector.includes('option') ? descendants(this).filter(node => node.getAttribute('role') === 'option') : []; }
+  querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+  querySelectorAll(selector) {
+    const selectors = selector.match(/\[[^\]]+\]/g) || [];
+    return descendants(this).filter(node => {
+      if (selector.includes('option') && node.getAttribute('role') !== 'option') return false;
+      return selectors.every(attribute => {
+        const [, name, value] = attribute.match(/^\[([^=\]]+)(?:="([^"]*)")?\]$/) || [];
+        return name && node.getAttribute(name) !== null && (value === undefined || node.getAttribute(name) === value);
+      });
+    });
+  }
   getBoundingClientRect() { return {left: 20, top: 100, bottom: 134, width: 180}; }
-  focus() {}
+  focus() { this.focused = true; if (this.ownerDocument) { this.ownerDocument.activeElement = this; this.ownerDocument.dispatch('focusin', {target: this}); } }
   select() {}
-  set innerHTML(value) { this._innerHTML = value; }
+  set innerHTML(value) {
+    this._innerHTML = value;
+    if (this.id !== 'simulation-float' || !this.ownerDocument) return;
+    this.children = [];
+    for (const match of value.matchAll(/<(button|div)\b([^>]*role="(?:tab|tabpanel)"[^>]*)>/g)) {
+      const node = this.ownerDocument.createElement(match[1]);
+      const attributes = [...match[2].matchAll(/([\w-]+)="([^"]*)"/g)];
+      for (const [, name, content] of attributes) node.setAttribute(name, content);
+      node.id = node.getAttribute('id');
+      node.dataset.simulationFloatTab = node.getAttribute('data-simulation-float-tab') || undefined;
+      node.hidden = /\shidden(?:\s|$)/.test(match[2]);
+      if (node.id) this.ownerDocument.elements.set(node.id, node);
+      this.append(node);
+    }
+  }
   get innerHTML() { return this._innerHTML || ''; }
 }
 
-function loadSimulationUI() {
+function loadSimulationUI(options = {}) {
   const elements = new Map();
   const body = new Element('body');
   const documentListeners = {};
   const document = {
     hidden: true,
     body,
-    createElement: tag => new Element(tag),
+    elements,
+    createElement: tag => { const element = new Element(tag); element.ownerDocument = document; return element; },
     getElementById(id) {
       if (!elements.has(id)) {
-        const element = new Element();
+        const element = document.createElement();
         element.id = id;
+        if (id.endsWith('-catalog-retry')) { element.tagName = 'BUTTON'; element.type = 'button'; }
         if (id === 'simulation-gift' || id === 'simulation-float-gift') {
           element.tagName = 'BUTTON';
           element.dataset.giftName = 'Rose';
@@ -64,9 +100,18 @@ function loadSimulationUI() {
     querySelector: () => new Element(),
     querySelectorAll: () => [],
     addEventListener(name, listener) { (documentListeners[name] ||= []).push(listener); },
+    dispatch(name, event = {}) { for (const listener of documentListeners[name] || []) listener(event); },
   };
+  body.ownerDocument = document;
   const window = {addEventListener() {}};
   const requests = [];
+  const defaultCatalog = {gifts: [
+    {id: 'heart-ten', name: 'Heart', diamonds: 10, image_url: 'https://example.test/heart.png'},
+    {id: 'rose-one', name: 'Rose', diamonds: 1, image_url: 'https://example.test/rose.png'},
+    {id: 'rose-five', name: 'Rose', diamonds: 5, image_url: 'https://example.test/rose-five.png'},
+  ]};
+  const catalogResponses = options.giftCatalogResponses || [defaultCatalog];
+  let catalogRequest = 0;
   const sandbox = {
     window,
     document,
@@ -75,16 +120,17 @@ function loadSimulationUI() {
     AbortSignal,
     fetch: async (url, options = {}) => {
       requests.push({url, options});
-      return {ok: true, json: async () => url === '/gift-catalog' ? {gifts: [
-        {id: 'heart-ten', name: 'Heart', diamonds: 10, image_url: 'https://example.test/heart.png'},
-        {id: 'rose-one', name: 'Rose', diamonds: 1, image_url: 'https://example.test/rose.png'},
-        {id: 'rose-five', name: 'Rose', diamonds: 5, image_url: 'https://example.test/rose-five.png'},
-      ]} : {active: true, generation: 1, instance: 'ui-test'}};
+      if (url === '/gift-catalog') {
+        const response = catalogResponses[Math.min(catalogRequest++, catalogResponses.length - 1)];
+        if (response instanceof Error) throw response;
+        return {ok: response?.ok !== false, json: async () => response?.body ?? response};
+      }
+      return {ok: true, json: async () => ({active: true, generation: 1, instance: 'ui-test'})};
     },
     setInterval() {},
     addEventListener() {},
     matchMedia: () => ({matches: false}),
-    requestAnimationFrame() {},
+    requestAnimationFrame: callback => callback(),
     sessionStorage: {getItem: () => null, setItem() {}},
     localStorage: {getItem: () => null, setItem() {}},
     innerWidth: 1200,
@@ -92,8 +138,21 @@ function loadSimulationUI() {
     console,
   };
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8'), sandbox);
-  return {ui: window.SimulationUI, elements, requests, body};
+  return {ui: window.SimulationUI, elements, requests, body, document};
 }
+
+test('rapid sends retain form snapshots and stay enabled during batches', async () => {
+  const {ui,elements,requests,document}=loadSimulationUI();
+  await new Promise(resolve=>setImmediate(resolve));
+  ui.apply({active:true,generation:1,instance:'ui-test',batch:{running:true}});
+  assert.equal(elements.get('simulation-fields').disabled,false);
+  assert.equal(elements.get('simulation-float-fields').disabled,false);
+  const input=document.getElementById('simulation-text');
+  input.value='First';elements.get('simulation-form').onsubmit({preventDefault(){}});
+  input.value='Second';elements.get('simulation-form').onsubmit({preventDefault(){}});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(requests.filter(item=>item.url==='/simulation/events').map(item=>JSON.parse(item.options.body).text),['First','Second']);
+});
 
 function renderGift(event) {
   const {ui, elements} = loadSimulationUI();
@@ -155,6 +214,203 @@ test('main and floating gift controls are button comboboxes instead of editable 
     'main gift control should not be an editable text field');
   assert.doesNotMatch(script, /<input\s+id="simulation-float-gift"/,
     'floating gift control should not be an editable text field');
+});
+
+test('floating send control keeps concise visible copy and event-specific accessible names', () => {
+  const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');
+  const styles = fs.readFileSync(path.join(__dirname, '../web/static/simulation.css'), 'utf8');
+  assert.match(script, /<div class="simulation-float-send-row"><label><span>Espera<\/span><span class="simulation-float-number"><input id="simulation-float-delay"[\s\S]*?<\/label><button id="simulation-float-send" type="submit" aria-label="Enviar comentario">/,
+    'delay heading and input stay grouped beside the send button');
+  assert.match(script, /<button id="simulation-float-send"[\s\S]*?<svg[^>]*aria-hidden="true"[^>]*>[\s\S]*?<span>Enviar<\/span><\/button>/,
+    'the send icon is hidden from assistive technology and visible copy stays fixed');
+  assert.match(script, /simulation-float-send'\)\.setAttribute\('aria-label',gift\?'Enviar regalo':'Enviar comentario'\)/,
+    'the accessible action name follows the selected event');
+  assert.match(styles, /\.simulation-float-send-row\{display:grid;grid-template-columns:76px minmax\(0,1fr\);align-items:end;/,
+    'the row places the button at the delay field row bottom');
+  assert.match(styles, /#simulation-float-form \.simulation-float-send-row>label\{margin:0\}/,
+    'the row-specific selector clears the form label bottom margin');
+  assert.match(styles, /#simulation-float :is\(input,select\)\{height:34px;/,
+    'the delay input keeps its shared control height');
+  assert.match(styles, /#simulation-float-send\{display:inline-flex;flex:1;height:34px;/,
+    'the send button uses the same control height');
+});
+
+test('floating panel tabs navigate, activate panels, and restore focus', () => {
+  const {ui, elements, body, document} = loadSimulationUI();
+  const dock = body.children.find(node => node.id === 'simulation-float');
+  const tabs = dock.querySelectorAll('[data-simulation-float-tab]');
+  const chat = tabs.find(tab => tab.dataset.simulationFloatTab === 'chat');
+  const activity = tabs.find(tab => tab.dataset.simulationFloatTab === 'activity');
+  const chatPanel = elements.get('simulation-float-chat-view');
+  const activityPanel = elements.get('simulation-float-activity-view');
+  const assertSelected = (selected, otherTab, shownPanel, hiddenPanel) => {
+    assert.equal(selected.getAttribute('aria-selected'), 'true');
+    assert.equal(selected.getAttribute('tabindex'), '0');
+    assert.equal(otherTab.getAttribute('aria-selected'), 'false');
+    assert.equal(otherTab.getAttribute('tabindex'), '-1');
+    assert.equal(shownPanel.hidden, false);
+    assert.equal(hiddenPanel.hidden, true);
+  };
+
+  ui.open();
+  const launcher = body.children.find(node => node.id === 'simulation-fab');
+  assert.equal(document.activeElement, chat, 'opening focuses the selected Chat tab');
+  assertSelected(chat, activity, chatPanel, activityPanel);
+
+  activity.dispatch('click');
+  assertSelected(activity, chat, activityPanel, chatPanel);
+  assert.equal(document.activeElement, activity, 'mouse activation focuses the activated tab');
+
+  activity.dispatch('keydown', {key: 'ArrowRight'});
+  assertSelected(chat, activity, chatPanel, activityPanel);
+  assert.equal(document.activeElement, chat, 'ArrowRight wraps to the next tab and focuses it');
+  chat.dispatch('keydown', {key: 'ArrowLeft'});
+  assertSelected(activity, chat, activityPanel, chatPanel);
+  assert.equal(document.activeElement, activity, 'ArrowLeft wraps to the previous tab and focuses it');
+  chat.dispatch('keydown', {key: 'Home'});
+  assertSelected(chat, activity, chatPanel, activityPanel);
+  chat.dispatch('keydown', {key: 'End'});
+  assertSelected(activity, chat, activityPanel, chatPanel);
+
+  elements.get('simulation-float-close').onclick();
+  assert.equal(document.activeElement, launcher, 'the close button restores focus to the launcher');
+  ui.open();
+  document.dispatch('keydown', {key: 'Escape', defaultPrevented: false});
+  assert.equal(document.activeElement, launcher, 'Escape restores focus to the launcher');
+});
+
+test('real-effect scope stays visible beside both simulation send controls', () => {
+  const template = fs.readFileSync(path.join(__dirname, '../web/templates/simulation.html'), 'utf8');
+  const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');
+  assert.match(template, /<p id="simulation-effects-cue" class="simulation-effects-cue"[^>]*>[^<]+<\/p>[\s\S]*?<button id="simulation-send"/,
+    'the full-page cue appears beside its send control');
+  assert.match(script, /<p id="simulation-float-effects-cue" class="simulation-effects-cue"[^>]*>[^<]+<\/p>[\s\S]*?<button id="simulation-float-send"/,
+    'the floating-panel cue appears beside its send control');
+
+  const {ui, elements} = loadSimulationUI();
+  ui.apply({active:false,generation:1,instance:'ui-test'});
+  assert.equal(elements.get('simulation-effects-cue').textContent,
+    'Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.');
+  assert.equal(elements.get('simulation-float-effects-cue').textContent,
+    'Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.');
+  ui.apply({active:true,generation:1,instance:'ui-test'});
+  assert.equal(elements.get('simulation-effects-cue').textContent,
+    'Simulación activa: al enviar, tus reglas guardadas y los overlays habituales ejecutan acciones reales.');
+  assert.equal(elements.get('simulation-float-effects-cue').textContent,
+    'Simulación activa: al enviar, tus reglas guardadas y los overlays habituales ejecutan acciones reales.');
+  ui.apply({active:true,muted:true,generation:1,instance:'ui-test'});
+  assert.equal(elements.get('simulation-effects-cue').textContent,
+    'Simulación activa: las acciones están pausadas.');
+  assert.equal(elements.get('simulation-float-effects-cue').textContent,
+    'Simulación activa: las acciones están pausadas.');
+});
+
+test('simulation launch controls clear the mobile dock and safe-area inset', () => {
+  const styles = fs.readFileSync(path.join(__dirname, '../web/static/simulation.css'), 'utf8');
+  const mobileRules = styles.match(/@media\(max-width:760px\)\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+  assert.match(mobileRules, /#simulation-fab\{[^}]*bottom:calc\(84px \+ env\(safe-area-inset-bottom,0px\)\)[^}]*\}\s*#simulation-float\{[^}]*inset:auto 8px calc\(84px \+ env\(safe-area-inset-bottom,0px\)\) 8px!important;[^}]*max-height:calc\(100dvh - var\(--simulation-banner-height,0px\) - 100px - env\(safe-area-inset-bottom,0px\)\)/,
+    'the launcher and open panel sit above the mobile dock with safe-area and active-banner clearance');
+  assert.match(mobileRules, /body\.simulation-active #simulation-fab\{bottom:calc\(84px \+ env\(safe-area-inset-bottom,0px\)\)\}/,
+    'the active-state selector overrides the launcher bottom offset with matching specificity');
+});
+
+test('gift catalog failure explains the problem and retry restores selection without reload', async () => {
+  const template = fs.readFileSync(path.join(__dirname, '../web/templates/simulation.html'), 'utf8');
+  const script = fs.readFileSync(path.join(__dirname, '../web/static/simulation.js'), 'utf8');
+  for (const id of ['simulation-gift-catalog-error', 'simulation-gift-catalog-retry']) {
+    assert.ok(template.includes(`id="${id}"`), `the full-page gift form includes ${id}`);
+  }
+  for (const id of ['simulation-float-gift-catalog-error', 'simulation-float-gift-catalog-retry']) {
+    assert.ok(script.includes(`id="${id}"`), `the floating gift form includes ${id}`);
+  }
+
+  const {ui, elements, requests, body, document} = loadSimulationUI({giftCatalogResponses: [
+    new Error('network unavailable'),
+    {gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1, image_url: 'https://example.test/rose.png'}]},
+  ]});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(elements.get('simulation-gift-catalog-error').hidden, false);
+  assert.equal(elements.get('simulation-float-gift-catalog-error').hidden, false);
+  assert.equal(elements.get('simulation-gift-catalog-error-message').textContent,
+    'No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.');
+
+  elements.get('simulation-gift').dispatch('click');
+  const picker = descendants(body).find(node => node.id === 'simulation-gift-picker');
+  const pickerStatus = descendants(picker).find(node => node.getAttribute('role') === 'status');
+  const pickerRetry = descendants(picker).find(node => node.id === 'simulation-gift-picker-retry');
+  assert.equal(pickerStatus.textContent, 'No se pudo cargar el catálogo de regalos.');
+  assert.equal(pickerRetry.hidden, false, 'the open picker offers a retry instead of an empty result');
+
+  pickerRetry.dispatch('click');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests.filter(request => request.url === '/gift-catalog').length, 2,
+    'retry makes a second catalog request in the same UI instance');
+  assert.equal(elements.get('simulation-gift-catalog-error').hidden, true);
+  assert.equal(elements.get('simulation-float-gift-catalog-error').hidden, true);
+  assert.equal(elements.get('simulation-gift').dataset.giftId, 'rose-one');
+  assert.equal(elements.get('simulation-float-gift').dataset.giftId, 'rose-one');
+  assert.equal(pickerRetry.hidden, true);
+  assert.equal(picker.querySelectorAll('[role="option"]').length, 1,
+    'the retry restores the catalog options without reloading the page');
+  assert.equal(document.activeElement.getAttribute('aria-label'), 'Buscar regalo',
+    'successful picker retry moves focus to the search field');
+
+  const inlineRetry = loadSimulationUI({giftCatalogResponses: [
+    new Error('network unavailable'),
+    {gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]},
+  ]});
+  await new Promise(resolve => setImmediate(resolve));
+  inlineRetry.ui.open();
+  inlineRetry.elements.get('simulation-float-kind').value = 'gift';
+  inlineRetry.elements.get('simulation-float-kind').onchange();
+  inlineRetry.elements.get('simulation-float-gift-catalog-retry').dispatch('click');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(inlineRetry.document.activeElement.id, 'simulation-float-gift',
+    'successful inline retry returns focus to its matching gift trigger');
+});
+
+test('delayed catalog retries never steal focus from newer controls or closed surfaces', async () => {
+  let completeMovedFocus;
+  const movedFocus = loadSimulationUI({giftCatalogResponses: [new Error('offline'),
+    new Promise(resolve => { completeMovedFocus = resolve; })]});
+  await new Promise(resolve => setImmediate(resolve));
+  movedFocus.elements.get('simulation-gift').dispatch('click');
+  const movedPicker = descendants(movedFocus.body).find(node => node.id === 'simulation-gift-picker');
+  descendants(movedPicker).find(node => node.id === 'simulation-gift-picker-retry').dispatch('click');
+  movedFocus.elements.get('simulation-kind').focus();
+  completeMovedFocus({gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(movedFocus.document.activeElement.id, 'simulation-kind',
+    'retry completion leaves focus on a newer control');
+
+  let completeClosedPicker;
+  const closedPicker = loadSimulationUI({giftCatalogResponses: [new Error('offline'),
+    new Promise(resolve => { completeClosedPicker = resolve; })]});
+  await new Promise(resolve => setImmediate(resolve));
+  closedPicker.elements.get('simulation-gift').dispatch('click');
+  const picker = descendants(closedPicker.body).find(node => node.id === 'simulation-gift-picker');
+  descendants(picker).find(node => node.id === 'simulation-gift-picker-retry').dispatch('click');
+  descendants(picker).find(node => node.getAttribute('aria-label') === 'Buscar regalo')
+    .dispatch('keydown', {key: 'Escape'});
+  completeClosedPicker({gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(picker.hidden, true);
+  assert.equal(closedPicker.document.activeElement.id, 'simulation-gift',
+    'retry completion does not move focus back into a closed picker');
+
+  let completeClosedDock;
+  const closedDock = loadSimulationUI({giftCatalogResponses: [new Error('offline'),
+    new Promise(resolve => { completeClosedDock = resolve; })]});
+  await new Promise(resolve => setImmediate(resolve));
+  closedDock.ui.open();
+  closedDock.elements.get('simulation-float-kind').value = 'gift';
+  closedDock.elements.get('simulation-float-kind').onchange();
+  closedDock.elements.get('simulation-float-gift-catalog-retry').dispatch('click');
+  closedDock.elements.get('simulation-float-close').onclick();
+  completeClosedDock({gifts: [{id: 'rose-one', name: 'Rose', diamonds: 1}]});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(closedDock.document.activeElement.id, 'simulation-fab',
+    'retry completion does not move focus into a closed floating panel');
 });
 
 test('gift picker shows catalog art and diamond values and submits the chosen duplicate name ID', async () => {

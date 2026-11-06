@@ -20,6 +20,7 @@ class Simulation:
         self.generation = 0
         self.cancel = threading.Event()
         self.batch = None
+        self.pending = deque()
         self.events = deque(maxlen=200)
         self.started = 0
         self.register(app)
@@ -52,6 +53,7 @@ class Simulation:
     def clear_actions(self):
         """Invalidate queued jobs without changing configured rules or their limits."""
         self.cancel.set()
+        self.pending.clear()
         self.generation += 1
         r = self.r
         with r.game_hotkeys.lock:
@@ -96,7 +98,7 @@ class Simulation:
         with r.interactive.lock:
             traces = [dict(x) for x in r.interactive.trace if x['at'] >= self.started][:60]
         return dict(active=self.active, instance=self.instance, generation=self.generation, session=r.feed_session,
-            batch=dict(self.batch) if self.batch else None, events=list(self.events), games=games,
+            batch=dict(self.batch) if self.batch else None, pending=len(self.pending), events=list(self.events), games=games,
             traces=traces, muted=r.production.settings['emergency'] or r.production.settings['scene'] != 'talk',
             connected=r.state['connected'] or r.state['connecting'])
 
@@ -207,13 +209,27 @@ class Simulation:
                     return
                 if spec['kind'] == 'gift' and spec['mode'] == 'streak':
                     self.deliver(spec, spec['count'], group, final=True)
-                self.batch.update(running=False, status='Envío terminado')
+                self.batch.update(status='Envío terminado')
         except Exception as exc:
             with self.lock:
                 if generation == self.generation:
-                    self.batch.update(running=False, status='Error: '+str(exc)[:200])
+                    self.batch.update(status='Error: '+str(exc)[:200])
         finally:
+            with self.lock:
+                if generation == self.generation:
+                    self.batch['running'] = False
+                    if self.r.production.settings['emergency']:
+                        self.pending.clear()
+                    if self.pending and self.active and not cancellation.is_set():
+                        self.start_batch(self.pending.popleft())
             self.publish()
+
+    def start_batch(self, spec):
+        self.cancel = threading.Event()
+        self.batch = dict(running=True, sent=0, count=spec['count'], status='Esperando',
+            starts_at=time.time()+spec['delay'])
+        threading.Thread(target=self.run, args=(spec, self.cancel, self.generation),
+            daemon=True, name='simulation-events').start()
 
     def register(self, app):
         @app.route('/simulation', methods=['GET', 'POST'])
@@ -258,17 +274,16 @@ class Simulation:
             with self.lock:
                 if not self.active:
                     return jsonify(error='Activa el modo simulación primero'), 409
-                if self.batch and self.batch['running']:
-                    return jsonify(error='Espera a que termine el envío o pulsa Detener acciones'), 409
                 if self.r.production.settings['emergency']:
                     return jsonify(error='La emisión está pausada. Pulsa Reanudar voz y efectos antes de enviar.'), 409
                 try:
                     spec = self.validate(data)
                 except (ValueError, TypeError, OverflowError) as exc:
                     return jsonify(error=str(exc)), 400
-                self.cancel = threading.Event()
-                self.batch = dict(running=True, sent=0, count=spec['count'], status='Esperando',
-                    starts_at=time.time()+spec['delay'])
-                threading.Thread(target=self.run, args=(spec, self.cancel, self.generation),
-                    daemon=True, name='simulation-events').start()
+                if self.batch and self.batch['running']:
+                    if len(self.pending) >= 100:
+                        return jsonify(error='Simulation queue full'), 429
+                    self.pending.append(spec)
+                else:
+                    self.start_batch(spec)
                 return jsonify(self.snapshot()), 202
