@@ -48,5 +48,5 @@ The current sprite set is used by the live stream overlay and consists of 80 cha
 - Structural readback covered all 80 manifest entries and each corresponding source, active, and idle PNG: all files exist, are RGBA with transparency, and match expected dimensions and manifest frame counts; 0 structural errors. No automated test suites were run, as instructed.
 - Parent spot-check independently confirmed 80 source atlases, 80 manifest entries, and no dimension or mode errors. Native review was not run: `gentle-ai review mode status` and `gentle-ai review assess --cwd <repo> --json` both failed because `gentle-ai` is not recognized in this environment; no native review approval is claimed.
 - Engram mirror: pending because no memory provider is available in this session.
-- Work-unit commit: `afc2f08` (`feat(sprites): refresh all buddy atlases`).
+- Work-unit commit: `e5ba3e6` (`feat(sprites): refresh all buddy atlases`).
 - Next step: no sprite refresh work remains; native review CLI availability is an environment limitation.
