@@ -33,6 +33,7 @@ The current sprite set is used by the live stream overlay and consists of 80 cha
 
 ## Tasks
 - [x] T1 — Refresh and reconstruct all 80 source atlases, regenerate the active animation assets, and visually review the full collection.
+- [x] T2 — Apply one scoped correction for independent review findings: restore original walk stride metadata, remove low-alpha background haze in `goblins-7`, assess detached leg fragments in `dinosaurios-4`, and align the `chibis-0` active strip scale with its idle sprite. The dinosaur asset was restored to its pre-refresh version because a safe pixel-level leg repair could not be distinguished from the authored foot without changing the rig.
 
 ## Route and estimate
 - Route: delegated direct. The change spans many image assets and requires image-generation, atlas reconstruction, and animation regeneration.
@@ -47,6 +48,14 @@ The current sprite set is used by the live stream overlay and consists of 80 cha
 - Regenerated active and idle assets for all 80 characters. The authored `chibis-0` 12-frame active strip received a careful image edit and was regenerated; its authored override metadata and 12-frame count remain unchanged. Eight collection review boards and representative active cycles were visually inspected.
 - Structural readback covered all 80 manifest entries and each corresponding source, active, and idle PNG: all files exist, are RGBA with transparency, and match expected dimensions and manifest frame counts; 0 structural errors. No automated test suites were run, as instructed.
 - Parent spot-check independently confirmed 80 source atlases, 80 manifest entries, and no dimension or mode errors. Native review was not run: `gentle-ai review mode status` and `gentle-ai review assess --cwd <repo> --json` both failed because `gentle-ai` is not recognized in this environment; no native review approval is claimed.
+- Independent post-commit review identified four issues for T2: 20 manifest stride values changed from their prior values (affecting playback); `goblins-7` gained faint alpha haze; `dinosaurios-4` has detached leg fragments; and `chibis-0` active frame bounds grew beyond its unchanged idle sprite.
 - Engram mirror: pending because no memory provider is available in this session.
 - Work-unit commit: `e5ba3e6` (`feat(sprites): refresh all buddy atlases`).
-- Next step: no sprite refresh work remains; native review CLI availability is an environment limitation.
+- T2: restored all 20 changed `stride` fields in `assets/sprites/walk-v3/manifest.json` and `web/static/buddies_walk_metadata.js` to the values from `e5ba3e6^`; structural readback confirms the two metadata objects match and every stride equals its pre-refresh value.
+- T2: removed all source `goblins-7` alpha values 1–15, regenerated its active and idle strips, and visually inspected the outputs. Structural readback found zero remaining alpha 1–15 pixels in all three assets.
+- T2: scaled each cell of the authored `chibis-0` active strip to the original first-frame bound of 105×103, retaining 12 cells, RGBA transparency, and baseline y=120. Structural readback confirms 12 frames and the first-frame alpha bounds `(11, 17, 116, 120)`.
+- T2 dinosaur exception: inspecting regenerated `dinosaurios-4` showed the near-hind foot separated from the leg in active frames. A sampled-color bridge introduced crude pixels and did not make a safe repair; the foot shape could not be safely separated from the authored leg artwork without changing the rig. Following the scoped correction instruction, restored the source, active/idle output, and per-character joint tracks from `e5ba3e6^`, then rebuilt the collection review board from its final assets. The refreshed dinosaur correction is deferred; the pre-refresh asset and its existing fragment remain.
+- No test suites were run. Structural/visual checks passed for the three corrections above and verified the dinosaur baseline restoration. Native review remains pending because the `gentle-ai` CLI is unavailable in this environment; no native approval is claimed.
+- Engram mirror: pending because no memory provider is available in this session.
+- Work-unit commits: `e5ba3e6` (`feat(sprites): refresh all buddy atlases`); T2 commit pending.
+- Next step: run native review when the CLI is available; the `dinosaurios-4` repair remains deferred until a safe source-art correction can preserve its existing rig.
