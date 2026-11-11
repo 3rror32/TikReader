@@ -43,9 +43,14 @@ window.Workspace=(()=>{
   $('tts-enabled').checked=wantsVoice;
   $('tts-enabled').onchange();
   function voiceStatus(){
-    const paused=Studio.audioDiagnostics().paused;
+    const enabled=$('tts-enabled').checked, paused=Studio.audioDiagnostics().paused;
     const character=read('tikreader.voiceCharacter',{name:'Voz normal'});
     $('voice-visible').textContent=`${window.I18n?.sourceText($('tts-state')) ?? $('tts-state').textContent} · ${character.name||'Voz normal'}`;
+    $('voice-toggle').textContent='Leer comentarios';
+    $('voice-toggle').setAttribute('aria-label',enabled?'Desactivar lectura automática':'Activar lectura automática');
+    $('voice-toggle').classList.toggle('enabled',enabled);
+    $('voice-toggle').setAttribute('aria-pressed',String(enabled));
+    $('voice-toggle').title=enabled?`Detener la lectura con ${character.name||'la voz seleccionada'} y vaciar la cola`:`Activar comentarios con ${character.name||'la voz seleccionada'}`;
     $('voice-pause').textContent=paused?'Continuar':'Pausar';
     $('voice-pause').setAttribute('aria-label',paused?'Continuar lectura':'Pausar lectura');
     $('voice-pause').setAttribute('aria-pressed',String(paused));

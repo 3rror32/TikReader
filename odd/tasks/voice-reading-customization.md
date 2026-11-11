@@ -79,6 +79,7 @@ The voice panel uses separate checkboxes for reading a name and choosing the Tik
 
 - [x] Bind the quick button through the same shared toggle helper as recent activity and gift reading, preserving its current label and state persistence.
 - [x] Read back click wiring and state synchronization; automated tests remain unauthorized.
+- [x] Keep the enabled/pressed visual state synchronized when the shared helper is unavailable.
 
 **Authorized scope:**
 
@@ -88,8 +89,9 @@ The voice panel uses separate checkboxes for reading a name and choosing the Tik
 **Acceptance criteria:**
 
 - Clicking “Leer comentarios” toggles `tts-enabled`, updates its pressed/enabled state, and persists the choice in `tikreader.voiceWanted`.
+- The direct fallback also updates the enabled icon/state if the shared helper is unavailable.
 - Existing voice status and pause controls retain their behavior.
 
 **Route:** direct inline, one known one-file handler change. CodeGraph shows the shared helper already implements the behavior used by the working greeting and gift controls.
 
-**Progress:** user reported the quick button did not respond to clicks. Replaced the separate `onclick` path with the shared toggle helper used by other quick controls and kept a direct `addEventListener` fallback. Structural readback and `git diff --check` are complete. Tests and interactive UI verification were not run; the root cause is not confirmed at runtime. Committed as `646e05b` (`fix(voice): restore comment toggle behavior`). Committed-only assessment and preflight STATUS failed because the `gentle-ai` CLI is missing; native review remains unavailable. Next step is review in an environment with the CLI.
+**Progress:** user reports the icon still does not change. Source inspection found that `voiceStatus()` stopped updating the button class/pressed state when the shared helper was absent; the fallback toggled only the setting. Restored visual/ARIA synchronization in `voiceStatus()` for both paths. Structural readback and `git diff --check` completed; tests and interactive UI verification remain unrun. Prior commit: `646e05b` (`fix(voice): restore comment toggle behavior`).
