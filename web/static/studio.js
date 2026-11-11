@@ -54,7 +54,16 @@ window.Studio = (() => {
   function voiceNote(reason,text){voiceLog.unshift({reason,text:String(text).slice(0,200)});if(voiceLog.length>100)voiceLog.pop();}
   let prefs = {};
   try { prefs = JSON.parse(localStorage.getItem('tikreader.preferences') || '{}'); } catch (_) {}
-  const settings = ['tts-rate','tts-volume','tts-voice','tts-read-name','tts-use-profile-name','tts-gifts-enabled','tts-greetings-enabled','blocked-words','antispam','no-emoji','alerts-enabled','alert-tone','alert-gift','alert-min','tts-priority','priority-users','tts-max-age','tts-restrict','tts-audience','tts-allowed-users'];
+  const nameModes = ['account','profile','both','none'];
+  const migrateNameMode = (values, fallback='account') => {
+    const source=values&&typeof values==='object'?values:{};
+    if (nameModes.includes(source['tts-name-mode'])) return source['tts-name-mode'];
+    if (source['tts-read-name'] !== undefined || source['tts-use-profile-name'] !== undefined)
+      return source['tts-read-name'] === false ? 'none' : source['tts-use-profile-name'] ? 'profile' : 'account';
+    return fallback;
+  };
+  prefs['tts-name-mode'] = migrateNameMode(prefs);
+  const settings = ['tts-rate','tts-volume','tts-voice','tts-name-mode','tts-auto-greeting','tts-gifts-enabled','tts-greetings-enabled','blocked-words','antispam','no-emoji','alerts-enabled','alert-tone','alert-gift','alert-min','tts-priority','priority-users','tts-max-age','tts-restrict','tts-audience','tts-allowed-users'];
   for (const id of settings) {
     if (prefs[id] !== undefined && $(id)) {
       if ($(id).type === 'checkbox') $(id).checked = prefs[id]; else $(id).value = prefs[id];
@@ -106,9 +115,14 @@ window.Studio = (() => {
       const origin=originOf(data);
       const read=text=>{if(session===data.session && !removed(origin) && $('tts-enabled').checked && canRead(data))speak(text,false,priority?1:0,'comment',origin);};
       const displayName=typeof data.display_name==='string'?data.display_name:'';
-      const spokenName=$('tts-use-profile-name').checked&&displayName.trim()?displayName:data.user;
-      if(window.ProductionUI)window.ProductionUI.readComment(spokenName===data.user?data:{...data,user:spokenName},read);
-      else read($('tts-read-name').checked ? `${String(spokenName||'').replace(/^@/,'')} dice: ${data.comment}` : data.comment);
+      const mode=$('tts-name-mode')?.value||'account';
+      const accountName=String(data.user||'').replace(/^@/,'').trim();
+      const profileName=displayName.trim().replace(/^@/,'');
+      const names=mode==='none'?[]:mode==='profile'?[profileName||accountName]:mode==='both'?[accountName,...(profileName&&profileName!==accountName?[profileName]:[])]:[accountName];
+      const spokenName=names.filter(Boolean).join(' y ')||accountName;
+      const commentData={...data,user:spokenName,readName:mode!=='none'};
+      if(window.ProductionUI)window.ProductionUI.readComment(commentData,read);
+      else read(mode!=='none' ? `${spokenName} dice: ${data.comment}` : data.comment);
     }
     return true;
   }
@@ -351,7 +365,7 @@ window.Studio = (() => {
       else return false;
       updateVoice();return true;
     },
-    greetAutomatic(user){if($('tts-greetings-enabled').checked && typeof user==='string' && user.trim())speak(`¡Hola, ${user.replace(/^@/, '').slice(0,80)}! Gracias por acompañarnos.`,false,0,'greeting');},
+    greetAutomatic(user){if($('tts-greetings-enabled').checked && typeof user==='string' && user.trim()){const template=$('tts-auto-greeting')?.value??'¡Hola, {usuario}! Gracias por acompañarnos.';const name=(window.ProductionUI?.displayName?.(user)||user.replace(/^@/, '')).slice(0,80);if(template.trim())speak(template.split('{usuario}').join(name),false,0,'greeting');}},
     speakManual:(text,data)=>speak(text,true,0,data?'comment':'manual',data?originOf(data):null),
     beginVoicePreview(){if(productionMuted)return false;holds.add('voice-preview');clearPreviousVoice();voicePreview=true;return true;},
     endVoicePreview(){if(!voicePreview)return;voicePreview=false;holds.delete('voice-preview');if(holds.size||paused||productionMuted)pauseSystemVoice();else{resumeSystemVoice();drain();}updateVoice();},
@@ -359,6 +373,6 @@ window.Studio = (() => {
     mute(on){productionMuted=on;window.tikreaderAudioMuted=on;document.dispatchEvent(new CustomEvent('tikreader:audio-muted',{detail:on}));if(on){queue=[];epoch++;active=false;cancelSystemVoice();localPlayback?.pause();localPlayback=null;audio?.suspend();if($('gift-alert'))$('gift-alert').hidden=true;}updateVoice();},
     queueInfo:()=>({pending:queue.length,omitted:suppressed}),
     preferences:()=>Object.fromEntries(settings.map(key=>[key,$(key).type==='checkbox'?$(key).checked:$(key).value])),
-    applyPreferences(values){queue=[];for(const key of settings)if(values[key]!==undefined){if($(key).type==='checkbox')$(key).checked=!!values[key];else $(key).value=values[key];}prefs=this.preferences();try{localStorage.setItem('tikreader.preferences',JSON.stringify(prefs));}catch(_){}render();updateVoice();}
+    applyPreferences(values){queue=[];const source=values&&typeof values==='object'?values:{},normalized={...source};normalized['tts-name-mode']=migrateNameMode(source,$('tts-name-mode').value);for(const key of settings)if(normalized[key]!==undefined){if($(key).type==='checkbox')$(key).checked=!!normalized[key];else $(key).value=normalized[key];}prefs=this.preferences();try{localStorage.setItem('tikreader.preferences',JSON.stringify(prefs));}catch(_){}render();updateVoice();}
   };
 })();
