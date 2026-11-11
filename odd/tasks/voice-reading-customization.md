@@ -70,6 +70,7 @@ The voice panel uses separate checkboxes for reading a name and choosing the Tik
 - Corrected the voice layout group and normalized legacy name preferences both during startup hydration and workspace profile application.
 - Clarified the selector label so it explicitly applies to comment names; the greeting placeholder and privacy behavior are explained separately.
 - Structural readback and `git diff --check` completed; automated tests remain unauthorized.
-- Native review is pending: `gentle-ai review mode status`, `gentle-ai review assess`, and selectorless `gentle-ai review status` each failed because `gentle-ai` is not recognized in this environment. No review lifecycle was started.
+- Native review is unavailable: mode status, assessment, and selectorless STATUS all failed because `gentle-ai` is not recognized in this environment. After the feature commit, committed-only assessment and its required preflight STATUS also failed for the same reason. No review lifecycle was started; treat the outcome as unassessable, not approved.
 - Engram mirror remains pending because no memory tools are available.
+- Work-unit commit: `e5f9c4e` (`feat(voice): customize spoken names and greetings`).
 - Next step: run the native review lifecycle in an environment where the `gentle-ai` CLI is available.
