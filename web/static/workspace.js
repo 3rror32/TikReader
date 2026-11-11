@@ -42,24 +42,31 @@ window.Workspace=(()=>{
   // Restore the user's choice before rendering the toolbar after a reload.
   $('tts-enabled').checked=wantsVoice;
   $('tts-enabled').onchange();
-  function voiceStatus(){
-    const enabled=$('tts-enabled').checked, paused=Studio.audioDiagnostics().paused;
+  function syncVoiceToggle(){
+    const enabled=$('tts-enabled').checked;
     const character=read('tikreader.voiceCharacter',{name:'Voz normal'});
-    $('voice-visible').textContent=`${window.I18n?.sourceText($('tts-state')) ?? $('tts-state').textContent} · ${character.name||'Voz normal'}`;
     $('voice-toggle').textContent='Leer comentarios';
     $('voice-toggle').setAttribute('aria-label',enabled?'Desactivar lectura automática':'Activar lectura automática');
     $('voice-toggle').classList.toggle('enabled',enabled);
     $('voice-toggle').setAttribute('aria-pressed',String(enabled));
     $('voice-toggle').title=enabled?`Detener la lectura con ${character.name||'la voz seleccionada'} y vaciar la cola`:`Activar comentarios con ${character.name||'la voz seleccionada'}`;
+  }
+  function voiceStatus(){
+    const paused=Studio.audioDiagnostics().paused;
+    syncVoiceToggle();
+    $('voice-visible').textContent=`${window.I18n?.sourceText($('tts-state')) ?? $('tts-state').textContent} · ${read('tikreader.voiceCharacter',{name:'Voz normal'}).name||'Voz normal'}`;
     $('voice-pause').textContent=paused?'Continuar':'Pausar';
     $('voice-pause').setAttribute('aria-label',paused?'Continuar lectura':'Pausar lectura');
     $('voice-pause').setAttribute('aria-pressed',String(paused));
     $('voice-pause').title=paused?'Continuar la cola de lectura':'Pausar sin perder los comentarios pendientes';
   }
   new MutationObserver(voiceStatus).observe($('tts-state'),{childList:true,characterData:true,subtree:true});
-  const toggleVoice=()=>{$('tts-enabled').checked=!$('tts-enabled').checked;$('tts-enabled').dispatchEvent(new Event('change'));};
-  if(window.ChatExtras?.bindAutoToggle)window.ChatExtras.bindAutoToggle($('voice-toggle'),'tts-enabled','lectura automática de comentarios','Leer comentarios');
-  else $('voice-toggle').addEventListener('click',toggleVoice);
+  document.addEventListener('click',event=>{
+    if(!event.target?.closest?.('#voice-toggle'))return;
+    const setting=$('tts-enabled');setting.checked=!setting.checked;wantsVoice=setting.checked;
+    save('tikreader.voiceWanted',wantsVoice);syncVoiceToggle();
+    setting.dispatchEvent(new Event('change',{bubbles:true}));
+  },true);
   $('tts-enabled').addEventListener('change',()=>{wantsVoice=$('tts-enabled').checked;save('tikreader.voiceWanted',wantsVoice);voiceStatus();});
   $('voice-pause').onclick=()=>$('tts-pause').click();$('voice-next').onclick=()=>$('tts-skip').click();voiceStatus();
   function applyLayout(){document.documentElement.style.setProperty('--chat-share',layout.split+'%');$('layout-split').value=layout.split;$('layout-split-value').textContent=`${layout.split}% chat · ${100-layout.split}% panel`;}

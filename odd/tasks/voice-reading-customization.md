@@ -80,6 +80,7 @@ The voice panel uses separate checkboxes for reading a name and choosing the Tik
 - [x] Bind the quick button through the same shared toggle helper as recent activity and gift reading, preserving its current label and state persistence.
 - [x] Read back click wiring and state synchronization; automated tests remain unauthorized.
 - [x] Keep the enabled/pressed visual state synchronized when the shared helper is unavailable.
+- [x] Make the quick button directly toggle, persist, and render its own state without relying on the shared helper.
 
 **Authorized scope:**
 
@@ -94,4 +95,4 @@ The voice panel uses separate checkboxes for reading a name and choosing the Tik
 
 **Route:** direct inline, one known one-file handler change. CodeGraph shows the shared helper already implements the behavior used by the working greeting and gift controls.
 
-**Progress:** user reports the icon still does not change. Source inspection found that `voiceStatus()` stopped updating the button class/pressed state when the shared helper was absent; the fallback toggled only the setting. Restored visual/ARIA synchronization in `voiceStatus()` for both paths. Structural readback and `git diff --check` completed; tests and interactive UI verification remain unrun. Follow-up work-unit commit: `9c0c8dd` (`fix(voice): sync comment toggle indicator`). Committed-only assessment and preflight STATUS remain unavailable because the `gentle-ai` CLI is not recognized.
+**Progress:** user reports that clicks still do not change the button. Replaced the helper dependency with a document-capture handler targeted to `#voice-toggle`; it toggles `tts-enabled`, persists `tikreader.voiceWanted`, and updates the pressed/icon state directly. Bumped the script query version so the browser fetches the updated handler after reload. Structural readback and `git diff --check` completed. Interactive UI verification and automated tests remain unrun; the `gentle-ai` CLI is not recognized.
