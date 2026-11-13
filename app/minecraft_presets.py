@@ -159,13 +159,15 @@ _NOTES = {'ender_dragon': 'La visibilidad del nombre depende de Minecraft.'}
 for _entity, (_name, _category) in _MOBS.items():
     if _entity != 'zombie':
         _COMMON[_entity] = (_name, 'Mob con el nombre del donante.', ())
+_COMMON['community_wolf'] = ('Lobito', 'Lobo de la comunidad llamado Lobito.', ())
+_MOB_PLURALS['community_wolf'] = 'Lobitos'
 _EFFECTS = {'speed': ('speed', 20), 'jump': ('jump_boost', 20), 'heal': ('instant_health', 1)}
 
 
 def catalog():
     return [dict(id=key, name=value[0], description=value[1],
-                 category=_MOBS[key][1] if key in _MOBS else 'actions',
-                 section='mobs' if key in _MOBS else _ACTION_SECTIONS[key],
+                 category=_MOBS[key][1] if key in _MOBS else 'helpers' if key == 'community_wolf' else 'actions',
+                 section='mobs' if key in _MOBS or key == 'community_wolf' else _ACTION_SECTIONS[key],
                  **({'note': _NOTES[key]} if key in _NOTES else {}),
                  **({'quantity_min': 1, 'quantity_max': 20, 'quantity_default': 5 if key == 'tnt_rain' else 1}
                     if is_spawn(key) else {})) for key, value in _COMMON.items()]
@@ -180,7 +182,7 @@ def categories():
 
 
 def is_spawn(preset_id):
-    return preset_id == 'tnt_rain' or preset_id in _MOBS
+    return preset_id in ('tnt_rain', 'community_wolf') or preset_id in _MOBS
 
 
 def quantity_for(preset_id, value=None):
@@ -251,6 +253,17 @@ def commands_for(preset_id, edition, donor='Prueba', java_format='modern', quant
         if edition == 'bedrock':
             return tuple('execute @p ~ ~ ~ summon tnt '+_OFFSETS[i % len(_OFFSETS)] for i in range(amount))
         return tuple('execute at @p run summon minecraft:tnt '+_OFFSETS[i % len(_OFFSETS)] for i in range(amount))
+    if preset_id == 'community_wolf':
+        literal = json.dumps('Lobito', ensure_ascii=False)
+        if edition == 'bedrock':
+            return (f'execute @p ~ ~ ~ summon wolf {literal} ~2 ~ ~',) * amount
+        prefix = 'execute at @p run summon minecraft:wolf '
+        if name_format(java_format) == 'modern':
+            component = '{text:' + literal + '}'
+        else:
+            encoded = json.dumps({'text': 'Lobito'}, ensure_ascii=False, separators=(',', ':'))
+            component = "'" + encoded.replace('\\', '\\\\').replace("'", "\\'") + "'"
+        return (prefix + '~2 ~ ~ {CustomName:' + component + ',CustomNameVisible:1b}',) * amount
     if preset_id in _MOBS:
         literal = json.dumps(donor_name(donor), ensure_ascii=False)
         entity = _BEDROCK_ALIASES.get(preset_id, preset_id) if edition == 'bedrock' else preset_id
@@ -283,6 +296,8 @@ def announcement_for(preset_id, edition, donor='Prueba', quantity=None, gift_cou
         amount = quantity_for(preset_id, quantity) * gift_count
         if preset_id == 'tnt_rain':
             label = 'TNT'
+        elif preset_id == 'community_wolf':
+            label = 'Lobito' if amount == 1 else _MOB_PLURALS[preset_id]
         else:
             label = 'Zombie' if preset_id == 'zombie' else _MOBS[preset_id][0]
             if amount != 1:

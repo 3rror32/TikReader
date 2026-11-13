@@ -185,7 +185,7 @@ function render(studio: StudioState, feed: FeedState): void {
     lastCommentSignature = signature;
     comments.replaceChildren(...recent.map(comment => {
       const card = document.createElement("article");
-      card.className = "broadcast-card comment";
+      card.className = "broadcast-card comment comment-bubble";
       const user = document.createElement("div");
       user.className = "comment-user";
       text(user, comment.user);

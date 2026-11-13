@@ -214,6 +214,14 @@
     "section": "mobs"
   },
   {
+    "id": "community_wolf",
+    "name": "Lobito",
+    "description": "Lobo de la comunidad llamado Lobito.",
+    "category": "helpers",
+    "quantity": 1,
+    "section": "mobs"
+  },
+  {
     "id": "fox",
     "name": "Zorro",
     "description": "Mob",

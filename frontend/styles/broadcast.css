@@ -56,10 +56,49 @@ body { color: var(--ink); }
 .goal-track { @apply h-1.5 overflow-hidden rounded-full bg-white/10; }
 .goal-fill { @apply block h-full origin-left rounded-full; background: linear-gradient(90deg, var(--signal), #b8fff8); transform: scaleX(0); transition: transform 500ms cubic-bezier(.2,.8,.2,1); }
 
-.comments { @apply grid gap-2; }
-.comment { @apply grid gap-1; }
-.comment-user { @apply text-sm font-extrabold tracking-wide; color: var(--signal); }
-.comment-text { @apply text-[1.08rem] leading-snug; overflow-wrap: anywhere; }
+.comments { @apply grid gap-2; min-width: 0; }
+.comment-bubble {
+  @apply relative grid gap-1 px-4 py-3;
+  width: fit-content;
+  max-width: min(100%, 36rem);
+  overflow: visible;
+  contain: layout;
+  border-radius: 15px 15px 15px 5px;
+  border-color: rgb(37 244 238 / 30%);
+  background: linear-gradient(118deg, rgb(8 23 34 / 96%), rgb(12 32 43 / 91%));
+  box-shadow: 0 10px 28px rgb(0 0 0 / 26%), inset 0 1px rgb(255 255 255 / 5%);
+  animation: bubble-in 320ms cubic-bezier(.2,.8,.2,1) both;
+}
+.comment-bubble::before { display: none; }
+.comment-bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 14px;
+  width: 13px;
+  height: 13px;
+  transform: skewY(-34deg) rotate(-15deg);
+  border-left: 1px solid rgb(37 244 238 / 24%);
+  background: rgb(9 25 36 / 96%);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}
+.comment-bubble:nth-child(even) {
+  justify-self: end;
+  border-radius: 15px 15px 5px 15px;
+  border-color: rgb(255 209 102 / 34%);
+  background: linear-gradient(118deg, rgb(35 26 22 / 95%), rgb(37 34 29 / 91%));
+}
+.comment-bubble:nth-child(even)::after {
+  right: 14px;
+  left: auto;
+  transform: skewY(34deg) rotate(15deg);
+  border-right: 1px solid rgb(255 209 102 / 28%);
+  border-left: 0;
+  background: rgb(36 31 26 / 96%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+.comment-user { @apply text-xs font-extrabold tracking-[.12em] uppercase; color: var(--signal); }
+.comment-text { font-size: clamp(1rem, 3.4vw, 1.25rem); line-height: 1.35; overflow-wrap: anywhere; }
 
 /* Dedicated OBS sources: one job and one visual hierarchy per source. */
 body[data-overlay="likes"] .broadcast-shell { @apply max-w-[760px] p-3; }
@@ -103,6 +142,11 @@ body[data-overlay="gifts"] #gift-count { @apply rounded-lg px-3 py-2 text-xl; }
 @keyframes card-in {
   from { opacity: 0; transform: translate3d(-14px, 6px, 0) rotateY(2deg); }
   to { opacity: 1; transform: translate3d(0, 0, 0) rotateY(0); }
+}
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translate3d(0, 8px, 0) scale(.98); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
 @media (max-width: 520px) {
