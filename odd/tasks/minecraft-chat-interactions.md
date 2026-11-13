@@ -67,5 +67,7 @@ Acceptance: the streamer can map a gift to the community wolf, and the resulting
 
 - MCI-3 is complete from source inspection: `app/interactivity.py` parses numeric chat votes, deduplicates by viewer, and publishes poll state; `web/static/interactive_widget.js` renders the poll.
 - MCI-1 and MCI-2 are implemented; structural readback is complete, the review finding is corrected, and `git diff --check` passed.
+- Work-unit commit: `a0a8198` (`feat(minecraft): add chat bubbles and community wolf`).
+- RDD assessment and lifecycle were unavailable because the `gentle-ai` executable is not installed; the mode remains unknown, not assumed disabled.
 - Tests were not added or run, as directed.
 - Engram mirror `odd/minecraft-chat-interactions/tasks` remains pending because the local Engram store denied access.
