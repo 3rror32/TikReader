@@ -633,7 +633,11 @@ def handle_comment_event(event, session=None):
         observe_participant(user, "comment")
         common = getattr(event, "common", None)
         message_id = str(getattr(common, "msg_id", "") or uuid4().hex)
-        emotes = event_emotes(event)
+        try:
+            emotes = event_emotes(event)
+        except Exception as exc:
+            logger.warning("TikTok comment emote metadata unavailable (%s)", type(exc).__name__)
+            emotes = []
         raw_comment = getattr(event, "comment", None) or getattr(event, "content", None)
         comment = str(raw_comment or "")[:2000]
         if not comment.strip():
