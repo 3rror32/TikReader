@@ -383,9 +383,10 @@ test('profile-name voice preference restores, persists and defaults off', () => 
   assert.equal(setupStudio(saved).element('tts-name-mode').value,'account');
 });
 
-test('profile-name checkbox keeps the existing commenter-name control', () => {
+test('spoken-name selector distinguishes account handles from profile display names', () => {
   const html=fs.readFileSync(`${__dirname}/../web/templates/index.html`,'utf8');
-  assert.match(html,/<select id="tts-name-mode"><option value="account">Nombre de cuenta<\/option><option value="profile">Nombre del perfil<\/option><option value="both">Ambos nombres<\/option><option value="none">Sin nombre<\/option><\/select>/);
+  assert.match(html,/<label>Nombre que pronuncia la voz en comentarios <select id="tts-name-mode"><option value="account">Usuario de cuenta \(@usuario\)<\/option><option value="profile">Apodo visible del perfil<\/option><option value="both">Cuenta y perfil<\/option><option value="none">Solo comentario, sin nombre<\/option><\/select><\/label>/);
+  assert.match(html,/<p id="tts-name-help">El comentario visible conserva @usuario\. Este selector decide qué identidad dice la voz: cuenta = @usuario; perfil = apodo visible de TikTok; ambos = cuenta y perfil; sin nombre = solo el comentario\. También se aplica al saludo automático\. Si TikTok no envía el apodo, se usa @usuario\. Si activas “Ocultar nombres”, la voz dice “Participante”\.<\/p>/);
 });
 
 test('voice uses a selected profile name and strips one leading at sign', () => {

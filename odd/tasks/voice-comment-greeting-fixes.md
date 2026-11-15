@@ -2,11 +2,13 @@
 
 ## Objective
 
-Make the selected spoken-name mode consistent across live comments and participant greetings, and verify the live comment-to-speech path.
+Make the selected spoken-name mode consistent across live comments and participant greetings, verify the live comment-to-speech path, and clearly distinguish account handles from profile display names in the voice controls.
 
 ## Problem
 
 The spoken-name selector currently affects comment speech but not the manual or automatic greeting text. Participant records expose only the account name, so profile-name selection is unavailable for participant greetings. The working tree also contains a local `studio.js` change that separates duplicate `mode` declarations; preserve it because the duplicate declarations prevent the script from parsing.
+
+The selector's labels did not clearly distinguish the account handle shown in TikReader's comment card from the display name shown in TikTok LIVE.
 
 ## Why
 
@@ -20,6 +22,7 @@ The voice controls should honor the same name choice wherever TikReader speaks a
 - Preserve the existing local `priorityMode` / `nameMode` rename in `web/static/studio.js`.
 - Do not change the live-comment policy: prior history remains unspoken; accepted new live comments are read when enabled and audience-eligible.
 - No network or remote operations.
+- Explain that the comment card continues to display the account handle while the selector controls spoken identity.
 
 ## Authorized edit scope
 
@@ -48,12 +51,14 @@ Delegated direct implementation: the fix spans multiple non-trivial frontend/bac
 - Participant greeting data includes a profile name when available and falls back safely when absent.
 - The selected mode continues to govern comment speech without mutating the original comment record.
 - A fresh accepted live comment reaches the speech queue under enabled, unrestricted settings; existing filters and audience restrictions still suppress ineligible comments.
+- The voice selector and its help text clearly explain account handle, profile display name, both, and no-name behavior.
 - The frontend and targeted server regression checks pass.
 
 ## Tasks
 
 - [x] `VCG-1` Resolve spoken names consistently for comment speech and participant greetings; pass participant display names through the existing data flow; update the help text.
 - [x] `VCG-2` Add frontend and server regression coverage, including comment speech routing and each greeting name mode.
+- [x] `VCG-3` Clarify the account-handle/profile-name distinction and state that the selector changes speech, not the visible comment card.
 
 ## Verification
 
@@ -67,6 +72,7 @@ Delegated direct implementation: the fix spans multiple non-trivial frontend/bac
 - Read-only UI check: live session connected; comment reading and automatic greeting controls enabled; voice test returned to `Voz activa · cola: 0`.
 - Test-first RED was observed for new greeting-mode regressions; after implementation, focused greeting and live-comment regressions passed.
 - `node tests/test_frontend.cjs`: 64 passed, 1 failed. The remaining viewers-statistic assertion (`0` versus `—`) also fails on `HEAD`, so it is pre-existing and unrelated.
+- The selector-copy regression observed RED before the HTML change and GREEN afterward; the four options and helper text now distinguish `@usuario`, profile nickname, both, and no spoken name, while stating that the visible comment card retains `@usuario`.
 - Both focused participant server tests passed. The full server suite did not finish within the available run; `python` resolved to an unavailable Windows app alias outside the project virtualenv.
 - `node --check web/static/studio.js` and `git diff --check` passed; an independent verifier confirmed the final greeting behavior and reproduced the pre-existing stats failure on `HEAD`.
 - Native assessment was unavailable because `gentle-ai` is not installed; RDD state remains unknown. No review command or mode change was made.
@@ -76,4 +82,4 @@ Delegated direct implementation: the fix spans multiple non-trivial frontend/bac
 
 ## Next step
 
-Resync the Engram mirror when a memory provider is available; implementation and focused verification are complete.
+Update or reload the installed app to display the new copy. Resync the Engram mirror when a memory provider is available.

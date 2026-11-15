@@ -875,10 +875,10 @@
     <div data-pane="tools" data-view-mount="voice" class="studio-pane" hidden>
       <h2>Lectura por voz</h2>
       <label><input id="tts-enabled" type="checkbox"> Leer comentarios nuevos</label>
-      <label>Nombre que se lee en comentarios <select id="tts-name-mode"><option value="account">Nombre de cuenta</option><option value="profile">Nombre del perfil</option><option value="both">Ambos nombres</option><option value="none">Sin nombre</option></select></label>
+      <label>Nombre que pronuncia la voz en comentarios <select id="tts-name-mode"><option value="account">Usuario de cuenta (@usuario)</option><option value="profile">Apodo visible del perfil</option><option value="both">Cuenta y perfil</option><option value="none">Solo comentario, sin nombre</option></select></label>
       <label><input id="tts-greetings-enabled" type="checkbox"> Saludar automáticamente a personas nuevas</label>
       <label>Texto del saludo automático <input id="tts-auto-greeting" type="text" value="¡Hola, {usuario}! Gracias por acompañarnos." maxlength="240"></label>
-      <p id="tts-name-help">El menú elige el nombre de cuenta, perfil, ambos o ninguno para los comentarios y saludos. Usa {usuario} en el saludo automático para insertar el nombre elegido. Si activas “Ocultar nombres” en Ajustes de transmisión, se dirá “Participante”.</p>
+      <p id="tts-name-help">El comentario visible conserva @usuario. Este selector decide qué identidad dice la voz: cuenta = @usuario; perfil = apodo visible de TikTok; ambos = cuenta y perfil; sin nombre = solo el comentario. También se aplica al saludo automático. Si TikTok no envía el apodo, se usa @usuario. Si activas “Ocultar nombres”, la voz dice “Participante”.</p>
       <label><input id="tts-gifts-enabled" type="checkbox" checked> Leer regalos nuevos</label>
       <label><input id="tts-restrict" type="checkbox"> Elegir quién se lee en voz alta</label>
       <label>Leer solamente <select id="tts-audience"><option value="followers">Seguidores confirmados</option><option value="selected">Usuarios que yo elija</option><option value="manual">Manualmente con el botón Leer</option></select></label>
