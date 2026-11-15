@@ -163,10 +163,11 @@ class LiveLifecycleTests(unittest.TestCase):
         from types import SimpleNamespace as S
         server.participants.clear();server.recent_joins.clear();server.participants_revision=0
         with patch.object(server.socketio,'emit') as emitted, patch.object(server.time,'time',side_effect=[100,101]):
-            server.observe_participant(S(unique_id='Carlos'), 'join', joined=True)
-            server.observe_participant(S(unique_id='Carlos'), 'comment')
+            server.observe_participant(S(unique_id='Carlos',nickname='Visible Profile'), 'join', joined=True)
+            server.observe_participant(S(unique_id='Carlos',nickname='Visible Profile'), 'comment')
         payload=server.participants_payload(now=101)
         self.assertEqual(payload['participants'][0]['user'],'@Carlos')
+        self.assertEqual(payload['participants'][0]['display_name'],'Visible Profile')
         self.assertEqual(payload['participants'][0]['source'],'comment')
         self.assertEqual(payload['joins'][0]['joined_at'],100)
         self.assertEqual(payload['revision'],2)

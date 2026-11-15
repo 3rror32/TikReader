@@ -110,19 +110,19 @@ window.Studio = (() => {
     if(live&&!$('tts-enabled').checked){voiceNote('Lectura automática apagada',data.comment);updateVoice();}
     else if(live&&!canRead(data)){voiceNote($('tts-audience').value==='followers'?(data.is_follower==null?'Seguidor no confirmado por TikTok':'No es seguidor'): $('tts-audience').value==='manual'?'Modo manual':'Usuario fuera de la lista permitida',data.comment);updateVoice();}
     if (live && $('tts-enabled').checked && canRead(data)) {
-      const mode=$('tts-priority').value;
-      const priority=(mode==='questions' && /[¿?]/.test(data.comment)) || (mode==='users' && $('priority-users').value.toLowerCase().split(',').map(s=>s.trim().replace(/^@/,'')).includes(data.user.toLowerCase().replace(/^@/,'')));
+      const priorityMode=$('tts-priority').value;
+      const priority=(priorityMode==='questions' && /[¿?]/.test(data.comment)) || (priorityMode==='users' && $('priority-users').value.toLowerCase().split(',').map(s=>s.trim().replace(/^@/,'')).includes(data.user.toLowerCase().replace(/^@/,'')));
       const origin=originOf(data);
       const read=text=>{if(session===data.session && !removed(origin) && $('tts-enabled').checked && canRead(data))speak(text,false,priority?1:0,'comment',origin);};
       const displayName=typeof data.display_name==='string'?data.display_name:'';
-      const mode=$('tts-name-mode')?.value||'account';
+      const nameMode=$('tts-name-mode')?.value||'account';
       const accountName=String(data.user||'').replace(/^@/,'').trim();
       const profileName=displayName.trim().replace(/^@/,'');
-      const names=mode==='none'?[]:mode==='profile'?[profileName||accountName]:mode==='both'?[accountName,...(profileName&&profileName!==accountName?[profileName]:[])]:[accountName];
+      const names=nameMode==='none'?[]:nameMode==='profile'?[profileName||accountName]:nameMode==='both'?[accountName,...(profileName&&profileName!==accountName?[profileName]:[])]:[accountName];
       const spokenName=names.filter(Boolean).join(' y ')||accountName;
-      const commentData={...data,user:spokenName,readName:mode!=='none'};
+      const commentData={...data,user:spokenName,readName:nameMode!=='none'};
       if(window.ProductionUI)window.ProductionUI.readComment(commentData,read);
-      else read(mode!=='none' ? `${spokenName} dice: ${data.comment}` : data.comment);
+      else read(nameMode!=='none' ? `${spokenName} dice: ${data.comment}` : data.comment);
     }
     return true;
   }
@@ -131,6 +131,25 @@ window.Studio = (() => {
     if($('tts-audience').value==='followers')return data.is_follower===true;
     if($('tts-audience').value==='selected')return $('tts-allowed-users').value.split(/[\s,;]+/).map(s=>s.trim().replace(/^@/,'').toLowerCase()).filter(Boolean).includes(data.user.replace(/^@/,'').toLowerCase());
     return false;
+  }
+  function spokenNames(identity) {
+    const data=typeof identity==='string'?{user:identity}:identity||{};
+    const accountName=String(data.user||'').replace(/^@/,'').trim();
+    const profileName=String(data.display_name||data.displayName||'').replace(/^@/,'').trim();
+    const nameMode=$('tts-name-mode')?.value||'account';
+    const names=nameMode==='none'?[]:nameMode==='profile'?[profileName||accountName]:nameMode==='both'?[accountName,...(profileName&&profileName!==accountName?[profileName]:[])]:[accountName];
+    const name=names.filter(Boolean).join(' y ');
+    if(!name)return '';
+    return window.ProductionUI?.displayName?.(name)||name;
+  }
+  function greetingText(identity, greetingTemplate) {
+    const name=spokenNames(identity);
+    const template=greetingTemplate??$('tts-auto-greeting')?.value??'¡Hola, {usuario}! Gracias por acompañarnos.';
+    const marker='\u0000';
+    let text=String(template).replace(/\{usuario\}/g,marker);
+    if(name)text=text.split(marker).join(name.slice(0,80));
+    else text=text.replace(/[,，]\s*\u0000/g,marker).replace(/\u0000\s*[,，]/g,marker).replaceAll(marker,'');
+    return text.replace(/\s+([!?.;:])/g,'$1').replace(/([¡¿])\s+/g,'$1 ').replace(/\s{2,}/g,' ').trim();
   }
   function render() {
     if (typeof clearFeed !== 'function') return;
@@ -365,7 +384,8 @@ window.Studio = (() => {
       else return false;
       updateVoice();return true;
     },
-    greetAutomatic(user){if($('tts-greetings-enabled').checked && typeof user==='string' && user.trim()){const template=$('tts-auto-greeting')?.value??'¡Hola, {usuario}! Gracias por acompañarnos.';const name=(window.ProductionUI?.displayName?.(user)||user.replace(/^@/, '')).slice(0,80);if(template.trim())speak(template.split('{usuario}').join(name),false,0,'greeting');}},
+    greetAutomatic(identity){if($('tts-greetings-enabled').checked && (typeof identity==='string'?identity:identity?.user) && (typeof identity==='string'?identity:identity.user).trim()){const text=greetingText(identity);if(text)speak(text,false,0,'greeting');}},
+    greetingText,
     speakManual:(text,data)=>speak(text,true,0,data?'comment':'manual',data?originOf(data):null),
     beginVoicePreview(){if(productionMuted)return false;holds.add('voice-preview');clearPreviousVoice();voicePreview=true;return true;},
     endVoicePreview(){if(!voicePreview)return;voicePreview=false;holds.delete('voice-preview');if(holds.size||paused||productionMuted)pauseSystemVoice();else{resumeSystemVoice();drain();}updateVoice();},

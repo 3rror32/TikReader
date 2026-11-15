@@ -255,7 +255,7 @@ function formatCommentTime(timestamp) {
   return `${hour % 12 || 12}:${match[2]}:${match[3]} ${hour >= 12 ? 'PM' : 'AM'}`;
 }
 
-function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, badges, id, session, answered, platform_label, kind, platform, upstream_id, user_id }, live = false) {
+function addComment({ user, display_name, emoji, comment, timestamp, sequence, avatar_url, badges, id, session, answered, platform_label, kind, platform, upstream_id, user_id }, live = false) {
   const isActivity = Boolean(kind && kind !== 'comment');
   if (!isActivity) commentCount++;
 
@@ -288,7 +288,7 @@ function addComment({ user, emoji, comment, timestamp, sequence, avatar_url, bad
 
   if (!isActivity && window.ChatExtras) {
     window.ChatExtras.badges(card.querySelector('.comment-user'), badges);
-    window.ChatExtras.greeting(card.querySelector('.comment-body'), user);
+    window.ChatExtras.greeting(card.querySelector('.comment-body'), {user,display_name});
   }
   if (avatar_url) {
     try {

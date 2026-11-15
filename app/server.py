@@ -314,6 +314,8 @@ def observe_participant(user, source="activity", joined=False):
         _expire_inactive_participants(now)
         previous = participants.get(key, {})
         row = {"user": f"@{username}", "avatar_url": avatar_url(user),
+               "display_name": (getattr(user, "nickname", None) or
+                                getattr(user, "display_name", None) or str(username)),
                "badges": user_badges(user),
                "last_seen": now, "source": source,
                "joined_at": previous.get("joined_at")}

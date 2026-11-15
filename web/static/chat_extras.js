@@ -22,15 +22,18 @@ window.ChatExtras = (() => {
       if (badge.childNodes.length) parent.append(badge);
     }
   }
-  function greeting(parent, user) {
+  function greeting(parent, identity) {
+    const user=typeof identity==='string'?identity:identity?.user;
     if (typeof user !== 'string' || !user.trim()) return;
+    const defaultGreeting='¡Hola, {usuario}! Gracias por acompañarnos.';
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'chat-greet';
     button.textContent = '👋 Saludar';
     button.title = 'Saludo por voz local; no envía mensajes a TikTok';
-    button.setAttribute('aria-label', `Saludar por voz a ${user}; no publica en TikTok`);
+    button.setAttribute('aria-label', 'Saludar por voz; no publica en TikTok');
     button.addEventListener('click', () => {
-      window.Studio?.speakManual(`¡Hola, ${user.replace(/^@/, '').slice(0, 80)}! Gracias por acompañarnos.`);
+      const text=window.Studio?.greetingText?.(identity,defaultGreeting)||`¡Hola, ${user.replace(/^@/, '').slice(0, 80)}! Gracias por acompañarnos.`;
+      window.Studio?.speakManual(text);
     });
     parent.append(button);
   }

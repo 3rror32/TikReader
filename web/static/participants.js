@@ -22,7 +22,7 @@
    const badges=el('div');badges.className='participant-badges';
    window.ChatExtras?.badges(badges,row.badges);if(badges.childNodes.length)item.append(badges);
    if(mode==='joins')item.append(el('small',new Date(row.joined_at*1000).toLocaleTimeString((window.I18n?.locale || 'es-419'),{hour12:true})));
-   window.ChatExtras?.greeting(item,row.user);list.append(item);
+   window.ChatExtras?.greeting(item,{user:row.user,display_name:row.display_name});list.append(item);
   }
   if(!rows.length&&!isEmpty)list.append(el('p',mode==='joins'?'Sin entradas recientes.':'Sin actividad reciente.'));
  }
@@ -47,7 +47,7 @@
   for(const row of [...(next.participants||[]),...(next.joins||[])]){
    const key=(row.user||'').replace(/^@/,'').toLocaleLowerCase();
    if(!key||seen.has(key))continue;
-   seen.add(key);if(ready)window.Studio?.greetAutomatic(row.user);
+   seen.add(key);if(ready)window.Studio?.greetAutomatic({user:row.user,display_name:row.display_name});
   }
   ready=true;data=next;draw();scheduleExpiry();
  }

@@ -142,8 +142,8 @@ test(`${kind} activity bypasses comment filters and automatic speech`, () => {
 
 test('chat extras render safe badges and greet through local manual voice only', () => {
   function element() {
-    return {childNodes:[], events:{}, append(child){this.childNodes.push(child);},
-      setAttribute(){}, addEventListener(name,fn){this.events[name]=fn;}, remove(){this.removed=true;}};
+    return {childNodes:[], events:{}, attributes:{}, append(child){this.childNodes.push(child);},
+      setAttribute(name,value){this.attributes[name]=value;}, addEventListener(name,fn){this.events[name]=fn;}, remove(){this.removed=true;}};
   }
   const spoken=[], window={Studio:{speakManual:text=>spoken.push(text)}};
   vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/chat_extras.js`,'utf8'), {window,URL,CustomEvent:class {constructor(type,options){this.type=type;this.detail=options?.detail}},document:{createElement:element}});
@@ -152,11 +152,29 @@ test('chat extras render safe badges and greet through local manual voice only',
   assert.equal(parent.childNodes.length,2);
   assert.equal(parent.childNodes[0].childNodes[0].src,'https://example.com/badge.png');
   assert.equal(parent.childNodes[1].childNodes[0].textContent,'<script>no HTML</script>');
-  window.ChatExtras.greeting(parent,'@Carlos');
+  window.ChatExtras.greeting(parent,{user:'@Carlos',display_name:'Secret Profile'});
   const button=parent.childNodes.at(-1);
   assert.match(button.title,/no envía/);
+  assert.equal(button.attributes['aria-label'],'Saludar por voz; no publica en TikTok');
+  assert.doesNotMatch(button.attributes['aria-label'],/Hola|Carlos|Secret Profile/);
   button.events.click();
   assert.deepEqual(spoken,['¡Hola, Carlos! Gracias por acompañarnos.']);
+});
+
+test('manual comment greetings follow the selected name mode and hidden-name masking', () => {
+  function element() {
+    return {childNodes:[], events:{}, append(child){this.childNodes.push(child);},
+      setAttribute(){}, addEventListener(name,fn){this.events[name]=fn;}};
+  }
+  let mode='profile';
+  const spoken=[], window={Studio:{greetingText:identity=>mode==='none'?'¡Hola! Gracias por acompañarnos.':`¡Hola, ${identity.display_name}! Gracias por acompañarnos.`,speakManual:(text,data)=>spoken.push([text,data])}};
+  vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/chat_extras.js`,'utf8'), {window,URL,document:{createElement:element}});
+  const parent=element();
+  window.ChatExtras.greeting(parent,{user:'@account',display_name:'Profile'});
+  parent.childNodes[0].events.click();
+  assert.equal(spoken[0][0],'¡Hola, Profile! Gracias por acompañarnos.');
+  mode='none';parent.childNodes[0].events.click();
+  assert.equal(spoken[1][0],'¡Hola! Gracias por acompañarnos.');
 });
 
 test('automatic reading toggles keep a fixed label and expose state through aria', () => {
@@ -205,6 +223,8 @@ function setupStudio(savedPreferences = {}, productionUI = null, rendering = {})
     return elements.get(id);
   };
   element('tts-rate').value='1'; element('tts-volume').value='0.7';
+  element('tts-name-mode').value='account';
+  element('tts-auto-greeting').value='¡Hola, {usuario}! Gracias por acompañarnos.';
   element('tts-read-name').checked=true;
   const speechSynthesis={cancel(){},pause(){},resume(){},getVoices:()=>[{voiceURI:'local-es',name:'Local español',lang:'es-MX',localService:true}],addEventListener(){},dispatchEvent(){},speak:u=>spoken.push(u)};
   const window={speechSynthesis,ProductionUI:productionUI};
@@ -347,27 +367,25 @@ test('voice excludes restored history, strips emoji and advances queue when skip
 
 test('voice omits the username when reading names is disabled', () => {
   const {studio,element,spoken}=setupStudio();
-  element('tts-enabled').checked=true;element('tts-read-name').checked=false;
+  element('tts-enabled').checked=true;element('tts-name-mode').value='none';
   studio.ingest({...comment(1),comment:'Hola'},true);
   assert.equal(spoken[0].text,'Hola');
 });
 
 test('profile-name voice preference restores, persists and defaults off', () => {
-  const restored=setupStudio({'tts-use-profile-name':true});
-  assert.equal(restored.element('tts-use-profile-name').checked,true);
-  const control=restored.element('tts-use-profile-name');
-  control.checked=false;control.dispatchEvent({type:'change'});
+  const restored=setupStudio({'tts-name-mode':'profile'});
+  assert.equal(restored.element('tts-name-mode').value,'profile');
+  const control=restored.element('tts-name-mode');
+  control.value='account';control.dispatchEvent({type:'change'});
   const saved=JSON.parse(restored.storage.get('tikreader.preferences'));
-  assert.equal(saved['tts-use-profile-name'],false);
-  assert.equal(saved['tts-read-name'],true);
-  assert.equal(setupStudio().element('tts-use-profile-name').checked,false);
-  assert.equal(setupStudio(saved).element('tts-use-profile-name').checked,false);
+  assert.equal(saved['tts-name-mode'],'account');
+  assert.equal(setupStudio().element('tts-name-mode').value,'account');
+  assert.equal(setupStudio(saved).element('tts-name-mode').value,'account');
 });
 
 test('profile-name checkbox keeps the existing commenter-name control', () => {
   const html=fs.readFileSync(`${__dirname}/../web/templates/index.html`,'utf8');
-  assert.match(html,/<input id="tts-read-name" type="checkbox" checked> Leer el nombre de quien comenta/);
-  assert.match(html,/<input id="tts-use-profile-name" type="checkbox"> Usar el nombre del perfil/);
+  assert.match(html,/<select id="tts-name-mode"><option value="account">Nombre de cuenta<\/option><option value="profile">Nombre del perfil<\/option><option value="both">Ambos nombres<\/option><option value="none">Sin nombre<\/option><\/select>/);
 });
 
 test('voice uses a selected profile name and strips one leading at sign', () => {
@@ -391,7 +409,7 @@ test('selected profile name reaches production comment speech without changing c
   element('tts-enabled').checked=true;
   const record={...comment(1),user:'@account',display_name:'@Visible Profile'};
   studio.ingest(record,true);
-  assert.equal(spokenData.user,'@Visible Profile');
+  assert.equal(spokenData.user,'Visible Profile');
   assert.equal(record.user,'@account');
   assert.equal(spoken[0].text,'Visible Profile dice: 1');
 });
@@ -640,20 +658,65 @@ test('automatic greetings have independent controls and cancel only their own qu
   assert.equal(spoken.length,1);
 });
 
+test('automatic greetings apply all name modes and omit the placeholder cleanly', () => {
+  const {studio,element,spoken}=setupStudio();
+  element('tts-greetings-enabled').checked=true;
+  element('tts-auto-greeting').value='¡Hola, {usuario}! Gracias por acompañarnos.';
+  element('tts-name-mode').value='account';
+  studio.greetAutomatic({user:'@account',display_name:'Profile'});
+  element('tts-name-mode').value='profile';
+  studio.greetAutomatic({user:'@account',display_name:'Profile'});
+  element('tts-name-mode').value='both';
+  studio.greetAutomatic({user:'@account',display_name:'Profile'});
+  element('tts-name-mode').value='none';
+  studio.greetAutomatic({user:'@account',display_name:'Profile'});
+  for(let i=0;i<4;i++) spoken[i]?.onend();
+  assert.deepEqual(spoken.map(item=>item.text),[
+    '¡Hola, account! Gracias por acompañarnos.',
+    '¡Hola, Profile! Gracias por acompañarnos.',
+    '¡Hola, account y Profile! Gracias por acompañarnos.',
+    '¡Hola! Gracias por acompañarnos.'
+  ]);
+});
+
+test('automatic greeting inserts replacement-token names literally', () => {
+  const {studio,element,spoken}=setupStudio();
+  element('tts-greetings-enabled').checked=true;
+  element('tts-name-mode').value='profile';
+  studio.greetAutomatic({user:'@account',display_name:'$& $$'});
+  assert.equal(spoken[0].text,'¡Hola, $& $$! Gracias por acompañarnos.');
+});
+
+test('automatic greetings keep the hidden-name mask', () => {
+  const {studio,element,spoken}=setupStudio({}, {displayName:()=> 'Participante',speechText:text=>text});
+  element('tts-greetings-enabled').checked=true;
+  studio.greetAutomatic({user:'@account',display_name:'Profile'});
+  assert.equal(spoken[0].text,'¡Hola, Participante! Gracias por acompañarnos.');
+});
+
+test('accepted new live comments reach speech with automatic voice enabled and unrestricted', () => {
+  const {studio,element,spoken}=setupStudio();
+  element('tts-enabled').checked=true;
+  element('questions-only').checked=false;
+  element('tts-restrict').checked=false;
+  assert.equal(studio.ingest({...comment(91),comment:'Hola en vivo'},true),true);
+  assert.equal(spoken[0].text,'viewer dice: Hola en vivo');
+});
+
 test('participants greet new people once, skip initial history and reset per session', () => {
   const spoken=[];
   const element=()=>({childNodes:[],classList:{toggle(){}},setAttribute(){},append(){},before(){},replaceChildren(){}});
   const window={Studio:{greetAutomatic:user=>spoken.push(user)},ChatExtras:{bindAutoToggle(){},greeting(){},badges(){}},addEventListener(){},dispatchEvent(){}};
   vm.runInNewContext(fs.readFileSync(`${__dirname}/../web/static/participants.js`,'utf8'),{window,URL,CustomEvent:class {constructor(type,options){this.type=type;this.detail=options?.detail}},document:{createElement:element,querySelector:element,getElementById:element}});
-  const snapshot=(session,revision,users)=>({session,revision,participants:users.map(user=>({user})),joins:[]});
+  const snapshot=(session,revision,users)=>({session,revision,participants:users.map(user=>typeof user==='string'?{user}:user),joins:[]});
   window.Participants.render(snapshot('A',1,['@Anterior']));
-  window.Participants.render(snapshot('A',2,['@Anterior','@Carlos']));
+  window.Participants.render(snapshot('A',2,['@Anterior',{user:'@Carlos',display_name:'Visible Profile'}]));
   window.Participants.render(snapshot('A',3,['@carlos']));
   window.Participants.render(snapshot('A',2,['@Viejo']));
-  assert.deepEqual(spoken,['@Carlos']);
+  assert.deepEqual(spoken.map(row=>[row.user,row.display_name]),[['@Carlos','Visible Profile']]);
   window.Participants.render(snapshot('B',0,[]));
   window.Participants.render(snapshot('B',1,['@Carlos']));
-  assert.deepEqual(spoken,['@Carlos','@Carlos']);
+  assert.deepEqual(spoken.map(row=>[row.user,row.display_name]),[['@Carlos','Visible Profile'],['@Carlos',undefined]]);
 });
 
 test('participants panel labels recent activity and removes expired rows', () => {
