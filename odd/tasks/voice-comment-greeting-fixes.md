@@ -70,9 +70,10 @@ Delegated direct implementation: the fix spans multiple non-trivial frontend/bac
 - Both focused participant server tests passed. The full server suite did not finish within the available run; `python` resolved to an unavailable Windows app alias outside the project virtualenv.
 - `node --check web/static/studio.js` and `git diff --check` passed; an independent verifier confirmed the final greeting behavior and reproduced the pre-existing stats failure on `HEAD`.
 - Native assessment was unavailable because `gentle-ai` is not installed; RDD state remains unknown. No review command or mode change was made.
-- Implementation branch: `codex/voice-comment-greeting-fixes`. Work-unit commit pending.
+- Implementation branch: `codex/voice-comment-greeting-fixes`.
+- Work-unit commit: `a6ca1c9` — `fix(voice): honor spoken name mode in greetings`.
 - Engram mirror under `odd/voice-comment-greeting-fixes/tasks`: pending because no memory provider is available in this session.
 
 ## Next step
 
-Commit the verified work unit on the feature branch, record its identity here, and preserve the unrelated dirty files.
+Resync the Engram mirror when a memory provider is available; implementation and focused verification are complete.
