@@ -20,7 +20,7 @@ tikreader.skin tikreader.interfaceMode tikreader.accessibility tikreader.shortcu
 tikreader.voiceWanted tikreader.voiceCharacter tikreader.voiceSource tikreader.voiceVariation
 tikreader.kokoroVoice tikreader.localModel tikreader.language tikreader.voiceCharacters
 tikreader.voiceVariations tikreader.kokoroSpeed tikreader.voiceLocalModel
-tikreader.commentFontSize'''.split())
+tikreader.commentFontSize tikreader.lastTikTokUsername'''.split())
 connection_failures = deque(maxlen=12)
 
 

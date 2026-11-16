@@ -330,6 +330,33 @@ function escapeHtml(s) {
 }
 
 /* ── Controls ────────────────────────────────────────────── */
+const LAST_TIKTOK_USERNAME_KEY = 'tikreader.lastTikTokUsername';
+const TIKTOK_USERNAME_PATTERN = /^[A-Za-z0-9_.]{2,24}$/;
+const usernameInput = document.getElementById('username-input');
+const restoredTikTokUsername = (() => {
+  try {
+    const bootstrap = JSON.parse(document.getElementById('saved-preferences').textContent);
+    const serverUsername = bootstrap.values[LAST_TIKTOK_USERNAME_KEY];
+    return typeof serverUsername === 'string'
+      ? serverUsername : localStorage.getItem(LAST_TIKTOK_USERNAME_KEY);
+  } catch (_) {
+    try { return localStorage.getItem(LAST_TIKTOK_USERNAME_KEY); }
+    catch (_) { return null; }
+  }
+})();
+if (restoredTikTokUsername !== null) usernameInput.value = restoredTikTokUsername;
+
+function rememberTikTokUsername(username) {
+  try { localStorage.setItem(LAST_TIKTOK_USERNAME_KEY, username); }
+  catch (_) { /* Persist through the device preference store when available. */ }
+  fetch('/system/preferences', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({[LAST_TIKTOK_USERNAME_KEY]: username}),
+    signal: AbortSignal.timeout(5000)
+  }).catch(() => {});
+}
+
 function startLive() {
   const button = document.getElementById('btn-connect');
   const state = button.dataset.connectionState || 'disconnected';
@@ -338,8 +365,9 @@ function startLive() {
   if (state !== 'disconnected') return;
   if (!socket.connected) { setStatus('Sin conexión con el servidor.', 'err'); return; }
   hideError();
-  const u = document.getElementById('username-input').value.trim().replace(/^@/, '');
+  const u = document.getElementById('username-input').value.trim().replace(/^@+/, '');
   if (!u) { setStatus('⚠️ Ingresa un nombre de usuario.', 'err'); return; }
+  if (TIKTOK_USERNAME_PATTERN.test(u)) rememberTikTokUsername(u);
   setStatus(`Conectando a @${u}…`);
   stopIntent = null;
   setConnectionState('connecting');

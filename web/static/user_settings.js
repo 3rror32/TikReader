@@ -2,9 +2,13 @@
 (() => {
   const bootstrap = JSON.parse(document.getElementById('saved-preferences').textContent);
   const keys = bootstrap.keys;
+  const usernameKey = 'tikreader.lastTikTokUsername';
   try {
     for (const [key, value] of Object.entries(bootstrap.values)) {
       if (localStorage.getItem(key) === null) localStorage.setItem(key, value);
+    }
+    if (typeof bootstrap.values[usernameKey] === 'string') {
+      localStorage.setItem(usernameKey, bootstrap.values[usernameKey]);
     }
   } catch (_) { /* Browser controls show the storage warning after startup. */ }
   document.addEventListener('DOMContentLoaded', () => {
@@ -21,7 +25,8 @@
     async function save(force = false) {
       if (saving) return;
       try {
-        const values = Object.fromEntries(keys.map(key => [key, localStorage.getItem(key)]));
+        const values = Object.fromEntries(keys.filter(key => key !== usernameKey)
+          .map(key => [key, localStorage.getItem(key)]));
         const serialized = JSON.stringify(values);
         if (!force && serialized === previous) return;
         saving = true;
