@@ -57,5 +57,5 @@ The widget currently animates bundled 128×128-frame PNG strips and has no Poké
 - Verification after the final correction: `$env:PYTHONPATH='app'; .\.venv\Scripts\python.exe -m unittest tests.test_stream_buddies` passed (11 tests). `node tests/test_stream_buddies.cjs` passed (5 tests). Structural checks confirmed every walk/idle cell has alpha bounds inside the four-pixel margin, every visible baseline is y=120, source frame counts match metadata, and Mewtwo's archive contributor ID resolves to JFain.
 - Parent spot-check: `node tests/test_stream_buddies.cjs` passed (5 tests) and `git diff --check` passed. Independent final visual verification confirmed all 47 walk/idle frames preserve their source silhouettes, keep at least a 5px horizontal margin, share walk/idle scale per species, and align at y=120.
 - Native risk assessment was unavailable because the `gentle-ai` executable is not installed; no native approval is claimed. Engram mirror remains pending because no memory provider is available.
-- Work-unit commit: pending parent commit; the commit identity will be recorded in this task document after creation.
-- Next step: commit the verified work unit on `codex/stream-buddies-pokemon`, then read back and record its identity. Preserve the pre-existing review artifacts and `stream-buddy-sprite-refresh.md`.
+- Work-unit commit: `4d91812` (`feat(stream-buddies): add animated Pokemon collection`).
+- Next step: open Amigos del directo and select the Pokémon collection. Preserve the pre-existing review artifacts and `stream-buddy-sprite-refresh.md`.
