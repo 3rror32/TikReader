@@ -27,6 +27,25 @@ test('authored twelve-frame knight uses its own frame count and idle sprite',()=
  assert.equal(poses.size,12);assert.equal(img.style.width,'1200%');
  s.preview({speed:0});s.step(10000);assert.equal(art.dataset.frame,'0');assert.equal(img.style.width,'100%');assert.match(img.src,/chibis-0-idle\.png/);
 });
+test('Pokemon assets preserve source frame counts and include idle and attribution files',()=>{
+ const frames={pikachu:4,eevee:7,charizard:4,bulbasaur:6,squirtle:4,mewtwo:6,gengar:4,snorlax:4};
+ const context={};vm.runInNewContext(fs.readFileSync('web/static/buddies_walk_metadata.js','utf8'),context);
+ const metadata=context.BUDDY_WALK_METADATA,manifest=JSON.parse(fs.readFileSync('assets/sprites/walk-v3/manifest.json','utf8')),credits=JSON.parse(fs.readFileSync('assets/sprites/walk-v3/pokemon-credits.json','utf8'));
+ assert.equal(credits.license,'CC BY-NC');assert.equal(Object.keys(credits.attributions).length,8);
+ for(const [name,count]of Object.entries(frames)){
+  const id=`pokemon-${name}`,entry=metadata[id];assert.ok(entry,`${id} metadata`);assert.equal(entry.frames,count);assert.equal(manifest[id].frames,count);
+  const attribution=credits.attributions[id];assert.equal(attribution.source_species_id,{'bulbasaur':'0001','charizard':'0006','squirtle':'0007','pikachu':'0025','gengar':'0094','eevee':'0133','snorlax':'0143','mewtwo':'0150'}[name]);
+  assert.equal(attribution.source_direction_row,2);assert.equal(attribution.variant,'default');assert.ok(attribution.contributors.length>0);
+  for(const contributor of attribution.contributors){assert.ok(contributor.contributor);assert.ok(contributor.source_id);assert.ok(!contributor.contributor.startsWith('<@'));}
+  for(const [suffix,width]of [['',128*entry.frames],['-idle',128]]){
+   const file=`assets/sprites/walk-v3/${id}${suffix}.png`;assert.ok(fs.existsSync(file),file);
+   const png=fs.readFileSync(file);assert.equal(png.toString('hex',0,8),'89504e470d0a1a0a');
+   assert.equal(png[25],6,`${file} RGBA transparency`);
+   assert.equal(png.readUInt32BE(16),width,`${file} width`);assert.equal(png.readUInt32BE(20),128,`${file} height`);
+  }
+ }
+ assert.equal(credits.attributions['pokemon-mewtwo'].contributors.find(x=>x.source_id==='<@!702275233125630042>').contributor,'JFain');
+});
 test('private preview respects participant limit and zero speed',()=>{
  const s=setup();s.preview({max_friends:1,speed:0});s.step(0);
  const a=s.nodes.filter(n=>n.className==='buddy'&&!n.removed);assert.equal(a.length,1);const x=a[0].style.transform;

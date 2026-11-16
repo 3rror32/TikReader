@@ -1,0 +1,985 @@
+{
+  "license": "CC BY-NC",
+  "source_archive": "SpriteCollab-master.zip",
+  "direction_order": [
+    "down",
+    "down-right",
+    "right",
+    "up-right",
+    "up",
+    "up-left",
+    "left",
+    "down-left"
+  ],
+  "attributions": {
+    "pokemon-bulbasaur": {
+      "name": "Bulbasaur",
+      "source_species_id": "0001",
+      "variant": "default",
+      "source_direction": "east-facing side walk",
+      "source_direction_row": 2,
+      "walk_source": "SpriteCollab-master/sprite/0001/Walk-Anim.png",
+      "idle_source": "SpriteCollab-master/sprite/0001/Idle-Anim.png",
+      "metadata_source": "SpriteCollab-master/sprite/0001/AnimData.xml",
+      "credits_source": "SpriteCollab-master/sprite/0001/credits.txt",
+      "contributors": [
+        {
+          "timestamp": "2020-10-07 17:58:43.323442",
+          "contributor": "CHUNSOFT",
+          "source_id": "CHUNSOFT",
+          "status": "CUR",
+          "scope": "Unspecified",
+          "animations": [
+            "Walk",
+            "Attack",
+            "Strike",
+            "Shoot",
+            "Dance",
+            "Shake",
+            "Sleep",
+            "Hurt",
+            "Idle",
+            "Swing",
+            "Double",
+            "Hop",
+            "Charge",
+            "Rotate",
+            "EventSleep",
+            "Wake",
+            "Eat",
+            "Tumble",
+            "Pose",
+            "Pull",
+            "Pain",
+            "Float",
+            "DeepBreath",
+            "Nod",
+            "Sit",
+            "LookUp",
+            "Sink",
+            "Trip",
+            "Laying",
+            "LeapForth",
+            "Head",
+            "Cringe",
+            "LostBalance",
+            "TumbleBack",
+            "Faint",
+            "HitGround"
+          ]
+        }
+      ],
+      "source_walk_frame_size": [
+        40,
+        40
+      ],
+      "source_walk_frame_count": 6,
+      "source_walk_durations": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "source_idle_frame_size": [
+        32,
+        40
+      ],
+      "source_idle_frame_count": 3,
+      "source_idle_durations": [
+        40,
+        6,
+        6
+      ],
+      "source_walk_alpha_bounds": [
+        {
+          "x": 10,
+          "y": 8,
+          "width": 21,
+          "height": 18
+        },
+        {
+          "x": 10,
+          "y": 5,
+          "width": 21,
+          "height": 20
+        },
+        {
+          "x": 11,
+          "y": 3,
+          "width": 21,
+          "height": 20
+        },
+        {
+          "x": 11,
+          "y": 3,
+          "width": 23,
+          "height": 21
+        },
+        {
+          "x": 12,
+          "y": 6,
+          "width": 23,
+          "height": 21
+        },
+        {
+          "x": 14,
+          "y": 8,
+          "width": 21,
+          "height": 18
+        }
+      ],
+      "source_idle_alpha_bounds": {
+        "x": 6,
+        "y": 8,
+        "width": 21,
+        "height": 18
+      },
+      "shared_reference_bounds": {
+        "width": 23,
+        "height": 21
+      },
+      "shared_pixel_scale": 3.5466666666666664,
+      "target_ground_line_y": 120,
+      "adaptation": "East-facing row cropped from the default 8-direction atlas; walk and idle use one nearest-neighbor scale fitted to shared visible reference bounds and an 8px minimum horizontal margin, centered to the source frame and bottom-aligned at y=120.",
+      "horizontal_safe_margin_pixels": 11
+    },
+    "pokemon-charizard": {
+      "name": "Charizard",
+      "source_species_id": "0006",
+      "variant": "default",
+      "source_direction": "east-facing side walk",
+      "source_direction_row": 2,
+      "walk_source": "SpriteCollab-master/sprite/0006/Walk-Anim.png",
+      "idle_source": "SpriteCollab-master/sprite/0006/Idle-Anim.png",
+      "metadata_source": "SpriteCollab-master/sprite/0006/AnimData.xml",
+      "credits_source": "SpriteCollab-master/sprite/0006/credits.txt",
+      "contributors": [
+        {
+          "timestamp": "2020-10-07 17:58:43.345381",
+          "contributor": "CHUNSOFT",
+          "source_id": "CHUNSOFT",
+          "status": "CUR",
+          "scope": "Unspecified",
+          "animations": [
+            "Attack",
+            "Charge",
+            "Double",
+            "Hop",
+            "Hurt",
+            "Idle",
+            "Rotate",
+            "Shoot",
+            "Sleep",
+            "Strike",
+            "Swing",
+            "Walk"
+          ]
+        }
+      ],
+      "source_walk_frame_size": [
+        40,
+        48
+      ],
+      "source_walk_frame_count": 4,
+      "source_walk_durations": [
+        8,
+        10,
+        8,
+        10
+      ],
+      "source_idle_frame_size": [
+        40,
+        48
+      ],
+      "source_idle_frame_count": 4,
+      "source_idle_durations": [
+        15,
+        15,
+        15,
+        15
+      ],
+      "source_walk_alpha_bounds": [
+        {
+          "x": 5,
+          "y": 2,
+          "width": 29,
+          "height": 28
+        },
+        {
+          "x": 8,
+          "y": 4,
+          "width": 27,
+          "height": 26
+        },
+        {
+          "x": 5,
+          "y": 2,
+          "width": 29,
+          "height": 28
+        },
+        {
+          "x": 7,
+          "y": 3,
+          "width": 27,
+          "height": 28
+        }
+      ],
+      "source_idle_alpha_bounds": {
+        "x": 5,
+        "y": 2,
+        "width": 29,
+        "height": 28
+      },
+      "shared_reference_bounds": {
+        "width": 29,
+        "height": 28
+      },
+      "shared_pixel_scale": 3.8620689655172415,
+      "target_ground_line_y": 120,
+      "adaptation": "East-facing row cropped from the default 8-direction atlas; walk and idle use one nearest-neighbor scale fitted to their shared visible reference bounds, centered to the source frame and bottom-aligned at y=120."
+    },
+    "pokemon-squirtle": {
+      "name": "Squirtle",
+      "source_species_id": "0007",
+      "variant": "default",
+      "source_direction": "east-facing side walk",
+      "source_direction_row": 2,
+      "walk_source": "SpriteCollab-master/sprite/0007/Walk-Anim.png",
+      "idle_source": "SpriteCollab-master/sprite/0007/Idle-Anim.png",
+      "metadata_source": "SpriteCollab-master/sprite/0007/AnimData.xml",
+      "credits_source": "SpriteCollab-master/sprite/0007/credits.txt",
+      "contributors": [
+        {
+          "timestamp": "2020-10-07 17:58:43.349371",
+          "contributor": "CHUNSOFT",
+          "source_id": "CHUNSOFT",
+          "status": "CUR",
+          "scope": "Unspecified",
+          "animations": [
+            "Walk",
+            "Attack",
+            "Strike",
+            "Shoot",
+            "Withdraw",
+            "Sleep",
+            "Hurt",
+            "Idle",
+            "Swing",
+            "Double",
+            "Hop",
+            "Charge",
+            "Rotate",
+            "EventSleep",
+            "Wake",
+            "Eat",
+            "Tumble",
+            "Pose",
+            "Pull",
+            "Pain",
+            "Float",
+            "DeepBreath",
+            "Nod",
+            "Sit",
+            "LookUp",
+            "Sink",
+            "Trip",
+            "Laying",
+            "LeapForth",
+            "Head",
+            "Cringe",
+            "LostBalance",
+            "TumbleBack",
+            "Faint",
+            "HitGround"
+          ]
+        }
+      ],
+      "source_walk_frame_size": [
+        32,
+        32
+      ],
+      "source_walk_frame_count": 4,
+      "source_walk_durations": [
+        12,
+        8,
+        12,
+        8
+      ],
+      "source_idle_frame_size": [
+        32,
+        32
+      ],
+      "source_idle_frame_count": 8,
+      "source_idle_durations": [
+        30,
+        2,
+        2,
+        4,
+        4,
+        4,
+        2,
+        2
+      ],
+      "source_walk_alpha_bounds": [
+        {
+          "x": 2,
+          "y": 3,
+          "width": 23,
+          "height": 19
+        },
+        {
+          "x": 2,
+          "y": 4,
+          "width": 23,
+          "height": 18
+        },
+        {
+          "x": 2,
+          "y": 3,
+          "width": 23,
+          "height": 19
+        },
+        {
+          "x": 2,
+          "y": 4,
+          "width": 23,
+          "height": 18
+        }
+      ],
+      "source_idle_alpha_bounds": {
+        "x": 2,
+        "y": 3,
+        "width": 23,
+        "height": 19
+      },
+      "shared_reference_bounds": {
+        "width": 23,
+        "height": 19
+      },
+      "shared_pixel_scale": 3.8,
+      "target_ground_line_y": 120,
+      "adaptation": "East-facing row cropped from the default 8-direction atlas; walk and idle use one nearest-neighbor scale fitted to shared visible reference bounds and an 8px minimum horizontal margin, centered to the source frame and bottom-aligned at y=120.",
+      "horizontal_safe_margin_pixels": 11
+    },
+    "pokemon-pikachu": {
+      "name": "Pikachu",
+      "source_species_id": "0025",
+      "variant": "default",
+      "source_direction": "east-facing side walk",
+      "source_direction_row": 2,
+      "walk_source": "SpriteCollab-master/sprite/0025/Walk-Anim.png",
+      "idle_source": "SpriteCollab-master/sprite/0025/Idle-Anim.png",
+      "metadata_source": "SpriteCollab-master/sprite/0025/AnimData.xml",
+      "credits_source": "SpriteCollab-master/sprite/0025/credits.txt",
+      "contributors": [
+        {
+          "timestamp": "2020-10-07 17:58:43.416193",
+          "contributor": "CHUNSOFT",
+          "source_id": "CHUNSOFT",
+          "status": "CUR",
+          "scope": "Unspecified",
+          "animations": [
+            "Walk",
+            "Attack",
+            "QuickStrike",
+            "Shoot",
+            "Shock",
+            "Sleep",
+            "Hurt",
+            "Idle",
+            "Swing",
+            "Double",
+            "Hop",
+            "Charge",
+            "Rotate",
+            "EventSleep",
+            "Wake",
+            "Eat",
+            "Tumble",
+            "Pose",
+            "Pull",
+            "Pain",
+            "Float",
+            "DeepBreath",
+            "Nod",
+            "Sit",
+            "LookUp",
+            "Sink",
+            "Trip",
+            "Laying",
+            "LeapForth",
+            "Head",
+            "Cringe",
+            "LostBalance",
+            "TumbleBack",
+            "Faint",
+            "HitGround"
+          ]
+        }
+      ],
+      "source_walk_frame_size": [
+        32,
+        40
+      ],
+      "source_walk_frame_count": 4,
+      "source_walk_durations": [
+        8,
+        10,
+        8,
+        10
+      ],
+      "source_idle_frame_size": [
+        40,
+        56
+      ],
+      "source_idle_frame_count": 6,
+      "source_idle_durations": [
+        40,
+        2,
+        3,
+        3,
+        3,
+        2
+      ],
+      "source_walk_alpha_bounds": [
+        {
+          "x": 2,
+          "y": 2,
+          "width": 22,
+          "height": 24
+        },
+        {
+          "x": 3,
+          "y": 4,
+          "width": 21,
+          "height": 22
+        },
+        {
+          "x": 2,
+          "y": 2,
+          "width": 22,
+          "height": 24
+        },
+        {
+          "x": 3,
+          "y": 2,
+          "width": 21,
+          "height": 24
+        }
+      ],
+      "source_idle_alpha_bounds": {
+        "x": 6,
+        "y": 10,
+        "width": 22,
+        "height": 24
+      },
+      "shared_reference_bounds": {
+        "width": 22,
+        "height": 24
+      },
+      "shared_pixel_scale": 3.8,
+      "target_ground_line_y": 120,
+      "adaptation": "East-facing row cropped from the default 8-direction atlas; walk and idle use one nearest-neighbor scale fitted to shared visible reference bounds and an 8px minimum horizontal margin, centered to the source frame and bottom-aligned at y=120.",
+      "horizontal_safe_margin_pixels": 11
+    },
+    "pokemon-gengar": {
+      "name": "Gengar",
+      "source_species_id": "0094",
+      "variant": "default",
+      "source_direction": "east-facing side walk",
+      "source_direction_row": 2,
+      "walk_source": "SpriteCollab-master/sprite/0094/Walk-Anim.png",
+      "idle_source": "SpriteCollab-master/sprite/0094/Idle-Anim.png",
+      "metadata_source": "SpriteCollab-master/sprite/0094/AnimData.xml",
+      "credits_source": "SpriteCollab-master/sprite/0094/credits.txt",
+      "contributors": [
+        {
+          "timestamp": "2022-12-17 00:13:11.432426",
+          "contributor": "CHUNSOFT",
+          "source_id": "CHUNSOFT",
+          "status": "CUR",
+          "scope": "Unspecified",
+          "animations": [
+            "Idle",
+            "Walk",
+            "Sleep",
+            "Hurt",
+            "Attack",
+            "Charge",
+            "Shoot",
+            "Strike",
+            "Lick",
+            "Twirl",
+            "Swing",
+            "Double",
+            "Rotate",
+            "Hop"
+          ]
+        }
+      ],
+      "source_walk_frame_size": [
+        32,
+        40
+      ],
+      "source_walk_frame_count": 4,
+      "source_walk_durations": [
+        8,
+        10,
+        8,
+        10
+      ],
+      "source_idle_frame_size": [
+        32,
+        40
+      ],
+      "source_idle_frame_count": 8,
+      "source_idle_durations": [
+        40,
+        4,
+        3,
+        3,
+        3,
+        3,
+        3,
+        4
+      ],
+      "source_walk_alpha_bounds": [
+        {
+          "x": 4,
+          "y": 2,
+          "width": 21,
+          "height": 25
+        },
+        {
+          "x": 5,
+          "y": 3,
+          "width": 20,
+          "height": 25
+        },
+        {
+          "x": 4,
+          "y": 2,
+          "width": 21,
+          "height": 25
+        },
+        {
+          "x": 5,
+          "y": 3,
+          "width": 20,
+          "height": 24
+        }
+      ],
+      "source_idle_alpha_bounds": {
+        "x": 4,
+        "y": 2,
+        "width": 21,
+        "height": 25
+      },
+      "shared_reference_bounds": {
+        "width": 21,
+        "height": 25
+      },
+      "shared_pixel_scale": 4.48,
+      "target_ground_line_y": 120,
+      "adaptation": "East-facing row cropped from the default 8-direction atlas; walk and idle use one nearest-neighbor scale fitted to their shared visible reference bounds, centered to the source frame and bottom-aligned at y=120."
+    },
+    "pokemon-eevee": {
+      "name": "Eevee",
+      "source_species_id": "0133",
+      "variant": "default",
+      "source_direction": "east-facing side walk",
+      "source_direction_row": 2,
+      "walk_source": "SpriteCollab-master/sprite/0133/Walk-Anim.png",
+      "idle_source": "SpriteCollab-master/sprite/0133/Idle-Anim.png",
+      "metadata_source": "SpriteCollab-master/sprite/0133/AnimData.xml",
+      "credits_source": "SpriteCollab-master/sprite/0133/credits.txt",
+      "contributors": [
+        {
+          "timestamp": "2020-10-07 17:58:43.712400",
+          "contributor": "CHUNSOFT",
+          "source_id": "CHUNSOFT",
+          "status": "CUR",
+          "scope": "Unspecified",
+          "animations": [
+            "Walk",
+            "Attack",
+            "Strike",
+            "Shoot",
+            "Appeal",
+            "TailWhip",
+            "Sleep",
+            "Hurt",
+            "Idle",
+            "Swing",
+            "Double",
+            "Hop",
+            "Charge",
+            "Rotate",
+            "EventSleep",
+            "Wake",
+            "Eat",
+            "Tumble",
+            "Pose",
+            "Pull",
+            "Pain",
+            "Float",
+            "DeepBreath",
+            "Nod",
+            "Sit",
+            "LookUp",
+            "Sink",
+            "Trip",
+            "Laying",
+            "LeapForth",
+            "Head",
+            "Cringe",
+            "LostBalance",
+            "TumbleBack",
+            "Faint",
+            "HitGround"
+          ]
+        }
+      ],
+      "source_walk_frame_size": [
+        40,
+        48
+      ],
+      "source_walk_frame_count": 7,
+      "source_walk_durations": [
+        4,
+        4,
+        4,
+        4,
+        6,
+        2,
+        2
+      ],
+      "source_idle_frame_size": [
+        24,
+        32
+      ],
+      "source_idle_frame_count": 2,
+      "source_idle_durations": [
+        16,
+        16
+      ],
+      "source_walk_alpha_bounds": [
+        {
+          "x": 8,
+          "y": 8,
+          "width": 22,
+          "height": 21
+        },
+        {
+          "x": 6,
+          "y": 9,
+          "width": 25,
+          "height": 18
+        },
+        {
+          "x": 7,
+          "y": 7,
+          "width": 25,
+          "height": 18
+        },
+        {
+          "x": 10,
+          "y": 3,
+          "width": 23,
+          "height": 21
+        },
+        {
+          "x": 11,
+          "y": 5,
+          "width": 23,
+          "height": 21
+        },
+        {
+          "x": 12,
+          "y": 8,
+          "width": 22,
+          "height": 21
+        },
+        {
+          "x": 10,
+          "y": 8,
+          "width": 22,
+          "height": 21
+        }
+      ],
+      "source_idle_alpha_bounds": {
+        "x": 1,
+        "y": 1,
+        "width": 21,
+        "height": 20
+      },
+      "shared_reference_bounds": {
+        "width": 25,
+        "height": 21
+      },
+      "shared_pixel_scale": 4.2,
+      "target_ground_line_y": 120,
+      "adaptation": "East-facing row cropped from the default 8-direction atlas; walk and idle use one nearest-neighbor scale fitted to shared visible reference bounds and a 4px minimum horizontal margin, centered to the source frame and bottom-aligned at y=120.",
+      "horizontal_safe_margin_pixels": 5
+    },
+    "pokemon-snorlax": {
+      "name": "Snorlax",
+      "source_species_id": "0143",
+      "variant": "default",
+      "source_direction": "east-facing side walk",
+      "source_direction_row": 2,
+      "walk_source": "SpriteCollab-master/sprite/0143/Walk-Anim.png",
+      "idle_source": "SpriteCollab-master/sprite/0143/Idle-Anim.png",
+      "metadata_source": "SpriteCollab-master/sprite/0143/AnimData.xml",
+      "credits_source": "SpriteCollab-master/sprite/0143/credits.txt",
+      "contributors": [
+        {
+          "timestamp": "2020-10-07 17:58:43.739327",
+          "contributor": "CHUNSOFT",
+          "source_id": "CHUNSOFT",
+          "status": "CUR",
+          "scope": "Unspecified",
+          "animations": [
+            "Walk",
+            "Attack",
+            "Stomp",
+            "Shoot",
+            "Twirl",
+            "Sleep",
+            "Hurt",
+            "Idle",
+            "Swing",
+            "Double",
+            "Hop",
+            "Charge",
+            "Rotate"
+          ]
+        }
+      ],
+      "source_walk_frame_size": [
+        32,
+        48
+      ],
+      "source_walk_frame_count": 4,
+      "source_walk_durations": [
+        8,
+        10,
+        8,
+        10
+      ],
+      "source_idle_frame_size": [
+        32,
+        64
+      ],
+      "source_idle_frame_count": 6,
+      "source_idle_durations": [
+        40,
+        1,
+        3,
+        4,
+        3,
+        1
+      ],
+      "source_walk_alpha_bounds": [
+        {
+          "x": 5,
+          "y": 0,
+          "width": 21,
+          "height": 32
+        },
+        {
+          "x": 5,
+          "y": 2,
+          "width": 21,
+          "height": 31
+        },
+        {
+          "x": 5,
+          "y": 0,
+          "width": 21,
+          "height": 32
+        },
+        {
+          "x": 5,
+          "y": 2,
+          "width": 21,
+          "height": 31
+        }
+      ],
+      "source_idle_alpha_bounds": {
+        "x": 5,
+        "y": 8,
+        "width": 21,
+        "height": 32
+      },
+      "shared_reference_bounds": {
+        "width": 21,
+        "height": 32
+      },
+      "shared_pixel_scale": 3.5,
+      "target_ground_line_y": 120,
+      "adaptation": "East-facing row cropped from the default 8-direction atlas; walk and idle use one nearest-neighbor scale fitted to their shared visible reference bounds, centered to the source frame and bottom-aligned at y=120."
+    },
+    "pokemon-mewtwo": {
+      "name": "Mewtwo",
+      "source_species_id": "0150",
+      "variant": "default",
+      "source_direction": "east-facing side walk",
+      "source_direction_row": 2,
+      "walk_source": "SpriteCollab-master/sprite/0150/Walk-Anim.png",
+      "idle_source": "SpriteCollab-master/sprite/0150/Idle-Anim.png",
+      "metadata_source": "SpriteCollab-master/sprite/0150/AnimData.xml",
+      "credits_source": "SpriteCollab-master/sprite/0150/credits.txt",
+      "contributors": [
+        {
+          "timestamp": "2020-10-07 17:58:43.755287",
+          "contributor": "CHUNSOFT",
+          "source_id": "CHUNSOFT",
+          "status": "CUR",
+          "scope": "Unspecified",
+          "animations": [
+            "Attack",
+            "Charge",
+            "Double",
+            "Hop",
+            "Hover",
+            "Hurt",
+            "Idle",
+            "Punch",
+            "Rotate",
+            "Shoot",
+            "Sleep",
+            "Swing",
+            "Walk"
+          ]
+        },
+        {
+          "timestamp": "2022-04-14 00:56:01.712419",
+          "contributor": "JFain",
+          "source_id": "<@!702275233125630042>",
+          "status": "CUR",
+          "scope": "PMDCollab_1",
+          "animations": [
+            "Attack",
+            "Charge",
+            "Cringe",
+            "DeepBreath",
+            "Double",
+            "Eat",
+            "EventSleep",
+            "Faint",
+            "Float",
+            "Head",
+            "HitGround",
+            "Hop",
+            "Hover",
+            "Hurt",
+            "Idle",
+            "Laying",
+            "LeapForth",
+            "LookUp",
+            "LostBalance",
+            "Nod",
+            "Pain",
+            "Pose",
+            "Pull",
+            "Punch",
+            "Rotate",
+            "Shoot",
+            "Sink",
+            "Sit",
+            "Sleep",
+            "Swing",
+            "Trip",
+            "Tumble",
+            "TumbleBack",
+            "Wake",
+            "Walk"
+          ]
+        }
+      ],
+      "source_walk_frame_size": [
+        48,
+        56
+      ],
+      "source_walk_frame_count": 6,
+      "source_walk_durations": [
+        12,
+        6,
+        6,
+        12,
+        6,
+        6
+      ],
+      "source_idle_frame_size": [
+        32,
+        64
+      ],
+      "source_idle_frame_count": 8,
+      "source_idle_durations": [
+        40,
+        2,
+        4,
+        6,
+        8,
+        6,
+        4,
+        2
+      ],
+      "source_walk_alpha_bounds": [
+        {
+          "x": 4,
+          "y": 5,
+          "width": 30,
+          "height": 27
+        },
+        {
+          "x": 4,
+          "y": 6,
+          "width": 30,
+          "height": 27
+        },
+        {
+          "x": 4,
+          "y": 7,
+          "width": 30,
+          "height": 27
+        },
+        {
+          "x": 3,
+          "y": 8,
+          "width": 31,
+          "height": 28
+        },
+        {
+          "x": 3,
+          "y": 7,
+          "width": 31,
+          "height": 28
+        },
+        {
+          "x": 3,
+          "y": 6,
+          "width": 31,
+          "height": 28
+        }
+      ],
+      "source_idle_alpha_bounds": {
+        "x": 1,
+        "y": 9,
+        "width": 26,
+        "height": 30
+      },
+      "shared_reference_bounds": {
+        "width": 31,
+        "height": 30
+      },
+      "shared_pixel_scale": 2.533333333333333,
+      "target_ground_line_y": 120,
+      "adaptation": "East-facing row cropped from the default 8-direction atlas; walk and idle use one nearest-neighbor scale fitted to shared visible reference bounds and an 8px minimum horizontal margin, centered to the source frame and bottom-aligned at y=120.",
+      "horizontal_safe_margin_pixels": 11
+    }
+  }
+}

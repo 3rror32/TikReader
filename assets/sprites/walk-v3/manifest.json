@@ -597,5 +597,61 @@
     "anatomy": "biped",
     "legs": 2,
     "stance": 0.625
+  },
+  "pokemon-bulbasaur": {
+    "frames": 6,
+    "stride": 0.09,
+    "anatomy": "quadruped",
+    "legs": 4,
+    "authored": true
+  },
+  "pokemon-charizard": {
+    "frames": 4,
+    "stride": 0.22,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-squirtle": {
+    "frames": 4,
+    "stride": 0.09,
+    "anatomy": "quadruped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-pikachu": {
+    "frames": 4,
+    "stride": 0.2,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-gengar": {
+    "frames": 4,
+    "stride": 0.18,
+    "anatomy": "soft_biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-eevee": {
+    "frames": 7,
+    "stride": 0.08,
+    "anatomy": "quadruped",
+    "legs": 4,
+    "authored": true
+  },
+  "pokemon-snorlax": {
+    "frames": 4,
+    "stride": 0.15,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-mewtwo": {
+    "frames": 6,
+    "stride": 0.22,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
   }
 }

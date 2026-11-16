@@ -1,8 +1,11 @@
 from pathlib import Path
+import json
+import statistics
 import threading
 import unittest
 from types import SimpleNamespace
 from flask import Flask
+from PIL import Image
 from stream_buddies import StreamBuddies
 
 
@@ -46,6 +49,77 @@ class BuddiesTests(unittest.TestCase):
         self.assertEqual(len(self.buddies.snapshot()['members']),1)
         for payload in ({'max_friends':500},{'base_size':250,'max_size':100},{'font':'url(x)'},{'bubbles':'yes'},[]):
             self.assertEqual(self.client.post('/stream-buddies',json=payload).status_code,400)
+
+    def test_pokemon_collection_is_selectable_and_assigns_only_its_roster(self):
+        expected = [
+            'pokemon-pikachu', 'pokemon-eevee', 'pokemon-charizard', 'pokemon-bulbasaur',
+            'pokemon-squirtle', 'pokemon-mewtwo', 'pokemon-gengar', 'pokemon-snorlax',
+        ]
+        response = self.client.get('/stream-buddies').get_json()
+        pokemon = [character for character in response['characters'] if character['theme'] == 'pokemon']
+        self.assertEqual([character['id'] for character in pokemon], expected)
+        self.assertEqual(self.client.post('/stream-buddies', json={'theme': 'pokemon'}).status_code, 200)
+        first = {member['user']: member['character_id'] for member in self.buddies.snapshot()['members']}
+        second = {member['user']: member['character_id'] for member in self.buddies.snapshot()['members']}
+        self.assertTrue(all(character in expected for character in first.values()))
+        self.assertEqual(first, second)
+        self.assertEqual(len(set(first.values())), len(first))
+
+    def test_pokemon_walk_and_idle_bounds_follow_ground_line(self):
+        root = Path(__file__).resolve().parent.parent / 'assets' / 'sprites' / 'walk-v3'
+        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax')
+        credits = json.loads((root / 'pokemon-credits.json').read_text(encoding='utf-8'))
+        for name in names:
+            with self.subTest(pokemon=name):
+                entry = credits['attributions'][f'pokemon-{name}']
+                walk = Image.open(root / f'pokemon-{name}.png').convert('RGBA')
+                idle = Image.open(root / f'pokemon-{name}-idle.png').convert('RGBA')
+                count = entry['source_walk_frame_count']
+                boxes = [walk.crop((i * 128, 0, (i + 1) * 128, 128)).getchannel('A').getbbox()
+                         for i in range(count)]
+                idle_box = idle.getchannel('A').getbbox()
+                self.assertTrue(all(boxes) and idle_box)
+                self.assertTrue(all(abs(box[3] - 120) <= 2 for box in boxes), 'walk alpha should reach the ground line')
+                self.assertLessEqual(abs(idle_box[3] - 120), 2, 'idle alpha should reach the ground line')
+
+    def test_pokemon_walk_and_idle_use_consistent_visible_scale(self):
+        root = Path(__file__).resolve().parent.parent / 'assets' / 'sprites' / 'walk-v3'
+        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax')
+        credits = json.loads((root / 'pokemon-credits.json').read_text(encoding='utf-8'))
+        for name in names:
+            with self.subTest(pokemon=name):
+                entry = credits['attributions'][f'pokemon-{name}']
+                walk = Image.open(root / f'pokemon-{name}.png').convert('RGBA')
+                idle = Image.open(root / f'pokemon-{name}-idle.png').convert('RGBA')
+                count = entry['source_walk_frame_count']
+                boxes = [walk.crop((i * 128, 0, (i + 1) * 128, 128)).getchannel('A').getbbox()
+                         for i in range(count)]
+                idle_box = idle.getchannel('A').getbbox()
+                self.assertTrue(all(boxes) and idle_box)
+                for axis in (0, 1):
+                    walk_extent = statistics.median(box[axis + 2] - box[axis] for box in boxes)
+                    idle_extent = idle_box[axis + 2] - idle_box[axis]
+                    ratio = idle_extent / walk_extent
+                    self.assertGreaterEqual(ratio, 0.75, 'idle should not shrink relative to walk')
+                    self.assertLessEqual(ratio, 1.33, 'idle should not grow relative to walk')
+
+    def test_pokemon_walk_and_idle_silhouettes_have_horizontal_cell_margins(self):
+        root = Path(__file__).resolve().parent.parent / 'assets' / 'sprites' / 'walk-v3'
+        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax')
+        credits = json.loads((root / 'pokemon-credits.json').read_text(encoding='utf-8'))
+        for name in names:
+            with self.subTest(pokemon=name):
+                entry = credits['attributions'][f'pokemon-{name}']
+                walk = Image.open(root / f'pokemon-{name}.png').convert('RGBA')
+                idle = Image.open(root / f'pokemon-{name}-idle.png').convert('RGBA')
+                frames = [walk.crop((i * 128, 0, (i + 1) * 128, 128))
+                          for i in range(entry['source_walk_frame_count'])]
+                for kind, cells in (('walk', frames), ('idle', [idle])):
+                    for index, cell in enumerate(cells):
+                        box = cell.getchannel('A').getbbox()
+                        self.assertIsNotNone(box, f'{kind} {index} is empty')
+                        self.assertGreaterEqual(box[0], 4, f'{kind} {index} lacks a left margin')
+                        self.assertLessEqual(box[2], 124, f'{kind} {index} lacks a right margin')
 
     def test_scene_emergency_disabled_and_session_reset(self):
         old=self.buddies.snapshot()['members'][0]['id']
