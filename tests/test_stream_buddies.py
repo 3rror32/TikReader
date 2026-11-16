@@ -54,6 +54,8 @@ class BuddiesTests(unittest.TestCase):
         expected = [
             'pokemon-pikachu', 'pokemon-eevee', 'pokemon-charizard', 'pokemon-bulbasaur',
             'pokemon-squirtle', 'pokemon-mewtwo', 'pokemon-gengar', 'pokemon-snorlax',
+            'pokemon-charmander', 'pokemon-vulpix', 'pokemon-jigglypuff', 'pokemon-psyduck',
+            'pokemon-mudkip', 'pokemon-gardevoir', 'pokemon-riolu', 'pokemon-lucario',
         ]
         response = self.client.get('/stream-buddies').get_json()
         pokemon = [character for character in response['characters'] if character['theme'] == 'pokemon']
@@ -67,7 +69,8 @@ class BuddiesTests(unittest.TestCase):
 
     def test_pokemon_walk_and_idle_bounds_follow_ground_line(self):
         root = Path(__file__).resolve().parent.parent / 'assets' / 'sprites' / 'walk-v3'
-        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax')
+        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax',
+                 'charmander', 'vulpix', 'jigglypuff', 'psyduck', 'mudkip', 'gardevoir', 'riolu', 'lucario')
         credits = json.loads((root / 'pokemon-credits.json').read_text(encoding='utf-8'))
         for name in names:
             with self.subTest(pokemon=name):
@@ -84,7 +87,8 @@ class BuddiesTests(unittest.TestCase):
 
     def test_pokemon_walk_and_idle_use_consistent_visible_scale(self):
         root = Path(__file__).resolve().parent.parent / 'assets' / 'sprites' / 'walk-v3'
-        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax')
+        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax',
+                 'charmander', 'vulpix', 'jigglypuff', 'psyduck', 'mudkip', 'gardevoir', 'riolu', 'lucario')
         credits = json.loads((root / 'pokemon-credits.json').read_text(encoding='utf-8'))
         for name in names:
             with self.subTest(pokemon=name):
@@ -105,7 +109,8 @@ class BuddiesTests(unittest.TestCase):
 
     def test_pokemon_walk_and_idle_silhouettes_have_horizontal_cell_margins(self):
         root = Path(__file__).resolve().parent.parent / 'assets' / 'sprites' / 'walk-v3'
-        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax')
+        names = ('pikachu', 'eevee', 'charizard', 'bulbasaur', 'squirtle', 'mewtwo', 'gengar', 'snorlax',
+                 'charmander', 'vulpix', 'jigglypuff', 'psyduck', 'mudkip', 'gardevoir', 'riolu', 'lucario')
         credits = json.loads((root / 'pokemon-credits.json').read_text(encoding='utf-8'))
         for name in names:
             with self.subTest(pokemon=name):

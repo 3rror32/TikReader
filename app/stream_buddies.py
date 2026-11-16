@@ -9,7 +9,9 @@ COLLECTIONS = dict(fantasia='Dragones', dinosaurios='Dinosaurios', cyborgs='Robo
                    monstruos='Monstruos', chibis='Personas chibi', pokemon='Pokémon')
 POKEMON = (('pikachu', 'Pikachu'), ('eevee', 'Eevee'), ('charizard', 'Charizard'),
            ('bulbasaur', 'Bulbasaur'), ('squirtle', 'Squirtle'), ('mewtwo', 'Mewtwo'),
-           ('gengar', 'Gengar'), ('snorlax', 'Snorlax'))
+           ('gengar', 'Gengar'), ('snorlax', 'Snorlax'), ('charmander', 'Charmander'),
+           ('vulpix', 'Vulpix'), ('jigglypuff', 'Jigglypuff'), ('psyduck', 'Psyduck'),
+           ('mudkip', 'Mudkip'), ('gardevoir', 'Gardevoir'), ('riolu', 'Riolu'), ('lucario', 'Lucario'))
 CHARACTERS = [(f'{theme}-{i}', theme, f'{label} {i + 1}')
               for theme, label in COLLECTIONS.items() if theme != 'pokemon' for i in range(10)] + [
                   (f'pokemon-{slug}', 'pokemon', name) for slug, name in POKEMON]

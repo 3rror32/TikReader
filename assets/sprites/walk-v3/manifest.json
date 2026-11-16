@@ -653,5 +653,61 @@
     "anatomy": "biped",
     "legs": 2,
     "authored": true
+  },
+  "pokemon-charmander": {
+    "frames": 4,
+    "stride": 0.18,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-vulpix": {
+    "frames": 5,
+    "stride": 0.08,
+    "anatomy": "quadruped",
+    "legs": 4,
+    "authored": true
+  },
+  "pokemon-jigglypuff": {
+    "frames": 5,
+    "stride": 0.16,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-psyduck": {
+    "frames": 4,
+    "stride": 0.15,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-mudkip": {
+    "frames": 6,
+    "stride": 0.09,
+    "anatomy": "quadruped",
+    "legs": 4,
+    "authored": true
+  },
+  "pokemon-gardevoir": {
+    "frames": 4,
+    "stride": 0.19,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-riolu": {
+    "frames": 4,
+    "stride": 0.21,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
+  },
+  "pokemon-lucario": {
+    "frames": 4,
+    "stride": 0.22,
+    "anatomy": "biped",
+    "legs": 2,
+    "authored": true
   }
 }

@@ -28,13 +28,13 @@ test('authored twelve-frame knight uses its own frame count and idle sprite',()=
  s.preview({speed:0});s.step(10000);assert.equal(art.dataset.frame,'0');assert.equal(img.style.width,'100%');assert.match(img.src,/chibis-0-idle\.png/);
 });
 test('Pokemon assets preserve source frame counts and include idle and attribution files',()=>{
- const frames={pikachu:4,eevee:7,charizard:4,bulbasaur:6,squirtle:4,mewtwo:6,gengar:4,snorlax:4};
+ const frames={pikachu:4,eevee:7,charizard:4,bulbasaur:6,squirtle:4,mewtwo:6,gengar:4,snorlax:4,charmander:4,vulpix:5,jigglypuff:5,psyduck:4,mudkip:6,gardevoir:4,riolu:4,lucario:4};
  const context={};vm.runInNewContext(fs.readFileSync('web/static/buddies_walk_metadata.js','utf8'),context);
  const metadata=context.BUDDY_WALK_METADATA,manifest=JSON.parse(fs.readFileSync('assets/sprites/walk-v3/manifest.json','utf8')),credits=JSON.parse(fs.readFileSync('assets/sprites/walk-v3/pokemon-credits.json','utf8'));
- assert.equal(credits.license,'CC BY-NC');assert.equal(Object.keys(credits.attributions).length,8);
+ assert.equal(credits.license,'CC BY-NC');assert.equal(Object.keys(credits.attributions).length,16);
  for(const [name,count]of Object.entries(frames)){
   const id=`pokemon-${name}`,entry=metadata[id];assert.ok(entry,`${id} metadata`);assert.equal(entry.frames,count);assert.equal(manifest[id].frames,count);
-  const attribution=credits.attributions[id];assert.equal(attribution.source_species_id,{'bulbasaur':'0001','charizard':'0006','squirtle':'0007','pikachu':'0025','gengar':'0094','eevee':'0133','snorlax':'0143','mewtwo':'0150'}[name]);
+  const attribution=credits.attributions[id];assert.equal(attribution.source_species_id,{'bulbasaur':'0001','charizard':'0006','squirtle':'0007','pikachu':'0025','gengar':'0094','eevee':'0133','snorlax':'0143','mewtwo':'0150','charmander':'0004','vulpix':'0037','jigglypuff':'0039','psyduck':'0054','mudkip':'0258','gardevoir':'0282','riolu':'0447','lucario':'0448'}[name]);
   assert.equal(attribution.source_direction_row,2);assert.equal(attribution.variant,'default');assert.ok(attribution.contributors.length>0);
   for(const contributor of attribution.contributors){assert.ok(contributor.contributor);assert.ok(contributor.source_id);assert.ok(!contributor.contributor.startsWith('<@'));}
   for(const [suffix,width]of [['',128*entry.frames],['-idle',128]]){

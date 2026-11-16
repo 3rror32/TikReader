@@ -2,7 +2,7 @@ window.BuddiesControls=(()=>{
  const $=id=>document.getElementById(id),host=document.createElement('form'),inputs={};let active=false,ready=false;
  host.className='overlay-style-form';host.hidden=true;$('overlay-style-form').after(host);
  const title=document.createElement('h4');title.textContent='Amigos de la transmisión';host.append(title);
- const note=document.createElement('p');note.textContent='Los principales donadores de esta sesión aparecen como personajes. Cada colección tiene entre 8 y 10 personajes distintos que caminan. Se asignan al azar y se conservan toda la sesión; se repiten después de agotar la colección. Crecen en 10 niveles según las monedas, con un tamaño máximo para no tapar el LIVE.';host.append(note);
+ const note=document.createElement('p');note.textContent='Los principales donadores de esta sesión aparecen como personajes. La colección Pokémon tiene 16 personajes que caminan; las demás colecciones tienen entre 8 y 10. Se asignan al azar y se conservan toda la sesión; se repiten después de agotar cada colección. Crecen en 10 niveles según las monedas, con un tamaño máximo para no tapar el LIVE.';host.append(note);
  const grid=document.createElement('div');grid.className='overlay-control-grid';host.append(grid);
  function field(key,label,type,options=[]){const wrap=document.createElement('label'),span=document.createElement('span'),n=document.createElement(type==='select'?'select':'input');span.textContent=label;if(type==='select')for(const[value,label]of options){const o=document.createElement('option');o.value=value;o.textContent=label;n.append(o);}else n.type=type;n.name=key;wrap.append(span,n);grid.append(wrap);inputs[key]=n;return n;}
  field('enabled','Mostrar en el LIVE','checkbox');OverlayActivation.mount(inputs.enabled,host,$('overlay-preview-name').parentElement);field('show_names','Mostrar nombres','checkbox');
@@ -11,7 +11,7 @@ window.BuddiesControls=(()=>{
  function layout(){
   OverlayCanvas.apply(inputs.canvas_format.value,canvasNote);
  }
- field('theme','Colección','select',[['mascotas','Mascotas · 10 distintos'],['dinosaurios','Dinosaurios · 10 distintos'],['goblins','Goblins · 10 distintos'],['cyborgs','Robots · 10 distintos'],['elfos','Elfos · 10 distintos'],['monstruos','Monstruos · 10 distintos'],['chibis','Personas chibi · 10 distintos'],['fantasia','Dragones · 10 distintos'],['pokemon','Pokémon · 8 distintos']]);
+ field('theme','Colección','select',[['mascotas','Mascotas · 10 distintos'],['dinosaurios','Dinosaurios · 10 distintos'],['goblins','Goblins · 10 distintos'],['cyborgs','Robots · 10 distintos'],['elfos','Elfos · 10 distintos'],['monstruos','Monstruos · 10 distintos'],['chibis','Personas chibi · 10 distintos'],['fantasia','Dragones · 10 distintos'],['pokemon','Pokémon · 16 distintos']]);
  field('font','Fuente','select',['Verdana','Arial','Georgia','Trebuchet MS','Courier New','system-ui'].map(x=>[x,x]));
  for(const[k,label,min,max]of [['font_size','Tamaño de fuente (px)',10,64],['line_spacing','Interlineado (%)',80,200],['letter_spacing','Espaciado de letras (px)',0,10],['max_friends','Máximo de donadores',1,50],['base_size','Tamaño nivel 1 (px)',32,160],['max_size','Tamaño nivel 10 (px)',32,160],['coins_to_max','Monedas para nivel 10',10,1000000],['speed','Velocidad máxima (px/s)',0,150],['speech_duration','Duración de burbujas (segundos)',1,20]]){const n=field(k,label,'number');n.min=min;n.max=max;n.required=true;}
  field('bubbles','Burbujas de comentarios','checkbox');
