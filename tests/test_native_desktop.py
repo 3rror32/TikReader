@@ -56,6 +56,101 @@ class DesktopApiTests(unittest.TestCase):
 
 
 class DesktopWindowSafetyTests(unittest.TestCase):
+    def test_desktop_zoom_controls_and_wheel_share_web_view_zoom(self):
+        import os
+        import subprocess
+        import sys
+
+        script = r"""
+import re
+from pathlib import Path
+from time import monotonic
+
+from PySide6.QtCore import QEventLoop, QPoint, QPointF, Qt
+from PySide6.QtGui import QWheelEvent
+from PySide6.QtTest import QTest
+from PySide6.QtWebEngineCore import QWebEngineProfile
+from PySide6.QtWidgets import QApplication
+
+from desktop_window import StudioWebView
+
+template = Path('web/templates/index.html').read_text(encoding='utf-8')
+settings = template.split('data-view-mount="workspace"', 1)[1].split('aria-labelledby="audio-settings-title"', 1)[0]
+row = re.search(r'<div id="desktop-zoom"[^>]*>.*?</div>\s*</div>', settings, re.S)
+assert row, 'The Zoom row is missing from the appearance settings'
+studio = Path('web/static/studio.js').read_text(encoding='utf-8')
+
+app = QApplication([])
+view = StudioWebView(QWebEngineProfile.defaultProfile())
+view.resize(640, 480)
+view.show()
+view.setHtml(f'''<body style="height: 3000px">{row[0]}
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>{studio}</script></body>''')
+
+def js(source):
+    loop = QEventLoop()
+    result = []
+    def receive(value):
+        result.append(value)
+        loop.quit()
+    view.page().runJavaScript(source, receive)
+    loop.exec()
+    return result[0]
+
+def until(check):
+    deadline = monotonic() + 3
+    while not check():
+        assert monotonic() < deadline, 'Timed out waiting for the web view'
+        QTest.qWait(20)
+
+def display(value):
+    until(lambda: js('document.getElementById("desktop-zoom-reset")?.textContent') == value)
+    assert round(view.zoomFactor() * 100) == int(value[:-1])
+
+def wheel(delta, modifiers):
+    widget = view.focusProxy()
+    assert widget is not None
+    position = QPoint(80, 120)
+    event = QWheelEvent(QPointF(position), QPointF(widget.mapToGlobal(position)),
+                        QPoint(), QPoint(0, delta), Qt.MouseButton.NoButton, modifiers,
+                        Qt.ScrollPhase.NoScrollPhase, False)
+    QApplication.sendEvent(widget, event)
+
+until(lambda: js('document.getElementById("desktop-zoom")?.hidden === false'))
+display('100%')
+js('document.getElementById("desktop-zoom-in").click()')
+display('110%')
+wheel(60, Qt.KeyboardModifier.ControlModifier)
+display('110%')
+wheel(60, Qt.KeyboardModifier.ControlModifier)
+display('120%')
+js('document.getElementById("desktop-zoom-out").click()')
+display('110%')
+wheel(-120, Qt.KeyboardModifier.ControlModifier)
+display('100%')
+wheel(-120, Qt.KeyboardModifier.NoModifier)
+until(lambda: js('window.scrollY > 0'))
+display('100%')
+wheel(-120, Qt.KeyboardModifier.ControlModifier)
+display('90%')
+js('document.getElementById("desktop-zoom-reset").click()')
+display('100%')
+assert view.zoomFactor() == 1.0
+wheel(2400, Qt.KeyboardModifier.ControlModifier)
+display('200%')
+assert js('document.getElementById("desktop-zoom-in").disabled')
+wheel(-2400, Qt.KeyboardModifier.ControlModifier)
+display('50%')
+assert js('document.getElementById("desktop-zoom-out").disabled')
+"""
+        project = Path(__file__).resolve().parents[1]
+        environment = dict(os.environ, PYTHONPATH=str(project / 'app'), QT_QPA_PLATFORM='offscreen',
+                           QTWEBENGINE_CHROMIUM_FLAGS='--no-sandbox --disable-gpu')
+        result = subprocess.run([sys.executable, '-c', script], cwd=project, env=environment,
+                                capture_output=True, text=True, timeout=25)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_palette_refresh_is_load_triggered_without_repeating_timer(self):
         source = (Path(__file__).resolve().parents[1] / 'app' / 'desktop_window.py').read_text(
             encoding='utf-8'

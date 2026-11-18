@@ -6,15 +6,21 @@ from flask import jsonify, render_template, request
 
 COLLECTIONS = dict(fantasia='Dragones', dinosaurios='Dinosaurios', cyborgs='Robots',
                    mascotas='Mascotas', goblins='Goblins', elfos='Elfos',
-                   monstruos='Monstruos', chibis='Personas chibi', pokemon='Pokémon')
+                   monstruos='Monstruos', chibis='Personas chibi', pokemon='Pokémon',
+                   anime='Clásicos del anime')
 POKEMON = (('pikachu', 'Pikachu'), ('eevee', 'Eevee'), ('charizard', 'Charizard'),
            ('bulbasaur', 'Bulbasaur'), ('squirtle', 'Squirtle'), ('mewtwo', 'Mewtwo'),
            ('gengar', 'Gengar'), ('snorlax', 'Snorlax'), ('charmander', 'Charmander'),
            ('vulpix', 'Vulpix'), ('jigglypuff', 'Jigglypuff'), ('psyduck', 'Psyduck'),
            ('mudkip', 'Mudkip'), ('gardevoir', 'Gardevoir'), ('riolu', 'Riolu'), ('lucario', 'Lucario'))
+ANIME = (('goku', 'Goku'), ('luffy', 'Luffy'), ('sailor-moon', 'Sailor Moon'),
+         ('totoro', 'Totoro'), ('doraemon', 'Doraemon'), ('seiya', 'Seiya'),
+         ('naruto', 'Naruto'), ('ichigo', 'Ichigo Kurosaki'), ('inuyasha', 'Inuyasha'),
+         ('astro-boy', 'Astro Boy'), ('tanjiro', 'Tanjiro'))
 CHARACTERS = [(f'{theme}-{i}', theme, f'{label} {i + 1}')
-              for theme, label in COLLECTIONS.items() if theme != 'pokemon' for i in range(10)] + [
-                  (f'pokemon-{slug}', 'pokemon', name) for slug, name in POKEMON]
+              for theme, label in COLLECTIONS.items() if theme not in ('pokemon', 'anime') for i in range(10)] + [
+                  (f'pokemon-{slug}', 'pokemon', name) for slug, name in POKEMON] + [
+                  (f'anime-{slug}', 'anime', name) for slug, name in ANIME]
 DEFAULTS = dict(enabled=True, theme='fantasia', canvas_format='horizontal', font='Verdana', font_size=14,
                 line_spacing=120, letter_spacing=0, max_friends=20, base_size=56,
                 max_size=112, coins_to_max=1000, bubbles=True, speech_duration=4, speed=40, show_names=True)

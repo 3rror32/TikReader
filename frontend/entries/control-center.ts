@@ -79,7 +79,7 @@ pane.dataset.section = "control-center";
 const heading = node("div", undefined, "control-room-heading");
 const headingCopy = node("div");
 headingCopy.append(node("span", "CABINA · SEÑAL PREVIA", "control-room-eyebrow"), node("h2", "Centro de control"),
-  node("p", "Comprueba el recorrido completo antes de abrir el directo. Nada se activa por entrar aquí."));
+  node("p", "Revisa el estado antes del directo."));
 const refreshButton = node("button", "Revisar ahora", "control-room-refresh");
 refreshButton.type = "button";
 heading.append(headingCopy, refreshButton);
@@ -417,9 +417,9 @@ controls.append(
 
 pane.append(heading, signal, statusText,
   sectionTitle("01 · PREPARACIÓN", "Ruta de señal", "Requisitos del servicio, almacenamiento, historial y emisión."), readinessGrid,
-  sectionTitle("02 · OPERACIÓN", "Herramientas conectadas", "Accesos rápidos; abrir esta pantalla no conecta servicios."), operations, controls,
+  sectionTitle("02 · OPERACIÓN", "Herramientas conectadas", "Accesos rápidos."), operations, controls,
   sectionTitle("03 · ESPACIO", "Componentes locales", "Instala solo lo que uses y recupera espacio sin tocar tu historial."), components, cleanupCard,
-  sectionTitle("04 · CONTINUIDAD", "Respaldos y actualizaciones", "Estas opciones permanecen bajo tu control."), continuity,
+  sectionTitle("04 · CONTINUIDAD", "Respaldos y actualizaciones", ""), continuity,
   sectionTitle("05 · ACTIVIDAD", "Notificaciones recientes", "Mensajes operativos de esta sesión del panel."),
   button("Vaciar notificaciones", () => { noticeHistory = []; notices.replaceChildren(); }), notices);
 pane.hidden = true;

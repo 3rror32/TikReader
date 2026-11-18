@@ -36,7 +36,7 @@ window.SimulationUI = (() => {
             <label><span>Cantidad</span><input id="simulation-float-count" type="number" min="1" max="9999" step="1" value="1"></label>
           </div>
           <div id="simulation-float-gift-catalog-error" class="simulation-gift-error" hidden><p id="simulation-float-gift-catalog-error-message" role="status">No se pudo cargar el catálogo de regalos. Inténtalo de nuevo.</p><button id="simulation-float-gift-catalog-retry" type="button">Intentar de nuevo</button></div>
-          <p id="simulation-float-effects-cue" class="simulation-effects-cue">Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.</p>
+          <p id="simulation-float-effects-cue" class="simulation-effects-cue">Cada envío ejecuta acciones reales en juegos, audio y overlays activados.</p>
           <div class="simulation-float-send-row"><label><span>Espera</span><span class="simulation-float-number"><input id="simulation-float-delay" type="number" min="0" max="60" step="1" value="0"><em>s</em></span></label><button id="simulation-float-send" type="submit" aria-label="Enviar comentario"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 3 10.8 13.2"/><path d="m21 3-6.5 18-3.7-7.5L3 9.8 21 3Z"/></svg><span>Enviar</span></button></div>
         </fieldset>
       </form>
@@ -47,7 +47,7 @@ window.SimulationUI = (() => {
 
   async function api(path,data){const response=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,cache:'no-store',signal:AbortSignal.timeout(10000)});const result=await response.json();if(!response.ok)throw Error(result.error||'No se pudo consultar la simulación');return result;}
   function mainStatus(text){const output=$('simulation-status');if(output)output.textContent=text;}
-  function effectsCueText(){if(!state.active)return'Al activar, cada envío ejecuta tus reglas guardadas y los overlays habituales.';if(state.muted)return'Simulación activa: las acciones están pausadas.';return'Simulación activa: al enviar, tus reglas guardadas y los overlays habituales ejecutan acciones reales.';}
+  function effectsCueText(){if(!state.active)return'Cada envío ejecuta acciones reales en juegos, audio y overlays activados.';if(state.muted)return'Simulación activa: las acciones están pausadas.';return'Cada envío ejecuta acciones reales en juegos, audio y overlays activados.';}
   function recordsFor(update){const games=update.games||{log:[]};return [...(update.traces||[]).map(x=>({at:x.at,text:`${x.rule} · ${x.action||'Regla'} · ${x.outcome}`})),...(games.log||[]).map(x=>({at:x.at,text:`${x.mapping||'Hotkeys'} · ${x.text} · ${x.outcome}`})),...(update.events||[]).flatMap(x=>(x.hotkeys||[]).map(h=>({at:x.at,text:`${h.name} · ${h.result==='Coincide'?'Regla coincide; consulta la ejecución de la tecla':h.result}`})))].sort((a,b)=>b.at-a.at).slice(0,80);}
   function renderDockEvents(update){
     const events=update.events||[],next=JSON.stringify(events.map(x=>x.id));

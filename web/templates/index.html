@@ -656,7 +656,7 @@
   <link rel="stylesheet" href="/static/custom_voice_library.css?v=compact-3">
   <link rel="stylesheet" href="/static/custom_voice_simple.css?v=homero-quick-select-4">
     <link rel="stylesheet" href="/static/microphone_captions.css?v=13">
-<script src="/static/translations.js?v=operator-state-1"></script><script src="/static/i18n.js?v=1"></script><link rel="stylesheet" href="/static/i18n.css?v=1">
+<script src="/static/translations.js?v=desktop-zoom-1"></script><script src="/static/i18n.js?v=1"></script><link rel="stylesheet" href="/static/i18n.css?v=1">
   <!-- Load every layout stylesheet before the first render; preserve cascade order. -->
   <link rel="stylesheet" href="/static/notifications.css">
   <link rel="stylesheet" href="/static/voice_structure.css?v=chat-organized-6">
@@ -665,7 +665,7 @@
   <link rel="stylesheet" href="/static/overlay_gallery.css?v=point-drop-6">
   <link rel="stylesheet" href="/static/live_games.css?v=unified-timer-1">
   <link rel="stylesheet" href="/static/alerts.css?v=20261002-readiness-audio">
-  <link rel="stylesheet" href="/static/skins.css?v=20260908-scrollbars">
+  <link rel="stylesheet" href="/static/skins.css?v=desktop-zoom-1">
   <link rel="stylesheet" href="/static/sidebar.css?v=menu-copy-3">
   <link rel="stylesheet" href="/static/about.css?v=20261005-support-header">
   <link rel="stylesheet" href="/static/live_columns.css?v=speaker-state-1">
@@ -878,12 +878,12 @@
       <label>Nombre que pronuncia la voz en comentarios <select id="tts-name-mode"><option value="account">Usuario de cuenta (@usuario)</option><option value="profile">Apodo visible del perfil</option><option value="both">Cuenta y perfil</option><option value="none">Solo comentario, sin nombre</option></select></label>
       <label><input id="tts-greetings-enabled" type="checkbox"> Saludar automáticamente a personas nuevas</label>
       <label>Texto del saludo automático <input id="tts-auto-greeting" type="text" value="¡Hola, {usuario}! Gracias por acompañarnos." maxlength="240"></label>
-      <p id="tts-name-help">El comentario visible conserva @usuario. Este selector decide qué identidad dice la voz: cuenta = @usuario; perfil = apodo visible de TikTok; ambos = cuenta y perfil; sin nombre = solo el comentario. También se aplica al saludo automático. Si TikTok no envía el apodo, se usa @usuario. Si activas “Ocultar nombres”, la voz dice “Participante”.</p>
+      <p id="tts-name-help">También se aplica al saludo automático. Si TikTok no envía el apodo, se usa @usuario. Con “Ocultar nombres”, la voz dice “Participante”.</p>
       <label><input id="tts-gifts-enabled" type="checkbox" checked> Leer regalos nuevos</label>
       <label><input id="tts-restrict" type="checkbox"> Elegir quién se lee en voz alta</label>
       <label>Leer solamente <select id="tts-audience"><option value="followers">Seguidores confirmados</option><option value="selected">Usuarios que yo elija</option><option value="manual">Manualmente con el botón Leer</option></select></label>
       <label>Usuarios permitidos <input id="tts-allowed-users" placeholder="@usuario1, @usuario2"></label>
-      <p>Comentarios y regalos se pueden activar por separado. En modo seguidores se omiten los usuarios cuyo estado TikTok no informa. El chat sigue mostrando a todos. El botón Leer permite elegir un comentario manualmente.</p>
+      <p>En modo seguidores se omiten los usuarios cuyo estado TikTok no informa; el chat sigue mostrando a todos.</p>
       <div class="voice-active-card">
         <span>Voz seleccionada</span><strong id="voice-current-character">Padre animado</strong>
         <label class="voice-ai-quick" for="voice-ai-quick-select"><span>Lectura por IA</span><select id="voice-ai-quick-select" aria-describedby="voice-ai-quick-help" disabled><option value="">Cargando voces IA…</option></select></label>
@@ -929,7 +929,7 @@
       <p>El historial contiene comentarios y perfiles públicos recibidos. Solo se guarda en este equipo.</p>
     </div>
     <div data-pane="workspace" data-view-mount="workspace" class="studio-pane" hidden>
-      <div class="settings-heading"><span>CONFIGURACIÓN</span><h2>Ajusta tu espacio de trabajo</h2><p>La apariencia y la distribución se aplican al instante. Las herramientas ocasionales están agrupadas al final.</p></div>
+      <div class="settings-heading"><span>CONFIGURACIÓN</span><h2>Ajusta tu espacio de trabajo</h2></div>
       <div class="settings-stack">
         <section class="setting-card settings-group skin-settings" aria-labelledby="skin-settings-title">
           <div class="settings-group-title"><div class="skin-settings-copy"><h3 id="skin-settings-title">Apariencia e interfaz</h3><p>Elige cómo se ve y cuánto se mueve la cabina. Ambos cambios se guardan automáticamente.</p></div></div>
@@ -944,14 +944,22 @@
           </details>
           <label class="menu-motion-setting" for="motion-level-select"><span>Movimiento de la interfaz</span><select id="motion-level-select"><option value="reduced">Reducido</option><option value="subtle" selected>Sutil</option><option value="expressive">Expresivo</option></select></label>
           <p id="menu-motion-status" class="settings-inline-status" role="status">Transiciones breves y reacciones suaves.</p>
+          <div id="desktop-zoom" class="desktop-zoom" role="group" aria-labelledby="desktop-zoom-label" hidden>
+            <span id="desktop-zoom-label">Zoom</span>
+            <div class="desktop-zoom-controls">
+              <button id="desktop-zoom-out" type="button" aria-label="Reducir zoom">−</button>
+              <button id="desktop-zoom-reset" type="button" title="Restablecer zoom al 100%" aria-live="polite">100%</button>
+              <button id="desktop-zoom-in" type="button" aria-label="Aumentar zoom">+</button>
+            </div>
+          </div>
           <div class="skin-swatches" aria-hidden="true"><i></i><i></i><i></i><i></i></div><p id="skin-status" role="status"></p>
         </section>
         <section class="setting-card settings-group audio-settings" aria-labelledby="audio-settings-title">
-          <div class="settings-group-title"><div><h3 id="audio-settings-title">Audio</h3><p>Elige el micrófono que quieres usar.</p></div></div>
+          <div class="settings-group-title"><div><h3 id="audio-settings-title">Audio</h3></div></div>
           <label for="vr-device">Micrófono<select id="vr-device"><option value="">Predeterminado de Windows</option></select></label>
         </section>
         <section class="setting-card settings-group layout-settings" aria-labelledby="layout-settings-title">
-          <div class="settings-group-title"><div><h3 id="layout-settings-title">Espacio de trabajo</h3><p>Ajusta cuánto espacio ocupa el chat.</p></div></div>
+          <div class="settings-group-title"><div><h3 id="layout-settings-title">Espacio de trabajo</h3></div></div>
           <label class="layout-range"><span>Ancho del chat</span><input id="layout-split" type="range" min="40" max="70" value="58" aria-describedby="layout-split-value"><output id="layout-split-value" for="layout-split">58% chat · 42% panel</output></label>
         </section>
         <section data-view-mount="obs" class="studio-pane">
@@ -1046,7 +1054,7 @@
       </form>
       <div class="custom-overlay-library-heading"><div><span>BIBLIOTECA</span><h3>Tus paquetes</h3></div><b id="custom-overlay-count">0 / 100</b></div>
       <div id="custom-overlay-grid" class="custom-overlay-grid"></div>
-      <div id="custom-overlay-empty" class="custom-overlay-empty" hidden><strong>Tu primer overlay empieza con un ZIP</strong><p>Usa la plantilla para ver la estructura y modifica el HTML, CSS, JavaScript y los controles a tu gusto.</p></div>
+      <div id="custom-overlay-empty" class="custom-overlay-empty" hidden><strong>Aún no hay overlays instalados</strong><p>Descarga el paquete de ejemplo o instala tu ZIP.</p></div>
       <p id="custom-overlay-status" role="status"></p>
     </div>
     <section id="custom-overlay-editor" class="custom-overlay-editor" hidden aria-labelledby="custom-overlay-name">
@@ -1076,7 +1084,7 @@
   <section data-section="platform-integrations" class="platform-integrations-page" aria-labelledby="platform-integrations-title">
     <div class="settings-heading platform-integrations-heading">
       <span>CANALES EXTERNOS</span>
-      <h2 id="platform-integrations-title">Configura una vez. Conecta cada LIVE en segundos.</h2>
+      <h2 id="platform-integrations-title">Acceso a YouTube, Twitch y Kick</h2>
       <p>Guarda aquí el acceso a YouTube, Twitch y Kick. En la pantalla principal solo tendrás que indicar el video o canal.</p>
     </div>
     <aside class="platform-vault-note" aria-label="Protección de credenciales">
@@ -1266,7 +1274,7 @@
 </script>
 <script src="/static/notifications.js"></script>
 <script src="/static/voice_personality.js?v=1"></script>
-<script src="/static/studio.js?v=20261002-alert-status"></script>
+<script src="/static/studio.js?v=desktop-zoom-1"></script>
 <script src="/static/chat_extras.js?v=speaker-state-1"></script>
 <script src="/static/workspace.js?v=speaker-state-2"></script>
 <script src="/static/overlay_animation_defaults.js?v=portrait-cannon-1"></script>

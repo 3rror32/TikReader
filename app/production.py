@@ -229,7 +229,7 @@ class Production:
 
         @app.after_request
         def no_cache(response):
-            if request.path.startswith(('/production/', '/remote/', '/broadcast/')):
+            if request.path.startswith(('/production/', '/remote/', '/broadcast/', '/widget/')):
                 response.headers['Cache-Control'] = 'no-store'
             if not self.local() and request.args.get('access') and self.valid_view_access():
                 with self.remote_access_lock:

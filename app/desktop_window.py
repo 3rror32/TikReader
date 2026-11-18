@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, QUrl, Signal, Slot
+from PySide6.QtCore import QEvent, QObject, Property, QRunnable, QThreadPool, QTimer, Qt, QUrl, Signal, Slot
 from PySide6.QtGui import QFont, QIcon
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -287,6 +287,39 @@ class NativeVoiceBridge(QObject):
         self.failed.emit(error_string or "La voz del sistema no está disponible.")
 
 
+class NativeZoomBridge(QObject):
+    changed = Signal(int)
+
+    def __init__(self, page: QWebEnginePage, parent: QObject):
+        super().__init__(parent)
+        self._page = page
+        page.zoomFactorChanged.connect(self._notify_change)
+
+    @Property(int, constant=True)
+    def minimum(self) -> int:
+        return 50
+
+    @Property(int, constant=True)
+    def maximum(self) -> int:
+        return 200
+
+    @Property(int, notify=changed)
+    def percent(self) -> int:
+        return round(self._page.zoomFactor() * 100)
+
+    @Slot(int)
+    def step(self, steps: int) -> None:
+        percent = min(self.maximum, max(self.minimum, self.percent + steps * 10))
+        self._page.setZoomFactor(percent / 100)
+
+    @Slot()
+    def reset(self) -> None:
+        self._page.setZoomFactor(1.0)
+
+    def _notify_change(self, _factor: float) -> None:
+        self.changed.emit(self.percent)
+
+
 class StudioWebView(QWebEngineView):
     """Web studio hosted by TikReader itself, including native popup windows."""
 
@@ -301,8 +334,13 @@ class StudioWebView(QWebEngineView):
 
         self._web_channel = QWebChannel(page)
         self._native_voice = NativeVoiceBridge(self._web_channel)
+        self._native_zoom = NativeZoomBridge(page, self._web_channel)
         self._web_channel.registerObject("nativeVoice", self._native_voice)
+        self._web_channel.registerObject("nativeZoom", self._native_zoom)
         page.setWebChannel(self._web_channel)
+        self._zoom_wheel_delta = 0
+        # Chromium receives wheel events through an internal child widget.
+        QApplication.instance().installEventFilter(self)
         self._loaded_once = False
         self._renderer_recovery = QTimer(self)
         self._renderer_recovery.setSingleShot(True)
@@ -315,6 +353,22 @@ class StudioWebView(QWebEngineView):
         settings.setAttribute(QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False)
         if hasattr(page, "featurePermissionRequested"):
             page.featurePermissionRequested.connect(self._grant_local_permission)
+
+    def eventFilter(self, watched, event):
+        if (event.type() == QEvent.Type.Wheel
+                and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+                and (watched is self or isinstance(watched, QWidget) and self.isAncestorOf(watched))):
+            delta = event.angleDelta().y()
+            if delta:
+                total = self._zoom_wheel_delta + delta
+                steps, remainder = divmod(abs(total), 120)
+                direction = 1 if total > 0 else -1
+                self._zoom_wheel_delta = direction * remainder
+                if steps:
+                    self._native_zoom.step(direction * steps)
+                event.accept()
+                return True
+        return super().eventFilter(watched, event)
 
     def _remember_successful_load(self, loaded: bool) -> None:
         if loaded:

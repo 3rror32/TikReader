@@ -66,6 +66,19 @@ html[data-skin="cute"] .sidebar-brand::after{content:'♥';color:var(--skin-acce
 
 .skin-settings{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px 24px;align-items:center;margin:0 0 24px!important;overflow:hidden}
 .skin-settings-copy h3{margin-bottom:7px}.skin-settings-copy p{margin:0}.skin-picker{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}.skin-picker label{display:grid!important;justify-content:initial!important;gap:6px!important;margin:0!important}.skin-picker select{min-width:170px!important;max-width:none!important}.skin-picker button{min-height:38px}.skin-swatches{grid-column:1/3;display:grid;grid-template-columns:repeat(4,1fr);height:7px;border-radius:999px;overflow:hidden;background:#22303d}.skin-swatches i:nth-child(1){background:#86dfbe}.skin-swatches i:nth-child(2){background:#ff9fcd}.skin-swatches i:nth-child(3){background:#a78bfa}.skin-swatches i:nth-child(4){background:#ffad91}.skin-settings #skin-status{grid-column:1/3;min-height:18px;margin:0;color:var(--teal)}
+.desktop-zoom:not([hidden]) {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  border-top: 1px solid var(--skin-border, var(--border));
+  padding-top: 12px;
+  font-weight: 650;
+}
+.desktop-zoom-controls { display: grid; grid-template-columns: 36px 4.5em 36px; gap: 4px; }
+.desktop-zoom-controls button { min-height: 36px; padding: 4px; font-variant-numeric: tabular-nums; }
 html[data-skin="kawai"] .skin-swatches i:nth-child(1){background:#ff9fcd}html[data-skin="kawai"] .skin-swatches i:nth-child(2){background:#c4a7e7}html[data-skin="kawai"] .skin-swatches i:nth-child(3){background:#8fe3d1}html[data-skin="kawai"] .skin-swatches i:nth-child(4){background:#ffe0ef}
 html[data-skin="dark"] .skin-swatches i:nth-child(1){background:#07090f}html[data-skin="dark"] .skin-swatches i:nth-child(2){background:#a78bfa}html[data-skin="dark"] .skin-swatches i:nth-child(3){background:#4ee7df}html[data-skin="dark"] .skin-swatches i:nth-child(4){background:#30394c}
 html[data-skin="light"] .skin-swatches i:nth-child(1){background:#fff}html[data-skin="light"] .skin-swatches i:nth-child(2){background:#087e72}html[data-skin="light"] .skin-swatches i:nth-child(3){background:#276ca8}html[data-skin="light"] .skin-swatches i:nth-child(4){background:#dcefeb}

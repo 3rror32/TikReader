@@ -94,3 +94,26 @@
 @media(prefers-reduced-motion:reduce){.overlay-header-activation input::before{transition:none}}
 
 .overlay-header-activation input[type=checkbox]::after{display:none!important}
+
+/* Stream Buddies controls: a compact, titled companion to the private preview. */
+.stream-buddies-settings{gap:12px;border-color:#35505a;background:linear-gradient(155deg,#0c171d,#0a1318 72%)}
+.stream-buddies-settings .stream-buddies-settings__title{margin:0!important;color:#edf7f5;font:700 17px/1.2 var(--font-display)}
+.stream-buddies-settings .stream-buddies-settings__intro{margin:0;color:#a8bac0;font:12px/1.55 Inter,sans-serif}
+.stream-buddies-settings .stream-buddies-settings__preview-note{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;margin:0;padding:10px 12px;border:1px solid #28544f;border-left:3px solid #65dfc2;background:#0d2224;color:#c5d8d8}
+.stream-buddies-settings .stream-buddies-settings__preview-note>span{color:#78e5c9;font:700 9px/1.2 var(--font-data);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.stream-buddies-settings .stream-buddies-settings__preview-note p{margin:0;color:#a9c0bf;font:11px/1.45 Inter,sans-serif}
+.stream-buddies-settings .stream-buddies-settings__group{min-width:0;margin:0;padding:8px 9px 9px;border:1px solid #263e45;background:#0a1419}
+.stream-buddies-settings .stream-buddies-settings__group legend{padding:0 6px;color:#b9d4d3;font:600 10px/1.3 var(--font-data);letter-spacing:.06em}
+.stream-buddies-settings .stream-buddies-settings__canvas-note{grid-column:1/-1;margin:0;padding:7px 9px;border-left:2px solid #3d6e66;background:#0b171c;color:#9fb4b7;font:10px/1.45 var(--font-data)}
+.stream-buddies-settings .stream-buddies-settings__grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.stream-buddies-settings .stream-buddies-settings__grid label{min-width:0;align-content:start}
+.stream-buddies-settings .stream-buddies-settings__grid :is(input,select):focus-visible{outline:2px solid #65dfc2;outline-offset:2px}
+.stream-buddies-settings .stream-buddies-settings__preview-action{border:1px solid #35544f!important;background:#102126!important;color:#c8e2dd!important}
+.stream-buddies-settings .stream-buddies-settings__save-action{border-color:#65dfc2!important;background:#65dfc2!important;color:#071713!important}
+.stream-buddies-workbench{grid-template-columns:minmax(0,1.15fr) minmax(380px,.85fr)}
+@media(max-width:650px){
+ .stream-buddies-settings .stream-buddies-settings__grid{grid-template-columns:minmax(0,1fr)}
+ .stream-buddies-settings .stream-buddies-settings__preview-note{grid-template-columns:minmax(0,1fr);gap:5px}
+ .stream-buddies-settings .stream-buddies-settings__group{padding-inline:8px}
+}
+@media(max-width:1100px){.stream-buddies-workbench{grid-template-columns:minmax(0,1fr)}}

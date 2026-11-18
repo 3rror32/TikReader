@@ -1,6 +1,25 @@
 /* Studio controls use browser voices; no external TTS service or paid API. */
 window.Studio = (() => {
   const $ = id => document.getElementById(id);
+  function connectDesktopZoom(zoom) {
+    const row = $('desktop-zoom');
+    if (!zoom || !row) return;
+    const decrease = $('desktop-zoom-out');
+    const reset = $('desktop-zoom-reset');
+    const increase = $('desktop-zoom-in');
+    const render = percent => {
+      reset.textContent = `${percent}%`;
+      decrease.disabled = percent <= zoom.minimum;
+      increase.disabled = percent >= zoom.maximum;
+    };
+    decrease.onclick = () => zoom.step(-1);
+    reset.onclick = () => zoom.reset();
+    increase.onclick = () => zoom.step(1);
+    zoom.changed.connect(render);
+    render(zoom.percent);
+    row.hidden = false;
+  }
+
   let nativeVoice=null,nativePlayback=null;
   const nativeVoiceReady=window.qt?.webChannelTransport?new Promise(resolve=>{
     if(!window.QWebChannel){resolve(null);return;}
@@ -12,6 +31,7 @@ window.Studio = (() => {
         nativeVoice.failed.connect(message=>{const playing=nativePlayback;nativePlayback=null;if(!playing||playing.generation!==epoch)return;active=false;currentItem=null;queue=[];voiceError=`Error de voz: ${message||'no disponible'}. Pulsa Probar voz para reintentar.`;updateVoice();audioNotice(voiceError);});
       }
       resolve(nativeVoice);
+      connectDesktopZoom(channel.objects.nativeZoom);
     });}catch(_){resolve(null);}
   }):null;
   function cancelSystemVoice(){if(nativeVoiceReady){nativePlayback=null;nativeVoice?.stop();}else window.speechSynthesis?.cancel();}

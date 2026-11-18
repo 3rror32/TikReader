@@ -5,7 +5,7 @@
  async function api(path,data){const r=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined,signal:AbortSignal.timeout(path.startsWith('/spotify/')?25000:5000)});const d=await r.json();if(!r.ok)throw Error(d.error||'Error de conexión');return d;}
  function button(text,fn){const b=el('button',text);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){notice.textContent=e.message;}finally{b.disabled=false;}};return b;}
  function field(label,type='input',options=[]){const l=el('label',label),n=el(type);for(const [value,text] of options){const o=el('option',text);o.value=value;n.append(o);}l.append(n);pane.append(l);return n;}
- pane.append(el('p','Opcional. Sirve para ejecutar una acción cuando llega un comentario, regalo, like u otro evento. Si solo quieres ver el chat, escuchar comentarios y revisar regalos, no necesitas configurar nada aquí.'));
+ pane.append(el('p','Opcional: ejecuta acciones al recibir eventos del LIVE.'));
  pane.append(el('p','Las reglas son locales: evento → acción. No envían mensajes automáticos a TikTok. Los regalos se activan por incrementos observados y respetan el intervalo.'));
  const name=field('Nombre de regla'),event=field('Evento','select',[['comment','Comentario'],['gift','Regalo'],['like','Likes'],['follow','Nuevo seguidor'],['share','Compartido'],['subscribe','Notificación de suscripción']]);
  const match=field('Contiene este texto o nombre de regalo (vacío = cualquiera)');

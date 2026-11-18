@@ -709,5 +709,82 @@
     "anatomy": "biped",
     "legs": 2,
     "authored": true
+  },
+  "anime-goku": {
+    "anatomy": "biped",
+    "legs": 2,
+    "frames": 4,
+    "authored": true,
+    "stride": 0.2
+  },
+  "anime-luffy": {
+    "anatomy": "biped",
+    "legs": 2,
+    "frames": 4,
+    "authored": true,
+    "stride": 0.2
+  },
+  "anime-sailor-moon": {
+    "anatomy": "biped",
+    "legs": 2,
+    "frames": 4,
+    "authored": true,
+    "stride": 0.18
+  },
+  "anime-totoro": {
+    "anatomy": "biped",
+    "legs": 2,
+    "frames": 4,
+    "authored": true,
+    "stride": 0.14
+  },
+  "anime-doraemon": {
+    "anatomy": "quadruped",
+    "legs": 4,
+    "frames": 6,
+    "authored": true,
+    "stride": 0.09
+  },
+  "anime-seiya": {
+    "anatomy": "biped",
+    "legs": 2,
+    "frames": 6,
+    "authored": true,
+    "stride": 0.2
+  },
+  "anime-naruto": {
+    "anatomy": "biped",
+    "frames": 6,
+    "stride": 0.21,
+    "authored": true,
+    "legs": 2
+  },
+  "anime-ichigo": {
+    "anatomy": "biped",
+    "frames": 6,
+    "stride": 0.2,
+    "authored": true,
+    "legs": 2
+  },
+  "anime-inuyasha": {
+    "anatomy": "biped",
+    "frames": 6,
+    "stride": 0.17,
+    "authored": true,
+    "legs": 2
+  },
+  "anime-astro-boy": {
+    "anatomy": "biped",
+    "frames": 6,
+    "stride": 0.2,
+    "authored": true,
+    "legs": 2
+  },
+  "anime-tanjiro": {
+    "anatomy": "biped",
+    "frames": 6,
+    "stride": 0.2,
+    "authored": true,
+    "legs": 2
   }
 }

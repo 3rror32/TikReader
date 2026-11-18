@@ -40,6 +40,9 @@ Centro de control: revisa y controla las automatizaciones conectadas a tu direct
 Control en directo|Live controls|Contrôle en direct
 Apariencia del overlay|Overlay appearance|Apparence de l’overlay
 Movimiento de la interfaz|Interface motion|Mouvement de l’interface
+Reducir zoom|Zoom out|Réduire le zoom
+Aumentar zoom|Zoom in|Augmenter le zoom
+Restablecer zoom al 100%|Reset zoom to 100%|Rétablir le zoom à 100 %
 Reducido|Reduced|Réduit
 Sutil|Subtle|Subtil
 Expresivo|Expressive|Expressif
